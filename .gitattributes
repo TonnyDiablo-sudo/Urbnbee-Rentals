@@ -1,0 +1,11 @@
+# Forzar LF en archivos de texto para que Railway/Nixpacks (Linux) los lea sin sorpresas.
+* text=auto eol=lf
+
+# Binarios — sin conversión.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary

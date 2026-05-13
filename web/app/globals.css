@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+  --urb-gold: #dcb81e;
+  --urb-gold-hover: #c9a71a;
+  --urb-black: #000000;
+  --urb-text: #3a3a3a;
+  --urb-heading: #484848;
+  --urb-bg: #ffffff;
+}
+
+@theme inline {
+  --color-background: var(--urb-bg);
+  --color-foreground: var(--urb-text);
+  --font-sans: var(--font-roboto), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--urb-bg);
+  color: var(--urb-text);
+}

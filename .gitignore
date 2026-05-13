@@ -1,0 +1,16 @@
+# Urbnbee Airbnbe — raíz del repo (app en web/)
+
+web/node_modules/
+web/.next/
+web/out/
+web/.env*
+web/.vercel
+web/*.tsbuildinfo
+web/next-env.d.ts
+web/npm-debug.log*
+web/yarn-error.log*
+web/public/uploads/
+web/data/marketplace-store.json
+
+.DS_Store
+Thumbs.db

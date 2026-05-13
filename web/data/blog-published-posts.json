@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "posts": [
+    {
+      "slug": "urbnbee-rutina-anfitrion-30-minutos",
+      "title": "Rutina de 30 minutos para mantener tu anuncio al día en Urbnbee",
+      "publishedAt": "2026-05-12",
+      "excerpt": "Un repaso breve de calendario, reglas y fotos te ahorra malentendidos y hace que Urbnbee AI responda con más precisión.",
+      "paragraphs": [
+        "En Urbnbee, el anuncio no es un trámite: es la base de la confianza. Reservar 30 minutos a la semana para revisar bloqueos, precios por fecha y reglas de mascotas te mantiene alineado con lo que el huésped ve en la ficha y con lo que Urbnbee AI puede explicar sin inventar.",
+        "Empieza por el calendario: marca mantenimiento y noches que no quieres vender; después revisa la tarifa base y la tarifa de limpieza. Si algo cambió en tu espacio (nuevo escritorio, mejor WiFi), menciónalo en la descripción para que BeeBot y Urbnbee AI lo reflejen.",
+        "Cierra la rutina leyendo una conversación reciente en el chat del listado: ahí ves preguntas repetidas que quizá puedas resolver mejor en el texto del anuncio. Urbnbee está pensado para comunidades sanas: menos fricción, más reservas en serio.",
+        "Si activaste verificación de huésped en tu entorno, recuerda que es parte del modelo de confianza de Urbnbee; no compites solo por precio, sino por claridad y seguridad para ambas partes."
+      ]
+    },
+    {
+      "slug": "urbnbee-ai-reducir-preguntas-repetidas",
+      "title": "Urbnbee AI: cómo reduces preguntas repetidas sin perder el tono humano",
+      "publishedAt": "2026-05-13",
+      "excerpt": "El asistente resume lo que ya publicaste; tú te enfocas en decisiones que sí requieren criterio.",
+      "paragraphs": [
+        "Los huéspedes preguntan lo mismo por rutina: mascotas, estacionamiento, horarios de entrada. Urbnbee AI está diseñado para leer tu anuncio y responder dentro de ese contexto, en español claro y sin inventar políticas que no existen.",
+        "La clave está en escribir bien la primera vez: reglas de convivencia, qué incluye la tarifa y qué no. Cuando la información está incompleta, el modelo puede quedar corto o pedir aclaraciones que podrías haber resuelto en la ficha.",
+        "Usa Urbnbee AI como primer filtro, no como reemplazo del trato humano: cuando llegue una solicitud de grupo grande o un caso especial, tu respuesta personal marca la diferencia y refuerza la marca Urbnbee como lugar serio para reservar.",
+        "Si eres anfitrión en Ciudad de México, destaca barrio y referencias reales; Urbnbee AI puede sintetizar rutas y ambiente solo si tú ya los describiste con honestidad."
+      ]
+    },
+    {
+      "slug": "checklist-huesped-antes-reservar-urbnbee",
+      "title": "Checklist del huésped antes de reservar en Urbnbee",
+      "publishedAt": "2026-05-14",
+      "excerpt": "Antes de pagar, revisa reglas, totales y el flujo de verificación; así evitas sorpresas y apoyas un marketplace más seguro.",
+      "paragraphs": [
+        "Leer la descripción completa vale más que mirar solo las fotos: en Urbnbee el anfitrión define mascotas, niños y políticas de ruido. Si algo no está escrito, usa el chat del listado antes de asumir.",
+        "Comprueba fechas en el calendario y el desglose del pago: estancia, limpieza si aplica y cargo de servicio de la plataforma cuando esté configurado. La idea es un total comprensible antes de entrar a checkout.",
+        "Donde exista verificación de huésped, entiende que no es un capricho: reduce perfiles falsos y protege a quien abre su casa. Urbnbee combina eso con herramientas como Urbnbee AI para que tus dudas básicas se resuelvan rápido.",
+        "Después de reservar, mantén la comunicación dentro de la plataforma cuando sea posible: ayuda a dar contexto si hay cambios de horario o llegada tardía."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "messages": [
+    {
+      "id": "msg_sim_a8f1_laura_g1",
+      "listingId": "lst_pedro_departamento_roma",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "sess_sim_laura_roma_01",
+      "sender": "guest",
+      "guestName": "Laura M.",
+      "guestEmail": "laura.m.ejemplo@gmail.com",
+      "body": "Hola Pedro, ¿el check-in puede ser un poco antes del mediodía el viernes que llego? Vengo en vuelo temprano desde Monterrey. Gracias.",
+      "createdAt": "2026-05-06T14:22:00.000Z"
+    },
+    {
+      "id": "msg_sim_a8f2_pedro_r1",
+      "listingId": "lst_pedro_departamento_roma",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "sess_sim_laura_roma_01",
+      "sender": "host",
+      "guestName": "",
+      "body": "¡Hola Laura! Sí, podemos coordinar entrada entre 11 y 12 si me escribes cuando tengas el vuelo confirmado. Te mando instrucciones por aquí el día anterior.",
+      "createdAt": "2026-05-06T18:05:00.000Z"
+    },
+    {
+      "id": "msg_sim_b3e1_marco_g1",
+      "listingId": "lst_pedro_habitacion_condesa",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "sess_sim_marco_condesa_02",
+      "sender": "guest",
+      "guestName": "Marco",
+      "guestEmail": "",
+      "body": "Buenas tardes, ¿la habitación tiene escritorio firme para trabajar varias horas? Trabajo remoto y necesito buena luz. Saludos.",
+      "createdAt": "2026-05-07T21:40:00.000Z"
+    },
+    {
+      "id": "msg_sim_c9d1_familia_g1",
+      "listingId": "lst_pedro_casa_coyoacan",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "sess_sim_familia_coyo_03",
+      "sender": "guest",
+      "guestName": "Familia Ruiz",
+      "guestEmail": "ruiz.viaje@outlook.com",
+      "body": "Hola, vamos con dos niños (7 y 10 años). ¿El patio está cerrado por si el pequeño sale a jugar? También queremos saber si hay supermercado cerca para comprar desayuno.",
+      "createdAt": "2026-05-08T09:15:00.000Z"
+    },
+    {
+      "id": "msg_sim_c9d2_familia_g2",
+      "listingId": "lst_pedro_casa_coyoacan",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "sess_sim_familia_coyo_03",
+      "sender": "guest",
+      "guestName": "Familia Ruiz",
+      "guestEmail": "ruiz.viaje@outlook.com",
+      "body": "Ah y otra duda: ¿aceptan una mascota pequeña (caniche)? Viaja en transportín y no sube a muebles. Gracias de antemano.",
+      "createdAt": "2026-05-08T11:03:00.000Z"
+    },
+    {
+      "id": "msg_sim_d2a1_sofia_g1",
+      "listingId": "lst_pedro_departamento_roma",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "sess_sim_sofia_roma_04",
+      "sender": "guest",
+      "guestName": "Sofía",
+      "guestEmail": "sofia.hospeda@gmail.com",
+      "body": "¿Tienen disponibilidad para 3 noches del 20 al 23 de junio? Somos 2 personas. Si sí, ¿hay descuento por estancia un poco larga?",
+      "createdAt": "2026-05-08T16:45:00.000Z"
+    }
+  ]
+}

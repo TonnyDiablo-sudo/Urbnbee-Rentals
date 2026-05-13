@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "bookings": [
+    {
+      "listingId": "lst_pedro_casa_coyoacan",
+      "hostId": "usr_seed_pedro_dev",
+      "guestEmail": "molony@gmail.com",
+      "guestName": "Tonny Molony",
+      "checkIn": "2026-06-07",
+      "checkOut": "2026-06-11",
+      "nights": 4,
+      "estimatedTotalMxn": 10150,
+      "cleaningFeeMxn": 350,
+      "status": "PENDING",
+      "token": "324406",
+      "id": "bkg_777f23fb7668eb1fb2ba",
+      "createdAt": "2026-05-08T22:24:11.520Z",
+      "updatedAt": "2026-05-08T22:24:11.520Z"
+    }
+  ]
+}
