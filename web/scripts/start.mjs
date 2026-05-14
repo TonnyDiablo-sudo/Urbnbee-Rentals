@@ -5,12 +5,13 @@
  * 1) Si `URBNBEE_DATA_DIR` apunta a un volumen distinto de `./data`, copia los JSON semilla
  *    del bundle (`./data/*.json`) hacia el volumen — solo cuando el archivo destino NO existe.
  *    Así el primer deploy nace con blog/listings seed y los siguientes conservan lo que escribió la app.
- * 2) Crea `URBNBEE_UPLOADS_DIR` si está definido.
- * 3) Lanza `next start` heredando el PORT que Railway inyecta.
+ * 3) Si hay `DATABASE_URL` / `MYSQL_URL` / `DATABASE_PRIVATE_URL`, ejecuta `scripts/db-migrate.mjs`
+ *    (idempotente) antes de levantar Next — así el schema existe en la red privada de Railway.
+ * 4) Lanza `next start` heredando el PORT que Railway inyecta.
  */
 import { existsSync, mkdirSync, readdirSync, copyFileSync, statSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const cwd = process.cwd();
@@ -66,6 +67,24 @@ if (existsSync(bundledDataDir) && resolve(targetDataDir) !== resolve(bundledData
 console.log(`[start] DATA_DIR=${targetDataDir}`);
 console.log(`[start] UPLOADS_DIR=${targetUploadsDir}`);
 console.log(`[start] PORT=${process.env.PORT ?? "(default)"}`);
+
+const dbUrl =
+  process.env.DATABASE_URL?.trim() ||
+  process.env.MYSQL_URL?.trim() ||
+  process.env.DATABASE_PRIVATE_URL?.trim();
+if (dbUrl) {
+  const migrateScript = join(cwd, "scripts", "db-migrate.mjs");
+  console.log("[start] DATABASE_URL/MYSQL_URL presente → ejecutando db:migrate");
+  const mig = spawnSync(process.execPath, [migrateScript], {
+    stdio: "inherit",
+    cwd,
+    env: process.env,
+  });
+  if (mig.status !== 0) {
+    console.error("[start] db-migrate falló con código", mig.status);
+    process.exit(mig.status ?? 1);
+  }
+}
 
 const __filename = fileURLToPath(import.meta.url);
 void __filename;

@@ -3,10 +3,10 @@
 Esta guía levanta el proyecto (Next.js 16 en `web/`) en un **nuevo servicio de Railway**
 y lo deja sirviendo en **`urbnbee.net`** mientras movemos el dominio definitivo después.
 
-> **Importante:** Hoy la app guarda datos en archivos JSON (`web/data/*.json`) y fotos en
-> `web/public/uploads/`. Sin un Volume persistente, **cada redeploy borra los datos
-> nuevos**. Esta guía monta un Volume y apunta el código allí vía env vars (`URBNBEE_DATA_DIR`
-> y `URBNBEE_UPLOADS_DIR`). Plan futuro: migrar a MySQL como dice `SYSTEM_ARCHITECTURE_AND_ROADMAP.md`.
+> **Persistencia:** Hoy la app sigue usando **JSON** en el volumen (`URBNBEE_DATA_DIR`) para
+> marketplace/reservas; además puedes tener **MySQL** como servicio aparte: variables
+> `DATABASE_URL` (referencia al plugin MySQL) y migración automática al **arranque** del
+> contenedor (`scripts/start.mjs` ejecuta `db:migrate` si hay URL de MySQL). Ver §2b.
 
 ---
 
@@ -49,6 +49,20 @@ git push -u origin main
 
 ---
 
+## 2b) MySQL como **servicio aparte** (recomendado)
+
+1. En el mismo proyecto Railway: **New → Database → MySQL** (o CLI: `railway add -d mysql -s MySQL`).
+2. En el servicio **web**: **Variables → New Variable** y crea `DATABASE_URL` como **referencia**
+   al servicio MySQL (Railway resuelve la URL interna `mysql.railway.internal`). La app lee
+   `DATABASE_URL`, `MYSQL_URL` y `DATABASE_PRIVATE_URL` en `web/lib/db.ts`.
+3. **No** ejecutes `npm run db:migrate` solo desde tu PC contra `mysql.railway.internal`: ese
+   host solo existe **dentro** de Railway. Con `DATABASE_URL` definida, `web/scripts/start.mjs`
+   lanza `db:migrate` en cada arranque del contenedor (SQL idempotente con `IF NOT EXISTS`).
+4. Comprueba: `GET https://<tu-dominio>/api/health` → `"mysql":"ok"`.
+5. Borra en el canvas cualquier servicio MySQL duplicado vacío para no pagar de más.
+
+---
+
 ## 3) Montar el Volume de persistencia
 
 1. En el servicio → **Volumes → New Volume**.
@@ -66,6 +80,7 @@ Ve a **Variables** y agrega (los marcados como **opcional** pueden quedar vacío
 | Variable | Valor sugerido | Notas |
 |----------|---------------|-------|
 | `SESSION_SECRET` | string de 64 hex | Genera con `openssl rand -hex 32` o `python -c "import secrets;print(secrets.token_hex(32))"` |
+| `DATABASE_URL` | *(referencia `${{MySQL.MYSQL_URL}}`)* | Opcional hasta que conectes MySQL. Sin ella, `/api/health` marca `mysql: "disabled"`. |
 | `URBNBEE_DATA_DIR` | `/data/json` | Persiste JSON (listings, usuarios, reservas, blog, etc.) |
 | `URBNBEE_UPLOADS_DIR` | `/data/uploads` | Persiste fotos subidas por hosts/guests |
 | `NODE_ENV` | `production` | Railway ya lo pone, pero confirmar |
@@ -136,7 +151,8 @@ Railway redeploya y queda listo.
    resultante (`/uploads/host-listings/…`) debe abrir bien en otra pestaña.
 3. **Persistencia:** crea un listing/booking, dispara un redeploy desde Railway, y
    confirma que el dato sigue ahí.
-4. **Stripe (si configurado):** dispara un test webhook desde Stripe Dashboard y
+4. **MySQL (si lo configuraste):** `https://urbnbee.net/api/health` debe responder `"mysql":"ok"`.
+5. **Stripe (si configurado):** dispara un test webhook desde Stripe Dashboard y
    confirma 200 en Railway logs.
 
 ---
@@ -146,8 +162,8 @@ Railway redeploya y queda listo.
 - **Logs en vivo:** servicio → **Deployments → View Logs**.
 - **Shell remoto:** `Railway CLI → railway shell` (útil para `ls /data/json`).
 - **Limpiar seed:** `rm /data/json/*.json` desde el shell + redeploy.
-- **Backups:** el plan recomendado es migrar a MySQL pronto. Mientras tanto, descarga
-  `/data/json` periódicamente vía shell (`tar czf - /data | base64`) hasta tener DB real.
+- **Backups:** con MySQL activo, exporta dumps desde el plugin o backups de Railway; el JSON
+  en `/data/json` sigue siendo copia de seguridad útil hasta migrar lecturas/escrituras al SQL.
 - **Rollback:** Deployments → Redeploy en una versión anterior.
 
 ---
