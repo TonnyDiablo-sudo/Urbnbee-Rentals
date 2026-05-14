@@ -79,6 +79,9 @@ Ve a **Variables** y agrega (los marcados como **opcional** pueden quedar vacío
 
 | Variable | Valor sugerido | Notas |
 |----------|---------------|-------|
+| `URBNBEE_PARTNER_API_SECRET` | hex 64 chars | **BeeAgent / urbnbeeai.com:** `Authorization: Bearer …` en `/api/integrations/beeagent/v1/*`. |
+| `URBNBEE_PARTNER_WEBHOOK_SECRET` | (opcional) | Firma HMAC webhooks BeeAgent→Urbnbee; si vacío usa la misma que `URBNBEE_PARTNER_API_SECRET`. |
+| `URBNBEE_PARTNER_ORIGINS` | `https://urbnbeeai.com,https://www.urbnbeeai.com` | CORS para llamadas desde el navegador en esos orígenes. |
 | `SESSION_SECRET` | string de 64 hex | Genera con `openssl rand -hex 32` o `python -c "import secrets;print(secrets.token_hex(32))"` |
 | `DATABASE_URL` | *(referencia `${{MySQL.MYSQL_URL}}`)* | Opcional hasta que conectes MySQL. Sin ella, `/api/health` marca `mysql: "disabled"`. |
 | `URBNBEE_DATA_DIR` | `/data/json` | Persiste JSON (listings, usuarios, reservas, blog, etc.) |
