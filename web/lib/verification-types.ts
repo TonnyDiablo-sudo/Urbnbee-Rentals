@@ -1,3 +1,6 @@
+/** Región de precios Stripe (MXN vs USD) para membresía huésped. */
+export type VerificationRegion = "mx" | "us";
+
 /** Estado de suscripción mensual de verificación + huecos para proveedor KYC (Persona, etc.). */
 export type VerificationSubscriptionStatus =
   | "none"

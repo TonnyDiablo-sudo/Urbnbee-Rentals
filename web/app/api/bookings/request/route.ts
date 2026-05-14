@@ -12,7 +12,11 @@ import {
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { getSessionUser } from "@/lib/session";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
-import { isGuestEligibleToBook } from "@/lib/verification-store";
+import {
+  getVerification,
+  isGuestEligibleToBook,
+  stripeIdentityEnabled,
+} from "@/lib/verification-store";
 
 function clientIp(req: NextRequest): string {
   return (
@@ -40,11 +44,24 @@ export async function POST(req: NextRequest) {
   }
 
   if (!isGuestEligibleToBook(user.id)) {
+    const v = getVerification(user.id);
+    const subOk = v && (v.subscriptionStatus === "active" || v.subscriptionStatus === "trialing");
+    const idOk = !stripeIdentityEnabled() || v?.kycStatus === "verified";
+    let error =
+      "Para reservar en Urbnbee necesitas membresía de verificación activa y, si aplica, identidad confirmada.";
+    if (!subOk) {
+      error =
+        "Contrata una membresía de verificación (mensual o anual) en «Membresía» para poder solicitar reservas.";
+    } else if (stripeIdentityEnabled() && !idOk) {
+      error =
+        "Completa la verificación de identidad (documento + selfie) en «Membresía» para poder reservar.";
+    }
     return NextResponse.json(
       {
-        error:
-          "Activa tu suscripción mensual de verificación de huésped para poder reservar alojamientos.",
+        error,
         needsVerification: true,
+        needsMembership: !subOk,
+        needsIdentity: Boolean(subOk && stripeIdentityEnabled() && !idOk),
       },
       { status: 403 }
     );

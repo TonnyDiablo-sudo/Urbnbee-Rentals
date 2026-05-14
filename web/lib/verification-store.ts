@@ -1,7 +1,11 @@
 import "server-only";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
-import type { GuestVerificationRecord, VerificationSubscriptionStatus } from "@/lib/verification-types";
+import type {
+  GuestVerificationRecord,
+  VerificationRegion,
+  VerificationSubscriptionStatus,
+} from "@/lib/verification-types";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 const DATA_FILE = join(getDataDir(), "guest-verification.json");
@@ -54,9 +58,66 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-/** Si no hay Price ID de suscripción en env, no exigimos verificación (desarrollo). */
+function hasRegionalStripePrices(): boolean {
+  return Boolean(
+    process.env.STRIPE_PRICE_VERIFICATION_MX_MONTHLY?.trim() ||
+      process.env.STRIPE_PRICE_VERIFICATION_MX_ANNUAL?.trim() ||
+      process.env.STRIPE_PRICE_VERIFICATION_US_MONTHLY?.trim() ||
+      process.env.STRIPE_PRICE_VERIFICATION_US_ANNUAL?.trim()
+  );
+}
+
+/** Al menos un price ID (mensual o anual) en env → se exige membresía para reservar. */
 export function verificationSubscriptionConfigured(): boolean {
-  return Boolean(process.env.STRIPE_PRICE_VERIFICATION_MONTHLY?.trim());
+  return (
+    hasRegionalStripePrices() ||
+    Boolean(
+      process.env.STRIPE_PRICE_VERIFICATION_MONTHLY?.trim() ||
+        process.env.STRIPE_PRICE_VERIFICATION_ANNUAL?.trim()
+    )
+  );
+}
+
+export function verificationRegionalPricingEnabled(): boolean {
+  return hasRegionalStripePrices();
+}
+
+export function verificationPlansAvailableForRegion(region: VerificationRegion): {
+  monthly: boolean;
+  annual: boolean;
+} {
+  return {
+    monthly: Boolean(resolveVerificationPriceId("monthly", region)),
+    annual: Boolean(resolveVerificationPriceId("annual", region)),
+  };
+}
+
+/** `STRIPE_IDENTITY_ENABLED=true` → además de suscripción activa hace falta KYC verificado (Stripe Identity). */
+export function stripeIdentityEnabled(): boolean {
+  const v = process.env.STRIPE_IDENTITY_ENABLED?.trim().toLowerCase();
+  return v === "true" || v === "1" || v === "yes";
+}
+
+export type VerificationBillingPlan = "monthly" | "annual";
+
+export function resolveVerificationPriceId(
+  plan: VerificationBillingPlan,
+  region: VerificationRegion
+): string | undefined {
+  if (hasRegionalStripePrices()) {
+    if (region === "us") {
+      const m = process.env.STRIPE_PRICE_VERIFICATION_US_MONTHLY?.trim();
+      const a = process.env.STRIPE_PRICE_VERIFICATION_US_ANNUAL?.trim();
+      return plan === "annual" ? a || undefined : m || undefined;
+    }
+    const m = process.env.STRIPE_PRICE_VERIFICATION_MX_MONTHLY?.trim();
+    const a = process.env.STRIPE_PRICE_VERIFICATION_MX_ANNUAL?.trim();
+    return plan === "annual" ? a || undefined : m || undefined;
+  }
+  const monthly = process.env.STRIPE_PRICE_VERIFICATION_MONTHLY?.trim();
+  const annual = process.env.STRIPE_PRICE_VERIFICATION_ANNUAL?.trim();
+  if (plan === "annual") return annual || undefined;
+  return monthly || undefined;
 }
 
 export function getVerification(userId: string): GuestVerificationRecord | undefined {
@@ -98,11 +159,12 @@ export function setVerificationSubscriptionFields(
   return upsertVerification(userId, fields);
 }
 
-/** Puede reservar alojamientos: suscripción activa (y KYC cuando esté cableado). */
+/** Puede reservar: suscripción activa/trialing y, si Identity está activado, KYC `verified`. */
 export function isGuestEligibleToBook(userId: string): boolean {
   if (!verificationSubscriptionConfigured()) return true;
   const v = getVerification(userId);
   if (!v) return false;
   if (v.subscriptionStatus !== "active" && v.subscriptionStatus !== "trialing") return false;
+  if (stripeIdentityEnabled() && v.kycStatus !== "verified") return false;
   return true;
 }

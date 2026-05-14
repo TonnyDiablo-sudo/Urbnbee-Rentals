@@ -350,8 +350,8 @@ export function AvailabilityCalendar({
           <p>{bookingErr}</p>
           {needsVerificationGate && (
             <p className="mt-2">
-              <Link href="/guest/verification" className="font-semibold text-[#dcb81e] underline">
-                Ir a verificación de huésped
+              <Link href="/guest/membresia" className="font-semibold text-[#dcb81e] underline">
+                Ir a membresía
               </Link>
             </p>
           )}
@@ -447,7 +447,9 @@ export function AvailabilityCalendar({
               } else if (res.status === 403 && data.needsVerification) {
                 setNeedsVerificationGate(true);
                 setBookingErr(
-                  "Activa la verificación de huésped (suscripción mensual) para poder reservar."
+                  typeof data.error === "string"
+                    ? data.error
+                    : "Completa membresía e identidad para poder reservar."
                 );
               } else {
                 setNeedsVerificationGate(false);

@@ -7,6 +7,7 @@ import { AuthNav, AuthNavMobile } from "@/components/auth-nav";
 const nav = [
   { href: "/", label: "Inicio" },
   { href: "/alojamientos", label: "Alojamientos" },
+  { href: "/membresia", label: "Membresía" },
   { href: "/nosotros", label: "Nosotros" },
   { href: "/servicios", label: "Servicios" },
   { href: "/blog", label: "Blog" },

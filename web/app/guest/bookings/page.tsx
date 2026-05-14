@@ -52,10 +52,7 @@ export default function GuestBookingsPage() {
   return (
     <div className="max-w-4xl">
       <h1 className="text-2xl font-semibold text-[#484848]">Mis reservas</h1>
-      <p className="mt-2 text-sm text-[#888]">
-        Historial y estado de cada solicitud. El código de 6 dígitos sirve para consultar sin iniciar sesión en la página de
-        inicio.
-      </p>
+      <p className="mt-2 text-sm text-[#888]">Historial y estado de cada solicitud.</p>
       {err && <p className="mt-4 text-sm text-red-600">{err}</p>}
       <div className="mt-8 space-y-4">
         {rows.map((b) => (
@@ -78,9 +75,6 @@ export default function GuestBookingsPage() {
                     </span>
                   )}
                 </p>
-                <p className="mt-2 font-mono text-xs tracking-wide text-[#aaa]">
-                  Código: {b.token}
-                </p>
               </div>
               <span className="rounded-full bg-[#f5f5f5] px-3 py-1 text-xs font-semibold text-[#484848]">
                 {labels[b.status] ?? b.status}
@@ -96,7 +90,7 @@ export default function GuestBookingsPage() {
                 </Link>
               )}
               <Link href={`/finish/${b.token}`} className="text-sm font-medium text-[#dcb81e] underline">
-                Detalle / datos (token)
+                Completar datos
               </Link>
             </div>
           </div>

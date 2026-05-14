@@ -10,7 +10,6 @@ import { ScrollReveal } from "@/components/scroll-reveal";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ValueProps } from "@/components/value-props";
-import { BookingTokenLookup } from "@/components/booking-token-lookup";
 
 type Sections = Record<ListingCategory, Listing[]>;
 
@@ -23,9 +22,6 @@ export function HomeShell({ sections }: { sections: Sections }) {
       <main className="flex-1">
         <HeroSlider sentinelRef={heroSentinelRef} />
         <ValueProps />
-        <div className="bg-white">
-          <BookingTokenLookup />
-        </div>
         <CategoryGrid />
 
         <ScrollReveal>

@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   try {
     const portal = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/guest/verification`,
+      return_url: `${origin}/guest/membresia`,
     });
     if (!portal.url) {
       return NextResponse.json({ error: "Stripe no devolvió URL del portal." }, { status: 502 });

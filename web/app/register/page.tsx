@@ -6,10 +6,16 @@ import { SiteHeader } from "@/components/site-header";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+function safeNext(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+  return raw;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const params = useSearchParams();
   const intent = params.get("intent") === "host" ? "host" : "guest";
+  const nextGuest = safeNext(params.get("next"));
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,7 +50,7 @@ export default function RegisterPage() {
       if (accountType === "host") {
         router.push("/host/dashboard");
       } else {
-        router.push("/guest");
+        router.push(nextGuest ?? "/guest");
       }
       router.refresh();
     } finally {

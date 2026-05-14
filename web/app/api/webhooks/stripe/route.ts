@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { constructStripeWebhookEvent, getStripe } from "@/lib/stripe-server";
-import { setVerificationSubscriptionFields } from "@/lib/verification-store";
+import { setVerificationSubscriptionFields, upsertVerification } from "@/lib/verification-store";
 import type { VerificationSubscriptionStatus } from "@/lib/verification-types";
 
 export const runtime = "nodejs";
@@ -60,6 +60,28 @@ async function syncFromSubscription(sub: Stripe.Subscription, explicitUserId?: s
   });
 }
 
+function syncIdentityFromSession(session: Stripe.Identity.VerificationSession) {
+  const userId = typeof session.metadata?.userId === "string" ? session.metadata.userId : undefined;
+  if (!userId) {
+    console.warn("[stripe webhook] identity session sin userId en metadata", session.id);
+    return;
+  }
+  switch (session.status) {
+    case "verified":
+      upsertVerification(userId, { kycStatus: "verified", kycProviderSessionId: session.id });
+      break;
+    case "canceled":
+      upsertVerification(userId, { kycStatus: "failed", kycProviderSessionId: session.id });
+      break;
+    case "processing":
+    case "requires_input":
+      upsertVerification(userId, { kycStatus: "pending", kycProviderSessionId: session.id });
+      break;
+    default:
+      break;
+  }
+}
+
 export async function POST(req: NextRequest) {
   const raw = await req.text();
   const sig = req.headers.get("stripe-signature");
@@ -78,32 +100,37 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        if (session.mode !== "subscription") break;
-        const userId =
-          typeof session.metadata?.userId === "string" ? session.metadata.userId : undefined;
-        const subId =
-          typeof session.subscription === "string"
-            ? session.subscription
-            : session.subscription && typeof session.subscription === "object"
-              ? session.subscription.id
-              : null;
-        if (userId && subId) {
-          const sub = await stripe.subscriptions.retrieve(subId);
-          await syncFromSubscription(sub, userId);
+    if (event.type.startsWith("identity.verification_session.")) {
+      const session = event.data.object as Stripe.Identity.VerificationSession;
+      syncIdentityFromSession(session);
+    } else {
+      switch (event.type) {
+        case "checkout.session.completed": {
+          const session = event.data.object as Stripe.Checkout.Session;
+          if (session.mode !== "subscription") break;
+          const userId =
+            typeof session.metadata?.userId === "string" ? session.metadata.userId : undefined;
+          const subId =
+            typeof session.subscription === "string"
+              ? session.subscription
+              : session.subscription && typeof session.subscription === "object"
+                ? session.subscription.id
+                : null;
+          if (userId && subId) {
+            const sub = await stripe.subscriptions.retrieve(subId);
+            await syncFromSubscription(sub, userId);
+          }
+          break;
         }
-        break;
+        case "customer.subscription.updated":
+        case "customer.subscription.deleted": {
+          const sub = event.data.object as Stripe.Subscription;
+          await syncFromSubscription(sub);
+          break;
+        }
+        default:
+          break;
       }
-      case "customer.subscription.updated":
-      case "customer.subscription.deleted": {
-        const sub = event.data.object as Stripe.Subscription;
-        await syncFromSubscription(sub);
-        break;
-      }
-      default:
-        break;
     }
   } catch (e) {
     console.warn("[stripe webhook] handler", e);
