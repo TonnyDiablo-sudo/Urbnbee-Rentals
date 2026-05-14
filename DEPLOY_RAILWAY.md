@@ -38,8 +38,10 @@ git push -u origin main
 1. **New Project → Deploy from GitHub repo** → selecciona el repo.
 2. Railway creará un servicio automáticamente. Entra al servicio → **Settings**:
    - **Root Directory:** `web`
-   - **Build / Deploy:** dejar en automático — Nixpacks leerá `web/railway.json`
-     y usará `npm ci && npm run build` para build y `npm run start` para arrancar.
+   - **Build / Deploy:** dejar en automático — Nixpacks leerá `web/railway.json`.
+     Nixpacks ya ejecuta `npm ci` en la fase **install**; en `railway.json` el
+     `buildCommand` debe ser solo `npm run build` (si duplicas `npm ci` en build,
+     Nixpacks puede fallar con `EBUSY` en `node_modules/.cache`).
    - **Healthcheck:** ya viene configurado en `railway.json` (`/`, timeout 90s).
 
 > Si Railway no detecta el root automáticamente, configúralo manualmente en
@@ -147,6 +149,24 @@ Railway redeploya y queda listo.
 - **Backups:** el plan recomendado es migrar a MySQL pronto. Mientras tanto, descarga
   `/data/json` periódicamente vía shell (`tar czf - /data | base64`) hasta tener DB real.
 - **Rollback:** Deployments → Redeploy en una versión anterior.
+
+---
+
+## 9b) CLI con **project token** (lo que usamos desde Cursor)
+
+Si despliegas con `railway up` y un **Project token** (`RAILWAY_TOKEN`):
+
+- **`railway whoami`** y **`railway link`** suelen responder *Unauthorized* — es normal;
+  el token de proyecto no es una sesión de cuenta completa.
+- **`railway up`** sí funciona. Si el proyecto tiene **más de un servicio**, añade
+  el flag: `railway up -s <SERVICE_ID>` (el ID lo ves en la URL del dashboard o con
+  *Ctrl+K → Copy Service ID*).
+- **`railway variable set -s <SERVICE_ID> -e production KEY=VALUE`** funciona sin `link`.
+- **Dominio custom** (`urbnbee.net`): si `railway domain` falla con el project token,
+  créalo en el dashboard: *Networking → Custom Domain* (mismo resultado).
+
+**Seguridad:** nunca pegues el token en un chat público; revócalo en *Project Settings → Tokens*
+cuando termines el setup.
 
 ---
 
