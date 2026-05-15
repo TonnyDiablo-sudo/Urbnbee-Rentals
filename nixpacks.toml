@@ -3,7 +3,8 @@
 providers = []
 
 [phases.setup]
-nixPkgs = ["nodejs", "openssl"]
+# "nodejs" en nixpkgs suele ser 18.x; Next.js 16 exige >= 20.9
+nixPkgs = ["nodejs_22", "openssl"]
 
 [phases.install]
 dependsOn = ["setup"]
