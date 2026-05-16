@@ -1,15 +1,11 @@
-# Si en Railway el "Root Directory" queda en la raíz del repo (/) en lugar de `web/`,
-# Nixpacks no encuentra Node y el build falla en segundos. Estas fases construyen ./web.
-providers = []
+# Build desde ./web cuando el Root Directory del servicio es la raíz del repo (/).
+providers = ["node"]
 
-[phases.setup]
-# "nodejs" en nixpkgs suele ser 18.x; Next.js 16 exige >= 20.9
-nixPkgs = ["nodejs_22", "openssl"]
+[variables]
+NIXPACKS_NODE_VERSION = "20"
 
 [phases.install]
-dependsOn = ["setup"]
 cmds = ["cd web && npm ci"]
 
 [phases.build]
-dependsOn = ["install"]
 cmds = ["cd web && npm run build"]
