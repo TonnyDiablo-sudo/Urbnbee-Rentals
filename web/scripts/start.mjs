@@ -86,6 +86,18 @@ if (dbUrl) {
   }
 }
 
+if (process.env.URBNBEE_ADMIN_EMAIL?.trim()) {
+  const bootstrapScript = join(cwd, "scripts", "bootstrap-admin.mjs");
+  const boot = spawnSync(process.execPath, [bootstrapScript], {
+    stdio: "inherit",
+    cwd,
+    env: process.env,
+  });
+  if (boot.status !== 0) {
+    console.warn("[start] bootstrap-admin terminó con código", boot.status);
+  }
+}
+
 const __filename = fileURLToPath(import.meta.url);
 void __filename;
 
