@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { AdminLogoutButton } from "@/components/admin-logout-button";
 import { getSessionUser } from "@/lib/session";
 
 const NAV = [
@@ -69,6 +70,7 @@ export default async function AdminLayout({
               ← Sitio
             </Link>
           </div>
+          <AdminLogoutButton />
         </div>
       </aside>
 
