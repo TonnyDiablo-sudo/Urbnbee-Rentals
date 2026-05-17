@@ -65,6 +65,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ checkoutUrl: url });
   } catch (e) {
     console.warn("[verification checkout]", e);
-    return NextResponse.json({ error: "No se pudo iniciar la suscripción." }, { status: 502 });
+    const stripeMsg =
+      e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string"
+        ? (e as { message: string }).message
+        : null;
+    const hint =
+      stripeMsg?.includes("No such price") || stripeMsg?.includes("resource_missing")
+        ? " Revisa que STRIPE_SECRET_KEY y los price_… sean del mismo modo (test o live) y de la misma cuenta Stripe."
+        : "";
+    return NextResponse.json(
+      {
+        error: stripeMsg
+          ? `${stripeMsg}${hint}`
+          : "No se pudo iniciar la suscripción. Revisa STRIPE_SECRET_KEY y los price IDs en Railway.",
+      },
+      { status: 502 }
+    );
   }
 }

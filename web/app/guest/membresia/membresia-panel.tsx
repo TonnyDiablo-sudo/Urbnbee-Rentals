@@ -97,9 +97,13 @@ export function MembresiaPanel() {
           cancelPath: "/guest/membresia",
         }),
       });
-      const j = await res.json().catch(() => ({}));
+      const j = (await res.json().catch(() => ({}))) as { error?: string; checkoutUrl?: string };
       if (!res.ok) {
-        setErr(typeof j.error === "string" ? j.error : "No se pudo iniciar.");
+        setErr(
+          typeof j.error === "string"
+            ? j.error
+            : `No se pudo iniciar (HTTP ${res.status}). Revisa sesión y variables Stripe en el servidor.`
+        );
         return;
       }
       if (typeof j.checkoutUrl === "string" && j.checkoutUrl.startsWith("http")) {
