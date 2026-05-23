@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
-import { createListing, getListingById } from "@/lib/marketplace-store";
+import { createListing } from "@/lib/marketplace-store";
 import {
   LISTING_IMPORT_ALLOWED_MIME,
   LISTING_IMPORT_MAX_BYTES_PER_IMAGE,
@@ -11,9 +11,6 @@ import {
 } from "@/lib/listing-import-limits";
 import { checkListingImportRateLimit } from "@/lib/listing-import-rate-limit";
 import { draftToListingPartial, extractListingFromScreenshots } from "@/lib/listing-import-llm";
-import { extractPhotosFromScreenshots } from "@/lib/listing-import-photo-extract";
-import { mergeUsage } from "@/lib/listing-import-usage";
-import type { ListingImportImageBuffer } from "@/lib/listing-import-photo-extract";
 
 export const runtime = "nodejs";
 
@@ -52,9 +49,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Debes aceptar las condiciones de uso." }, { status: 400 });
   }
 
-  const extractPhotos =
-    form.get("extractPhotos") === "true" || form.get("extractPhotos") === "on";
-
   const notesRaw = form.get("notes");
   const notes =
     typeof notesRaw === "string" ? notesRaw.trim().slice(0, LISTING_IMPORT_MAX_NOTES_CHARS) : "";
@@ -76,7 +70,6 @@ export async function POST(req: NextRequest) {
 
   let totalBytes = 0;
   const images: { mime: string; base64: string }[] = [];
-  const buffers: ListingImportImageBuffer[] = [];
 
   for (const file of files) {
     const mime = (file.type || "").toLowerCase();
@@ -98,7 +91,6 @@ export async function POST(req: NextRequest) {
     }
     const buf = Buffer.from(await file.arrayBuffer());
     images.push({ mime, base64: buf.toString("base64") });
-    buffers.push({ mime, buffer: buf });
   }
 
   const llm = await extractListingFromScreenshots({ images, notes: notes || undefined });
@@ -109,50 +101,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let usage = llm.usage;
   const partial = draftToListingPartial(llm.draft);
   const listing = createListing(user.id, partial);
 
   const warnings = [
     ...(llm.draft.warnings ?? []),
+    "Sube tus propias fotos en la pestaña Fotos del editor.",
     ...(llm.draft.fieldConfidence &&
     Object.values(llm.draft.fieldConfidence).some((c) => c === "low")
       ? ["Revisa con cuidado los campos marcados con baja confianza (precio, ubicación, reglas)."]
       : []),
   ];
 
-  let photosExtracted = 0;
-  let photoWarnings: string[] = [];
-
-  if (extractPhotos) {
-    const photos = await extractPhotosFromScreenshots({
-      listingId: listing.id,
-      hostId: user.id,
-      images: buffers,
-    });
-    usage = mergeUsage(usage, photos.usage ?? { actions: [], totals: { promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedUsd: 0 } });
-    if (!photos.ok) {
-      warnings.push(
-        photos.error +
-          (photos.detail ? ` (${photos.detail.slice(0, 120)})` : "") +
-          " — el borrador se creó; puedes subir fotos manualmente."
-      );
-    } else {
-      photosExtracted = photos.extractedCount;
-      photoWarnings = photos.warnings;
-      warnings.push(...photoWarnings);
-    }
-  }
-
-  const freshListing = getListingById(listing.id) ?? listing;
-
   return NextResponse.json({
     listingId: listing.id,
-    listing: freshListing,
+    listing,
     warnings,
     fieldConfidence: llm.draft.fieldConfidence ?? {},
-    extractPhotos,
-    photosExtracted,
-    usage,
+    usage: llm.usage,
   });
 }

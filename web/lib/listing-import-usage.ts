@@ -1,6 +1,6 @@
 /** Token usage and rough USD estimate for one OpenAI call in listing import. */
 export type ListingImportActionUsage = {
-  action: "extract_listing_data" | "extract_photo_regions";
+  action: "extract_listing_data";
   label: string;
   model: string;
   promptTokens: number;

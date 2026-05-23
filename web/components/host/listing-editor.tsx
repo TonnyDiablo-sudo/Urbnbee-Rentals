@@ -44,8 +44,6 @@ export function ListingEditor({ listingId }: { listingId: string }) {
   const [notFound, setNotFound] = useState(false);
   const [importWarnings, setImportWarnings] = useState<string[] | null>(null);
   const [importUsage, setImportUsage] = useState<ListingImportUsageSummary | null>(null);
-  const [importPhotosExtracted, setImportPhotosExtracted] = useState<number | null>(null);
-  const [importHadPhotoExtract, setImportHadPhotoExtract] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("fromImport") !== "1") return;
@@ -55,15 +53,11 @@ export function ListingEditor({ listingId }: { listingId: string }) {
       const meta = JSON.parse(raw) as {
         warnings?: string[];
         usage?: ListingImportUsageSummary | null;
-        photosExtracted?: number;
-        extractPhotos?: boolean;
       };
       if (Array.isArray(meta.warnings) && meta.warnings.length) {
         setImportWarnings(meta.warnings);
       }
       if (meta.usage?.actions?.length) setImportUsage(meta.usage);
-      if (typeof meta.photosExtracted === "number") setImportPhotosExtracted(meta.photosExtracted);
-      if (meta.extractPhotos) setImportHadPhotoExtract(true);
       sessionStorage.removeItem("urbnbee_listing_import_meta");
     } catch {
       /* ignore */
@@ -249,13 +243,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
     <div className="space-y-6">
       {(importWarnings?.length || importUsage) && (
         <div className="space-y-3">
-          {importUsage && (
-            <ListingImportUsagePanel
-              usage={importUsage}
-              extractPhotos={importHadPhotoExtract}
-              photosExtracted={importPhotosExtracted ?? undefined}
-            />
-          )}
+          {importUsage && <ListingImportUsagePanel usage={importUsage} />}
           {importWarnings && importWarnings.length > 0 && (
             <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
               <p className="font-semibold">Borrador generado con IA — revísalo antes de publicar</p>

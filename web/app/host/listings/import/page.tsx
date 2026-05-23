@@ -15,14 +15,12 @@ export default function ListingImportPage() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [consent, setConsent] = useState(false);
-  const [extractPhotos, setExtractPhotos] = useState(true);
   const [notes, setNotes] = useState("");
   const [previews, setPreviews] = useState<Preview[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [lastUsage, setLastUsage] = useState<ListingImportUsageSummary | null>(null);
-  const [lastPhotosExtracted, setLastPhotosExtracted] = useState<number | null>(null);
 
   const addFiles = useCallback((list: FileList | File[]) => {
     const incoming = Array.from(list);
@@ -65,11 +63,9 @@ export default function ListingImportPage() {
     setBusy(true);
     setErr(null);
     setLastUsage(null);
-    setLastPhotosExtracted(null);
     try {
       const fd = new FormData();
       fd.set("consentAccepted", "true");
-      if (extractPhotos) fd.set("extractPhotos", "true");
       if (notes.trim()) fd.set("notes", notes.trim());
       for (const p of previews) fd.append("images", p.file);
 
@@ -90,9 +86,6 @@ export default function ListingImportPage() {
         return;
       }
 
-      if (j.usage) setLastUsage(j.usage as ListingImportUsageSummary);
-      if (typeof j.photosExtracted === "number") setLastPhotosExtracted(j.photosExtracted);
-
       try {
         sessionStorage.setItem(
           "urbnbee_listing_import_meta",
@@ -100,8 +93,6 @@ export default function ListingImportPage() {
             warnings: j.warnings ?? [],
             fieldConfidence: j.fieldConfidence ?? {},
             usage: j.usage ?? null,
-            photosExtracted: j.photosExtracted ?? 0,
-            extractPhotos: Boolean(j.extractPhotos),
           })
         );
       } catch {
@@ -122,8 +113,8 @@ export default function ListingImportPage() {
       <div>
         <h1 className="text-2xl font-semibold text-[#484848]">Importar con capturas</h1>
         <p className="mt-2 text-sm leading-relaxed text-[#666]">
-          Sube capturas de pantalla de <strong>tu</strong> anuncio (Airbnb, Marketplace, etc.). Urbnbee no
-          accede a sitios externos ni a tus cuentas.
+          Sube capturas de pantalla de <strong>tu</strong> anuncio (título, precio, amenidades, ubicación, etc.).
+          La IA solo configura el borrador con esa información; las fotos las subes tú en el editor.
         </p>
       </div>
 
@@ -135,21 +126,8 @@ export default function ListingImportPage() {
           onChange={(e) => setConsent(e.target.checked)}
         />
         <span>
-          Soy el anfitrión o tengo permiso para usar esta información y las imágenes. Las capturas son de mi
-          anuncio. Revisaré los datos generados; la IA puede equivocarse.
-        </span>
-      </label>
-
-      <label className="flex cursor-pointer gap-3 rounded-lg border border-[#eee] bg-white p-4 text-sm text-[#484848]">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={extractPhotos}
-          onChange={(e) => setExtractPhotos(e.target.checked)}
-        />
-        <span>
-          <strong>Extraer fotos de las capturas</strong> — detecta collages y galerías en la pantalla, recorta
-          cada foto y las pone en el borrador. Verás un contador de tokens por paso (texto vs. fotos).
+          Soy el anfitrión o tengo permiso para usar esta información. Las capturas son de mi anuncio.
+          Revisaré los datos generados; la IA puede equivocarse. Subiré mis propias fotos en el editor.
         </span>
       </label>
 
@@ -170,8 +148,7 @@ export default function ListingImportPage() {
       >
         <p className="text-sm font-medium text-[#484848]">Arrastra capturas aquí o haz clic</p>
         <p className="mt-1 text-xs text-[#888]">
-          Hasta {MAX_IMAGES} imágenes · JPEG, PNG, WebP · máx. {MAX_MB} MB c/u · incluye collages y página del
-          anuncio
+          Hasta {MAX_IMAGES} imágenes · JPEG, PNG, WebP · máx. {MAX_MB} MB c/u
         </p>
         <input
           ref={inputRef}
@@ -221,13 +198,7 @@ export default function ListingImportPage() {
 
       {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{err}</p>}
 
-      {lastUsage && (
-        <ListingImportUsagePanel
-          usage={lastUsage}
-          extractPhotos={extractPhotos}
-          photosExtracted={lastPhotosExtracted ?? undefined}
-        />
-      )}
+      {lastUsage && <ListingImportUsagePanel usage={lastUsage} />}
 
       <div className="flex flex-wrap gap-3">
         <button
