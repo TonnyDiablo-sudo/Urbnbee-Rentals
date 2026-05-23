@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { HostListingRecord, HostProfileRecord } from "@/lib/marketplace-types";
 import type { ListingCategory } from "@/lib/mock-data";
@@ -26,6 +27,7 @@ const CATEGORY_OPTIONS: { key: ListingCategory; label: string }[] = [
 ];
 
 export function ListingEditor({ listingId }: { listingId: string }) {
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("fotos");
   const [listing, setListing] = useState<HostListingRecord | null>(null);
   const [profile, setProfile] = useState<HostProfileRecord | null>(null);
@@ -38,6 +40,22 @@ export function ListingEditor({ listingId }: { listingId: string }) {
   const [toast, setToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [importWarnings, setImportWarnings] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("fromImport") !== "1") return;
+    try {
+      const raw = sessionStorage.getItem("urbnbee_listing_import_meta");
+      if (!raw) return;
+      const meta = JSON.parse(raw) as { warnings?: string[] };
+      if (Array.isArray(meta.warnings) && meta.warnings.length) {
+        setImportWarnings(meta.warnings);
+      }
+      sessionStorage.removeItem("urbnbee_listing_import_meta");
+    } catch {
+      /* ignore */
+    }
+  }, [searchParams]);
 
   async function load() {
     setLoading(true);
@@ -216,6 +234,23 @@ export function ListingEditor({ listingId }: { listingId: string }) {
 
   return (
     <div className="space-y-6">
+      {importWarnings && importWarnings.length > 0 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="font-semibold">Borrador generado con IA — revísalo antes de publicar</p>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-amber-900/90">
+            {importWarnings.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className="mt-2 text-xs font-medium underline"
+            onClick={() => setImportWarnings(null)}
+          >
+            Entendido
+          </button>
+        </div>
+      )}
       {toast && (
         <div
           className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-full px-5 py-2 text-sm font-medium text-black shadow-lg"
