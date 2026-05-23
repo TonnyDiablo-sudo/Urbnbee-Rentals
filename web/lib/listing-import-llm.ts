@@ -1,7 +1,13 @@
 import "server-only";
 import type { ListingCategory } from "@/lib/mock-data";
-import { getEffectiveBlogBotApiKey } from "@/lib/blog-bot-store";
 import type { ListingImportLlmPayload } from "@/lib/listing-import-types";
+import {
+  callListingImportOpenAiJson,
+  type OpenAiImagePart,
+  usageToAction,
+  emptyUsageSummary,
+} from "@/lib/listing-import-openai";
+import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
 
 const CATEGORIES: ListingCategory[] = [
   "habitaciones",
@@ -34,15 +40,6 @@ const SCHEMA_HINT = `Responde ÚNICAMENTE con un objeto JSON válido (sin markdo
   "warnings": ["string si algo no se leyó bien"]
 }
 Si no puedes leer un dato con claridad, omítelo o pon null y añade un warning. No inventes coordenadas GPS. No copies datos de huéspedes.`;
-
-function stripJsonFence(raw: string): string {
-  let s = raw.trim();
-  if (s.startsWith("```")) {
-    s = s.replace(/^```(?:json)?\s*/i, "");
-    s = s.replace(/\s*```\s*$/i, "");
-  }
-  return s.trim();
-}
 
 function num(v: unknown): number | undefined {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -124,122 +121,48 @@ export function validateListingImportPayload(data: unknown): ListingImportLlmPay
 export type ListingImportImageInput = { mime: string; base64: string };
 
 export type ListingImportLlmResult =
-  | { ok: true; draft: ListingImportLlmPayload; rawModelText?: string }
-  | { ok: false; error: string; detail?: string };
+  | { ok: true; draft: ListingImportLlmPayload; usage: ListingImportUsageSummary }
+  | { ok: false; error: string; detail?: string; usage?: ListingImportUsageSummary };
 
 export async function extractListingFromScreenshots(opts: {
   images: ListingImportImageInput[];
   notes?: string;
 }): Promise<ListingImportLlmResult> {
-  const apiKey = getEffectiveBlogBotApiKey();
-  if (!apiKey) {
-    return {
-      ok: false,
-      error:
-        "No hay API key de OpenAI configurada (OPENAI_API_KEY o BLOG_BOT_OPENAI_API_KEY en Railway).",
-    };
-  }
-
-  const model =
-    process.env.LISTING_IMPORT_OPENAI_MODEL?.trim() ||
-    process.env.BLOG_BOT_OPENAI_MODEL?.trim() ||
-    "gpt-4o-mini";
-
-  const url =
-    process.env.LISTING_IMPORT_OPENAI_URL?.trim() ||
-    "https://api.openai.com/v1/chat/completions";
-
-  const userParts: Array<
-    | { type: "text"; text: string }
-    | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } }
-  > = [
-    {
-      type: "text",
-      text: `Extrae los datos del alojamiento visible en estas capturas de pantalla (pueden ser de Airbnb, Facebook Marketplace u otra plataforma). El anfitrión las subió con permiso.
+  const userText = `Extrae los datos del alojamiento visible en estas capturas de pantalla (pueden ser de Airbnb, Facebook Marketplace u otra plataforma). El anfitrión las subió con permiso.
 ${opts.notes ? `\nNotas adicionales del anfitrión:\n${opts.notes}` : ""}
 
-${SCHEMA_HINT}`,
-    },
-  ];
+${SCHEMA_HINT}`;
 
-  for (const img of opts.images) {
-    userParts.push({
-      type: "image_url",
-      image_url: {
-        url: `data:${img.mime};base64,${img.base64}`,
-        detail: "high",
-      },
-    });
+  const llm = await callListingImportOpenAiJson<unknown>({
+    system:
+      "Eres un asistente que extrae datos estructurados de anuncios de alojamiento en español (México). Solo respondes JSON válido según el esquema.",
+    userText,
+    images: opts.images as OpenAiImagePart[],
+    maxTokens: 2500,
+    imageDetail: "high",
+  });
+
+  if (!llm.ok) {
+    return { ok: false, error: llm.error, detail: llm.detail };
   }
 
-  const controller = new AbortController();
-  const timeoutMs = Math.min(
-    120_000,
-    Math.max(15_000, Number(process.env.LISTING_IMPORT_TIMEOUT_MS) || 90_000)
-  );
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let usage = usageToAction(emptyUsageSummary(), {
+    action: "extract_listing_data",
+    label: "Extraer datos del anuncio (texto)",
+    model: llm.model,
+    usage: llm.usage,
+  });
 
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: "system",
-            content:
-              "Eres un asistente que extrae datos estructurados de anuncios de alojamiento en español (México). Solo respondes JSON válido según el esquema.",
-          },
-          { role: "user", content: userParts },
-        ],
-        temperature: 0.2,
-        max_tokens: 2500,
-        response_format: { type: "json_object" },
-      }),
-    });
-
-    const data = (await res.json()) as {
-      error?: { message?: string };
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-
-    if (!res.ok) {
-      return { ok: false, error: data.error?.message ?? `OpenAI HTTP ${res.status}` };
-    }
-
-    const rawText = data.choices?.[0]?.message?.content?.trim();
-    if (!rawText) return { ok: false, error: "El modelo no devolvió contenido." };
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(stripJsonFence(rawText));
-    } catch {
-      return { ok: false, error: "La respuesta no es JSON válido.", detail: rawText.slice(0, 500) };
-    }
-
-    try {
-      const draft = validateListingImportPayload(parsed);
-      return { ok: true, draft, rawModelText: rawText };
-    } catch (e) {
-      return {
-        ok: false,
-        error: e instanceof Error ? e.message : "JSON inválido",
-        detail: rawText.slice(0, 800),
-      };
-    }
+    const draft = validateListingImportPayload(llm.data);
+    return { ok: true, draft, usage };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes("abort")) {
-      return { ok: false, error: "La extracción tardó demasiado. Prueba con menos capturas." };
-    }
-    return { ok: false, error: msg };
-  } finally {
-    clearTimeout(timeout);
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "JSON inválido",
+      detail: llm.rawText.slice(0, 800),
+      usage,
+    };
   }
 }
 

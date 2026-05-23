@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import type { HostListingRecord, HostProfileRecord } from "@/lib/marketplace-types";
 import type { ListingCategory } from "@/lib/mock-data";
 import { AMENITY_OPTIONS } from "@/lib/amenity-options";
+import { ListingImportUsagePanel } from "@/components/host/listing-import-usage-panel";
+import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
 
 type Tab = "fotos" | "info" | "ubicacion" | "contacto" | "precio" | "comodidades";
 
@@ -41,16 +43,27 @@ export function ListingEditor({ listingId }: { listingId: string }) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [importWarnings, setImportWarnings] = useState<string[] | null>(null);
+  const [importUsage, setImportUsage] = useState<ListingImportUsageSummary | null>(null);
+  const [importPhotosExtracted, setImportPhotosExtracted] = useState<number | null>(null);
+  const [importHadPhotoExtract, setImportHadPhotoExtract] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("fromImport") !== "1") return;
     try {
       const raw = sessionStorage.getItem("urbnbee_listing_import_meta");
       if (!raw) return;
-      const meta = JSON.parse(raw) as { warnings?: string[] };
+      const meta = JSON.parse(raw) as {
+        warnings?: string[];
+        usage?: ListingImportUsageSummary | null;
+        photosExtracted?: number;
+        extractPhotos?: boolean;
+      };
       if (Array.isArray(meta.warnings) && meta.warnings.length) {
         setImportWarnings(meta.warnings);
       }
+      if (meta.usage?.actions?.length) setImportUsage(meta.usage);
+      if (typeof meta.photosExtracted === "number") setImportPhotosExtracted(meta.photosExtracted);
+      if (meta.extractPhotos) setImportHadPhotoExtract(true);
       sessionStorage.removeItem("urbnbee_listing_import_meta");
     } catch {
       /* ignore */
@@ -234,21 +247,32 @@ export function ListingEditor({ listingId }: { listingId: string }) {
 
   return (
     <div className="space-y-6">
-      {importWarnings && importWarnings.length > 0 && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          <p className="font-semibold">Borrador generado con IA — revísalo antes de publicar</p>
-          <ul className="mt-2 list-inside list-disc space-y-1 text-amber-900/90">
-            {importWarnings.map((w) => (
-              <li key={w}>{w}</li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            className="mt-2 text-xs font-medium underline"
-            onClick={() => setImportWarnings(null)}
-          >
-            Entendido
-          </button>
+      {(importWarnings?.length || importUsage) && (
+        <div className="space-y-3">
+          {importUsage && (
+            <ListingImportUsagePanel
+              usage={importUsage}
+              extractPhotos={importHadPhotoExtract}
+              photosExtracted={importPhotosExtracted ?? undefined}
+            />
+          )}
+          {importWarnings && importWarnings.length > 0 && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <p className="font-semibold">Borrador generado con IA — revísalo antes de publicar</p>
+              <ul className="mt-2 list-inside list-disc space-y-1 text-amber-900/90">
+                {importWarnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                className="mt-2 text-xs font-medium underline"
+                onClick={() => setImportWarnings(null)}
+              >
+                Entendido
+              </button>
+            </div>
+          )}
         </div>
       )}
       {toast && (

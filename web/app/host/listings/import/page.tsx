@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
+import { ListingImportUsagePanel } from "@/components/host/listing-import-usage-panel";
+import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
 
 const MAX_IMAGES = 6;
 const MAX_MB = 5;
@@ -13,11 +15,14 @@ export default function ListingImportPage() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [consent, setConsent] = useState(false);
+  const [extractPhotos, setExtractPhotos] = useState(true);
   const [notes, setNotes] = useState("");
   const [previews, setPreviews] = useState<Preview[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [lastUsage, setLastUsage] = useState<ListingImportUsageSummary | null>(null);
+  const [lastPhotosExtracted, setLastPhotosExtracted] = useState<number | null>(null);
 
   const addFiles = useCallback((list: FileList | File[]) => {
     const incoming = Array.from(list);
@@ -59,9 +64,12 @@ export default function ListingImportPage() {
     }
     setBusy(true);
     setErr(null);
+    setLastUsage(null);
+    setLastPhotosExtracted(null);
     try {
       const fd = new FormData();
       fd.set("consentAccepted", "true");
+      if (extractPhotos) fd.set("extractPhotos", "true");
       if (notes.trim()) fd.set("notes", notes.trim());
       for (const p of previews) fd.append("images", p.file);
 
@@ -72,6 +80,7 @@ export default function ListingImportPage() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (j.usage) setLastUsage(j.usage as ListingImportUsageSummary);
         setErr(typeof j.error === "string" ? j.error : `Error ${res.status}`);
         return;
       }
@@ -80,17 +89,25 @@ export default function ListingImportPage() {
         setErr("Respuesta inválida del servidor.");
         return;
       }
+
+      if (j.usage) setLastUsage(j.usage as ListingImportUsageSummary);
+      if (typeof j.photosExtracted === "number") setLastPhotosExtracted(j.photosExtracted);
+
       try {
         sessionStorage.setItem(
           "urbnbee_listing_import_meta",
           JSON.stringify({
             warnings: j.warnings ?? [],
             fieldConfidence: j.fieldConfidence ?? {},
+            usage: j.usage ?? null,
+            photosExtracted: j.photosExtracted ?? 0,
+            extractPhotos: Boolean(j.extractPhotos),
           })
         );
       } catch {
         /* ignore */
       }
+
       router.push(`/host/listings/${listingId}/edit?fromImport=1`);
       router.refresh();
     } catch {
@@ -118,8 +135,21 @@ export default function ListingImportPage() {
           onChange={(e) => setConsent(e.target.checked)}
         />
         <span>
-          Soy el anfitrión o tengo permiso para usar esta información. Las capturas son de mi anuncio.
-          Revisaré los datos generados; la IA puede equivocarse. Subiré mis propias fotos en el editor.
+          Soy el anfitrión o tengo permiso para usar esta información y las imágenes. Las capturas son de mi
+          anuncio. Revisaré los datos generados; la IA puede equivocarse.
+        </span>
+      </label>
+
+      <label className="flex cursor-pointer gap-3 rounded-lg border border-[#eee] bg-white p-4 text-sm text-[#484848]">
+        <input
+          type="checkbox"
+          className="mt-1"
+          checked={extractPhotos}
+          onChange={(e) => setExtractPhotos(e.target.checked)}
+        />
+        <span>
+          <strong>Extraer fotos de las capturas</strong> — detecta collages y galerías en la pantalla, recorta
+          cada foto y las pone en el borrador. Verás un contador de tokens por paso (texto vs. fotos).
         </span>
       </label>
 
@@ -140,7 +170,8 @@ export default function ListingImportPage() {
       >
         <p className="text-sm font-medium text-[#484848]">Arrastra capturas aquí o haz clic</p>
         <p className="mt-1 text-xs text-[#888]">
-          Hasta {MAX_IMAGES} imágenes · JPEG, PNG, WebP · máx. {MAX_MB} MB c/u
+          Hasta {MAX_IMAGES} imágenes · JPEG, PNG, WebP · máx. {MAX_MB} MB c/u · incluye collages y página del
+          anuncio
         </p>
         <input
           ref={inputRef}
@@ -189,6 +220,14 @@ export default function ListingImportPage() {
       </div>
 
       {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{err}</p>}
+
+      {lastUsage && (
+        <ListingImportUsagePanel
+          usage={lastUsage}
+          extractPhotos={extractPhotos}
+          photosExtracted={lastPhotosExtracted ?? undefined}
+        />
+      )}
 
       <div className="flex flex-wrap gap-3">
         <button
