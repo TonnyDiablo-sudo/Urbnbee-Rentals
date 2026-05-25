@@ -97,17 +97,26 @@ export function MembresiaPanel() {
           cancelPath: "/guest/membresia",
         }),
       });
-      const j = (await res.json().catch(() => ({}))) as { error?: string; checkoutUrl?: string };
+      const rawText = await res.text();
+      let parsed: { error?: string; checkoutUrl?: string } = {};
+      try {
+        parsed = rawText ? (JSON.parse(rawText) as { error?: string; checkoutUrl?: string }) : {};
+      } catch {
+        /* server returned non-JSON */
+      }
       if (!res.ok) {
-        setErr(
-          typeof j.error === "string"
-            ? j.error
-            : `No se pudo iniciar (HTTP ${res.status}). Revisa sesión y variables Stripe en el servidor.`
-        );
+        if (typeof parsed.error === "string") {
+          setErr(parsed.error);
+        } else {
+          const snippet = rawText.trim().slice(0, 240) || "(respuesta vacía)";
+          setErr(
+            `No se pudo iniciar (HTTP ${res.status}). Servidor: ${snippet}`
+          );
+        }
         return;
       }
-      if (typeof j.checkoutUrl === "string" && j.checkoutUrl.startsWith("http")) {
-        window.location.assign(j.checkoutUrl);
+      if (typeof parsed.checkoutUrl === "string" && parsed.checkoutUrl.startsWith("http")) {
+        window.location.assign(parsed.checkoutUrl);
         return;
       }
       setErr("Respuesta inválida del servidor.");
