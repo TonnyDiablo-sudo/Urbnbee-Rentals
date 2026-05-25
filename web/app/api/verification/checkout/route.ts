@@ -114,13 +114,13 @@ export async function POST(req: NextRequest) {
             ? `${stripeMsg}${hint}`
             : "No se pudo iniciar la suscripción. Revisa STRIPE_SECRET_KEY y los price IDs en Railway.",
         },
-        { status: 502 }
+        { status: 400 }
       );
     }
 
     const url = session.url;
     if (!url) {
-      return NextResponse.json({ error: "Stripe no devolvió URL." }, { status: 502 });
+      return NextResponse.json({ error: "Stripe no devolvió URL." }, { status: 400 });
     }
     return NextResponse.json({ checkoutUrl: url });
   } catch (e) {
