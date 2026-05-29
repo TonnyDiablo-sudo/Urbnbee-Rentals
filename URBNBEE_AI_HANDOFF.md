@@ -178,6 +178,12 @@ Precios: `resolveVerificationPriceId()` en `verification-store.ts` — modo regi
 - Auth: `Authorization: Bearer` con `URBNBEE_PARTNER_API_SECRET`
 - CORS: `URBNBEE_PARTNER_ORIGINS` (default urbnbeeai.com)
 - Webhooks firmados opcionales con `URBNBEE_PARTNER_WEBHOOK_SECRET`
+- **U.1 vinculación host (2026-05-28):**
+  - `POST /v1/hosts/provision` — email + `beeagent_customer_id` → crea o vincula host
+  - `POST /v1/hosts/link` — `link_code` (10 min) + `beeagent_customer_id`
+  - Persistencia: `beeagent-host-links.json` en `URBNBEE_DATA_DIR`
+  - UI host: `/host/settings/integrations` (generar código, CTA urbnbeeai.com)
+- Visión producto: `VISION_URBNBEEAI_URBNBEE_NET.md`
 
 ---
 

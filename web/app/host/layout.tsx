@@ -51,6 +51,12 @@ export default async function HostLayout({ children }: { children: React.ReactNo
             >
               Reservas
             </Link>
+            <Link
+              href="/host/settings/integrations"
+              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
+            >
+              Integraciones
+            </Link>
             {user.role === "admin" && (
               <Link
                 href="/admin/overview"

@@ -281,3 +281,63 @@ La secuencia correcta:
 
 El mayor riesgo no es técnico; es producto. Hay que evitar sobreprometer protección total y evitar cobrar antes de que el usuario perciba valor. La estrategia ganadora es mostrar confianza visual, permitir entrada gratis y monetizar cuando el host quiere convertir su anuncio informal en una operación más segura.
 
+---
+
+## Documentación técnica y handoff para otras IA
+
+**Repo:** `TonnyDiablo-sudo/Urbnbee-Rentals` (rama `main`). **App:** carpeta `web/`. **Producción:** `www.urbnbee.net` (Railway).
+
+**Ruta base en disco (Synology / workspace):**
+
+`c:\Users\edgar\SynologyDrive\E\Urbnbee Airbnbe\`
+
+### Archivos MD (raíz del repo)
+
+| Documento | Ruta completa | Uso |
+|-----------|---------------|-----|
+| **Visión urbnbeeai ↔ .net** | `VISION_URBNBEEAI_URBNBEE_NET.md` | Cuentas enlazadas, tool host, chat listing → BeeAgent, fases U.1–U.5 |
+| Handoff para IA | `URBNBEE_AI_HANDOFF.md` | **Empezar aquí:** roles, JSON stores, APIs, env, BeeAgent partner, estado actual |
+| Opinión docs Codex | `OPINION_REVIEW_BEEAGENT_CODEX_DOCS.md` | Revisión cruzada contrato BeeAgent vs código .net actual |
+| Infraestructura | `URBNBEE_INFRASTRUCTURE_BRIEF.md` | Railway, volumen `/data`, persistencia, Stripe, uploads |
+| Arquitectura + roadmap | `SYSTEM_ARCHITECTURE_AND_ROADMAP.md` | Tenants BeeAgent (Parte 1) + marketplace listings (Parte 2) |
+| Brief producto (este archivo) | `URBNBEE_TRUST_MARKETPLACE_BRIEF.md` | Estrategia, confianza, modelo de negocio |
+| Import por capturas | `LISTING_IMPORT_AI_SPEC.md` | Screenshots → prellenar listing (sin scraping) |
+| Motor de reservas | `BOOK_ENGINE_FDS.md` | Estados de reserva, token, `/finish/[token]` |
+| Deploy Railway | `DEPLOY_RAILWAY.md` | GitHub → Railway, variables, dominio |
+
+Rutas absolutas equivalentes: `c:\Users\edgar\SynologyDrive\E\Urbnbee Airbnbe\<nombre>.md`
+
+### Paquete mínimo para otra IA / agentes
+
+1. `VISION_URBNBEEAI_URBNBEE_NET.md` (producto unificado BeeAgent + marketplace)
+2. `URBNBEE_AI_HANDOFF.md`
+3. `SYSTEM_ARCHITECTURE_AND_ROADMAP.md`
+4. `URBNBEE_INFRASTRUCTURE_BRIEF.md`
+
+Opcional: este brief (`URBNBEE_TRUST_MARKETPLACE_BRIEF.md`), `OPINION_REVIEW_BEEAGENT_CODEX_DOCS.md`, docs en `c:\Master URBNBEE Codex\docs\`.
+
+### Modelo “tenant” en Urbnbee vs BeeAgent
+
+- **BeeAgent** (`urbnbeeai.com`): SaaS multi-tenant B2B (negocio = tenant). Ver `SYSTEM_ARCHITECTURE_AND_ROADMAP.md` Parte 1.
+- **Urbnbee marketplace:** el “tenant” operativo es el **host** con sus **listings** en `marketplace-store.json` (usuarios, perfiles host, alojamientos). Ver `URBNBEE_AI_HANDOFF.md` y `URBNBEE_INFRASTRUCTURE_BRIEF.md`.
+
+### Integración BeeAgent ↔ Urbnbee (código)
+
+Rutas API en disco:
+
+`c:\Users\edgar\SynologyDrive\E\Urbnbee Airbnbe\web\app\api\integrations\beeagent\`
+
+- `v1/listings`, `v1/listings/[listingId]`
+- `v1/host/[hostId]`
+- `v1/booking-leads`
+- `v1/webhooks/events`
+- `v1/meta`, `health`
+
+Auth: `URBNBEE_PARTNER_API_SECRET` (`Authorization: Bearer`). Detalle en `URBNBEE_AI_HANDOFF.md` (sección BeeAgent).
+
+### App Next.js
+
+`c:\Users\edgar\SynologyDrive\E\Urbnbee Airbnbe\web\`
+
+Plantilla de variables: `web\.env.example`
+

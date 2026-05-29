@@ -29,6 +29,18 @@ export async function GET(req: NextRequest) {
         listingsByHost: { method: "GET", path: `${root}/v1/listings?hostId=`, auth: "Bearer" },
         listing: { method: "GET", path: `${root}/v1/listings/:listingIdOrSlug`, auth: "Bearer" },
         bookingLead: { method: "POST", path: `${root}/v1/booking-leads`, auth: "Bearer" },
+        hostProvision: {
+          method: "POST",
+          path: `${root}/v1/hosts/provision`,
+          auth: "Bearer",
+          note: "Camino A: email BeeAgent → crear o vincular host",
+        },
+        hostLink: {
+          method: "POST",
+          path: `${root}/v1/hosts/link`,
+          auth: "Bearer",
+          note: "Camino B: link_code generado en /host/settings/integrations",
+        },
         webhookEvents: {
           method: "POST",
           path: `${root}/v1/webhooks/events`,
