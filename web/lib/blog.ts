@@ -1,4 +1,5 @@
 import { BLOG_POSTS } from "@/lib/blog-data";
+import { BLOG_POST_ENDINGS } from "@/lib/blog-post-endings";
 import { listPublishedFromDisk } from "@/lib/blog-published-store";
 import type { BlogPost } from "@/lib/blog-types";
 
@@ -14,18 +15,13 @@ function completePost(post: BlogPost): BlogPost {
   const title = scrubBrand(post.title);
   const excerpt = scrubBrand(post.excerpt);
   const paragraphs = post.paragraphs.map(scrubBrand);
-  if (paragraphs.length >= 6) return { ...post, title, excerpt, paragraphs };
-  const topic = title.replace(/\s+/g, " ").trim();
+  const ending = BLOG_POST_ENDINGS[post.slug];
+  if (!ending || paragraphs.length >= 6) return { ...post, title, excerpt, paragraphs };
   return {
     ...post,
     title,
     excerpt,
-    paragraphs: [
-      ...paragraphs,
-      `Esto es lo que puedes hacer hoy en Cabibee, a partir de «${topic}». Abre el anuncio y revisa la primera pantalla: título, fotos y precio. Si uno de los tres no coincide con la estancia real, corrígelo antes de seguir.`,
-      "Después baja a las reglas y a la capacidad. Escribe en una lista corta cuántas personas caben, cómo se entra y qué no está permitido. Un huésped con prisa tiene que entenderlo sin escribirte.",
-      "Cierra el repaso leyendo el texto en voz alta. Si suena a promesa que no puedes cumplir, cámbialo. En Cabibee el anuncio, el asistente y tu respuesta personal tienen que decir lo mismo. Así el lugar se siente seguro para quien llega y para quien recibe.",
-    ],
+    paragraphs: [...paragraphs, ...ending],
   };
 }
 

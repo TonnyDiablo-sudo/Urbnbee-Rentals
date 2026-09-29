@@ -13,7 +13,7 @@ export default function MembresiaPublicPage() {
       <main className="mx-auto max-w-3xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-semibold text-[#222]">Membresía de verificación de huésped</h1>
         <p className="mt-4 text-sm leading-relaxed text-[#484848]">
-          Urbnbee conecta viajeros con anfitriones verificados. Para solicitar reservas dentro de la plataforma necesitas
+          Cabibee conecta viajeros con anfitriones verificados. Para solicitar reservas dentro de la plataforma necesitas
           una membresía activa y completar la verificación de identidad cuando el sitio lo tenga activado (documento
           oficial + selfie vía Stripe Identity).
         </p>
@@ -41,7 +41,7 @@ export default function MembresiaPublicPage() {
 
         <p className="mt-10 text-xs text-[#aaa]">
           ¿Anfitrión? Publica desde «Enviar propiedad». La membresía de esta página es para huéspedes que reservan en
-          Urbnbee.
+          Cabibee.
         </p>
       </main>
     </>

@@ -31,7 +31,7 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
   const hostName = user?.fullName ?? "Anfitrión";
   const host: ListingDetail["host"] = {
     name: hostName,
-    bio: profile?.bio?.trim() || `${hostName} es anfitrión en Urbnbee.`,
+    bio: profile?.bio?.trim() || `${hostName} es anfitrión en Cabibee.`,
     avatarUrl:
       profile?.avatarUrl ||
       "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80",

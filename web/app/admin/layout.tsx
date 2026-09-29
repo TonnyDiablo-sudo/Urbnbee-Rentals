@@ -29,7 +29,7 @@ export default async function AdminLayout({
           <div className="flex items-center gap-2">
             <span className="text-xl">🐝</span>
             <div>
-              <p className="text-sm font-bold text-amber-600 leading-none">Urbnbee</p>
+              <p className="text-sm font-bold text-amber-600 leading-none">Cabibee</p>
               <p className="text-[10px] text-gray-400 leading-tight mt-0.5">Panel de administración</p>
             </div>
           </div>

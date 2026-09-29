@@ -82,7 +82,7 @@ export default function HostMessagesPage() {
         <p className="mt-1 text-sm text-[#888]">
           Conversaciones iniciadas desde la ficha pública.{" "}
           <strong className="font-medium text-[#666]">
-            No pidas ni envíes pagos fuera de los canales oficiales de Urbnbee cuando existan.
+            No pidas ni envíes pagos fuera de los canales oficiales de Cabibee cuando existan.
           </strong>
         </p>
       </div>

@@ -57,7 +57,7 @@ export default function AdminOverviewPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Resumen de la plataforma</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Vista en tiempo real del estado de Urbnbee.
+          Vista en tiempo real del estado de Cabibee.
         </p>
       </div>
 
@@ -102,7 +102,7 @@ export default function AdminOverviewPage() {
             accent
           />
           <StatCard
-            label="Comisión Urbnbee"
+            label="Comisión Cabibee"
             value={fmx(d.totalPlatformFeeMxn)}
             sub="cargo de servicio cobrado"
             accent

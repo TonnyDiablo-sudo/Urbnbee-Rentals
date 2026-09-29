@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     const subOk = v && (v.subscriptionStatus === "active" || v.subscriptionStatus === "trialing");
     const idOk = !stripeIdentityEnabled() || v?.kycStatus === "verified";
     let error =
-      "Para reservar en Urbnbee necesitas membresía de verificación activa y, si aplica, identidad confirmada.";
+      "Para reservar en Cabibee necesitas membresía de verificación activa y, si aplica, identidad confirmada.";
     if (!subOk) {
       error =
         "Contrata una membresía de verificación (mensual o anual) en «Membresía» para poder solicitar reservas.";

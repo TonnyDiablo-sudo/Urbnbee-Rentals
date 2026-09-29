@@ -195,7 +195,7 @@ export function MembresiaPanel() {
     <div className="mx-auto max-w-3xl">
       <h1 className="text-2xl font-semibold text-[#222]">Membresía de verificación</h1>
       <p className="mt-2 text-sm leading-relaxed text-[#484848]">
-        Para solicitar reservas a través de Urbnbee necesitas una membresía activa (mensual o anual) y, cuando esté
+        Para solicitar reservas a través de Cabibee necesitas una membresía activa (mensual o anual) y, cuando esté
         activado en el sitio, completar la verificación de identidad con documento oficial y selfie (Stripe Identity).
       </p>
 

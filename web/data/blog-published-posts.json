@@ -10,7 +10,9 @@
         "En Cabibee, el anuncio no es un trámite: es la base de la confianza. Reservar 30 minutos a la semana para revisar bloqueos, precios por fecha y reglas de mascotas te mantiene alineado con lo que el huésped ve en la ficha y con lo que Cabibee puede explicar sin inventar.",
         "Empieza por el calendario: marca mantenimiento y noches que no quieres vender; después revisa la tarifa base y la tarifa de limpieza. Si algo cambió en tu espacio (nuevo escritorio, mejor WiFi), menciónalo en la descripción para que el asistente de Cabibee lo refleje.",
         "Cierra la rutina leyendo una conversación reciente en el chat del listado: ahí ves preguntas repetidas que quizá puedas resolver mejor en el texto del anuncio. Cabibee está pensado para comunidades sanas: menos fricción, más reservas en serio.",
-        "Si activaste verificación de huésped en tu entorno, recuerda que es parte del modelo de confianza de Cabibee; no compites solo por precio, sino por claridad y seguridad para ambas partes."
+        "Si activaste verificación de huésped en tu entorno, recuerda que es parte del modelo de confianza de Cabibee; no compites solo por precio, sino por claridad y seguridad para ambas partes.",
+        "Cierra esos 30 minutos abriendo la ficha como si no tuvieras el panel. Lee el título, mira la primera foto y suma una estancia de dos noches. Si algo no coincide con lo que acabas de revisar, aún no terminaste.",
+        "La semana siguiente repite el mismo orden. No hace falta reescribir el anuncio entero: con corregir el dato que cambió —una noche bloqueada, un precio de puente, una regla nueva— el asistente de Cabibee deja de inventar y el huésped deja de preguntar lo obvio."
       ]
     },
     {
@@ -22,7 +24,9 @@
         "Los huéspedes preguntan lo mismo por rutina: mascotas, estacionamiento, horarios de entrada. Cabibee está diseñado para leer tu anuncio y responder dentro de ese contexto, en español claro y sin inventar políticas que no existen.",
         "La clave está en escribir bien la primera vez: reglas de convivencia, qué incluye la tarifa y qué no. Cuando la información está incompleta, el modelo puede quedar corto o pedir aclaraciones que podrías haber resuelto en la ficha.",
         "Usa Cabibee como primer filtro, no como reemplazo del trato humano: cuando llegue una solicitud de grupo grande o un caso especial, tu respuesta personal marca la diferencia y refuerza la marca Cabibee como lugar serio para reservar.",
-        "Si eres anfitrión en Ciudad de México, destaca barrio y referencias reales; Cabibee puede sintetizar rutas y ambiente solo si tú ya los describiste con honestidad."
+        "Si eres anfitrión en Ciudad de México, destaca barrio y referencias reales; el asistente puede contar el ambiente solo si tú ya lo describiste con honestidad.",
+        "Cuando respondas a mano, no copies un texto frío. Una frase tuya —«la calle es tranquila después de las 9, el metro está a cuatro cuadras»— enseña más que repetir la lista de amenidades.",
+        "Revisa cada mes qué pregunta sigue llegando al chat. Si es la misma, súbela al anuncio. Así el asistente de Cabibee se hace cargo de esa duda y tu siguiente respuesta puede ser sobre la persona, no sobre el reglamento."
       ]
     },
     {
@@ -33,7 +37,9 @@
       "paragraphs": [
         "Leer la descripción completa vale más que mirar solo las fotos: en Cabibee el anfitrión define mascotas, niños y políticas de ruido. Si algo no está escrito, usa el chat del listado antes de asumir.",
         "Comprueba fechas en el calendario y el desglose del pago: estancia, limpieza si aplica y cargo de servicio de la plataforma cuando esté configurado. La idea es un total comprensible antes de entrar a checkout.",
-        "Donde exista verificación de huésped, entiende que no es un capricho: reduce perfiles falsos y protege a quien abre su casa. Cabibee combina eso con herramientas como Cabibee para que tus dudas básicas se resuelvan rápido.",
+        "Donde exista verificación de huésped, entiende que no es un capricho: reduce perfiles falsos y protege a quien abre su casa. El asistente de la ficha resuelve las dudas básicas; la verificación confirma quién reserva.",
+        "Antes de pagar, anota tres cosas: cuántas personas van, si llevan mascota y a qué hora llegan. Compáralas con las reglas. Si una no cabe, escríbele al anfitrión en Cabibee antes de confirmar.",
+        "Guarda la reserva dentro de Cabibee. Si más tarde cambia el vuelo o necesitas entrar más tarde, el chat de la ficha es el lugar para decirlo. Así el acuerdo queda junto al pago y nadie depende de un mensaje suelto.",
         "Después de reservar, mantén la comunicación dentro de la plataforma cuando sea posible: ayuda a dar contexto si hay cambios de horario o llegada tardía."
       ]
     }

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     });
   }
 
-  const title = listing?.title ?? "Reserva Urbnbee";
+  const title = listing?.title ?? "Reserva Cabibee";
   const platformFeeMxn =
     booking.platformFeeMxn ?? platformBookingFeeMxn(booking.estimatedTotalMxn);
   const stayCents = Math.max(1, Math.round(booking.estimatedTotalMxn * 100));
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
                   currency: "mxn" as const,
                   unit_amount: feeCents,
                   product_data: {
-                    name: "Cargo de servicio Urbnbee",
+                    name: "Cargo de servicio Cabibee",
                     description: "Cargo de plataforma sobre el total de la estancia (configurable).",
                   },
                 },

@@ -23,7 +23,7 @@ export async function POST(
 
   if (apiKey) {
     try {
-      const systemPrompt = `Eres el asistente virtual del alojamiento "${listing.title}" en Urbnbee.
+      const systemPrompt = `Eres el asistente virtual del alojamiento "${listing.title}" en Cabibee.
 Responde SOLO en español, de forma concisa y amigable.
 
 Información del alojamiento:
@@ -36,9 +36,9 @@ Información del alojamiento:
 - Reglas: ${listing.rules.smoking === false ? "No fumar" : "Se permite fumar"}, ${listing.rules.pets ? "Se aceptan mascotas" : "No mascotas"}, ${listing.rules.children ? "Niños bienvenidos" : "No niños"}, ${listing.rules.parties === false ? "No fiestas" : "Eventos permitidos"}
 - Anfitrión: ${listing.host.name}
 
-Nunca inventes ni reveles teléfono, WhatsApp, correo ni redes del anfitrión. Si preguntan cómo contactar, di que con cuenta en Urbnbee pueden usar el botón de contacto y el chat de la página, y que la verificación de huésped aplica al reservar.
+Nunca inventes ni reveles teléfono, WhatsApp, correo ni redes del anfitrión. Si preguntan cómo contactar, di que con cuenta en Cabibee pueden usar el botón de contacto y el chat de la página, y que la verificación de huésped aplica al reservar.
 
-Si el usuario pregunta por reservar, indica el calendario de la página y el flujo de reserva en Urbnbee.`;
+Si el usuario pregunta por reservar, indica el calendario de la página y el flujo de reserva en Cabibee.`;
 
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -79,7 +79,7 @@ Si el usuario pregunta por reservar, indica el calendario de la página y el flu
     reply = listing.rules.children ? "¡Sí! Este alojamiento es apto para familias con niños." : "Este alojamiento no es recomendable para niños.";
   } else if (msg.includes("disponib") || msg.includes("fecha") || msg.includes("reserv")) {
     reply =
-      "Puedes verificar la disponibilidad y reservar con el calendario de esta página. Para escribir al anfitrión o ver sus datos de contacto directos necesitas una cuenta gratuita en Urbnbee; al reservar se aplicará la verificación de huésped.";
+      "Puedes verificar la disponibilidad y reservar con el calendario de esta página. Para escribir al anfitrión o ver sus datos de contacto directos necesitas una cuenta gratuita en Cabibee; al reservar se aplicará la verificación de huésped.";
   } else if (msg.includes("check") || msg.includes("entrada") || msg.includes("salida")) {
     reply = `El check-in y check-out se coordinan directamente con el anfitrión, ${listing.host.name}. ${listing.extras?.lateCheckIn ? `Entrada tardía permitida hasta: ${listing.extras.lateCheckIn}.` : ""}`;
   } else if (msg.includes("dirección") || msg.includes("donde") || msg.includes("ubicación") || msg.includes("ubicacion")) {
@@ -90,7 +90,7 @@ Si el usuario pregunta por reservar, indica el calendario de la página y el flu
   } else if (msg.includes("hola") || msg.includes("buenas") || msg.includes("buenos")) {
     reply = `¡Hola! 😊 Bienvenido al asistente de "${listing.title}". ¿En qué puedo ayudarte? Puedes preguntarme sobre precios, disponibilidad, amenidades o las reglas del alojamiento.`;
   } else {
-    reply = `Gracias por tu pregunta. Para más detalles sobre "${listing.title}", ${listing.host.name} está disponible a través de Urbnbee: crea una cuenta gratuita y usa el chat con el anfitrión o el botón de contacto en esta página. Los datos directos no se muestran a visitantes sin cuenta, por seguridad de todos.`;
+    reply = `Gracias por tu pregunta. Para más detalles sobre "${listing.title}", ${listing.host.name} está disponible a través de Cabibee: crea una cuenta gratuita y usa el chat con el anfitrión o el botón de contacto en esta página. Los datos directos no se muestran a visitantes sin cuenta, por seguridad de todos.`;
   }
 
   return NextResponse.json({ reply });

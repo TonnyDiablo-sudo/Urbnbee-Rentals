@@ -45,7 +45,7 @@ export const BLOG_POSTS: BlogPost[] = [
     excerpt:
       "Un buen título y amenidades bien marcadas hacen que Cabibee sea más útil para los viajeros.",
     paragraphs: [
-      "La ventana de asistente en Cabibee (asociada a Cabibee) lee lo que publicaste: si algo falta, el modelo puede quedarse corto o generar preguntas extra al anfitrión.",
+      "El asistente de Cabibee lee lo que publicaste: si algo falta, se queda corto o el huésped te escribe para preguntar lo que ya debía estar en el anuncio.",
       "Antes de subir fotos nuevas, dedica unos minutos a completar reglas, capacidad y extras. Deja reglas, capacidad y extras por escrito. Eso alimenta directamente la experiencia en Cabibee.",
       "Recuerda: Cabibee no promete magia; promete claridad. Cuanto más preciso sea tu anuncio, mejor será la primera impresión del huésped.",
     ],
@@ -82,7 +82,7 @@ export const BLOG_POSTS: BlogPost[] = [
       "Priorizamos conversaciones autenticadas para reducir spam y dar trazabilidad a cada solicitud.",
     paragraphs: [
       "El chat dentro de Cabibee existe para coordinar detalles después de que la persona ya mostró interés serio. Por eso algunas acciones piden cuenta: es una barrera mínima frente al fraude masivo.",
-      "Cabibee es paralelo: resuelve dudas genéricas en la ficha mientras tú respondes lo que depende de tu criterio.",
+      "El asistente va en paralelo: resuelve dudas generales en la ficha mientras tú respondes lo que depende de tu criterio.",
       "Si eres anfitrión, fija expectativas de tiempo de respuesta en tu estilo; Cabibee solo provee las herramientas.",
     ],
   },
@@ -117,7 +117,7 @@ export const BLOG_POSTS: BlogPost[] = [
     excerpt:
       "Automatizar respuestas obvias no te vuelve frío; te devuelve tiempo para huéspedes que sí necesitan atención.",
     paragraphs: [
-      "Muchos anfitriones abandonan plataformas por el ruido. Cabibee combina un asistente ligado a Cabibee con herramientas de listing para que lo repetible no llegue siempre a tu bandeja.",
+      "Muchos anfitriones se cansan del ruido de mensajes. Cabibee pone un asistente en la ficha para que lo repetible no llegue siempre a tu bandeja.",
       "Cuando una consulta es específica —por ejemplo acceso para personas con movilidad reducida— ahí brillas tú con una respuesta personal.",
       "La meta de Cabibee es tecnología al servicio de la hospitalidad, no al revés.",
     ],

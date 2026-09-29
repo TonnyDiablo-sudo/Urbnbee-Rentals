@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(url.toString(), {
       headers: {
-        "User-Agent": "UrbnbeeHostEditor/1.0 (https://urbnbee.com — dev geocoding)",
+        "User-Agent": "CabibeeHostEditor/1.0 (https://cabibee.com — geocoding)",
         "Accept-Language": "es,en",
       },
       next: { revalidate: 0 },
