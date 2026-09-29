@@ -36,6 +36,7 @@ export function HomeShell({ sections }: { sections: Sections }) {
           <ListingSection category="casas" title="Casas" items={sections.casas} />
           <ListingSection category="departamentos" title="Departamentos" items={sections.departamentos} />
           <ListingSection category="cabanas" title="Cabañas" items={sections.cabanas} />
+          <ListingSection category="vinos" title="Viñedos" items={sections.vinos} />
         </div>
       </main>
       <SiteFooter />

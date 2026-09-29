@@ -1,4 +1,5 @@
 import { ScrollReveal } from "@/components/scroll-reveal";
+import { countListingsForTipo } from "@/lib/mock-data";
 
 const categories = [
   {
@@ -89,7 +90,8 @@ export function CategoryGrid() {
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
                   <h4 className="text-xl font-semibold text-white drop-shadow-md">{cat.label}</h4>
                   <div className="text-sm font-light text-white/80 drop-shadow-sm">
-                    {cat.count} Listados
+                    {countListingsForTipo(new URLSearchParams(cat.href.split("?")[1] ?? "").get("tipo") ?? "")}{" "}
+                    Listados
                   </div>
                 </div>
               </a>

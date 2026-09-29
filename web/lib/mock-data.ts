@@ -20,6 +20,8 @@ export type Listing = {
   bathrooms: number;
   verified?: boolean;
   featured?: boolean;
+  /** Filtros de la cuadrícula: vistas, tropical, mar, albercas. */
+  tags?: string[];
 };
 
 export const categoryCounts: { key: ListingCategory; label: string; count: number }[] =
@@ -67,6 +69,7 @@ export const demoListings: Record<ListingCategory, Listing[]> = {
       guests: 2,
       bedrooms: 1,
       bathrooms: 1,
+      tags: ["vistas"],
     },
   ],
   casas: [
@@ -99,6 +102,22 @@ export const demoListings: Record<ListingCategory, Listing[]> = {
       guests: 4,
       bedrooms: 2,
       bathrooms: 1,
+    },
+    {
+      id: "11",
+      slug: "casa-frente-al-mar-sayulita",
+      title: "Casa frente al mar en Sayulita",
+      imageSrc: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=800&q=80",
+      pricePerNight: 3800,
+      currency: "$",
+      rating: 5,
+      categoryLabel: "Casas, Frente al mar",
+      spaceType: "Espacio Completo",
+      guests: 8,
+      bedrooms: 3,
+      bathrooms: 2,
+      verified: true,
+      tags: ["mar"],
     },
   ],
   departamentos: [
@@ -133,6 +152,7 @@ export const demoListings: Record<ListingCategory, Listing[]> = {
       bathrooms: 1,
       verified: true,
       featured: true,
+      tags: ["albercas"],
     },
   ],
   cabanas: [
@@ -151,6 +171,7 @@ export const demoListings: Record<ListingCategory, Listing[]> = {
       bedrooms: 2,
       bathrooms: 2,
       verified: true,
+      tags: ["tropical"],
     },
     {
       id: "8",
@@ -167,7 +188,68 @@ export const demoListings: Record<ListingCategory, Listing[]> = {
       bedrooms: 1,
       bathrooms: 1,
       featured: true,
+      tags: ["tropical"],
     },
   ],
-  vinos: [],
+  vinos: [
+    {
+      id: "9",
+      slug: "vinedo-valle-de-guadalupe",
+      title: "Casa entre viñedos en Valle de Guadalupe",
+      imageSrc: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=800&q=80",
+      pricePerNight: 4200,
+      currency: "$",
+      rating: 5,
+      categoryLabel: "Viñedos",
+      spaceType: "Espacio Completo",
+      guests: 6,
+      bedrooms: 3,
+      bathrooms: 2,
+      verified: true,
+    },
+    {
+      id: "10",
+      slug: "bodega-tequisquiapan",
+      title: "Bodega con terraza en Tequisquiapan",
+      imageSrc: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=800&q=80",
+      pricePerNight: 3100,
+      currency: "$",
+      rating: 4.5,
+      categoryLabel: "Viñedos",
+      spaceType: "Espacio Completo",
+      guests: 4,
+      bedrooms: 2,
+      bathrooms: 2,
+    },
+  ],
 };
+
+const TIPO_CATEGORY: Record<string, ListingCategory> = {
+  habitaciones: "habitaciones",
+  casas: "casas",
+  departamentos: "departamentos",
+  cabanas: "cabanas",
+  vinedos: "vinos",
+  vinos: "vinos",
+};
+
+const TIPO_TAG: Record<string, string> = {
+  vistas: "vistas",
+  tropical: "tropical",
+  mar: "mar",
+  albercas: "albercas",
+};
+
+export function demoListingsForTipo(tipo?: string): Listing[] {
+  const key = (tipo ?? "").toLowerCase();
+  if (!key) return Object.values(demoListings).flat();
+  const category = TIPO_CATEGORY[key];
+  if (category) return demoListings[category];
+  const tag = TIPO_TAG[key];
+  if (!tag) return [];
+  return Object.values(demoListings).flat().filter((l) => l.tags?.includes(tag));
+}
+
+export function countListingsForTipo(tipo?: string): number {
+  return demoListingsForTipo(tipo).length;
+}

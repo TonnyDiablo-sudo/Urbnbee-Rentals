@@ -1,6 +1,6 @@
 import "server-only";
 import type { Listing, ListingCategory } from "@/lib/mock-data";
-import { demoListings } from "@/lib/mock-data";
+import { demoListings, demoListingsForTipo } from "@/lib/mock-data";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import { getPublishedByCategory } from "@/lib/marketplace-store";
 import { hostListingToDetail } from "@/lib/host-listing-mapper";
@@ -40,6 +40,39 @@ export function getMergedCategoryListings(category: ListingCategory): Listing[] 
   const hostRows = getPublishedByCategory(category).map((r) => hostToListingCard(label, r));
   const demo = demoListings[category] ?? [];
   return [...hostRows, ...demo];
+}
+
+const TIPO_CATEGORY: Record<string, ListingCategory> = {
+  habitaciones: "habitaciones",
+  casas: "casas",
+  departamentos: "departamentos",
+  cabanas: "cabanas",
+  vinedos: "vinos",
+  vinos: "vinos",
+};
+
+export const BROWSE_TITLES: Record<string, string> = {
+  habitaciones: "Habitaciones",
+  casas: "Casas",
+  departamentos: "Departamentos",
+  cabanas: "Cabañas",
+  vinedos: "Viñedos",
+  vinos: "Viñedos",
+  vistas: "Vistas increíbles",
+  tropical: "Tropical",
+  mar: "Frente al mar",
+  albercas: "Albercas",
+};
+
+/** Listados de una categoría o de un filtro (vistas, tropical, mar, albercas). */
+export function getBrowseListings(tipo?: string): Listing[] {
+  const key = (tipo ?? "").toLowerCase();
+  const category = TIPO_CATEGORY[key];
+  if (category) return getMergedCategoryListings(category);
+  if (!key) {
+    return (Object.keys(demoListings) as ListingCategory[]).flatMap((c) => getMergedCategoryListings(c));
+  }
+  return demoListingsForTipo(key);
 }
 
 export function getMergedHomeSections(): Record<ListingCategory, Listing[]> {
