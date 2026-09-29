@@ -10,6 +10,7 @@ import { ScrollReveal } from "@/components/scroll-reveal";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ValueProps } from "@/components/value-props";
+import { WhoWeAre } from "@/components/who-we-are";
 
 type Sections = Record<ListingCategory, Listing[]>;
 
@@ -21,6 +22,7 @@ export function HomeShell({ sections }: { sections: Sections }) {
       <SiteHeader heroSentinelRef={heroSentinelRef} />
       <main className="flex-1">
         <HeroSlider sentinelRef={heroSentinelRef} />
+        <WhoWeAre />
         <ValueProps />
         <CategoryGrid />
 
