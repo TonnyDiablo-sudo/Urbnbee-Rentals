@@ -57,13 +57,13 @@ export function IntegrationsClient() {
       <div>
         <h1 className="text-2xl font-semibold text-[#484848]">Integraciones</h1>
         <p className="mt-2 text-sm leading-relaxed text-[#666]">
-          Conecta tu cuenta de <strong>urbnbeeai.com</strong> (BeeAgent) para que tu agente de IA responda
+          Conecta tu cuenta de <strong>BeeAgent</strong> para que tu agente de IA responda
           por SMS, WhatsApp o Messenger usando los mismos alojamientos que publicas aquí.
         </p>
       </div>
 
       <section className="rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-[#484848]">BeeAgent (urbnbeeai.com)</h2>
+        <h2 className="text-lg font-semibold text-[#484848]">BeeAgent</h2>
 
         {status?.linked ? (
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900">
@@ -84,16 +84,16 @@ export function IntegrationsClient() {
 
         <div className="mt-6 space-y-4 text-sm text-[#484848]">
           <div>
-            <p className="font-medium">¿Ya tienes cuenta en urbnbeeai.com?</p>
+            <p className="font-medium">¿Ya tienes cuenta en BeeAgent?</p>
             <ol className="mt-2 list-inside list-decimal space-y-1 text-[#666]">
               <li>Crea un agente con la tool <strong>Host</strong> activada.</li>
-              <li>Abre <strong>Conectar urbnbee.net</strong>.</li>
+              <li>Abre <strong>Conectar Cabibee</strong>.</li>
               <li>
                 Si tu email coincide con esta cuenta, elige <strong>Vincular con mi email</strong> (Camino
                 automático).
               </li>
               <li>
-                Si no, genera un código abajo y elige <strong>Ya tengo cuenta en urbnbee.net</strong>.
+                Si no, genera un código abajo y elige <strong>Ya tengo cuenta en Cabibee</strong>.
               </li>
             </ol>
           </div>
@@ -101,7 +101,7 @@ export function IntegrationsClient() {
           <div>
             <p className="font-medium">¿Aún no tienes BeeAgent?</p>
             <p className="mt-1 text-[#666]">
-              Regístrate en urbnbeeai.com con el <strong>mismo correo</strong> que usas aquí; luego conecta
+              Regístrate en BeeAgent con el <strong>mismo correo</strong> que usas aquí; luego conecta
               desde el agente.
             </p>
             <a
@@ -111,7 +111,7 @@ export function IntegrationsClient() {
               className="mt-3 inline-flex rounded-full px-5 py-2.5 text-sm font-semibold text-black"
               style={{ backgroundColor: "#dcb81e" }}
             >
-              Crear cuenta en urbnbeeai.com
+              Crear cuenta en BeeAgent
             </a>
           </div>
         </div>

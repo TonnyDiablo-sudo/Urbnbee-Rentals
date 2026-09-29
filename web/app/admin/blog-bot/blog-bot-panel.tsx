@@ -259,7 +259,7 @@ export function BlogBotPanel() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Blog automático (LLM)</h1>
         <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-          Configura cómo Urbnbee genera borradores de artículos con un modelo compatible con la API de{" "}
+          Configura cómo Cabibee genera borradores de artículos con un modelo compatible con la API de{" "}
           <strong>OpenAI</strong> (Chat Completions). En producción lo habitual es guardar la API key en{" "}
           <code className="text-xs bg-gray-100 px-1 rounded">BLOG_BOT_OPENAI_API_KEY</code> o{" "}
           <code className="text-xs bg-gray-100 px-1 rounded">OPENAI_API_KEY</code>, usar modelos con salida JSON o un
@@ -457,7 +457,7 @@ export function BlogBotPanel() {
           />
         </label>
         <label className="block text-sm">
-          <span className="text-gray-600">Palabras clave / temas (Urbnbee, Urbnbee AI, …)</span>
+          <span className="text-gray-600">Palabras clave / temas (Cabibee, anfitriones, …)</span>
           <textarea
             rows={3}
             className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
@@ -471,7 +471,7 @@ export function BlogBotPanel() {
       <section className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-3">
         <h2 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Temas del blog (rotación)</h2>
         <p className="text-xs text-gray-500">
-          Un tema por línea. El lote y el cron usan esta lista en orden (rotando). Ej.: consejos de anfitrión, Urbnbee
+          Un tema por línea. El lote y el cron usan esta lista en orden (rotando). Ej.: consejos de anfitrión, Cabibee
           AI, temporada alta, etc.
         </p>
         <textarea
@@ -479,7 +479,7 @@ export function BlogBotPanel() {
           className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono"
           value={topicsText}
           onChange={(e) => setTopicsText(e.target.value)}
-          placeholder={"Consejos para anfitriones\nUrbnbee AI y huéspedes\n..."}
+          placeholder={"Consejos para anfitriones\nHuéspedes en Cabibee\n..."}
         />
       </section>
 

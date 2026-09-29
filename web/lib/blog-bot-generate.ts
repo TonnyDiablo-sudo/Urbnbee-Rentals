@@ -10,15 +10,17 @@ const JSON_SCHEMA_HINT = `Debes responder ÚNICAMENTE con un objeto JSON válido
   "excerpt": "1-2 frases",
   "paragraphs": ["párrafo 1", "párrafo 2", "..."]
 }
-Los párrafos deben ser 4 a 8 bloques de texto en español (México), útiles para huéspedes y anfitriones.`;
+Los párrafos deben ser de 6 a 8 bloques de texto en español (México), útiles para huéspedes y anfitriones. El último párrafo cierra la idea; no dejes el texto a medias.`;
 
 export function buildBlogGenerationSystemPrompt(config: BlogBotConfigRecord): string {
-  return `Eres el redactor del blog oficial de Urbnbee (plataforma de alojamientos y reservas) y Urbnbee AI (asistente en listados y comunicación).
+  return `Eres el redactor del blog oficial de Cabibee, un lugar seguro para hospedarse.
 
 Objetivo de cada artículo:
-- Educar sobre buenas prácticas de hospedaje, confianza, precios, temporada alta/baja, comunicación con huéspedes.
-- Mencionar de forma natural la marca Urbnbee y, cuando encaje, Urbnbee AI (sin inventar funciones que no existan: reservas, verificación de huéspedes, tarifas, calendario, chat en la página).
-- No dar datos personales inventados ni URLs falsas. No prometer descuentos irreales.
+- Educar sobre buenas prácticas de hospedaje, confianza, precios, temporada alta/baja y comunicación con huéspedes.
+- Mencionar Cabibee con naturalidad. No nombres otras marcas ni plataformas.
+- Escribe el artículo completo: introducción, desarrollo con pasos concretos y un cierre. No lo dejes en tres frases.
+- No inventes funciones. Puedes hablar de reservas, verificación de huéspedes, tarifas, calendario y el chat de la ficha.
+- No des datos personales inventados ni URLs falsas. No prometas descuentos irreales.
 
 ${JSON_SCHEMA_HINT}
 
@@ -26,7 +28,7 @@ Instrucciones adicionales del equipo editorial:
 ${config.systemPromptAppend.trim() || "(ninguna)"}
 
 Palabras clave y temas a integrar con naturalidad:
-${config.brandKeywords.trim() || "Urbnbee, alojamientos, reservas"}`;
+${config.brandKeywords.trim() || "Cabibee, alojamientos, reservas"}`;
 }
 
 export function buildBlogGenerationUserPrompt(dateIso: string, topicAngle?: string): string {
@@ -39,13 +41,13 @@ export function buildBlogGenerationUserPrompt(dateIso: string, topicAngle?: stri
   });
   const tema =
     topicAngle?.trim() ||
-    "Elige un ángulo concreto ligado a Urbnbee (sin repetir títulos genéricos de otros blogs).";
+    "Elige un ángulo concreto ligado a Cabibee (sin repetir títulos genéricos de otros blogs).";
   return `Fecha del artículo (publicación): ${dateIso} (${readable}).
 
 Tema central que debes desarrollar en profundidad:
 "${tema}"
 
-El contenido debe ser útil para anfitriones o huéspedes, mencionar Urbnbee / Urbnbee AI cuando encaje, y mantener tono honesto (sin inventar funciones).
+El contenido debe ser útil para anfitriones o huéspedes, mencionar Cabibee cuando encaje, y mantener un tono honesto. No nombres otras marcas.
 
 Recuerda: salida solo JSON según el esquema acordado.`;
 }

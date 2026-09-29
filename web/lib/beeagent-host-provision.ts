@@ -58,7 +58,7 @@ async function ensureHostUser(input: {
   const user = createUser({
     email: input.email,
     passwordHash,
-    fullName: input.fullName.trim() || "Anfitrión Urbnbee",
+    fullName: input.fullName.trim() || "Anfitrión Cabibee",
     phone: input.phone,
     role: "host",
   });
@@ -92,7 +92,7 @@ export async function provisionHostFromBeeagent(body: {
   const fullName =
     typeof body.full_name === "string" && body.full_name.trim()
       ? body.full_name.trim()
-      : "Anfitrión Urbnbee";
+      : "Anfitrión Cabibee";
   const phone =
     typeof body.phone_e164 === "string" && body.phone_e164.trim()
       ? body.phone_e164.trim()
@@ -162,7 +162,7 @@ export async function linkHostByBeeagentCode(body: {
   if (!pending) {
     return {
       ok: false,
-      error: "Código inválido o expirado. Genera uno nuevo en urbnbee.net → Integraciones.",
+      error: "Código inválido o expirado. Genera uno nuevo en Cabibee → Integraciones.",
       status: 400,
     };
   }

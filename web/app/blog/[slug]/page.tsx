@@ -44,9 +44,9 @@ export default async function BlogPostPage({ params }: Props) {
                 href="/blog"
                 className="inline-flex items-center gap-1 text-sm font-medium text-[#dcb81e] underline underline-offset-2 hover:text-[#b8931a]"
               >
-                ← Blog Urbnbee
+                ← Blog Cabibee
               </Link>
-              <p className="mt-8 text-xs font-bold uppercase tracking-wider text-[#aaa]">Urbnbee · Alojamientos</p>
+              <p className="mt-8 text-xs font-bold uppercase tracking-wider text-[#aaa]">Cabibee · Alojamientos</p>
               <h1 className="mt-3 max-w-3xl text-3xl font-semibold leading-tight tracking-tight text-[#222] sm:text-4xl">
                 {post.title}
               </h1>
@@ -79,7 +79,7 @@ export default async function BlogPostPage({ params }: Props) {
               >
                 ¿Listo para aplicarlo? Explora{" "}
                 <Link href="/" className="font-semibold text-[#dcb81e] underline">
-                  alojamientos en Urbnbee
+                  alojamientos en Cabibee
                 </Link>{" "}
                 o entra a tu panel de anfitrión.
               </p>
@@ -91,7 +91,7 @@ export default async function BlogPostPage({ params }: Props) {
                 <div className="rounded-2xl border border-[#ebebeb] bg-white p-5 shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">En este artículo</p>
                   <p className="mt-2 text-sm text-[#666] leading-relaxed">
-                    Tips prácticos alineados con Urbnbee y Urbnbee AI: transparencia, calendario y buena comunicación.
+                    Ideas prácticas de Cabibee: claridad, calendario y buena comunicación.
                   </p>
                 </div>
 

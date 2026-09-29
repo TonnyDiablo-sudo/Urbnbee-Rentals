@@ -112,7 +112,7 @@ export function ListingHostChat({
       <p className="mt-3 text-xs leading-relaxed text-[#888]">
         Escribe a <strong>{hostName}</strong> sobre este alojamiento. Las respuestas las envía el anfitrión (no son
         automáticas).{" "}
-        <strong>No compartas contraseñas ni datos bancarios.</strong> Urbnbee puede revisar mensajes ante reportes de
+        <strong>No compartas contraseñas ni datos bancarios.</strong> Cabibee puede revisar mensajes ante reportes de
         fraude o abuso.
       </p>
 
@@ -184,7 +184,7 @@ export function ListingHostChat({
           />
         </label>
         <label className={`block text-xs font-semibold text-[#666] ${!loggedIn ? "pointer-events-none opacity-50" : ""}`}>
-          Correo (opcional, para que te respondan fuera de Urbnbee)
+          Correo (opcional, para que te respondan fuera de Cabibee)
           <input
             type="email"
             value={guestEmail}
@@ -223,7 +223,7 @@ export function ListingHostChat({
       </button>
 
       <p className="mt-3 text-[10px] text-[#aaa]">
-        El asistente BeeBot (ventana flotante) responde preguntas generales; este chat es solo entre tú y el anfitrión.
+        El asistente de Cabibee (ventana flotante) responde preguntas generales; este chat es solo entre tú y el anfitrión.
       </p>
     </section>
   );

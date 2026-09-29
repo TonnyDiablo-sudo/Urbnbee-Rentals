@@ -20,7 +20,7 @@ export type BlogBotConfigRecord = {
   maxTokens: number;
   /** Instrucciones de marca / tono (se añaden al system prompt del bot). */
   systemPromptAppend: string;
-  /** Palabras clave que deben aparecer o inspirar el post (Urbnbee, Urbnbee AI, etc.). */
+  /** Palabras clave que deben aparecer o inspirar el post (Cabibee, anfitriones, etc.). */
   brandKeywords: string;
   /** Timeout ms para la llamada HTTP al LLM. */
   timeoutMs: number;

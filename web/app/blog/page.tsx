@@ -17,13 +17,12 @@ export default function BlogIndexPage() {
           <div className="mx-auto max-w-7xl px-4 pt-8 pb-10 sm:px-6 lg:px-8 lg:pt-12 lg:pb-14">
             <div className="grid gap-10 lg:grid-cols-12 lg:gap-12 lg:items-start">
               <header className="lg:col-span-5">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#dcb81e]">Blog Urbnbee</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#dcb81e]">Blog Cabibee</p>
                 <h1 className="mt-3 text-3xl font-semibold leading-tight text-[#222] sm:text-4xl">
                   Ideas para tu alojamiento
                 </h1>
                 <p className="mt-4 text-sm leading-relaxed text-[#666]">
-                  Notas sobre hospedar mejor, usar Urbnbee con claridad y sacar partido a{" "}
-                  <strong>Urbnbee AI</strong> sin perder el trato humano.
+                  Notas claras para hospedar mejor y usar Cabibee sin perder el trato humano.
                 </p>
                 <div className="mt-8 hidden lg:block rounded-xl border border-[#ebebeb] bg-[#fafafa] p-5">
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">Hoy te recomendamos</p>
@@ -38,7 +37,7 @@ export default function BlogIndexPage() {
                 aria-labelledby="featured-title"
               >
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#dcb81e]">
-                  Lectura del día · Urbnbee
+                  Lectura del día · Cabibee
                 </p>
                 <h2 id="featured-title" className="mt-3 text-xl font-semibold leading-snug text-[#222] sm:text-2xl">
                   <Link href={`/blog/${featured.slug}`} className="transition hover:text-black hover:underline">
@@ -69,7 +68,7 @@ export default function BlogIndexPage() {
             <div>
               <h2 className="text-xl font-semibold text-[#222]">Más artículos</h2>
               <p className="mt-1 text-sm text-[#888]">
-                {posts.length} entradas · consejos, Urbnbee AI y experiencia de huéspedes
+                {posts.length} entradas · consejos para anfitriones y huéspedes
               </p>
             </div>
           </div>
@@ -101,7 +100,7 @@ export default function BlogIndexPage() {
           )}
 
           <p className="mt-14 text-center text-xs text-[#aaa]">
-            Urbnbee · Urbnbee AI · contenido para anfitriones y huéspedes en México y LATAM.
+            Cabibee · ideas para anfitriones y huéspedes.
           </p>
         </div>
       </main>

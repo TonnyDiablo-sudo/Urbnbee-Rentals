@@ -13,6 +13,6 @@ export async function POST() {
     code,
     expiresAt,
     expiresInMinutes: 10,
-    hint: "Pega este código en urbnbeeai.com al conectar tu agente (tool Host → Conectar urbnbee.net).",
+    hint: "Pega este código en BeeAgent al conectar tu agente (tool Host → Conectar Cabibee).",
   });
 }

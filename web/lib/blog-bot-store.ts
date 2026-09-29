@@ -14,10 +14,10 @@ let cachedMtimeMs = 0;
 
 export const DEFAULT_BLOG_TOPICS: string[] = [
   "Consejos prácticos para anfitriones en CDMX",
-  "Urbnbee AI y comunicación con huéspedes",
+  "Comunicación clara con huéspedes en Cabibee",
   "Precios, temporada alta y calendario",
   "Confianza, verificación y buenas reservas",
-  "Experiencia del huésped en Urbnbee",
+  "Experiencia del huésped en Cabibee",
 ];
 
 export const DEFAULT_BLOG_BOT_CONFIG: Omit<BlogBotConfigRecord, "updatedAt"> = {
@@ -31,7 +31,7 @@ export const DEFAULT_BLOG_BOT_CONFIG: Omit<BlogBotConfigRecord, "updatedAt"> = {
   maxTokens: 2200,
   systemPromptAppend:
     "Tono cercano, profesional, en español de México. Enfócate en confianza, anfitriones, huéspedes y tecnología que ayuda a reservar con claridad.",
-  brandKeywords: "Urbnbee, Urbnbee AI, alojamientos, reservas, Ciudad de México, anfitriones",
+  brandKeywords: "Cabibee, alojamientos, reservas, anfitriones, huéspedes",
   timeoutMs: 120000,
   topics: [...DEFAULT_BLOG_TOPICS],
   scheduleEnabled: false,

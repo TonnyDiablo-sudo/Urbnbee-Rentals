@@ -118,7 +118,6 @@ A un viaje en autobús del metro. Wifi, cocina para comer, televisión por cable
       phone: "+52 55 4454 3260",
       email: "johnsmith@email.com",
       instagram: "johnsmith_host",
-      airbnbUrl: "https://www.airbnb.com/rooms/913726283762985005",
     },
     reviews: [
       {

@@ -19,7 +19,7 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
   const [frameIdx,      setFrameIdx]      = useState(0);
   const [imgVisible,    setImgVisible]    = useState(true);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: `¡Hola! 🐝 Soy BeeBot, tu asistente para "${listingTitle}". ¿Tienes alguna pregunta?` },
+    { role: "assistant", content: `¡Hola! Soy el asistente de Cabibee para "${listingTitle}". ¿Tienes alguna pregunta?` },
   ]);
   const [input,   setInput]   = useState("");
   const [loading, setLoading] = useState(false);
@@ -136,7 +136,7 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
               style={{ border: "2.5px solid #dcb81e", minWidth: 190 }}
             >
               <p className="text-sm font-extrabold text-[#3a3a3a]">¿En qué puedo ayudarte? 🐝</p>
-              <p className="mt-1 text-xs text-[#888]">Soy BeeBot, tu asistente</p>
+              <p className="mt-1 text-xs text-[#888]">Asistente de Cabibee</p>
               <button
                 onClick={handleOpen}
                 className="mt-2 rounded-full px-4 py-1 text-xs font-bold text-black transition hover:brightness-90 active:scale-95"
@@ -174,7 +174,7 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
           <button
             type="button"
             onClick={handleOpen}
-            aria-label="Abrir chat con BeeBot"
+            aria-label="Abrir el asistente de Cabibee"
             className="bee-idle relative focus:outline-none"
             style={{ width: 160, height: 160, background: "none", border: "none", padding: 0, cursor: "pointer" }}
           >
@@ -193,7 +193,7 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
             <img
               key={currentSrc + frameIdx}
               src={currentSrc}
-              alt="BeeBot"
+              alt="Cabibee"
               className={`h-full w-full object-contain drop-shadow-2xl ${imgVisible ? "bee-img-in" : "bee-img-out"}`}
               draggable={false}
             />
@@ -215,7 +215,7 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/bee-desk.png" alt="" className="h-12 w-12 shrink-0 object-contain" draggable={false} />
             <div>
-              <p className="text-sm font-extrabold text-black">BeeBot</p>
+              <p className="text-sm font-extrabold text-black">Cabibee</p>
               <p className="text-[11px] text-black/55">Tu asistente de alojamiento</p>
             </div>
             <div className="ml-auto flex items-center gap-1.5">
