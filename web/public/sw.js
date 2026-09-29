@@ -1,11 +1,18 @@
 /* Cabibee PWA service worker.
  * Nunca cachea /api ni páginas con sesión: sólo los estáticos con hash de Next,
  * los íconos y una página de respaldo para cuando no hay red. */
-const VERSION = "cabibee-v2";
+const VERSION = "cabibee-v3";
 const STATIC_CACHE = `${VERSION}-static`;
-const OFFLINE_URL = "/app/offline";
+const OFFLINE_URL = "/offline";
+/* La app vive en app.cabibee.com. Un worker que quedó registrado en el sitio
+ * (cuando la app estaba en cabibee.com/app) se limpia y se da de baja solo. */
+const ON_APP_HOST = self.location.hostname.startsWith("app.");
 
 self.addEventListener("install", (event) => {
+  if (!ON_APP_HOST) {
+    self.skipWaiting();
+    return;
+  }
   event.waitUntil(
     caches
       .open(STATIC_CACHE)
@@ -15,6 +22,15 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
+  if (!ON_APP_HOST) {
+    event.waitUntil(
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+        .then(() => self.registration.unregister())
+    );
+    return;
+  }
   event.waitUntil(
     caches
       .keys()
@@ -24,6 +40,7 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  if (!ON_APP_HOST) return;
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
@@ -59,7 +76,7 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { body: event.data ? event.data.text() : "" };
   }
-  const url = typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/app";
+  const url = typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/";
   event.waitUntil(
     self.registration.showNotification(data.title || "Cabibee", {
       body: data.body || "",
@@ -74,10 +91,10 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || "/app", self.location.origin).href;
+  const target = new URL(event.notification.data?.url || "/", self.location.origin).href;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
-      const open = wins.find((w) => w.url.startsWith(self.location.origin + "/app"));
+      const open = wins.find((w) => w.url.startsWith(self.location.origin + "/"));
       if (open) {
         return open.focus().then((w) => (w && "navigate" in w ? w.navigate(target) : undefined));
       }

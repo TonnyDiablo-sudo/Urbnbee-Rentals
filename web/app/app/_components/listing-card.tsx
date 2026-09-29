@@ -5,7 +5,7 @@ import { IconStar } from "./icons";
 export function AppListingCardView({ listing: l }: { listing: AppListingCard }) {
   const place = [l.city, l.zone].filter(Boolean).join(", ");
   return (
-    <Link href={`/app/alojamiento/${l.slug}`} className="block">
+    <Link href={`/alojamiento/${l.slug}`} className="block">
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#eee]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={l.imageSrc} alt="" className="h-full w-full object-cover" loading="lazy" />

@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { IconExternal } from "../../_components/icons";
+import { WebLink } from "../../_components/site-origin";
 import {
   PlanPicker,
   RegionToggle,
@@ -24,7 +24,7 @@ type Status = {
   catalogPlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
 };
 
-const RETURN = "/app/host/motor";
+const RETURN = "/host/motor";
 
 export function BookingEngine() {
   const params = useSearchParams();
@@ -131,14 +131,13 @@ export function BookingEngine() {
         </section>
       )}
 
-      <a
-        href="/host/verificacion"
-        target="_blank"
-        rel="noopener"
+      <WebLink
+        path="/host/verificacion"
+        icon
         className="flex items-center justify-center gap-1.5 text-sm font-medium text-[#717171] underline"
       >
-        Detalle de la membresía en la web <IconExternal />
-      </a>
+        Detalle de la membresía en la web{" "}
+      </WebLink>
     </div>
   );
 }

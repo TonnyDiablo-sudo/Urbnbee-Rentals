@@ -39,7 +39,7 @@ export function HostChat({ listingId, guestSessionId }: { listingId: string; gue
     <ChatThread
       title={meta?.guestName ?? "Conversación"}
       subtitle={meta ? `${meta.listingTitle}${meta.guestEmail ? ` · ${meta.guestEmail}` : ""}` : undefined}
-      back="/app/host/mensajes"
+      back="/host/mensajes"
       me="host"
       seenKey={`h:${listingId}:${guestSessionId}`}
       load={load}

@@ -2,7 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { IconExternal, IconShield } from "../_components/icons";
+import { IconShield } from "../_components/icons";
+import { WebLink } from "../_components/site-origin";
 import {
   PlanPicker,
   RegionToggle,
@@ -41,7 +42,7 @@ const KYC_LABEL: Record<string, string> = {
   expired: "Expirada",
 };
 
-const RETURN = "/app/membresia";
+const RETURN = "/membresia";
 
 export function GuestMembership() {
   const params = useSearchParams();
@@ -167,14 +168,13 @@ export function GuestMembership() {
         </section>
       )}
 
-      <a
-        href="/guest/membresia"
-        target="_blank"
-        rel="noopener"
+      <WebLink
+        path="/guest/membresia"
+        icon
         className="flex items-center justify-center gap-1.5 text-sm font-medium text-[#717171] underline"
       >
-        Facturación y cancelación en la web <IconExternal />
-      </a>
+        Facturación y cancelación en la web{" "}
+      </WebLink>
     </div>
   );
 }

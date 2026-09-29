@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IconExternal, IconPlus } from "../../../_components/icons";
+import { WebLink } from "../../../_components/site-origin";
 import { TopBar } from "../../../_components/top-bar";
 import { CATEGORY_OPTIONS, SPACE_OPTIONS } from "../listing-options";
 
@@ -134,7 +135,7 @@ export function QuickListingEditor({ listingId }: { listingId: string }) {
   if (!listing || !draft) {
     return (
       <>
-        <TopBar title="Editar anuncio" back="/app/host/anuncios" />
+        <TopBar title="Editar anuncio" back="/host/anuncios" />
         <p className="px-5 py-6 text-sm text-[#999]">{msg?.text ?? "Cargando…"}</p>
       </>
     );
@@ -144,7 +145,7 @@ export function QuickListingEditor({ listingId }: { listingId: string }) {
     <div className="pb-[calc(96px+env(safe-area-inset-bottom))]">
       <TopBar
         title={listing.published ? "Anuncio publicado" : "Borrador"}
-        back="/app/host/anuncios"
+        back="/host/anuncios"
         right={
           <button
             type="button"
@@ -291,17 +292,15 @@ export function QuickListingEditor({ listingId }: { listingId: string }) {
           />
         </label>
 
-        <a
-          href={`/host/listings/${listing.id}/edit`}
-          target="_blank"
-          rel="noopener"
+        <WebLink
+          path={`/host/listings/${listing.id}/edit`}
           className="flex items-center justify-between rounded-2xl bg-[#f7f7f7] px-4 py-3.5 text-sm text-[#333]"
         >
           <span>Amenidades, reglas, calendario, contrato y ubicación exacta</span>
           <span className="flex shrink-0 items-center gap-1 text-xs text-[#999]">
             web <IconExternal />
           </span>
-        </a>
+        </WebLink>
       </div>
 
       <div

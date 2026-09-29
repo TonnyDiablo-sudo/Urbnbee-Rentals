@@ -43,14 +43,14 @@ export function GuestChat({
     <ChatThread
       title={title}
       subtitle={subtitle}
-      back="/app/mensajes"
+      back="/mensajes"
       me="guest"
       seenKey={`g:${listingId}`}
       load={load}
       send={send}
       emptyText="Saluda al anfitrión y pregúntale lo que necesites. Las respuestas las escribe él, no un robot."
       headerRight={
-        <Link href={`/app/alojamiento/${slug}`} className="rounded-full px-3 py-1.5 text-sm font-semibold text-[#222] underline">
+        <Link href={`/alojamiento/${slug}`} className="rounded-full px-3 py-1.5 text-sm font-semibold text-[#222] underline">
           Ver anuncio
         </Link>
       }

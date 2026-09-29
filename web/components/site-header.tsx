@@ -137,15 +137,14 @@ export function SiteHeader({ heroSentinelRef }: Props) {
                 {item.label}
               </Link>
             ))}
-            <Link
+            <a
               href="/app"
               className="mt-3 flex items-center justify-between rounded-lg px-3 py-3 text-sm font-semibold text-black"
               style={{ backgroundColor: "#dcb81e" }}
-              onClick={() => setMobileOpen(false)}
             >
               Usar la app de Cabibee
               <span aria-hidden>→</span>
-            </Link>
+            </a>
             <hr className="my-3 border-white/10" />
             <AuthNavMobile onNavigate={() => setMobileOpen(false)} />
           </nav>

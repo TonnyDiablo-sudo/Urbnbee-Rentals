@@ -16,7 +16,7 @@ export default async function AppGuestMessagesPage() {
         <AuthGate
           title="Chatea con anfitriones"
           message="Para escribirle a un anfitrión necesitas una cuenta gratuita. Así cuidamos a todos del spam y las estafas."
-          next="/app/mensajes"
+          next="/mensajes"
           perks={["Pregunta por disponibilidad y precios", "Recibe las respuestas aquí mismo", "Ve teléfono y WhatsApp del anfitrión"]}
         />
       )}

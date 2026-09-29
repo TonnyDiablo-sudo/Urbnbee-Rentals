@@ -55,7 +55,7 @@ export function TabHeader({ title, subtitle, right }: { title: string; subtitle?
 
 export function Brand({ className = "" }: { className?: string }) {
   return (
-    <Link href="/app" className={`inline-flex flex-col leading-none ${className}`} aria-label="Cabibee">
+    <Link href="/" className={`inline-flex flex-col leading-none ${className}`} aria-label="Cabibee">
       <span className="text-lg font-bold tracking-wider">
         <span className="text-[#111]">CABI</span>
         <span className="text-[#dcb81e]">BEE</span>

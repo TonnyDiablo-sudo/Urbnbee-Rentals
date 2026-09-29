@@ -9,7 +9,9 @@ export default function AppOfflinePage() {
       <p className="mt-2 text-sm leading-relaxed text-[#717171]">
         Revisa tu internet. Cabibee se actualiza solo en cuanto vuelvas a tener señal.
       </p>
-      <a href="/app" className="mt-6 rounded-xl bg-[#dcb81e] px-6 py-3 text-sm font-semibold text-black">
+      {/* Recarga completa a propósito: esta página la sirve el service worker sin red. */}
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+      <a href="/" className="mt-6 rounded-xl bg-[#dcb81e] px-6 py-3 text-sm font-semibold text-black">
         Reintentar
       </a>
     </div>

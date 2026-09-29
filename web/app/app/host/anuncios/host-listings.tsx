@@ -56,7 +56,7 @@ export function HostListings() {
   return (
     <div className="px-5 pb-8">
       {acceptsBookings === false && rows.length > 0 && (
-        <Link href="/app/host/motor" className="mb-4 block rounded-2xl bg-[#fdf6d8] px-4 py-3 text-sm text-[#5c4a0a]">
+        <Link href="/host/motor" className="mb-4 block rounded-2xl bg-[#fdf6d8] px-4 py-3 text-sm text-[#5c4a0a]">
           Tus anuncios reciben mensajes, pero no reservas. <span className="font-semibold underline">Activa el motor de reservas</span>
         </Link>
       )}
@@ -67,7 +67,7 @@ export function HostListings() {
           <p className="text-base font-semibold text-[#222]">Todavía no tienes anuncios</p>
           <p className="mt-1 text-sm text-[#717171]">Publicar es gratis. Empieza con fotos, precio y ciudad.</p>
           <Link
-            href="/app/host/anuncios/nuevo"
+            href="/host/anuncios/nuevo"
             className="mt-5 inline-block rounded-xl bg-[#dcb81e] px-5 py-3 text-sm font-semibold text-black"
           >
             Crear mi primer anuncio
@@ -105,7 +105,7 @@ export function HostListings() {
                 </div>
               </div>
               <div className="grid grid-cols-3 border-t border-[#f0f0f0] text-sm font-medium">
-                <Link href={`/app/host/anuncios/${l.id}`} className="py-3 text-center text-[#222]">
+                <Link href={`/host/anuncios/${l.id}`} className="py-3 text-center text-[#222]">
                   Editar
                 </Link>
                 <button
@@ -117,7 +117,7 @@ export function HostListings() {
                   {l.published ? "Pausar" : "Publicar"}
                 </button>
                 {l.published ? (
-                  <Link href={`/app/alojamiento/${l.slug}`} className="py-3 text-center text-[#222]">
+                  <Link href={`/alojamiento/${l.slug}`} className="py-3 text-center text-[#222]">
                     Ver
                   </Link>
                 ) : (

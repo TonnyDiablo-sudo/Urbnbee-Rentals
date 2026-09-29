@@ -7,7 +7,7 @@ import { PasswordField } from "@/components/password-field";
 import { TopBar } from "../_components/top-bar";
 
 function safeAppNext(raw: string | null): string {
-  if (!raw || !raw.startsWith("/app") || raw.startsWith("//")) return "/app";
+  if (!raw || !/^\/(?![/\\])/.test(raw)) return "/";
   return raw;
 }
 
@@ -18,7 +18,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const params = useSearchParams();
   const next = safeAppNext(params.get("next"));
-  const asHost = params.get("modo") === "anfitrion" || next.startsWith("/app/host");
+  const asHost = params.get("modo") === "anfitrion" || next.startsWith("/host");
   const q = `next=${encodeURIComponent(next)}${asHost ? "&modo=anfitrion" : ""}`;
 
   const [fullName, setFullName] = useState("");
@@ -61,7 +61,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
   return (
     <>
-      <TopBar title="" back="/app/perfil" />
+      <TopBar title="" back="/perfil" />
       <div className="px-6 pb-10 pt-2">
         <h1 className="text-[26px] font-bold text-[#222]">{title}</h1>
         <p className="mt-1.5 text-sm leading-relaxed text-[#717171]">
@@ -134,7 +134,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         <p className="mt-6 text-center text-sm text-[#717171]">
           {mode === "login" ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
           <Link
-            href={mode === "login" ? `/app/cuenta/registro?${q}` : `/app/cuenta/entrar?${q}`}
+            href={mode === "login" ? `/cuenta/registro?${q}` : `/cuenta/entrar?${q}`}
             className="font-semibold text-[#222] underline"
           >
             {mode === "login" ? "Regístrate" : "Inicia sesión"}

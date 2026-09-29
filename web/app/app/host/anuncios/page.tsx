@@ -12,7 +12,7 @@ export default function AppHostListingsPage() {
         title="Anuncios"
         right={
           <Link
-            href="/app/host/anuncios/nuevo"
+            href="/host/anuncios/nuevo"
             className="mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-[#f1f1f1] text-[#222]"
             aria-label="Nuevo anuncio"
           >

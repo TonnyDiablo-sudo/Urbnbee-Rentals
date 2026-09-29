@@ -8,7 +8,7 @@ export function FloatingBack() {
   return (
     <button
       type="button"
-      onClick={() => (window.history.length > 1 ? router.back() : router.push("/app"))}
+      onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
       className="absolute left-4 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#222] shadow-md"
       style={{ top: "calc(12px + env(safe-area-inset-top))" }}
       aria-label="Regresar"

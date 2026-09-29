@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // En local la app se abre en http://app.localhost:3005 (ver middleware.ts).
+  allowedDevOrigins: ["app.localhost"],
   images: {
     remotePatterns: [
       {

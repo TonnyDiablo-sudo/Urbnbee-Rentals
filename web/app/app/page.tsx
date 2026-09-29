@@ -19,7 +19,7 @@ export default async function AppExplorePage({ searchParams }: Props) {
   if (source === "pwa") {
     const user = await getSessionUser();
     const mode = (await cookies()).get("cabibee_mode")?.value;
-    if (mode === "host" && (user?.role === "host" || user?.role === "admin")) redirect("/app/host");
+    if (mode === "host" && (user?.role === "host" || user?.role === "admin")) redirect("/host");
   }
 
   const listings = appBrowseListings({ tipo, q });
@@ -28,7 +28,7 @@ export default async function AppExplorePage({ searchParams }: Props) {
     if (q) p.set("q", q);
     if (key) p.set("tipo", key);
     const s = p.toString();
-    return s ? `/app?${s}` : "/app";
+    return s ? `/?${s}` : "/";
   };
 
   return (
@@ -41,7 +41,7 @@ export default async function AppExplorePage({ searchParams }: Props) {
           <Brand />
           <span className="text-[11px] font-medium uppercase tracking-widest text-[#999]">Your Booking Bee</span>
         </div>
-        <form action="/app" className="relative">
+        <form action="/" className="relative">
           {tipo && <input type="hidden" name="tipo" value={tipo} />}
           <IconSearch className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#222]" />
           <input
@@ -77,7 +77,7 @@ export default async function AppExplorePage({ searchParams }: Props) {
           <div className="py-16 text-center">
             <p className="text-base font-semibold text-[#222]">Sin resultados</p>
             <p className="mt-1 text-sm text-[#717171]">Prueba otra ciudad o quita el filtro.</p>
-            <Link href="/app" className="mt-4 inline-block text-sm font-semibold underline">
+            <Link href="/" className="mt-4 inline-block text-sm font-semibold underline">
               Ver todo
             </Link>
           </div>

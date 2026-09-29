@@ -24,11 +24,11 @@ type Props = {
 
 export function ListingActionBar(p: Props) {
   const [sheet, setSheet] = useState<"book" | "contact" | null>(null);
-  const here = `/app/alojamiento/${p.slug}`;
+  const here = `/alojamiento/${p.slug}`;
   const authQ = `next=${encodeURIComponent(here)}`;
   const chatHref = p.loggedIn
-    ? `/app/mensajes/${p.listingId}`
-    : `/app/cuenta/registro?next=${encodeURIComponent(`/app/mensajes/${p.listingId}`)}`;
+    ? `/mensajes/${p.listingId}`
+    : `/cuenta/registro?next=${encodeURIComponent(`/mensajes/${p.listingId}`)}`;
 
   const openContact = () => {
     setSheet("contact");
@@ -91,11 +91,11 @@ export function ListingActionBar(p: Props) {
           blockedDates={p.blockedDates}
           nightlyPriceOverrides={p.nightlyPriceOverrides}
           appRoutes={{
-            login: `/app/cuenta/entrar?${authQ}`,
-            register: `/app/cuenta/registro?${authQ}`,
-            membership: "/app/membresia",
+            login: `/cuenta/entrar?${authQ}`,
+            register: `/cuenta/registro?${authQ}`,
+            membership: "/membresia",
             cancelPath: here,
-            successPath: "/app/viajes",
+            successPath: "/viajes",
           }}
         />
         <p className="mt-4 text-xs leading-relaxed text-[#888]">
@@ -111,13 +111,13 @@ export function ListingActionBar(p: Props) {
               del spam y sabemos quién escribe.
             </p>
             <Link
-              href={`/app/cuenta/registro?${authQ}`}
+              href={`/cuenta/registro?${authQ}`}
               className="block rounded-xl bg-[#dcb81e] py-3.5 text-center font-semibold text-black"
             >
               Crear cuenta gratis
             </Link>
             <Link
-              href={`/app/cuenta/entrar?${authQ}`}
+              href={`/cuenta/entrar?${authQ}`}
               className="block rounded-xl border border-[#222] py-3.5 text-center font-semibold text-[#222]"
             >
               Ya tengo cuenta

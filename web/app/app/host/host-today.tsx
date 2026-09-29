@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { HOST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../_components/booking-status";
-import { IconChevron, IconExternal } from "../_components/icons";
+import { IconChevron } from "../_components/icons";
 import { PushPrompt } from "../_components/push";
 import { threadIsUnread } from "../_components/seen";
 import { Sheet } from "../_components/sheet";
+import { WebLink } from "../_components/site-origin";
 
 type Booking = {
   id: string;
@@ -98,13 +99,13 @@ export function HostToday() {
 
       <div className="grid grid-cols-3 gap-2.5">
         <Stat label="Por responder" value={pending.length} highlight={pending.length > 0} />
-        <Stat label="Chats nuevos" value={newChats} highlight={newChats > 0} href="/app/host/mensajes" />
-        <Stat label="Publicados" value={published} href="/app/host/anuncios" />
+        <Stat label="Chats nuevos" value={newChats} highlight={newChats > 0} href="/host/mensajes" />
+        <Stat label="Publicados" value={published} href="/host/anuncios" />
       </div>
 
       {status && (
         <Link
-          href="/app/host/motor"
+          href="/host/motor"
           className={`flex items-center gap-3 rounded-2xl p-4 ${status.acceptsBookings ? "border border-[#ebebeb]" : "bg-[#111] text-white"}`}
         >
           <div className="min-w-0 flex-1">
@@ -124,7 +125,7 @@ export function HostToday() {
       )}
 
       {status && status.listingsTotal === 0 && (
-        <Link href="/app/host/anuncios/nuevo" className="block rounded-2xl bg-[#fdf6d8] p-4">
+        <Link href="/host/anuncios/nuevo" className="block rounded-2xl bg-[#fdf6d8] p-4">
           <p className="text-[15px] font-semibold text-[#5c4a0a]">Publica tu primer anuncio</p>
           <p className="mt-0.5 text-sm text-[#7a6414]">Toma unos minutos: fotos, precio y lo básico. Es gratis.</p>
         </Link>
@@ -178,14 +179,13 @@ export function HostToday() {
         )}
       </section>
 
-      <a
-        href="/host/requests"
-        target="_blank"
-        rel="noopener"
+      <WebLink
+        path="/host/requests"
+        icon
         className="flex items-center justify-center gap-1.5 text-sm font-medium text-[#717171] underline"
       >
-        Historial, contratos y depósitos en la web <IconExternal />
-      </a>
+        Historial, contratos y depósitos en la web{" "}
+      </WebLink>
 
       <AcceptSheet key={reviewing?.id ?? "none"} booking={reviewing} onClose={() => setReviewing(null)} onDone={load} />
     </div>

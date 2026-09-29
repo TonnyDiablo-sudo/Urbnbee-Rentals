@@ -19,7 +19,7 @@ export default async function AppTripsPage() {
         <AuthGate
           title="Tus reservas, en un solo lugar"
           message="Cuando reserves con Cabibee verás aquí tus fechas, el estado de la reserva y el contrato."
-          next="/app/viajes"
+          next="/viajes"
         />
       )}
     </>

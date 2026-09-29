@@ -15,7 +15,7 @@ export function LogoutButton() {
         setBusy(true);
         await unsubscribeThisDevice();
         await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
-        router.replace("/app");
+        router.replace("/");
         router.refresh();
       }}
       className="mt-4 w-full rounded-xl border border-[#ddd] py-3 text-[15px] font-medium text-[#222] disabled:opacity-60"

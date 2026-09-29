@@ -36,13 +36,13 @@ export function AuthGate({
       )}
       <div className="mt-8 space-y-3">
         <Link
-          href={`/app/cuenta/registro?${q}`}
+          href={`/cuenta/registro?${q}`}
           className="block w-full rounded-xl bg-[#dcb81e] py-3.5 text-center text-[15px] font-semibold text-black active:brightness-95"
         >
           {host ? "Crear cuenta de anfitrión" : "Crear cuenta gratis"}
         </Link>
         <Link
-          href={`/app/cuenta/entrar?${q}`}
+          href={`/cuenta/entrar?${q}`}
           className="block w-full rounded-xl border border-[#222] py-3.5 text-center text-[15px] font-semibold text-[#222] active:bg-[#f5f5f5]"
         >
           Ya tengo cuenta

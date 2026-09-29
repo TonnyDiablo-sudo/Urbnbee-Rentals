@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { GUEST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../_components/booking-status";
-import { IconExternal } from "../_components/icons";
+import { WebLink } from "../_components/site-origin";
 
 type Trip = {
   id: string;
@@ -61,7 +61,7 @@ export function TripsList() {
       } else {
         setErr(typeof data.error === "string" ? data.error : "No pudimos confirmar el pago todavía.");
       }
-      router.replace("/app/viajes");
+      router.replace("/viajes");
       await load();
     })();
   }, [sessionId, load, router]);
@@ -73,7 +73,7 @@ export function TripsList() {
       const res = await fetch(`/api/bookings/${t.id}/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cancelPath: "/app/viajes", returnPath: "/app/viajes" }),
+        body: JSON.stringify({ cancelPath: "/viajes", returnPath: "/viajes" }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -112,7 +112,7 @@ export function TripsList() {
         <div className="py-8">
           <p className="text-base font-semibold text-[#222]">Aún no tienes viajes</p>
           <p className="mt-1 text-sm text-[#717171]">Cuando reserves un alojamiento aparecerá aquí.</p>
-          <Link href="/app" className="mt-5 inline-block rounded-xl bg-[#dcb81e] px-5 py-3 text-sm font-semibold text-black">
+          <Link href="/" className="mt-5 inline-block rounded-xl bg-[#dcb81e] px-5 py-3 text-sm font-semibold text-black">
             Empieza a buscar
           </Link>
         </div>
@@ -148,16 +148,16 @@ export function TripsList() {
                     </button>
                   )}
                   {t.status === "AWAITING_DETAILS" && (
-                    <a
-                      href={`/finish/${t.token}`}
+                    <WebLink
+                      path={`/finish/${t.token}`}
                       className="rounded-xl bg-[#dcb81e] px-4 py-2 text-sm font-semibold text-black"
                     >
                       Completar datos
-                    </a>
+                    </WebLink>
                   )}
                   {t.listingSlug && (
                     <Link
-                      href={`/app/alojamiento/${t.listingSlug}`}
+                      href={`/alojamiento/${t.listingSlug}`}
                       className="rounded-xl border border-[#ddd] px-4 py-2 text-sm font-medium text-[#222]"
                     >
                       Ver alojamiento
@@ -170,14 +170,13 @@ export function TripsList() {
         </ul>
       )}
 
-      <a
-        href="/guest/bookings"
-        target="_blank"
-        rel="noopener"
+      <WebLink
+        path="/guest/bookings"
+        icon
         className="mt-6 flex items-center justify-center gap-1.5 text-sm font-medium text-[#717171] underline"
       >
-        Contratos, depósitos y reseñas en la web <IconExternal />
-      </a>
+        Contratos, depósitos y reseñas en la web{" "}
+      </WebLink>
     </div>
   );
 }

@@ -21,11 +21,11 @@ export default async function AppGuestThreadPage({ params }: Props) {
   if (!user) {
     return (
       <>
-        <TopBar title={record.title} back={`/app/alojamiento/${record.slug}`} />
+        <TopBar title={record.title} back={`/alojamiento/${record.slug}`} />
         <AuthGate
           title={`Escríbele a ${hostName}`}
           message="Necesitas una cuenta gratuita para chatear. Así ligamos cada conversación a una persona real."
-          next={`/app/mensajes/${listingId}`}
+          next={`/mensajes/${listingId}`}
         />
       </>
     );

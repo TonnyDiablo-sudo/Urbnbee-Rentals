@@ -3,9 +3,19 @@ import type { UserRecord } from "@/lib/marketplace-types";
 import { IconChevron, IconExternal, IconSwitch } from "./icons";
 import { LogoutButton } from "./logout-button";
 import { PushToggle } from "./push";
+import { WebLink } from "./site-origin";
 import { TabHeader } from "./top-bar";
 
 type Item = { href: string; label: string; hint?: string; web?: boolean };
+
+function ItemText({ item }: { item: Item }) {
+  return (
+    <div className="min-w-0 flex-1">
+      <p className="text-[15px] text-[#222]">{item.label}</p>
+      {item.hint && <p className="text-xs text-[#888]">{item.hint}</p>}
+    </div>
+  );
+}
 
 /** Perfil (modo huésped) y Menú (modo anfitrión): misma cuenta, distinto contexto. */
 export function ProfileView({ user, mode }: { user: UserRecord | null; mode: "guest" | "host" }) {
@@ -14,16 +24,16 @@ export function ProfileView({ user, mode }: { user: UserRecord | null; mode: "gu
   const items: Item[] =
     mode === "host"
       ? [
-          { href: "/app/host/motor", label: "Motor de reservas", hint: "Membresía e identidad de anfitrión" },
-          { href: "/app/host/anuncios", label: "Mis anuncios" },
+          { href: "/host/motor", label: "Motor de reservas", hint: "Membresía e identidad de anfitrión" },
+          { href: "/host/anuncios", label: "Mis anuncios" },
           { href: "/host/calendar", label: "Calendario y precios por fecha", web: true },
           { href: "/host/requests", label: "Contratos, depósitos y reseñas", web: true },
           { href: "/host/settings/integrations", label: "BeeAgent e integraciones", web: true },
           { href: "/host/dashboard", label: "Panel completo de anfitrión", web: true },
         ]
       : [
-          { href: "/app/membresia", label: "Membresía de huésped", hint: "Identidad verificada para reservar" },
-          { href: "/app/viajes", label: "Mis viajes" },
+          { href: "/membresia", label: "Membresía de huésped", hint: "Identidad verificada para reservar" },
+          { href: "/viajes", label: "Mis viajes" },
           ...(user ? [{ href: "/guest/profile", label: "Datos personales y foto", web: true }] : []),
           { href: "/", label: "Sitio web de Cabibee", web: true },
         ];
@@ -49,13 +59,13 @@ export function ProfileView({ user, mode }: { user: UserRecord | null; mode: "gu
             </p>
             <div className="mt-4 flex gap-3">
               <Link
-                href="/app/cuenta/registro?next=/app/perfil"
+                href="/cuenta/registro?next=/perfil"
                 className="flex-1 rounded-xl bg-[#dcb81e] py-3 text-center text-[15px] font-semibold text-black"
               >
                 Crear cuenta
               </Link>
               <Link
-                href="/app/cuenta/entrar?next=/app/perfil"
+                href="/cuenta/entrar?next=/perfil"
                 className="flex-1 rounded-xl border border-[#222] py-3 text-center text-[15px] font-semibold text-[#222]"
               >
                 Entrar
@@ -65,7 +75,7 @@ export function ProfileView({ user, mode }: { user: UserRecord | null; mode: "gu
         )}
 
         <Link
-          href={mode === "host" ? "/app" : "/app/host"}
+          href={mode === "host" ? "/" : "/host"}
           className="mt-5 flex items-center gap-4 rounded-2xl bg-[#111] p-4 text-white shadow-[0_6px_20px_rgba(0,0,0,0.15)]"
         >
           <div className="min-w-0 flex-1">
@@ -89,24 +99,19 @@ export function ProfileView({ user, mode }: { user: UserRecord | null; mode: "gu
           {user && <PushToggle />}
           {items.map((i) => (
             <li key={i.href}>
-              <Link
-                href={i.href}
-                target={i.web ? "_blank" : undefined}
-                rel={i.web ? "noopener" : undefined}
-                className="flex items-center gap-3 py-4"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-[15px] text-[#222]">{i.label}</p>
-                  {i.hint && <p className="text-xs text-[#888]">{i.hint}</p>}
-                </div>
-                {i.web ? (
+              {i.web ? (
+                <WebLink path={i.href} className="flex items-center gap-3 py-4">
+                  <ItemText item={i} />
                   <span className="flex items-center gap-1 text-xs text-[#999]">
                     web <IconExternal />
                   </span>
-                ) : (
+                </WebLink>
+              ) : (
+                <Link href={i.href} className="flex items-center gap-3 py-4">
+                  <ItemText item={i} />
                   <IconChevron className="h-5 w-5 text-[#999]" />
-                )}
-              </Link>
+                </Link>
+              )}
             </li>
           ))}
         </ul>

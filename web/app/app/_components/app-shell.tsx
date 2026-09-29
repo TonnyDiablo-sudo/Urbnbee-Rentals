@@ -12,16 +12,16 @@ type Tab = { href: string; label: string; icon: React.ReactNode; badge?: boolean
 
 /** Pantallas de detalle a pantalla completa: sin barra inferior, como en Airbnb. */
 const FULLSCREEN = [
-  /^\/app\/alojamiento\//,
-  /^\/app\/mensajes\/.+/,
-  /^\/app\/host\/mensajes\/.+/,
-  /^\/app\/host\/anuncios\/.+/,
-  /^\/app\/cuenta\//,
+  /^\/alojamiento\//,
+  /^\/mensajes\/.+/,
+  /^\/host\/mensajes\/.+/,
+  /^\/host\/anuncios\/.+/,
+  /^\/cuenta\//,
 ];
 
 export function AppShell({ user, children }: { user: AppUser; children: React.ReactNode }) {
-  const pathname = usePathname() ?? "/app";
-  const hostMode = pathname === "/app/host" || pathname.startsWith("/app/host/");
+  const pathname = usePathname() ?? "/";
+  const hostMode = pathname === "/host" || pathname.startsWith("/host/");
   const unread = useUnreadCount(hostMode ? "host" : "guest", user);
 
   useEffect(() => {
@@ -35,16 +35,16 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
 
   const tabs: Tab[] = hostMode
     ? [
-        { href: "/app/host", label: "Hoy", icon: <IconToday /> },
-        { href: "/app/host/mensajes", label: "Mensajes", icon: <IconChat />, badge: unread > 0 },
-        { href: "/app/host/anuncios", label: "Anuncios", icon: <IconHome /> },
-        { href: "/app/host/menu", label: "Menú", icon: <IconMenu /> },
+        { href: "/host", label: "Hoy", icon: <IconToday /> },
+        { href: "/host/mensajes", label: "Mensajes", icon: <IconChat />, badge: unread > 0 },
+        { href: "/host/anuncios", label: "Anuncios", icon: <IconHome /> },
+        { href: "/host/menu", label: "Menú", icon: <IconMenu /> },
       ]
     : [
-        { href: "/app", label: "Explorar", icon: <IconSearch /> },
-        { href: "/app/viajes", label: "Viajes", icon: <IconTrips /> },
-        { href: "/app/mensajes", label: "Mensajes", icon: <IconChat />, badge: unread > 0 },
-        { href: "/app/perfil", label: user ? "Perfil" : "Entrar", icon: <IconUser /> },
+        { href: "/", label: "Explorar", icon: <IconSearch /> },
+        { href: "/viajes", label: "Viajes", icon: <IconTrips /> },
+        { href: "/mensajes", label: "Mensajes", icon: <IconChat />, badge: unread > 0 },
+        { href: "/perfil", label: user ? "Perfil" : "Entrar", icon: <IconUser /> },
       ];
 
   const fullscreen = FULLSCREEN.some((r) => r.test(pathname));
@@ -65,7 +65,7 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
           <div className="mx-auto flex h-16 max-w-xl items-stretch justify-around">
             {tabs.map((t) => {
               const active =
-                t.href === "/app" || t.href === "/app/host"
+                t.href === "/" || t.href === "/host"
                   ? pathname === t.href
                   : pathname === t.href || pathname.startsWith(`${t.href}/`);
               return (

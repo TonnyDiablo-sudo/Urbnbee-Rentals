@@ -81,7 +81,7 @@ export function notifyHostNewMessage(p: {
   void sendPushToUser(p.hostId, {
     title: `${p.guestName} · ${listingTitle(p.listingId)}`,
     body: p.body,
-    url: `/app/host/mensajes/${encodeURIComponent(p.listingId)}/${encodeURIComponent(p.guestSessionId)}`,
+    url: `/host/mensajes/${encodeURIComponent(p.listingId)}/${encodeURIComponent(p.guestSessionId)}`,
     tag: `h:${p.listingId}:${p.guestSessionId}`,
   });
 }
@@ -93,7 +93,7 @@ export function notifyGuestHostReply(p: { listingId: string; guestSessionId: str
   void sendPushToUser(m[1], {
     title: `Respuesta del anfitrión · ${listingTitle(p.listingId)}`,
     body: p.body,
-    url: `/app/mensajes/${encodeURIComponent(p.listingId)}`,
+    url: `/mensajes/${encodeURIComponent(p.listingId)}`,
     tag: `g:${p.listingId}`,
   });
 }
@@ -103,7 +103,7 @@ export function notifyHostBookingPaid(booking: BookingRecord): void {
   void sendPushToUser(booking.hostId, {
     title: instant ? "Nueva reserva confirmada" : "Nueva solicitud de reserva",
     body: `${booking.guestName} · ${listingTitle(booking.listingId)} · ${booking.nights} noche${booking.nights === 1 ? "" : "s"}`,
-    url: "/app/host",
+    url: "/host",
     tag: `b:${booking.id}`,
   });
 }
@@ -115,7 +115,7 @@ export function notifyGuestBookingDecision(booking: BookingRecord, accepted: boo
     body: accepted
       ? `${listingTitle(booking.listingId)}: completa tus datos para cerrar la reserva.`
       : `${listingTitle(booking.listingId)}: el anfitrión no pudo recibirte en esas fechas.`,
-    url: "/app/viajes",
+    url: "/viajes",
     tag: `b:${booking.id}`,
   });
 }

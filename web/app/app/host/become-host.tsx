@@ -52,7 +52,7 @@ export function BecomeHost({ name }: { name: string }) {
       >
         {busy ? "Activando…" : "Activar modo anfitrión"}
       </button>
-      <Link href="/app" className="mt-3 block py-3 text-center text-sm font-medium text-[#717171] underline">
+      <Link href="/" className="mt-3 block py-3 text-center text-sm font-medium text-[#717171] underline">
         Ahora no, seguir explorando
       </Link>
     </div>

@@ -30,7 +30,7 @@ export function NewListingStart() {
           ...(title.trim() ? { title: title.trim(), regenerateSlug: true } : {}),
         }),
       });
-      router.replace(`/app/host/anuncios/${id}`);
+      router.replace(`/host/anuncios/${id}`);
     } catch {
       setErr("Sin conexión.");
     } finally {

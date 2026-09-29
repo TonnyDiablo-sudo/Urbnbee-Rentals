@@ -10,7 +10,7 @@ export default async function AppMembershipPage() {
   const user = await getSessionUser();
   return (
     <>
-      <TopBar title="Membresía de huésped" back="/app/perfil" />
+      <TopBar title="Membresía de huésped" back="/perfil" />
       {user ? (
         <Suspense>
           <GuestMembership />
@@ -19,7 +19,7 @@ export default async function AppMembershipPage() {
         <AuthGate
           title="Reserva como huésped verificado"
           message="La membresía comprueba tu identidad y te abre las reservas protegidas de Cabibee."
-          next="/app/membresia"
+          next="/membresia"
           perks={[
             "Reserva y paga dentro de Cabibee, con contrato",
             "Perfil de huésped verificado que los anfitriones sí aceptan",

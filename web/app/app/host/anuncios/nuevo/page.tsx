@@ -6,7 +6,7 @@ export const metadata = { title: "Nuevo anuncio" };
 export default function AppNewListingPage() {
   return (
     <>
-      <TopBar title="Nuevo anuncio" back="/app/host/anuncios" />
+      <TopBar title="Nuevo anuncio" back="/host/anuncios" />
       <NewListingStart />
     </>
   );

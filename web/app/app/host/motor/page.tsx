@@ -7,7 +7,7 @@ export const metadata = { title: "Motor de reservas" };
 export default function AppHostEnginePage() {
   return (
     <>
-      <TopBar title="Motor de reservas" back="/app/host/menu" />
+      <TopBar title="Motor de reservas" back="/host/menu" />
       <Suspense>
         <BookingEngine />
       </Suspense>

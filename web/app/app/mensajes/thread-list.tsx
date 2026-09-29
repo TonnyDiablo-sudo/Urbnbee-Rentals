@@ -30,7 +30,7 @@ export function GuestThreadList() {
         <p className="mt-1 text-sm text-[#717171]">
           Abre un alojamiento y toca «Enviar mensaje» para escribirle al anfitrión.
         </p>
-        <Link href="/app" className="mt-5 inline-block rounded-xl border border-[#222] px-5 py-3 text-sm font-semibold">
+        <Link href="/" className="mt-5 inline-block rounded-xl border border-[#222] px-5 py-3 text-sm font-semibold">
           Explorar alojamientos
         </Link>
       </div>
@@ -43,7 +43,7 @@ export function GuestThreadList() {
         const unread = t.lastSender === "host" && threadIsUnread(`g:${t.listingId}`, t.lastAt);
         return (
           <li key={t.listingId}>
-            <Link href={`/app/mensajes/${t.listingId}`} className="flex items-start gap-3 px-5 py-4 active:bg-[#fafafa]">
+            <Link href={`/mensajes/${t.listingId}`} className="flex items-start gap-3 px-5 py-4 active:bg-[#fafafa]">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#fdf6d8] text-lg">🏠</div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">

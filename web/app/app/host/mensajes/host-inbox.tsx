@@ -15,7 +15,7 @@ export type HostThread = {
 };
 
 export function hostThreadHref(t: { listingId: string; guestSessionId: string }) {
-  return `/app/host/mensajes/${encodeURIComponent(t.listingId)}/${encodeURIComponent(t.guestSessionId)}`;
+  return `/host/mensajes/${encodeURIComponent(t.listingId)}/${encodeURIComponent(t.guestSessionId)}`;
 }
 
 export function HostInbox() {
