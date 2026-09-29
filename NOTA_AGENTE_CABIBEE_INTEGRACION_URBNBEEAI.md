@@ -99,13 +99,20 @@ Además, `POST /v1/hosts/provision` **enlaza por email sin comprobar nada**. Cua
 
 ## 3. Qué vende Cabibee (catálogo)
 
-| SKU (en `pricing_catalog` de urbnbeeai) | Quién lo compra | Qué incluye | Vendible por vendedores de urbnbeeai |
-|---|---|---|---|
-| `cabibee_booking_engine` | Anfitrión | Motor de reservas: cobro de la estancia **al Stripe del anfitrión** (§5), firma de contrato (§4.2), bloqueo de fechas y calendario, reserva manual o automática. **Incluye** `cabibee_host_verification`. | Sí |
-| `cabibee_host_verification` | Anfitrión | Membresía de verificación de identidad del anfitrión (Stripe Identity) y sello "Verificado" en sus listings. | Sí |
-| `cabibee_guest_membership` | Huésped | Membresía de verificación de identidad del huésped (la de `/membresia` hoy). | **No** (la compra el huésped en cabibee.com; se cataloga solo para que el admin edite el precio en un solo lugar) |
+**Actualizado 2026-09-29 (ya en producción en urbnbeeai):** los SKUs son **tus planes de `web/lib/membership-plans-types.ts`**, con el prefijo `cabibee_`. La API devuelve también `code` sin el prefijo, igual al tuyo.
 
-Y del lado de urbnbeeai, producto suyo (D9): `tool_cabibee` ($100/mes por omisión), la tool del bot.
+| SKU (en `pricing_catalog` de urbnbeeai) | `code` | Quién lo compra | Cobro | Vendible por vendedores de urbnbeeai |
+|---|---|---|---|---|
+| `cabibee_pase_reserva` | `pase_reserva` | Huésped | pago único | No |
+| `cabibee_meses_6` | `meses_6` | Huésped | suscripción, 6 meses | No |
+| `cabibee_meses_12` | `meses_12` | Huésped | suscripción, 12 meses | No |
+| `cabibee_anfitrion_6` | `anfitrion_6` | Anfitrión | suscripción, 6 meses | Sí |
+| `cabibee_anfitrion_12` | `anfitrion_12` | Anfitrión | suscripción, 12 meses | Sí |
+| `cabibee_booking_engine` | `booking_engine` | Anfitrión | suscripción mensual | Sí |
+
+Todos nacen apagados y en 0, igual que tus semillas. El **motor de reservas** incluye cobro de la estancia **al Stripe del anfitrión** (§5), firma de contrato (§4.2), bloqueo de fechas y calendario, reserva manual o automática, y **la verificación del anfitrión**. Agrégalo a tus planes con el código `booking_engine`. El **screening** (costo del proveedor + margen) no es plan y se queda en Cabibee por ahora.
+
+Y del lado de urbnbeeai, producto suyo (D9): la tool del bot "Cabibee" (id interno `host`, SKU `tool_host`). Hoy cuesta $9.90 y sube a $100/mes cuando el bot ya pueda ver disponibilidad y reservas (§9.2).
 
 Hoy **nada de esto existe como producto para anfitriones**. Solo se cobra la membresía del huésped (Price IDs en variables de entorno `STRIPE_PRICE_VERIFICATION_*`) y la comisión por reserva (`PLATFORM_BOOKING_FEE_PERCENT`). `urb_host_entitlements` existe en el esquema pero ningún código la usa.
 
@@ -178,12 +185,18 @@ Del lado de urbnbeeai (lo construye el agente de urbnbeeai; aquí va el contrato
 
 | Método | Ruta en urbnbeeai | Para qué | Auth |
 |---|---|---|---|
-| GET | `/api/integrations/cabibee/v1/catalog` | Precios públicos de los SKU `provider=cabibee`: `sku`, `label`, `public_price`, `currency`, `interval`, `active`. **Nunca incluye el piso.** | Bearer `CABIBEE_TO_URBNBEEAI_API_SECRET` |
-| GET | `/api/integrations/cabibee/v1/admin/catalog` | Igual más `floor_price`, `updated_at`, `updated_by`, `updated_from`. Solo para la pantalla de admin de Cabibee. | Mismo Bearer + header `X-Cabibee-Admin-Email` |
-| PATCH | `/api/integrations/cabibee/v1/admin/catalog/{sku}` | Cambiar `public_price`, `floor_price` o `active`. **Solo SKUs `provider=cabibee`**; cualquier otro → `403`. Valida `floor_price <= public_price`. | Mismo Bearer + `X-Cabibee-Admin-Email` |
+**Ya está en producción (2026-09-29).** Responde 503 `cabibee_integration_not_configured` hasta que el founder ponga `CABIBEE_TO_URBNBEEAI_API_SECRET` con el mismo valor en los dos Railway.
+
+| Método | Ruta en urbnbeeai | Para qué | Auth |
+|---|---|---|---|
+| GET | `/api/integrations/cabibee/v1/catalog` | `{ skus: [...] }`, cada uno con `sku`, `code`, `audience` (`guest`/`host`), `label`, `description`, `public_price` (USD), `public_price_mxn`, `billing` (`{kind:"one_time"}` o `{kind:"subscription", interval_count}`) y `active`. **Nunca incluye el piso.** 0 en una moneda = no se ofrece en esa región. | Bearer `CABIBEE_TO_URBNBEEAI_API_SECRET` |
+| GET | `/api/integrations/cabibee/v1/admin/catalog` | Igual, más `floor_price` (USD), `seller_sellable`, `price_is_provisional`, `updated_at`, `updated_from` (`urbnbee_admin`/`cabibee_admin`/`migration`) y `updated_by`. | Mismo Bearer + header `X-Cabibee-Admin-Email` |
+| PATCH | `/api/integrations/cabibee/v1/admin/catalog/{sku o code}` | Cambiar `public_price`, `public_price_mxn`, `floor_price` (USD o `null`), `active` (booleano), `label` o `description`. Cualquier otro campo → 400. Un SKU que no es de Cabibee no se puede tocar (404/403). Valida `floor_price <= public_price`. Para encender hace falta precio en USD o en MXN. Responde `{ ok, sku }` con la fila ya guardada. | Mismo Bearer + `X-Cabibee-Admin-Email` |
+
+La forma de cobro (`billing`) no se edita, igual que en tu `MEMBERSHIP_PLAN_BILLING`. El piso y el techo son solo en USD, porque urbnbeeai vende en USD.
 
 Lo que hace Cabibee:
-- **Pantalla `/admin/precios`** (rol `admin`): lista los SKU de Cabibee con techo y piso, y los edita llamando al PATCH desde el **servidor** de Cabibee, nunca desde el navegador (el secreto no sale del servidor).
+- **Tu `/admin/pricing`, el que ya hiciste** (`web/app/api/admin/pricing/[code]/route.ts`): deja de escribir `membership-plans.json` y llama al PATCH desde el **servidor**, nunca desde el navegador (el secreto no sale del servidor). La primera vez que conectes, sube con el PATCH los precios que ya tengas en el JSON de producción, para que urbnbeeai arranque con tus valores reales. Después el JSON queda como caché: el Producto de Stripe (`stripeProductId`) sí se queda de tu lado.
 - Donde Cabibee muestra o cobra un precio (página de membresía, contratar motor de reservas), lo toma de `GET /catalog` con caché corto (5 min) y respaldo al último valor bueno si urbnbeeai no responde. Deja de usar los Price IDs fijos en variables de entorno: crea el Checkout con `price_data` y el monto del catálogo.
 - El piso **nunca** aparece en páginas públicas, en el HTML ni en respuestas de API públicas de Cabibee.
 - "El último que edita sobrescribe": como hay una sola copia, sale solo. Cada cambio queda auditado en urbnbeeai con quién, desde qué sistema y cuándo.
@@ -334,4 +347,7 @@ C2 se puede hacer en cualquier momento y es chica: conviene sacarla pronto.
 
 | Fecha | Fase | Qué quedó / qué cambió | Cómo se probó |
 |---|---|---|---|
+| 2026-09-29 | urbnbeeai U2 | urbnbeeai etiqueta `metadata.app="urbnbee"` e ignora lo tuyo en su webhook (también tus objetos viejos con `metadata.userId`). | Deploy SUCCESS |
+| 2026-09-29 | urbnbeeai U1 | La tool se llama Cabibee y apunta a `https://cabibee.com`. Manda `X-Beeagent-Customer-Id` en **cada** llamada a `/v1`. Ya no acepta host ID a mano. Muestra el 409 `host_exists_confirm_required` como "usa un código". | Deploy SUCCESS |
+| 2026-09-29 | urbnbeeai U5+U6 | Catálogo con tus 5 planes + motor, en MXN y USD, y la API de §7 en producción. | 31 casos contra la base de prod; deploy SUCCESS |
 | | | | |
