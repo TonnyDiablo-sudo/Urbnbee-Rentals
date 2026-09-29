@@ -4,6 +4,7 @@ import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 import { getStripe, allowSimulatedBookingPayment } from "@/lib/stripe-server";
 import { publicOriginFromRequest } from "@/lib/public-origin";
+import { appReturnPath } from "@/lib/app-return-path";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
             ]
           : []),
       ],
-      success_url: `${origin}/bookings/confirm?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}${appReturnPath(body.returnPath) ?? "/bookings/confirm"}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
       metadata: {
         bookingId: booking.id,

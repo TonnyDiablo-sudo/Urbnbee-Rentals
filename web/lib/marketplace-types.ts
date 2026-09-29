@@ -1,3 +1,4 @@
+import type { ListingContractSettings } from "@/lib/booking-contract-templates";
 import type { ListingCategory } from "@/lib/mock-data";
 import type { ListingDetail } from "@/lib/listing-detail-data";
 
@@ -9,6 +10,8 @@ export type UserRecord = {
   passwordHash: string;
   fullName: string;
   phone?: string;
+  /** Dirección para el contrato (cuenta). */
+  addressLine?: string;
   role: UserRole;
   createdAt: string;
 };
@@ -62,6 +65,8 @@ export type HostListingRecord = {
    * approval: tras pagar, queda pendiente hasta que el anfitrión acepte o rechace.
    */
   bookingApprovalMode: "instant" | "approval";
+  /** Plantilla y datos que el anfitrión usa para celebrar el contrato de cada reserva. */
+  contract?: ListingContractSettings;
   createdAt: string;
   updatedAt: string;
 };

@@ -12,18 +12,54 @@ const FRAMES = [
   { src: "/bee-desk.png",   dur: 2000 },  // typing again
 ];
 
+function listingChatSessionId(listingId: string): string {
+  if (typeof window === "undefined") return "";
+  const key = `cabibee_chat_${listingId}`;
+  try {
+    const existing = window.localStorage.getItem(key);
+    if (existing && /^[\w.-]{8,80}$/.test(existing)) return existing;
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `s_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    window.localStorage.setItem(key, id);
+    return id;
+  } catch {
+    return `s_${Date.now()}`;
+  }
+}
+
 export function AiChatWidget({ listingId, listingTitle }: { listingId: string; listingTitle: string }) {
   const [open, setOpen]               = useState(false);
   const [bubbleVisible, setBubbleVisible] = useState(true);
   const [bubbleFading,  setBubbleFading]  = useState(false);
   const [frameIdx,      setFrameIdx]      = useState(0);
   const [imgVisible,    setImgVisible]    = useState(true);
+  const [viaBeeagent, setViaBeeagent] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: `¡Hola! Soy el asistente de Cabibee para "${listingTitle}". ¿Tienes alguna pregunta?` },
   ]);
   const [input,   setInput]   = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const sessionRef = useRef("");
+
+  useEffect(() => {
+    sessionRef.current = listingChatSessionId(listingId);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/listings/${listingId}/chat`, { cache: "no-store" });
+        const data = (await res.json()) as { viaPreferred?: string };
+        if (!cancelled && data.viaPreferred === "beeagent") setViaBeeagent(true);
+      } catch {
+        /* se queda el asistente de Cabibee */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [listingId]);
 
   // ── Frame animation loop ──
   useEffect(() => {
@@ -68,9 +104,10 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
       const res = await fetch(`/api/listings/${listingId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, sessionId: sessionRef.current }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { reply?: string; via?: string };
+      if (data.via === "beeagent") setViaBeeagent(true);
       setMessages((m) => [...m, { role: "assistant", content: data.reply ?? "No pude procesar tu pregunta." }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: "Error al conectar. Intenta más tarde." }]);
@@ -216,7 +253,9 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
             <img src="/bee-desk.png" alt="" className="h-12 w-12 shrink-0 object-contain" draggable={false} />
             <div>
               <p className="text-sm font-extrabold text-black">Cabibee</p>
-              <p className="text-[11px] text-black/55">Tu asistente de alojamiento</p>
+              <p className="text-[11px] text-black/55">
+                {viaBeeagent ? "Agente del anfitrión (BeeAgent)" : "Tu asistente de alojamiento"}
+              </p>
             </div>
             <div className="ml-auto flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-green-500 shadow" />

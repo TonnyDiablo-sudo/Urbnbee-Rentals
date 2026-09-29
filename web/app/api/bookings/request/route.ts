@@ -13,9 +13,9 @@ import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { getSessionUser } from "@/lib/session";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
 import {
-  getVerification,
-  isGuestEligibleToBook,
-  stripeIdentityEnabled,
+  consumeBookingPass,
+  hostAcceptsBookings,
+  resolveGuestBookingAccess,
 } from "@/lib/verification-store";
 
 function clientIp(req: NextRequest): string {
@@ -43,30 +43,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!isGuestEligibleToBook(user.id)) {
-    const v = getVerification(user.id);
-    const subOk = v && (v.subscriptionStatus === "active" || v.subscriptionStatus === "trialing");
-    const idOk = !stripeIdentityEnabled() || v?.kycStatus === "verified";
-    let error =
-      "Para reservar en Cabibee necesitas membresía de verificación activa y, si aplica, identidad confirmada.";
-    if (!subOk) {
-      error =
-        "Contrata una membresía de verificación (mensual o anual) en «Membresía» para poder solicitar reservas.";
-    } else if (stripeIdentityEnabled() && !idOk) {
-      error =
-        "Completa la verificación de identidad (documento + selfie) en «Membresía» para poder reservar.";
-    }
-    return NextResponse.json(
-      {
-        error,
-        needsVerification: true,
-        needsMembership: !subOk,
-        needsIdentity: Boolean(subOk && stripeIdentityEnabled() && !idOk),
-      },
-      { status: 403 }
-    );
-  }
-
   const body = await req.json().catch(() => ({}));
   const listingId = typeof body.listingId === "string" ? body.listingId.trim() : "";
   const checkIn = typeof body.checkIn === "string" ? body.checkIn.trim() : "";
@@ -83,6 +59,35 @@ export async function POST(req: NextRequest) {
 
   if (user.id === listing.hostId) {
     return NextResponse.json({ error: "No puedes reservar tu propio alojamiento." }, { status: 403 });
+  }
+
+  if (!hostAcceptsBookings(listing.hostId)) {
+    return NextResponse.json(
+      {
+        error:
+          "Este anfitrión todavía no recibe reservas en Cabibee. Escríbele por el chat o usa sus datos de contacto.",
+        hostNotBookable: true,
+      },
+      { status: 403 }
+    );
+  }
+
+  // Después del candado del anfitrión: si no, se le pediría membresía al huésped
+  // para un anuncio que de todos modos no acepta reservas.
+  const access = resolveGuestBookingAccess(user.id);
+  if (!access.allowed) {
+    const error = access.needsMembership
+      ? "Contrata una membresía de Cabibee, o un pase por reserva, en «Membresía» para poder solicitar reservas."
+      : "Completa la verificación de identidad (documento + selfie) en «Membresía» para poder reservar.";
+    return NextResponse.json(
+      {
+        error,
+        needsVerification: true,
+        needsMembership: access.needsMembership,
+        needsIdentity: access.needsIdentity,
+      },
+      { status: 403 }
+    );
   }
 
   const nights = countNights(checkIn, checkOut);
@@ -112,12 +117,23 @@ export async function POST(req: NextRequest) {
   const estimatedTotalMxn = Math.round(staySubtotal + cleaning);
   const platformFeeMxn = platformBookingFeeMxn(estimatedTotalMxn);
 
+  // El pase se descuenta antes de crear la reserva: si se descontara después, dos
+  // solicitudes seguidas podrían colarse con un solo pase.
+  const usedMembershipPass = access.via === "pass" ? consumeBookingPass(user.id) : false;
+  if (access.via === "pass" && !usedMembershipPass) {
+    return NextResponse.json(
+      { error: "Tu pase por reserva ya se usó. Compra otro en «Membresía».", needsMembership: true },
+      { status: 403 }
+    );
+  }
+
   const booking = insertBooking({
     listingId,
     hostId: listing.hostId,
     guestUserId: user.id,
     guestEmail: user.email,
     guestName: user.fullName?.trim() || user.email,
+    guestPhone: user.phone,
     checkIn,
     checkOut,
     nights,
@@ -125,6 +141,7 @@ export async function POST(req: NextRequest) {
     platformFeeMxn,
     cleaningFeeMxn: cleaning,
     status: "AWAITING_PAYMENT",
+    usedMembershipPass: usedMembershipPass || undefined,
   });
 
   return NextResponse.json({

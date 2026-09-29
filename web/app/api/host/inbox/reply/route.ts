@@ -4,6 +4,7 @@ import { getListingById } from "@/lib/marketplace-store";
 import { appendMessage } from "@/lib/host-inbox-store";
 import { sanitizeBodyText } from "@/lib/host-inbox-sanitize";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
+import { notifyGuestHostReply } from "@/lib/push";
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
     guestName: "",
     body: text,
   });
+  notifyGuestHostReply({ listingId, guestSessionId, body: text });
 
   return NextResponse.json({ ok: true });
 }

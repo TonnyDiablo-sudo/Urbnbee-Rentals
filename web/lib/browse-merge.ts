@@ -4,6 +4,7 @@ import { demoListings, demoListingsForTipo } from "@/lib/mock-data";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import { getPublishedByCategory } from "@/lib/marketplace-store";
 import { hostListingToDetail } from "@/lib/host-listing-mapper";
+import { listingStayRating } from "@/lib/stay-reviews-store";
 
 function hostToListingCard(categoryLabel: string, record: HostListingRecord): Listing {
   const d = hostListingToDetail(record);
@@ -17,7 +18,7 @@ function hostToListingCard(categoryLabel: string, record: HostListingRecord): Li
     imageSrc: cover,
     pricePerNight: d.pricePerNight,
     currency: "$",
-    rating: 0,
+    rating: listingStayRating(record.id).avg,
     categoryLabel,
     spaceType: d.spaceType,
     guests: d.guests,

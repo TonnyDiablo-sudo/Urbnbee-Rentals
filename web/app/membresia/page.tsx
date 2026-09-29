@@ -1,12 +1,34 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import {
+  membershipPublicPlans,
+  type MembershipPublicPlan,
+} from "@/lib/membership-plans-store";
+import { verificationRegionFromHeaders } from "@/lib/verification-region";
 
 export const metadata: Metadata = {
   title: "Membresía de huésped",
 };
 
-export default function MembresiaPublicPage() {
+function priceLabel(plan: MembershipPublicPlan): string {
+  const currency = plan.currency === "usd" ? "USD" : "MXN";
+  return `$${plan.amount.toLocaleString("es-MX", { maximumFractionDigits: 0 })} ${currency}`;
+}
+
+function cadenceLabel(plan: MembershipPublicPlan): string {
+  if (plan.billing.kind === "one_time") return "un solo pago, una reserva";
+  const perMonth = plan.amount / plan.billing.intervalCount;
+  return `cada ${plan.billing.intervalCount} meses · ≈ $${perMonth.toLocaleString("es-MX", {
+    maximumFractionDigits: 0,
+  })} por mes`;
+}
+
+export default async function MembresiaPublicPage() {
+  const region = verificationRegionFromHeaders(await headers());
+  const plans = membershipPublicPlans(region, "guest");
+
   return (
     <>
       <SiteHeader />
@@ -14,12 +36,27 @@ export default function MembresiaPublicPage() {
         <h1 className="text-3xl font-semibold text-[#222]">Membresía de verificación de huésped</h1>
         <p className="mt-4 text-sm leading-relaxed text-[#484848]">
           Cabibee conecta viajeros con anfitriones verificados. Para solicitar reservas dentro de la plataforma necesitas
-          una membresía activa y completar la verificación de identidad cuando el sitio lo tenga activado (documento
-          oficial + selfie vía Stripe Identity).
+          una membresía activa —o un pase por reserva— y completar la verificación de identidad cuando el sitio lo tenga
+          activado (documento oficial + selfie vía Stripe Identity).
         </p>
 
+        {plans.length > 0 && (
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {plans.map((p) => (
+              <div key={p.code} className="rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{p.label}</p>
+                <p className="mt-3 text-2xl font-semibold text-[#222]">{priceLabel(p)}</p>
+                <p className="mt-1 text-xs text-[#888]">{cadenceLabel(p)}</p>
+                {p.description && (
+                  <p className="mt-3 text-sm leading-relaxed text-[#484848]">{p.description}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <ul className="mt-8 list-inside list-disc space-y-2 text-sm text-[#484848]">
-          <li>Planes mensual y/o anual (según lo que configure el equipo en Stripe).</li>
+          <li>Un pase para quien viaja una vez, o membresía de 6 y 12 meses para quien viaja seguido.</li>
           <li>Gestión de pago y cancelación en el portal de facturación de Stripe.</li>
           <li>La identidad no se guarda en nuestros servidores: la revisa Stripe según su política y regulación.</li>
         </ul>

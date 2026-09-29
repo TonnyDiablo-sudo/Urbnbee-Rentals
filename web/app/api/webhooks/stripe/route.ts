@@ -1,8 +1,20 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { settleBookingCheckoutSession } from "@/lib/booking-payment-settle";
+import { grantHostVerification, syncHostBadgeToListings } from "@/lib/host-verification";
+import { MEMBERSHIP_PASS_KIND } from "@/lib/membership-checkout";
+import { settleScreeningCheckoutSession } from "@/lib/screening-service";
+import { SCREENING_KIND } from "@/lib/screening-types";
+import { isMembershipPlanCode } from "@/lib/membership-plans-store";
+import { MEMBERSHIP_PLAN_AUDIENCE } from "@/lib/membership-plans-types";
 import { constructStripeWebhookEvent, getStripe } from "@/lib/stripe-server";
-import { setVerificationSubscriptionFields, upsertVerification } from "@/lib/verification-store";
+import {
+  grantBookingPass,
+  setHostMembershipFields,
+  setVerificationSubscriptionFields,
+  upsertVerification,
+} from "@/lib/verification-store";
 import type { VerificationSubscriptionStatus } from "@/lib/verification-types";
 
 export const runtime = "nodejs";
@@ -52,6 +64,23 @@ async function syncFromSubscription(sub: Stripe.Subscription, explicitUserId?: s
   }
   const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
   const end = subscriptionPeriodEndIso(sub);
+  const planCode = typeof sub.metadata?.planCode === "string" ? sub.metadata.planCode : "";
+  const audienceFromMeta = sub.metadata?.audience === "host" ? "host" : sub.metadata?.audience === "guest" ? "guest" : null;
+  const audience =
+    audienceFromMeta ??
+    (isMembershipPlanCode(planCode) ? MEMBERSHIP_PLAN_AUDIENCE[planCode] : "guest");
+
+  if (audience === "host") {
+    setHostMembershipFields(userId, {
+      stripeCustomerId: customerId,
+      hostStripeSubscriptionId: sub.id,
+      hostSubscriptionStatus: mapSubStatus(sub.status),
+      hostCurrentPeriodEnd: end,
+    });
+    syncHostBadgeToListings(userId);
+    return;
+  }
+
   setVerificationSubscriptionFields(userId, {
     stripeCustomerId: customerId,
     stripeSubscriptionId: sub.id,
@@ -69,6 +98,15 @@ function syncIdentityFromSession(session: Stripe.Identity.VerificationSession) {
   switch (session.status) {
     case "verified":
       upsertVerification(userId, { kycStatus: "verified", kycProviderSessionId: session.id });
+      // Si la verificación la inició un anfitrión, su insignia aparece ahora en sus
+      // anuncios. Una identidad no aprobada nunca concede la insignia, y quitarla es
+      // decisión del equipo: un reintento fallido no debería borrar lo ya concedido.
+      if (session.metadata?.role === "host") {
+        const { listingsUpdated } = grantHostVerification(userId, "identity");
+        console.info("[stripe webhook] anfitrión verificado", userId, {
+          anunciosActualizados: listingsUpdated,
+        });
+      }
       break;
     case "canceled":
       upsertVerification(userId, { kycStatus: "failed", kycProviderSessionId: session.id });
@@ -80,6 +118,18 @@ function syncIdentityFromSession(session: Stripe.Identity.VerificationSession) {
     default:
       break;
   }
+}
+
+/** Acredita el pase de reserva comprado. Idempotente por sesión de Checkout. */
+function grantPassFromSession(session: Stripe.Checkout.Session) {
+  const userId = typeof session.metadata?.userId === "string" ? session.metadata.userId : undefined;
+  if (!userId) {
+    console.warn("[stripe webhook] pase sin userId en metadata", session.id);
+    return;
+  }
+  if (session.payment_status !== "paid") return;
+  const granted = grantBookingPass(userId, session.id);
+  if (!granted) console.info("[stripe webhook] pase ya acreditado", session.id);
 }
 
 export async function POST(req: NextRequest) {
@@ -107,6 +157,28 @@ export async function POST(req: NextRequest) {
       switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
+          // Dos cobros distintos llegan como pago único: el pase de membresía y la
+          // estancia. Los separa la metadata, no el modo.
+          if (session.mode === "payment") {
+            if (session.metadata?.kind === MEMBERSHIP_PASS_KIND) {
+              grantPassFromSession(session);
+              break;
+            }
+            if (session.metadata?.kind === SCREENING_KIND) {
+              const screeningSettled = settleScreeningCheckoutSession(session);
+              if (!screeningSettled.ok) {
+                console.warn("[stripe webhook] screening no liquidado", session.id, screeningSettled.error);
+              }
+              break;
+            }
+            // Pago de reserva: el webhook es la vía confiable, porque el huésped
+            // puede cerrar el navegador sin volver a la página de confirmación.
+            const settled = settleBookingCheckoutSession(session);
+            if (!settled.ok) {
+              console.warn("[stripe webhook] reserva no liquidada", session.id, settled.error);
+            }
+            break;
+          }
           if (session.mode !== "subscription") break;
           const userId =
             typeof session.metadata?.userId === "string" ? session.metadata.userId : undefined;

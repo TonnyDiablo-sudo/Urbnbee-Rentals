@@ -6,6 +6,7 @@ import {
   slugifyTitle,
 } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
+import { sanitizeListingContract } from "@/lib/booking-contract-templates";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import type { ListingCategory } from "@/lib/mock-data";
 
@@ -81,9 +82,23 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     };
   }
   if (typeof body.published === "boolean") patch.published = body.published;
-  if (typeof body.verified === "boolean") patch.verified = body.verified;
+
+  // La insignia de verificado no se autoasigna: la concede Stripe Identity o el equipo.
+  // Se rechaza en voz alta en vez de ignorarse, para que un intento no parezca aceptado.
+  if (body.verified !== undefined) {
+    return NextResponse.json(
+      {
+        error:
+          "La insignia de verificado no se edita desde aquí: se obtiene verificando tu identidad en «Verificación».",
+      },
+      { status: 403 }
+    );
+  }
   if (body.bookingApprovalMode === "instant" || body.bookingApprovalMode === "approval") {
     patch.bookingApprovalMode = body.bookingApprovalMode;
+  }
+  if (body.contract !== undefined) {
+    patch.contract = sanitizeListingContract(body.contract, listing.contract);
   }
 
   if (body.regenerateSlug === true && body.title) {

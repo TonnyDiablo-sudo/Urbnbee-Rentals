@@ -10,6 +10,7 @@ export default function GuestProfilePage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [addressLine, setAddressLine] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
   const [toast, setToast] = useState<string | null>(null);
@@ -39,6 +40,7 @@ export default function GuestProfilePage() {
           setFullName(data.user?.fullName ?? "");
           setEmail(data.user?.email ?? "");
           setPhone(data.user?.phone ?? "");
+          setAddressLine(data.user?.addressLine ?? "");
           setBio(data.profile?.bio ?? "");
           setAvatarUrl(data.profile?.avatarUrl);
         }
@@ -61,7 +63,11 @@ export default function GuestProfilePage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ fullName: fullName.trim(), phone: phone.trim() || undefined }),
+      body: JSON.stringify({
+        fullName: fullName.trim(),
+        phone: phone.trim() || undefined,
+        addressLine: addressLine.trim() || undefined,
+      }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -166,6 +172,15 @@ export default function GuestProfilePage() {
               className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+            />
+          </label>
+          <label className="block text-xs font-semibold uppercase tracking-wide text-[#888]">
+            Dirección (para el contrato)
+            <input
+              className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm"
+              value={addressLine}
+              onChange={(e) => setAddressLine(e.target.value)}
+              placeholder="Calle, número, colonia, ciudad"
             />
           </label>
           <button

@@ -31,6 +31,8 @@ export default function AdminUserDetailPage() {
   const [roleChanging, setRoleChanging] = useState(false);
   const [newRole, setNewRole] = useState<string>("");
   const [roleMsg, setRoleMsg] = useState("");
+  const [badgeBusy, setBadgeBusy] = useState(false);
+  const [badgeMsg, setBadgeMsg] = useState("");
 
   useEffect(() => {
     Promise.all([fetch("/api/admin/users"), fetch("/api/admin/bookings")]).then(
@@ -66,6 +68,50 @@ export default function AdminUserDetailPage() {
     } else {
       const err = await res.json().catch(() => ({}));
       setRoleMsg((err as { error?: string }).error ?? "Error al cambiar el rol.");
+    }
+  }
+
+  async function patchHostVerification(body: { verified?: boolean; membership?: boolean }) {
+    if (!user) return;
+    setBadgeBusy(true);
+    setBadgeMsg("");
+    try {
+      const res = await fetch(`/api/admin/hosts/${id}/verification`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setBadgeMsg((j as { error?: string }).error ?? "No se pudo guardar.");
+        return;
+      }
+      const v = j.verification as
+        | {
+            identityVerified?: boolean;
+            membershipActive?: boolean;
+            ribbon?: boolean;
+            verifiedAt?: string;
+            source?: "identity" | "admin";
+          }
+        | undefined;
+      setBadgeMsg(`Listo. ${j.listingsUpdated ?? 0} alojamientos actualizados.`);
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              hostVerified: v?.identityVerified ?? prev.hostVerified,
+              hostVerifiedAt: v?.verifiedAt,
+              hostVerificationSource: v?.source,
+              hostMembershipActive: v?.membershipActive ?? prev.hostMembershipActive,
+              hostRibbon: v?.ribbon ?? prev.hostRibbon,
+            }
+          : prev
+      );
+    } catch {
+      setBadgeMsg("Error de red.");
+    } finally {
+      setBadgeBusy(false);
     }
   }
 
@@ -180,6 +226,48 @@ export default function AdminUserDetailPage() {
         </p>
       </div>
 
+      {(user.role === "host" || user.role === "admin" || user.listingsCount > 0) && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8">
+          <h2 className="text-sm font-semibold text-gray-700 mb-1">
+            Miembro verificado
+          </h2>
+          <p className="text-xs text-gray-400 mb-3">
+            El listón pide identidad y membresía. Se refleja en los {user.listingsCount}{" "}
+            alojamientos. Sirve para probar sin Stripe y para retirar un sello dado por error.
+          </p>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span
+              className={`px-2.5 py-1 rounded text-xs font-medium ${
+                user.hostRibbon ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {user.hostRibbon ? "Listón visible" : "Sin listón"}
+            </span>
+            <span className="text-xs text-gray-400">
+              Identidad: {user.hostVerified ? "sí" : "no"} · Membresía:{" "}
+              {user.hostMembershipActive ? "sí" : "no"} · KYC {user.kycStatus}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => void patchHostVerification({ verified: !user.hostVerified })}
+              disabled={badgeBusy}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-40"
+            >
+              {user.hostVerified ? "Quitar identidad" : "Conceder identidad"}
+            </button>
+            <button
+              onClick={() => void patchHostVerification({ membership: !user.hostMembershipActive })}
+              disabled={badgeBusy}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-800 text-white hover:bg-gray-900 disabled:opacity-40"
+            >
+              {user.hostMembershipActive ? "Quitar membresía" : "Activar membresía"}
+            </button>
+            {badgeMsg && <p className="text-sm text-gray-600">{badgeMsg}</p>}
+          </div>
+        </div>
+      )}
+
       {/* Bookings as guest */}
       {guestBookings.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-6">
@@ -196,6 +284,7 @@ export default function AdminUserDetailPage() {
                   <th className="px-4 py-2 text-xs text-gray-500 font-medium">Fechas</th>
                   <th className="px-4 py-2 text-xs text-gray-500 font-medium">Estado</th>
                   <th className="px-4 py-2 text-xs text-gray-500 font-medium text-right">Total</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">Contrato</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -218,6 +307,18 @@ export default function AdminUserDetailPage() {
                     </td>
                     <td className="px-4 py-2 text-right text-gray-800 font-medium">
                       ${b.totalChargeMxn.toLocaleString("es-MX", { maximumFractionDigits: 0 })}
+                    </td>
+                    <td className="px-4 py-2 text-xs">
+                      {b.hasContract ? (
+                        <a
+                          href={`/api/bookings/contract?id=${encodeURIComponent(b.id)}&format=pdf`}
+                          className="font-medium text-amber-600 underline"
+                        >
+                          PDF
+                        </a>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -244,6 +345,7 @@ export default function AdminUserDetailPage() {
                   <th className="px-4 py-2 text-xs text-gray-500 font-medium">Fechas</th>
                   <th className="px-4 py-2 text-xs text-gray-500 font-medium">Estado</th>
                   <th className="px-4 py-2 text-xs text-gray-500 font-medium text-right">Total</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">Contrato</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -267,6 +369,18 @@ export default function AdminUserDetailPage() {
                     </td>
                     <td className="px-4 py-2 text-right text-gray-800 font-medium">
                       ${b.totalChargeMxn.toLocaleString("es-MX", { maximumFractionDigits: 0 })}
+                    </td>
+                    <td className="px-4 py-2 text-xs">
+                      {b.hasContract ? (
+                        <a
+                          href={`/api/bookings/contract?id=${encodeURIComponent(b.id)}&format=pdf`}
+                          className="font-medium text-amber-600 underline"
+                        >
+                          PDF
+                        </a>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                   </tr>
                 ))}

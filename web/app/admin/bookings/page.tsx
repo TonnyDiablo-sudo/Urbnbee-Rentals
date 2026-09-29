@@ -57,8 +57,12 @@ export default function AdminBookingsPage() {
   });
 
   const totalRevenue = filtered
-    .filter((b) => b.paidAt)
+    .filter((b) => b.paidAt && !b.refundedAt)
     .reduce((s, b) => s + b.totalChargeMxn, 0);
+
+  const totalRefunded = filtered
+    .filter((b) => b.refundedAt)
+    .reduce((s, b) => s + (b.refundAmountMxn ?? b.totalChargeMxn), 0);
 
   return (
     <div className="p-8">
@@ -120,6 +124,11 @@ export default function AdminBookingsPage() {
               ${totalRevenue.toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN cobrado
             </span>
           )}
+          {totalRefunded > 0 && (
+            <span className="text-blue-700 font-medium">
+              ${totalRefunded.toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN devuelto
+            </span>
+          )}
         </div>
       )}
 
@@ -155,12 +164,15 @@ export default function AdminBookingsPage() {
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
                     Fee
                   </th>
+                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Contrato
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                    <td colSpan={9} className="px-4 py-10 text-center text-gray-400">
                       Sin reservas con estos filtros.
                     </td>
                   </tr>
@@ -202,6 +214,11 @@ export default function AdminBookingsPage() {
                           Pag. {new Date(b.paidAt).toLocaleDateString("es-MX")}
                         </p>
                       )}
+                      {b.refundedAt && (
+                        <p className="text-[10px] text-blue-600 mt-0.5">
+                          Dev. {new Date(b.refundedAt).toLocaleDateString("es-MX")}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right font-medium text-gray-800">
                       ${b.estimatedTotalMxn.toLocaleString("es-MX", { maximumFractionDigits: 0 })}
@@ -210,6 +227,29 @@ export default function AdminBookingsPage() {
                       {b.platformFeeMxn > 0
                         ? `$${b.platformFeeMxn.toLocaleString("es-MX", { maximumFractionDigits: 0 })}`
                         : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {b.depositMxn > 0 && (
+                        <p className="mb-1 text-[11px] text-gray-500">
+                          Depósito ${b.depositMxn.toLocaleString("es-MX")}
+                          {b.depositStatus ? ` · ${b.depositStatus}` : ""}
+                        </p>
+                      )}
+                      {b.hasContract ? (
+                        <div className="space-y-1">
+                          <p className={b.contractAccepted ? "text-green-700" : "text-amber-700"}>
+                            {b.contractAccepted ? "Aceptado" : "Pendiente huésped"}
+                          </p>
+                          <a
+                            href={`/api/bookings/contract?id=${encodeURIComponent(b.id)}&format=pdf`}
+                            className="font-medium text-amber-600 underline"
+                          >
+                            PDF
+                          </a>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}

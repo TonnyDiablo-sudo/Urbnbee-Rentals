@@ -17,6 +17,8 @@ export type Review = {
   rating: number;
   date: string;
   comment: string;
+  /** Reseña de una reserva completada en Cabibee, no un texto de catálogo. */
+  fromStay?: boolean;
 };
 
 export type ListingDetail = {
@@ -36,6 +38,8 @@ export type ListingDetail = {
   priceWeekly?: number;
   priceMonthly?: number;
   cleaningFee?: number;
+  /** Depósito pactado. Se entrega entre las partes; Cabibee no lo retiene. */
+  depositMxn?: number;
   category: string;
   spaceType: string;
   guests: number;

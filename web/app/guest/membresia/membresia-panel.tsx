@@ -7,6 +7,17 @@ import type { VerificationRegion } from "@/lib/verification-types";
 
 type PlansPair = { monthly: boolean; annual: boolean };
 
+type CatalogBilling = { kind: "one_time" } | { kind: "subscription"; intervalCount: number };
+
+type CatalogPlan = {
+  code: string;
+  label: string;
+  description: string;
+  amount: number;
+  currency: "mxn" | "usd";
+  billing: CatalogBilling;
+};
+
 type StatusPayload = {
   configured: boolean;
   eligible: boolean;
@@ -15,11 +26,27 @@ type StatusPayload = {
   billingRegion: VerificationRegion;
   plansAvailable: PlansPair;
   plansByRegion: { mx: PlansPair; us: PlansPair };
+  catalogPlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
+  bookingPassesRemaining: number;
   subscriptionStatus: string;
   currentPeriodEnd?: string;
   kycStatus: string;
   hasBillingCustomer: boolean;
 };
+
+function formatAmount(plan: CatalogPlan): string {
+  const currency = plan.currency === "usd" ? "USD" : "MXN";
+  return `$${plan.amount.toLocaleString("es-MX", { maximumFractionDigits: 0 })} ${currency}`;
+}
+
+function billingCaption(plan: CatalogPlan): string {
+  if (plan.billing.kind === "one_time") return "un solo pago, una reserva";
+  const meses = plan.billing.intervalCount;
+  const perMonth = plan.amount / meses;
+  return `cada ${meses} meses · ≈ $${perMonth.toLocaleString("es-MX", {
+    maximumFractionDigits: 0,
+  })} por mes`;
+}
 
 const statusLabel: Record<string, string> = {
   none: "Sin suscripción",
@@ -40,6 +67,14 @@ const kycLabel: Record<string, string> = {
 
 function regionHasAnyPlan(p: PlansPair): boolean {
   return p.monthly || p.annual;
+}
+
+/** Hay algo que vender en esa región, sea del catálogo o de los precios viejos. */
+function regionSells(payload: StatusPayload, region: VerificationRegion): boolean {
+  return (
+    payload.catalogPlansByRegion[region].length > 0 ||
+    regionHasAnyPlan(payload.plansByRegion[region])
+  );
 }
 
 export function MembresiaPanel() {
@@ -65,8 +100,8 @@ export function MembresiaPanel() {
       const payload = j as StatusPayload;
       setData(payload);
       if (!regionInit.current) {
-        const mx = regionHasAnyPlan(payload.plansByRegion.mx);
-        const us = regionHasAnyPlan(payload.plansByRegion.us);
+        const mx = regionSells(payload, "mx");
+        const us = regionSells(payload, "us");
         if (mx && !us) setSelectedRegion("mx");
         else if (us && !mx) setSelectedRegion("us");
         else if (payload.billingRegion === "mx" || payload.billingRegion === "us") {
@@ -83,7 +118,7 @@ export function MembresiaPanel() {
     void load();
   }, [load]);
 
-  const startCheckout = async (plan: "monthly" | "annual") => {
+  const startCheckout = async (plan: string) => {
     setBusy(true);
     setErr(null);
     try {
@@ -98,9 +133,11 @@ export function MembresiaPanel() {
         }),
       });
       const rawText = await res.text();
-      let parsed: { error?: string; checkoutUrl?: string } = {};
+      let parsed: { error?: string; checkoutUrl?: string; simulated?: boolean } = {};
       try {
-        parsed = rawText ? (JSON.parse(rawText) as { error?: string; checkoutUrl?: string }) : {};
+        parsed = rawText
+          ? (JSON.parse(rawText) as { error?: string; checkoutUrl?: string; simulated?: boolean })
+          : {};
       } catch {
         /* server returned non-JSON */
       }
@@ -113,6 +150,10 @@ export function MembresiaPanel() {
             `No se pudo iniciar (HTTP ${res.status}). Servidor: ${snippet}`
           );
         }
+        return;
+      }
+      if (parsed.simulated) {
+        await load();
         return;
       }
       if (typeof parsed.checkoutUrl === "string" && parsed.checkoutUrl.startsWith("http")) {
@@ -183,20 +224,18 @@ export function MembresiaPanel() {
     Boolean(data?.identityEnabled && data?.configured && subActive && data?.kycStatus !== "verified");
 
   const showRegionToggle = Boolean(
-    data &&
-      data.regionalPricing &&
-      regionHasAnyPlan(data.plansByRegion.mx) &&
-      regionHasAnyPlan(data.plansByRegion.us)
+    data && regionSells(data, "mx") && regionSells(data, "us")
   );
 
   const plans = data?.plansByRegion[selectedRegion] ?? { monthly: false, annual: false };
+  const catalogPlans = data?.catalogPlansByRegion[selectedRegion] ?? [];
 
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="text-2xl font-semibold text-[#222]">Membresía de verificación</h1>
       <p className="mt-2 text-sm leading-relaxed text-[#484848]">
-        Para solicitar reservas a través de Cabibee necesitas una membresía activa (mensual o anual) y, cuando esté
-        activado en el sitio, completar la verificación de identidad con documento oficial y selfie (Stripe Identity).
+        Para solicitar reservas a través de Cabibee necesitas una membresía activa, o un pase por reserva, y —cuando esté
+        activado en el sitio— completar la verificación de identidad con documento oficial y selfie (Stripe Identity).
       </p>
 
       {justPaid && (
@@ -260,8 +299,42 @@ export function MembresiaPanel() {
             </p>
           )}
 
+          {data.bookingPassesRemaining > 0 && (
+            <p className="mt-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+              Tienes {data.bookingPassesRemaining}{" "}
+              {data.bookingPassesRemaining === 1 ? "pase" : "pases"} por reserva sin usar. Cada pase
+              habilita una reserva, y si el anfitrión la rechaza te lo devolvemos.
+            </p>
+          )}
+
+          {catalogPlans.length > 0 && (
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              {catalogPlans.map((p) => (
+                <div
+                  key={p.code}
+                  className="flex flex-col rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm"
+                >
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{p.label}</p>
+                  <p className="mt-3 text-2xl font-semibold text-[#222]">{formatAmount(p)}</p>
+                  <p className="mt-1 text-xs text-[#888]">{billingCaption(p)}</p>
+                  {p.description && (
+                    <p className="mt-3 text-sm leading-relaxed text-[#484848]">{p.description}</p>
+                  )}
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void startCheckout(p.code)}
+                    className="mt-5 w-full rounded-lg bg-black px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#222] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {p.billing.kind === "one_time" ? "Comprar pase" : "Contratar"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            {plans.monthly && (
+            {catalogPlans.length === 0 && plans.monthly && (
               <div className="rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">Plan mensual</p>
                 <p className="mt-2 text-sm text-[#484848]">Renovación cada mes. Cancela cuando quieras desde Stripe.</p>
@@ -275,7 +348,7 @@ export function MembresiaPanel() {
                 </button>
               </div>
             )}
-            {plans.annual && (
+            {catalogPlans.length === 0 && plans.annual && (
               <div className="rounded-xl border border-[#dcb81e]/40 bg-amber-50/50 p-5 shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-wider text-amber-900">Plan anual</p>
                 <p className="mt-2 text-sm text-[#484848]">Un pago al año; suele salir más conveniente que 12 meses sueltos.</p>
@@ -292,15 +365,10 @@ export function MembresiaPanel() {
             )}
           </div>
 
-          {!plans.monthly && !plans.annual && (
+          {catalogPlans.length === 0 && !plans.monthly && !plans.annual && (
             <p className="mt-6 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              No hay planes para esta región en el servidor. Configura{" "}
-              <code className="text-xs">STRIPE_PRICE_VERIFICATION_MX_MONTHLY</code>,{" "}
-              <code className="text-xs">STRIPE_PRICE_VERIFICATION_MX_ANNUAL</code>,{" "}
-              <code className="text-xs">STRIPE_PRICE_VERIFICATION_US_MONTHLY</code>,{" "}
-              <code className="text-xs">STRIPE_PRICE_VERIFICATION_US_ANNUAL</code> (o las variables legado{" "}
-              <code className="text-xs">STRIPE_PRICE_VERIFICATION_MONTHLY</code> /{" "}
-              <code className="text-xs">ANNUAL</code>).
+              Todavía no hay planes con precio para esta región. El equipo los define en el panel de
+              administración, en «Precios».
             </p>
           )}
 

@@ -9,6 +9,7 @@ import type {
   UserRole,
 } from "@/lib/marketplace-types";
 import type { ListingCategory } from "@/lib/mock-data";
+import { defaultListingContract } from "@/lib/booking-contract-templates";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 /** In-memory store (replace with MySQL per SYSTEM_ARCHITECTURE_AND_ROADMAP). */
@@ -24,6 +25,7 @@ function normalizeListing(l: HostListingRecord): HostListingRecord {
   return {
     ...l,
     bookingApprovalMode: l.bookingApprovalMode ?? "approval",
+    contract: defaultListingContract(l.contract),
   };
 }
 
@@ -256,6 +258,7 @@ export function createListing(hostId: string, partial?: Partial<HostListingRecor
     verified: false,
     published: false,
     bookingApprovalMode: partial?.bookingApprovalMode ?? "approval",
+    contract: defaultListingContract(partial?.contract),
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
@@ -293,6 +296,25 @@ export function updateListing(
   return next;
 }
 
+/**
+ * Pone o quita la insignia en todos los anuncios de un anfitrión.
+ *
+ * La insignia dice "anfitrión verificado", así que es del anfitrión y no del anuncio:
+ * se guarda copiada en cada anuncio sólo para que las vistas públicas y las métricas
+ * la lean sin consultar otro archivo. Devuelve cuántos anuncios cambiaron.
+ */
+export function setHostListingsVerified(hostId: string, verified: boolean): number {
+  syncStoreFromDiskIfStale();
+  let changed = 0;
+  for (const [listingId, listing] of listingsById) {
+    if (listing.hostId !== hostId || listing.verified === verified) continue;
+    listingsById.set(listingId, { ...listing, verified, updatedAt: nowIso() });
+    changed++;
+  }
+  if (changed > 0) persistToDisk();
+  return changed;
+}
+
 export function deleteListing(listingId: string, hostId: string): boolean {
   const prev = listingsById.get(listingId);
   if (!prev || prev.hostId !== hostId) return false;
@@ -304,7 +326,7 @@ export function deleteListing(listingId: string, hostId: string): boolean {
 
 export function updateUser(
   userId: string,
-  patch: Partial<Pick<UserRecord, "fullName" | "phone">>
+  patch: Partial<Pick<UserRecord, "fullName" | "phone" | "addressLine">>
 ): UserRecord | undefined {
   const u = usersById.get(userId);
   if (!u) return undefined;

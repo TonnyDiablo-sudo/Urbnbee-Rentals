@@ -12,6 +12,9 @@ web/npm-debug.log*
 web/yarn-error.log*
 web/public/uploads/
 web/data/marketplace-store.json
+web/data/screening-cases.json
+web/data/screening-price.json
+web/data/push-subscriptions.json
 
 .DS_Store
 Thumbs.db

@@ -23,5 +23,20 @@ export type GuestVerificationRecord = {
   kycStatus: KycProviderStatus;
   kycProviderSessionId?: string;
   kycExpiresAt?: string;
+  /**
+   * Cuándo quedó verificado como anfitrión. La insignia de los anuncios es el reflejo
+   * de esto, no un campo que el anfitrión pueda escribir.
+   */
+  hostVerifiedAt?: string;
+  /** `identity` = lo comprobó Stripe; `admin` = lo aprobó una persona del equipo. */
+  hostVerificationSource?: "identity" | "admin";
+  /** Membresía de anfitrión: distinta de la del huésped, porque una persona puede ser las dos. */
+  hostSubscriptionStatus?: VerificationSubscriptionStatus;
+  hostStripeSubscriptionId?: string;
+  hostCurrentPeriodEnd?: string;
+  /** Pases comprados y sin usar (plan `pase_reserva`): cada uno habilita una reserva. */
+  bookingPassesRemaining?: number;
+  /** Sesiones de Checkout ya acreditadas, para no acreditar dos veces el mismo pago. */
+  grantedPassSessionIds?: string[];
   updatedAt: string;
 };

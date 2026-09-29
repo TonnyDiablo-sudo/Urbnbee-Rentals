@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import { refundBookingPayment } from "@/lib/booking-refunds";
+import {
+  buildContractSnapshot,
+  contractPlainLines,
+  ensureBookingContract,
+  hostSignBookingContract,
+} from "@/lib/booking-contract";
+import { restoreBookingPass } from "@/lib/verification-store";
 import {
   getBookingById,
   hasOverlappingActiveBooking,
   updateBooking,
 } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
+import { notifyGuestBookingDecision } from "@/lib/push";
 import {
   countNights,
   nightsBlockedByListing,
@@ -17,7 +26,58 @@ type PatchBody = {
   hostAdjustedCheckIn?: string;
   hostAdjustedCheckOut?: string;
   hostAdjustedListingId?: string;
+  acceptContract?: boolean;
+  signName?: string;
 };
+
+function requestIp(req: NextRequest): string | undefined {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip")?.trim() ||
+    undefined
+  );
+}
+
+export async function GET(
+  _req: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  const user = await getSessionUser();
+  if (!user || (user.role !== "host" && user.role !== "admin")) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+  const { id } = await ctx.params;
+  const booking = getBookingById(id);
+  if (!booking || booking.hostId !== user.id) {
+    return NextResponse.json({ error: "No encontrada." }, { status: 404 });
+  }
+  if (booking.contract) {
+    return NextResponse.json({
+      generated: true,
+      accepted: Boolean(booking.contract.hostAcceptedAt && booking.contract.guestAcceptedAt),
+      hostAcceptedAt: booking.contract.hostAcceptedAt,
+      guestAcceptedAt: booking.contract.guestAcceptedAt,
+      lines: contractPlainLines(booking.contract),
+    });
+  }
+  const snapshot = buildContractSnapshot(booking);
+  if (!snapshot) {
+    return NextResponse.json({ error: "No se pudo armar el contrato." }, { status: 409 });
+  }
+  const preview = {
+    version: 1 as const,
+    templateId: snapshot.templateId,
+    generatedAt: new Date().toISOString(),
+    snapshot,
+    events: [] as [],
+  };
+  return NextResponse.json({
+    generated: false,
+    preview: true,
+    accepted: false,
+    lines: contractPlainLines(preview),
+  });
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -50,12 +110,46 @@ export async function PATCH(
         { status: 409 }
       );
     }
+
+    // El huésped ya pagó: se devuelve antes de rechazar, para que nunca quede
+    // una reserva rechazada con el dinero retenido.
+    const refund = await refundBookingPayment(booking.id, "host_rejected");
+    if (!refund.ok) {
+      return NextResponse.json(
+        { error: `No se rechazó la reserva porque no se pudo devolver el pago. ${refund.error}` },
+        { status: refund.status }
+      );
+    }
+
+    // El pase se gastó por una reserva que el anfitrión no aceptó: se devuelve,
+    // porque el huésped pagó por reservar, no por pedir permiso.
+    if (booking.usedMembershipPass && booking.guestUserId) {
+      restoreBookingPass(booking.guestUserId);
+    }
+
     const next = updateBooking(id, user.id, { status: "REJECTED" });
-    return NextResponse.json({ ok: true, booking: next });
+    if (next) notifyGuestBookingDecision(next, false);
+    return NextResponse.json({ ok: true, booking: next, refund: refund.kind });
+  }
+
+  if (action === "sign") {
+    const signName = typeof body.signName === "string" ? body.signName.trim() : "";
+    if (signName.length < 3) {
+      return NextResponse.json({ error: "Escribe tu nombre para firmar el contrato." }, { status: 400 });
+    }
+    if (!booking.contract) {
+      return NextResponse.json({ error: "Todavía no hay contrato que firmar." }, { status: 409 });
+    }
+    const signed = hostSignBookingContract(booking.id, {
+      name: signName,
+      userId: user.id,
+      ip: requestIp(req),
+    });
+    return NextResponse.json({ ok: true, booking: signed });
   }
 
   if (action !== "accept") {
-    return NextResponse.json({ error: "Acción no válida (accept | reject)." }, { status: 400 });
+    return NextResponse.json({ error: "Acción no válida (accept | reject | sign)." }, { status: 400 });
   }
 
   if (booking.status !== "PENDING") {
@@ -124,6 +218,20 @@ export async function PATCH(
   const hostAdjustedCheckIn = effIn !== booking.checkIn ? effIn : undefined;
   const hostAdjustedCheckOut = effOut !== booking.checkOut ? effOut : undefined;
 
+  if (body.acceptContract !== true) {
+    return NextResponse.json(
+      { error: "Tienes que revisar y aceptar el contrato de esta reserva." },
+      { status: 400 }
+    );
+  }
+  const signName = typeof body.signName === "string" ? body.signName.trim() : "";
+  if (signName.length < 3) {
+    return NextResponse.json(
+      { error: "Firma el contrato con tu nombre completo." },
+      { status: 400 }
+    );
+  }
+
   const next = updateBooking(id, user.id, {
     status: "AWAITING_DETAILS",
     nights,
@@ -133,5 +241,15 @@ export async function PATCH(
     hostAdjustedCheckOut,
   });
 
-  return NextResponse.json({ ok: true, booking: next });
+  const withContract = next
+    ? ensureBookingContract(next.id, {
+        role: "host",
+        userId: user.id,
+        ip: requestIp(req),
+        signName,
+      }) ?? next
+    : next;
+  if (withContract) notifyGuestBookingDecision(withContract, true);
+
+  return NextResponse.json({ ok: true, booking: withContract });
 }

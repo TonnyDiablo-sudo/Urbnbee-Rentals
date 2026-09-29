@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { attachContractIfInstant } from "@/lib/booking-contract";
 import { completeBookingAfterPayment, getBookingById } from "@/lib/bookings-store";
 import { getSessionUser } from "@/lib/session";
+import { notifyHostBookingPaid } from "@/lib/push";
 import { allowSimulatedBookingPayment } from "@/lib/stripe-server";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -29,5 +31,7 @@ export async function POST(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "No se pudo completar el pago." }, { status: 409 });
   }
 
-  return NextResponse.json({ ok: true, booking: next });
+  const settled = attachContractIfInstant(next);
+  notifyHostBookingPaid(settled);
+  return NextResponse.json({ ok: true, booking: settled });
 }

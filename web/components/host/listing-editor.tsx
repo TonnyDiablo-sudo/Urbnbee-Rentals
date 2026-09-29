@@ -3,13 +3,18 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  BOOKING_CONTRACT_TEMPLATES,
+  defaultListingContract,
+  type ListingContractSettings,
+} from "@/lib/booking-contract-templates";
 import type { HostListingRecord, HostProfileRecord } from "@/lib/marketplace-types";
 import type { ListingCategory } from "@/lib/mock-data";
 import { AMENITY_OPTIONS } from "@/lib/amenity-options";
 import { ListingImportUsagePanel } from "@/components/host/listing-import-usage-panel";
 import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
 
-type Tab = "fotos" | "info" | "ubicacion" | "contacto" | "precio" | "comodidades";
+type Tab = "fotos" | "info" | "ubicacion" | "contacto" | "precio" | "comodidades" | "contrato";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "fotos", label: "Fotos" },
@@ -18,6 +23,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "contacto", label: "Tu perfil y contacto" },
   { id: "precio", label: "Precio" },
   { id: "comodidades", label: "Comodidades y reglas" },
+  { id: "contrato", label: "Contrato" },
 ];
 
 const CATEGORY_OPTIONS: { key: ListingCategory; label: string }[] = [
@@ -916,7 +922,156 @@ export function ListingEditor({ listingId }: { listingId: string }) {
           </div>
         </section>
       )}
+
+      {tab === "contrato" && (
+        <ContractTab
+          listing={listing}
+          hostName={fullName}
+          onSave={(contract) => {
+            setListing({ ...listing, contract });
+            void saveListing({ contract });
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function ContractTab({
+  listing,
+  hostName,
+  onSave,
+}: {
+  listing: HostListingRecord;
+  hostName: string;
+  onSave: (c: ListingContractSettings) => void;
+}) {
+  const [draft, setDraft] = useState<ListingContractSettings>(() =>
+    defaultListingContract({
+      ...listing.contract,
+      hostLegalName: listing.contract?.hostLegalName || hostName,
+      propertyAddress:
+        listing.contract?.propertyAddress ||
+        [listing.addressLine, listing.zone, listing.city].filter(Boolean).join(", "),
+    })
+  );
+
+  function patch(partial: Partial<ListingContractSettings>, persist = false) {
+    const next = defaultListingContract({ ...draft, ...partial });
+    setDraft(next);
+    if (persist) onSave(next);
+  }
+
+  const selected = BOOKING_CONTRACT_TEMPLATES.find((t) => t.id === draft.templateId) ?? BOOKING_CONTRACT_TEMPLATES[0];
+
+  return (
+    <section className="space-y-5 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
+      <div>
+        <h2 className="text-lg font-semibold text-[#484848]">Contrato de cada reserva</h2>
+        <p className="mt-1 text-sm text-[#888]">
+          Eliges la plantilla y pones tus datos. Al reservar, el huésped entra con el nombre, correo,
+          teléfono y dirección de su cuenta. Ambos firman el mismo documento.
+        </p>
+      </div>
+
+      <div className="grid gap-3">
+        {BOOKING_CONTRACT_TEMPLATES.map((t) => (
+          <label
+            key={t.id}
+            className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
+              draft.templateId === t.id ? "border-[#dcb81e] bg-[#dcb81e]/10" : "border-[#ebebeb] bg-white"
+            }`}
+          >
+            <input
+              type="radio"
+              name="contractTemplate"
+              checked={draft.templateId === t.id}
+              onChange={() =>
+                patch(
+                  {
+                    templateId: t.id,
+                    extraClauses: draft.extraClauses || t.defaultExtraClauses,
+                    cancellationOverride: undefined,
+                  },
+                  true
+                )
+              }
+            />
+            <span>
+              <span className="font-medium text-[#484848]">{t.title}</span>
+              <span className="mt-1 block text-xs text-[#888]">{t.blurb}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Tu nombre legal (firma)">
+          <input
+            className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm"
+            value={draft.hostLegalName}
+            onChange={(e) => patch({ hostLegalName: e.target.value })}
+            onBlur={() => onSave(draft)}
+          />
+        </Field>
+        <Field label="Tu domicilio">
+          <input
+            className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm"
+            value={draft.hostAddress}
+            onChange={(e) => patch({ hostAddress: e.target.value })}
+            onBlur={() => onSave(draft)}
+          />
+        </Field>
+      </div>
+      <Field label="Dirección del inmueble">
+        <input
+          className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm"
+          value={draft.propertyAddress}
+          onChange={(e) => patch({ propertyAddress: e.target.value })}
+          onBlur={() => onSave(draft)}
+        />
+      </Field>
+      <Field label={`Depósito pactado (MXN) · ${selected.depositHint}`}>
+        <input
+          type="number"
+          min={0}
+          className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm sm:max-w-xs"
+          value={draft.depositMxn}
+          onChange={(e) => patch({ depositMxn: Number(e.target.value) })}
+          onBlur={() => onSave(draft)}
+        />
+      </Field>
+      <Field label="Cláusulas tuyas (se suman a la plantilla)">
+        <textarea
+          rows={4}
+          className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm"
+          value={draft.extraClauses}
+          onChange={(e) => patch({ extraClauses: e.target.value })}
+          onBlur={() => onSave(draft)}
+        />
+      </Field>
+      <Field label="Cancelación (deja vacío para usar la de la plantilla)">
+        <textarea
+          rows={3}
+          className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm"
+          value={draft.cancellationOverride ?? ""}
+          onChange={(e) => patch({ cancellationOverride: e.target.value })}
+          onBlur={() => onSave(draft)}
+        />
+      </Field>
+      <label className="flex items-start gap-2 text-sm text-[#484848]">
+        <input
+          type="checkbox"
+          className="mt-1 accent-[#dcb81e]"
+          checked={draft.hostAcknowledged}
+          onChange={(e) => patch({ hostAcknowledged: e.target.checked }, true)}
+        />
+        <span>
+          Confirmo esta plantilla y mis datos. En reservas de aceptación automática, esto cuenta
+          como mi firma de oferta.
+        </span>
+      </label>
+    </section>
   );
 }
 

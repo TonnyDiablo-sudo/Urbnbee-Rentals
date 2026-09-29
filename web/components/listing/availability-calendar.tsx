@@ -118,10 +118,19 @@ type Props = {
   cleaningFee?: number;
   blockedDates: string[];
   nightlyPriceOverrides?: Record<string, number>;
+  depositMxn?: number;
   /** Si se pasa, el flujo exige usuario registrado y pago antes de confirmar. */
   listingId?: string;
   /** Para cancel_url de Stripe y enlaces de login */
   listingSlug?: string;
+  /** Rutas propias de la app instalada; sin esto se usan las del sitio web. */
+  appRoutes?: {
+    login: string;
+    register: string;
+    membership: string;
+    cancelPath: string;
+    successPath: string;
+  };
 };
 
 export function AvailabilityCalendar({
@@ -129,8 +138,10 @@ export function AvailabilityCalendar({
   cleaningFee = 0,
   blockedDates,
   nightlyPriceOverrides,
+  depositMxn = 0,
   listingId,
   listingSlug = "",
+  appRoutes,
 }: Props) {
   const today = new Date(); today.setHours(0,0,0,0);
   const [baseMonth, setBaseMonth] = useState(today.getMonth());
@@ -152,7 +163,10 @@ export function AvailabilityCalendar({
     needsDemoPayment: boolean;
   } | null>(null);
 
-  const reservePath = listingSlug ? `/listings/${listingSlug}` : "/";
+  const reservePath = appRoutes?.cancelPath ?? (listingSlug ? `/listings/${listingSlug}` : "/");
+  const loginHref = appRoutes?.login ?? `/login?next=${encodeURIComponent(reservePath)}`;
+  const registerHref = appRoutes?.register ?? `/register?next=${encodeURIComponent(reservePath)}`;
+  const membershipHref = appRoutes?.membership ?? "/guest/membresia";
 
   useEffect(() => {
     let cancelled = false;
@@ -308,9 +322,15 @@ export function AvailabilityCalendar({
             </div>
           )}
           <div className="mt-2 flex justify-between border-t pt-2 font-semibold text-[#484848]" style={{ borderColor: "#ebebeb" }}>
-            <span>Total</span>
+            <span>Total en Cabibee</span>
             <span>${total.toLocaleString("es-MX")}</span>
           </div>
+          {depositMxn > 0 && (
+            <p className="mt-2 text-xs text-[#888]">
+              Depósito pactado: ${depositMxn.toLocaleString("es-MX")} MXN. Se entrega entre ustedes;
+              Cabibee no lo cobra ni lo guarda.
+            </p>
+          )}
         </div>
       )}
 
@@ -321,14 +341,14 @@ export function AvailabilityCalendar({
           {!sessionLoading && !sessionUser && (
             <p className="text-sm leading-relaxed text-[#484848]">
               <Link
-                href={`/login?next=${encodeURIComponent(reservePath)}`}
+                href={loginHref}
                 className="font-semibold text-[#dcb81e] underline"
               >
                 Inicia sesión
               </Link>
               {" o "}
               <Link
-                href={`/register?next=${encodeURIComponent(reservePath)}`}
+                href={registerHref}
                 className="font-semibold text-[#dcb81e] underline"
               >
                 regístrate
@@ -350,7 +370,7 @@ export function AvailabilityCalendar({
           <p>{bookingErr}</p>
           {needsVerificationGate && (
             <p className="mt-2">
-              <Link href="/guest/membresia" className="font-semibold text-[#dcb81e] underline">
+              <Link href={membershipHref} className="font-semibold text-[#dcb81e] underline">
                 Ir a membresía
               </Link>
             </p>
@@ -469,6 +489,7 @@ export function AvailabilityCalendar({
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 cancelPath: reservePath,
+                returnPath: appRoutes?.successPath,
               }),
             });
             const pay = await co.json().catch(() => ({}));

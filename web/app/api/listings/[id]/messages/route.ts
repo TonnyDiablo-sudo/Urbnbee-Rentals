@@ -9,6 +9,7 @@ import {
 import { sanitizeBodyText, sanitizeGuestName, sanitizeOptionalEmail } from "@/lib/host-inbox-sanitize";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { getSessionUser } from "@/lib/session";
+import { notifyHostNewMessage } from "@/lib/push";
 
 const COOKIE = "urb_chat_sess";
 
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     guestEmail,
     body: text,
   });
+  notifyHostNewMessage({ hostId: listing.hostId, listingId, guestSessionId, guestName, body: text });
 
   const res = NextResponse.json({ ok: true });
   res.cookies.set(COOKIE, JSON.stringify(map), {

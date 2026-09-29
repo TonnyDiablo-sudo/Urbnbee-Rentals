@@ -14,6 +14,13 @@ type LookupBooking = {
   listingTitle?: string;
   listingSlug?: string;
   paidAt?: string;
+  contract?: {
+    generated: boolean;
+    accepted: boolean;
+    hostAcceptedAt?: string;
+    guestAcceptedAt?: string;
+    lines?: string[];
+  };
 };
 
 export function FinishBookingClient({ token }: { token: string }) {
@@ -21,6 +28,8 @@ export function FinishBookingClient({ token }: { token: string }) {
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [guestPhone, setGuestPhone] = useState("");
   const [guestFinishNotes, setGuestFinishNotes] = useState("");
+  const [accepted, setAccepted] = useState(false);
+  const [signedName, setSignedName] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -40,7 +49,11 @@ export function FinishBookingClient({ token }: { token: string }) {
           if (!cancelled) setLoadErr(typeof data.error === "string" ? data.error : "No encontrado.");
           return;
         }
-        if (!cancelled && data.booking) setBooking(data.booking as LookupBooking);
+        if (!cancelled && data.booking) {
+          const row = data.booking as LookupBooking;
+          setBooking(row);
+          setSignedName((prev) => prev || row.guestName || "");
+        }
       } catch {
         if (!cancelled) setLoadErr("Error de red.");
       }
@@ -72,14 +85,19 @@ export function FinishBookingClient({ token }: { token: string }) {
   const statusLabels: Record<string, string> = {
     AWAITING_PAYMENT: "Pago pendiente",
     PENDING: "Pendiente de anfitrión",
-    AWAITING_DETAILS: "Aprobada — completa tus datos",
+    AWAITING_DETAILS: "Aprobada — acepta el contrato",
     CONFIRMED: "Confirmada",
     REJECTED: "Rechazada",
     CANCELLED: "Cancelada",
     COMPLETED: "Completada",
   };
 
-  const canFinish = booking.status === "AWAITING_DETAILS";
+  const needsContract =
+    Boolean(booking.contract?.generated) &&
+    !booking.contract?.accepted &&
+    (booking.status === "AWAITING_DETAILS" || booking.status === "CONFIRMED");
+  const canFinish = needsContract;
+  const pdfHref = `/api/bookings/contract?token=${encodeURIComponent(token)}&format=pdf`;
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
@@ -110,6 +128,28 @@ export function FinishBookingClient({ token }: { token: string }) {
         </div>
       </div>
 
+      {booking.contract?.generated && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-[#484848]">Contrato de la reserva</h2>
+            <div className="flex gap-3">
+              <Link href={`/contrato/${token}`} className="text-sm font-medium text-[#dcb81e] underline">
+                Ver página del contrato
+              </Link>
+              <a href={pdfHref} className="text-sm font-medium text-[#dcb81e] underline">
+                Descargar PDF
+              </a>
+            </div>
+          </div>
+          <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap rounded border bg-[#fafafa] p-3 text-xs leading-relaxed text-[#3a3a3a]" style={{ borderColor: "#ebebeb" }}>
+            {(booking.contract.lines ?? []).join("\n")}
+          </pre>
+          {booking.contract.accepted && (
+            <p className="mt-2 text-xs text-green-800">Ambas partes ya aceptaron este contrato.</p>
+          )}
+        </div>
+      )}
+
       {canFinish && !saved && (
         <form
           className="mt-8 space-y-4"
@@ -123,6 +163,8 @@ export function FinishBookingClient({ token }: { token: string }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   token,
+                  acceptContract: accepted,
+                  signedName,
                   guestPhone: guestPhone.trim(),
                   guestFinishNotes: guestFinishNotes.trim(),
                 }),
@@ -133,6 +175,17 @@ export function FinishBookingClient({ token }: { token: string }) {
                 return;
               }
               setSaved(true);
+              setBooking((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      status: typeof data.status === "string" ? data.status : "CONFIRMED",
+                      contract: prev.contract
+                        ? { ...prev.contract, accepted: true }
+                        : { generated: true, accepted: true },
+                    }
+                  : prev
+              );
             } catch {
               setSaveErr("Error de red.");
             } finally {
@@ -140,12 +193,18 @@ export function FinishBookingClient({ token }: { token: string }) {
             }
           }}
         >
-          <h2 className="text-lg font-semibold text-[#484848]">Datos de contacto</h2>
-          <p className="text-sm text-[#888]">
-            Opcional: teléfono y notas para el anfitrión.
-          </p>
+          <h2 className="text-lg font-semibold text-[#484848]">Firma con los datos de tu cuenta</h2>
           <label className="block">
-            <span className="text-xs text-[#888]">Teléfono</span>
+            <span className="text-xs text-[#888]">Nombre con el que firmas</span>
+            <input
+              value={signedName}
+              onChange={(e) => setSignedName(e.target.value)}
+              className="mt-1 w-full rounded border px-3 py-2 text-sm"
+              style={{ borderColor: "#ebebeb" }}
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs text-[#888]">Teléfono (opcional)</span>
             <input
               type="tel"
               value={guestPhone}
@@ -155,7 +214,7 @@ export function FinishBookingClient({ token }: { token: string }) {
             />
           </label>
           <label className="block">
-            <span className="text-xs text-[#888]">Notas</span>
+            <span className="text-xs text-[#888]">Notas (opcional)</span>
             <textarea
               value={guestFinishNotes}
               onChange={(e) => setGuestFinishNotes(e.target.value)}
@@ -164,6 +223,18 @@ export function FinishBookingClient({ token }: { token: string }) {
               style={{ borderColor: "#ebebeb" }}
             />
           </label>
+          <label className="flex items-start gap-2 text-sm text-[#484848]">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+              className="mt-1 accent-[#dcb81e]"
+            />
+            <span>
+              Acepto el contrato de esta reserva: fechas, montos, reglas y que Cabibee no es
+              parte del hospedaje, solo registra el acuerdo.
+            </span>
+          </label>
           {saveErr && (
             <p className="text-sm text-red-600" role="alert">
               {saveErr}
@@ -171,18 +242,18 @@ export function FinishBookingClient({ token }: { token: string }) {
           )}
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !accepted || signedName.trim().length < 3}
             className="w-full rounded py-3 text-sm font-semibold text-black disabled:opacity-60"
             style={{ backgroundColor: "#dcb81e" }}
           >
-            {saving ? "Guardando…" : "Guardar datos"}
+            {saving ? "Guardando…" : "Aceptar contrato y confirmar"}
           </button>
         </form>
       )}
 
-      {canFinish && saved && (
+      {(saved || booking.contract?.accepted) && booking.status !== "AWAITING_PAYMENT" && (
         <div className="mt-8 rounded border border-green-200 bg-green-50 p-4 text-sm text-green-900">
-          Datos guardados. Te contactará el anfitrión o recibirás los siguientes pasos por correo cuando estén activos.
+          Contrato aceptado. Puedes descargar el PDF cuando quieras.
         </div>
       )}
 
@@ -190,8 +261,7 @@ export function FinishBookingClient({ token }: { token: string }) {
         <div className="mt-8 rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
           <p className="font-medium">Falta completar el pago</p>
           <p className="mt-2 text-amber-900">
-            Con la misma cuenta con la que iniciaste la solicitud, abre el anuncio y pulsa «Reservar y pagar» para seguir el
-            checkout (o «Confirmar pago (demo)» si no hay Stripe configurado).
+            Con la misma cuenta, abre el anuncio y pulsa «Reservar y pagar».
           </p>
           {booking.listingSlug && (
             <Link
@@ -204,11 +274,9 @@ export function FinishBookingClient({ token }: { token: string }) {
         </div>
       )}
 
-      {!canFinish && booking.status !== "AWAITING_PAYMENT" && (
+      {!canFinish && !saved && booking.status === "PENDING" && (
         <p className="mt-8 text-sm text-[#888]">
-          {booking.status === "PENDING"
-            ? "Tu solicitud está pendiente de revisión por el anfitrión."
-            : "No hay acciones pendientes en esta página para el estado actual."}
+          Tu solicitud está pendiente de revisión por el anfitrión. El contrato se genera cuando acepte.
         </p>
       )}
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
-import { createListing } from "@/lib/marketplace-store";
+import { createListing, getListingById } from "@/lib/marketplace-store";
+import { syncHostBadgeToListings } from "@/lib/host-verification";
 import {
   LISTING_IMPORT_ALLOWED_MIME,
   LISTING_IMPORT_MAX_BYTES_PER_IMAGE,
@@ -102,7 +103,10 @@ export async function POST(req: NextRequest) {
   }
 
   const partial = draftToListingPartial(llm.draft);
-  const listing = createListing(user.id, partial);
+  const created = createListing(user.id, partial);
+  // Hereda la insignia del anfitrión, si la tiene.
+  syncHostBadgeToListings(user.id);
+  const listing = getListingById(created.id) ?? created;
 
   const warnings = [
     ...(llm.draft.warnings ?? []),

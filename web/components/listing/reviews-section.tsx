@@ -16,7 +16,7 @@ export function ReviewsSection({ reviews, ratingAvg }: { reviews: Review[]; rati
   if (reviews.length === 0) {
     return (
       <div className="rounded border p-8 text-center" style={{ borderColor: "#ebebeb" }}>
-        <p className="text-sm text-[#aaa]">Aún no hay reseñas para este alojamiento.</p>
+        <p className="text-sm text-[#aaa]">Aún no hay reseñas de estancias en este alojamiento.</p>
       </div>
     );
   }
@@ -45,6 +45,9 @@ export function ReviewsSection({ reviews, ratingAvg }: { reviews: Review[]; rati
                   <span className="text-xs text-[#aaa]">{r.date}</span>
                 </div>
                 <Stars n={r.rating} />
+                {r.fromStay && (
+                  <p className="mt-1 text-[11px] font-medium text-[#dcb81e]">Estancia en Cabibee</p>
+                )}
                 <p className="mt-2 text-sm leading-relaxed text-[#3a3a3a]">{r.comment}</p>
               </div>
             </div>

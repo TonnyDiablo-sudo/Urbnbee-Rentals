@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import { membershipPublicPlans } from "@/lib/membership-plans-store";
 import { verificationRegionFromRequest } from "@/lib/verification-region";
 import {
   getVerification,
@@ -34,6 +35,13 @@ export async function GET(req: NextRequest) {
     billingRegion,
     plansAvailable,
     plansByRegion: { mx: plansMx, us: plansUs },
+    // Planes del catálogo, con su precio: son los que se muestran cuando ya hay
+    // montos escritos en /admin/pricing. `plansByRegion` es el camino viejo por env.
+    catalogPlansByRegion: {
+      mx: membershipPublicPlans("mx", "guest"),
+      us: membershipPublicPlans("us", "guest"),
+    },
+    bookingPassesRemaining: rec?.bookingPassesRemaining ?? 0,
     subscriptionStatus: rec?.subscriptionStatus ?? "none",
     currentPeriodEnd: rec?.currentPeriodEnd,
     kycStatus: rec?.kycStatus ?? "not_started",

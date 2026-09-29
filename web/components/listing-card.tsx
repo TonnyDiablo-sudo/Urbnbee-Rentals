@@ -37,7 +37,7 @@ export function ListingCard({ listing }: Props) {
               className="rounded px-2 py-0.5 text-xs font-semibold text-white"
               style={{ backgroundColor: "#dcb81e" }}
             >
-              Verificado
+              Miembro verificado
             </span>
           )}
           {listing.featured && (
@@ -61,9 +61,11 @@ export function ListingCard({ listing }: Props) {
               {listing.title}
             </h3>
           </Link>
-          <span className="shrink-0 text-sm font-semibold" style={{ color: "#dcb81e" }}>
-            {(typeof listing.rating === "number" ? listing.rating : 0).toFixed(2)}
-          </span>
+          {typeof listing.rating === "number" && listing.rating > 0 && (
+            <span className="shrink-0 text-sm font-semibold" style={{ color: "#dcb81e" }}>
+              {listing.rating.toFixed(2)}
+            </span>
+          )}
         </div>
 
         <p className="text-sm text-[#3a3a3a]">

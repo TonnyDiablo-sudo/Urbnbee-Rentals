@@ -83,7 +83,15 @@ export default function AdminOverviewPage() {
           <StatCard label="Total" value={d.totalListings} />
           <StatCard label="Publicados" value={d.publishedListings} sub="visibles en el sitio" />
           <StatCard label="Borradores" value={d.draftListings} sub="no publicados" />
-          <StatCard label="Verificados" value={d.verifiedListings} sub="badge de plataforma" />
+          <StatCard
+            label="Verificados"
+            value={d.verifiedListings}
+            sub={
+              d.unearnedBadges > 0
+                ? `${d.unearnedBadges} sin anfitrión verificado`
+                : "insignia respaldada"
+            }
+          />
         </div>
       </section>
 
@@ -94,20 +102,30 @@ export default function AdminOverviewPage() {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard label="Total" value={d.totalBookings} />
-          <StatCard label="Pagadas" value={d.paidBookings} accent />
+          <StatCard label="Pagadas" value={d.paidBookings} sub="sin contar devueltas" accent />
           <StatCard
             label="Ingreso de estancias"
             value={fmx(d.totalStayRevenueMxn)}
-            sub="suma de reservas pagadas"
+            sub="neto de reembolsos"
             accent
           />
           <StatCard
             label="Comisión Cabibee"
             value={fmx(d.totalPlatformFeeMxn)}
-            sub="cargo de servicio cobrado"
+            sub="neto de reembolsos"
             accent
           />
         </div>
+        {d.refundedBookings > 0 && (
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard label="Reembolsadas" value={d.refundedBookings} />
+            <StatCard
+              label="Devuelto a huéspedes"
+              value={fmx(d.totalRefundedMxn)}
+              sub="rechazos del anfitrión"
+            />
+          </div>
+        )}
 
         {/* Status breakdown */}
         <div className="mt-4 bg-white border border-gray-200 rounded-xl p-5">

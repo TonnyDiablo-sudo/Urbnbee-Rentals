@@ -39,6 +39,12 @@ export default async function GuestLayout({ children }: { children: React.ReactN
               Mis reservas
             </Link>
             <Link
+              href="/guest/screening"
+              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
+            >
+              Screening
+            </Link>
+            <Link
               href="/guest/messages"
               className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
             >

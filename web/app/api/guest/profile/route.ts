@@ -16,6 +16,7 @@ export async function GET() {
       fullName: u?.fullName ?? user.fullName,
       email: user.email,
       phone: u?.phone,
+      addressLine: u?.addressLine,
     },
   });
 }
@@ -40,6 +41,6 @@ export async function PATCH(req: NextRequest) {
   const u = findUserById(user.id)!;
   return NextResponse.json({
     profile,
-    user: { fullName: u.fullName, email: u.email, phone: u.phone },
+    user: { fullName: u.fullName, email: u.email, phone: u.phone, addressLine: u.addressLine },
   });
 }

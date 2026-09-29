@@ -149,7 +149,7 @@ export function patchBookingRecord(
 /** Tras Checkout exitoso: instant → CONFIRMED, approval → PENDING (pagado). */
 export function completeBookingAfterPayment(
   bookingId: string,
-  opts?: { stripeCheckoutSessionId?: string }
+  opts?: { stripeCheckoutSessionId?: string; stripePaymentIntentId?: string }
 ): BookingRecord | undefined {
   syncIfStale();
   const prev = getBookingById(bookingId);
@@ -163,6 +163,7 @@ export function completeBookingAfterPayment(
     status: nextStatus,
     paidAt,
     stripeCheckoutSessionId: opts?.stripeCheckoutSessionId ?? prev.stripeCheckoutSessionId,
+    stripePaymentIntentId: opts?.stripePaymentIntentId ?? prev.stripePaymentIntentId,
   });
 }
 

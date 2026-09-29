@@ -1,7 +1,11 @@
 import "server-only";
 import { listAllUsers, listAllListings, getHostProfile } from "@/lib/marketplace-store";
 import { listAllBookings } from "@/lib/bookings-store";
-import { getVerification } from "@/lib/verification-store";
+import {
+  getVerification,
+  hostShowsVerifiedRibbon,
+  isHostMembershipActive,
+} from "@/lib/verification-store";
 import type { BookingStatus } from "@/lib/booking-types";
 
 export type AdminUserRow = {
@@ -19,6 +23,13 @@ export type AdminUserRow = {
   verificationStatus: string;
   hasStripeCustomer: boolean;
   subscriptionPeriodEnd?: string;
+  /** Insignia de anfitrión verificado y de dónde salió. */
+  hostVerified: boolean;
+  hostVerifiedAt?: string;
+  hostVerificationSource?: "identity" | "admin";
+  hostMembershipActive: boolean;
+  hostRibbon: boolean;
+  kycStatus: string;
 };
 
 export type AdminBookingRow = {
@@ -40,9 +51,15 @@ export type AdminBookingRow = {
   platformFeeMxn: number;
   totalChargeMxn: number;
   paidAt?: string;
+  refundedAt?: string;
+  refundAmountMxn?: number;
   createdAt: string;
   updatedAt: string;
   stripeCheckoutSessionId?: string;
+  hasContract: boolean;
+  contractAccepted: boolean;
+  depositMxn: number;
+  depositStatus?: string;
 };
 
 export type AdminOverview = {
@@ -54,11 +71,16 @@ export type AdminOverview = {
   publishedListings: number;
   draftListings: number;
   verifiedListings: number;
+  /** Anuncios con insignia cuyo anfitrión no está verificado: herencia del bug viejo. */
+  unearnedBadges: number;
   totalBookings: number;
   bookingsByStatus: Record<BookingStatus, number>;
   paidBookings: number;
+  refundedBookings: number;
+  /** Netos: excluyen lo devuelto al huésped. */
   totalStayRevenueMxn: number;
   totalPlatformFeeMxn: number;
+  totalRefundedMxn: number;
   activeVerificationSubscriptions: number;
 };
 
@@ -83,16 +105,22 @@ export function getAdminOverview(): AdminOverview {
 
   const byStatus = {} as Record<BookingStatus, number>;
   let paidBookings = 0;
+  let refundedBookings = 0;
   let totalStayRevenueMxn = 0;
   let totalPlatformFeeMxn = 0;
+  let totalRefundedMxn = 0;
 
   for (const b of bookings) {
     byStatus[b.status] = (byStatus[b.status] ?? 0) + 1;
-    if (b.paidAt) {
-      paidBookings++;
-      totalStayRevenueMxn += b.estimatedTotalMxn;
-      totalPlatformFeeMxn += b.platformFeeMxn ?? 0;
+    if (!b.paidAt) continue;
+    if (b.refundedAt) {
+      refundedBookings++;
+      totalRefundedMxn += b.refundAmountMxn ?? b.estimatedTotalMxn + (b.platformFeeMxn ?? 0);
+      continue;
     }
+    paidBookings++;
+    totalStayRevenueMxn += b.estimatedTotalMxn;
+    totalPlatformFeeMxn += b.platformFeeMxn ?? 0;
   }
 
   let activeVerificationSubscriptions = 0;
@@ -111,12 +139,17 @@ export function getAdminOverview(): AdminOverview {
     totalListings: listings.length,
     publishedListings: listings.filter((l) => l.published).length,
     draftListings: listings.filter((l) => !l.published).length,
-    verifiedListings: listings.filter((l) => l.verified).length,
+    verifiedListings: listings.filter((l) => hostShowsVerifiedRibbon(l.hostId)).length,
+    unearnedBadges: listings.filter(
+      (l) => l.verified && !hostShowsVerifiedRibbon(l.hostId)
+    ).length,
     totalBookings: bookings.length,
     bookingsByStatus: byStatus,
     paidBookings,
+    refundedBookings,
     totalStayRevenueMxn,
     totalPlatformFeeMxn,
+    totalRefundedMxn,
     activeVerificationSubscriptions,
   };
 }
@@ -129,7 +162,7 @@ export function getAdminUsers(): AdminUserRow[] {
   return users.map((u) => {
     const userListings = listings.filter((l) => l.hostId === u.id);
     const userBookings = bookings.filter((b) => b.guestUserId === u.id);
-    const paidBookings = userBookings.filter((b) => !!b.paidAt);
+    const paidBookings = userBookings.filter((b) => !!b.paidAt && !b.refundedAt);
     const totalPaidMxn = paidBookings.reduce((s, b) => s + b.estimatedTotalMxn, 0);
     const platformFeePaidMxn = paidBookings.reduce((s, b) => s + (b.platformFeeMxn ?? 0), 0);
     const v = getVerification(u.id);
@@ -148,6 +181,12 @@ export function getAdminUsers(): AdminUserRow[] {
       verificationStatus: v?.subscriptionStatus ?? "none",
       hasStripeCustomer: !!v?.stripeCustomerId,
       subscriptionPeriodEnd: v?.currentPeriodEnd,
+      hostVerified: Boolean(v?.hostVerifiedAt),
+      hostVerifiedAt: v?.hostVerifiedAt,
+      hostVerificationSource: v?.hostVerificationSource,
+      hostMembershipActive: isHostMembershipActive(u.id),
+      hostRibbon: hostShowsVerifiedRibbon(u.id),
+      kycStatus: v?.kycStatus ?? "not_started",
     };
   });
 }
@@ -183,9 +222,15 @@ export function getAdminBookings(): AdminBookingRow[] {
       platformFeeMxn: b.platformFeeMxn ?? 0,
       totalChargeMxn: b.estimatedTotalMxn + (b.platformFeeMxn ?? 0),
       paidAt: b.paidAt,
+      refundedAt: b.refundedAt,
+      refundAmountMxn: b.refundAmountMxn,
       createdAt: b.createdAt,
       updatedAt: b.updatedAt,
       stripeCheckoutSessionId: b.stripeCheckoutSessionId,
+      hasContract: Boolean(b.contract),
+      contractAccepted: Boolean(b.contract?.hostAcceptedAt && b.contract?.guestAcceptedAt),
+      depositMxn: b.deposit?.amountMxn ?? b.contract?.snapshot.depositMxn ?? 0,
+      depositStatus: b.deposit?.status,
     };
   });
 }
@@ -241,6 +286,45 @@ export function getAdminLogs(limit = 200): AdminLogRow[] {
           stripeSession: b.stripeCheckoutSessionId,
         },
       });
+    }
+
+    if (b.refundedAt) {
+      logs.push({
+        id: `${b.id}-refunded`,
+        when: b.refundedAt,
+        event: "Reembolso emitido al huésped",
+        detail,
+        entityType: "booking" as const,
+        entityId: b.id,
+        meta: {
+          refundMxn: b.refundAmountMxn,
+          refundReason: b.refundReason,
+          stripeRefund: b.stripeRefundId,
+        },
+      });
+    }
+
+    if (b.contract) {
+      logs.push({
+        id: `${b.id}-contract`,
+        when: b.contract.generatedAt,
+        event: "Contrato de reserva generado",
+        detail: `${detail} · ${b.contract.templateId}`,
+        entityType: "booking" as const,
+        entityId: b.id,
+        meta: { token: b.token, template: b.contract.templateId },
+      });
+      if (b.contract.guestAcceptedAt) {
+        logs.push({
+          id: `${b.id}-contract-guest`,
+          when: b.contract.guestAcceptedAt,
+          event: "Huésped aceptó el contrato",
+          detail: `${b.contract.guestAcceptedName ?? guest?.email ?? b.guestEmail} · IP ${b.contract.guestAcceptedIp ?? "—"}`,
+          entityType: "booking" as const,
+          entityId: b.id,
+          meta: { token: b.token },
+        });
+      }
     }
 
     logs.push({

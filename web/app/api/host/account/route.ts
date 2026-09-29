@@ -10,13 +10,22 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const fullName = body.fullName !== undefined ? String(body.fullName).trim() : undefined;
   const phone = body.phone !== undefined ? String(body.phone).trim() : undefined;
+  const addressLine = body.addressLine !== undefined ? String(body.addressLine).trim().slice(0, 240) : undefined;
 
   const next = updateUser(user.id, {
     ...(fullName !== undefined ? { fullName } : {}),
     ...(phone !== undefined ? { phone } : {}),
+    ...(addressLine !== undefined ? { addressLine } : {}),
   });
   if (!next) return NextResponse.json({ error: "Usuario no encontrado." }, { status: 404 });
   return NextResponse.json({
-    user: { id: next.id, email: next.email, fullName: next.fullName, phone: next.phone, role: next.role },
+    user: {
+      id: next.id,
+      email: next.email,
+      fullName: next.fullName,
+      phone: next.phone,
+      addressLine: next.addressLine,
+      role: next.role,
+    },
   });
 }

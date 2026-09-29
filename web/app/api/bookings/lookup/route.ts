@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { contractPlainLines } from "@/lib/booking-contract";
+import { applyBookingLifecycle } from "@/lib/booking-deposit";
 import { findBookingByToken } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
 
@@ -7,10 +9,11 @@ export async function GET(req: NextRequest) {
   if (token.length !== 6) {
     return NextResponse.json({ error: "Código de 6 dígitos." }, { status: 400 });
   }
-  const booking = findBookingByToken(token);
-  if (!booking) {
+  const found = findBookingByToken(token);
+  if (!found) {
     return NextResponse.json({ error: "No hay reserva con ese código." }, { status: 404 });
   }
+  const booking = applyBookingLifecycle(found);
   const listing = getListingById(booking.listingId);
   const effListingId = booking.hostAdjustedListingId ?? booking.listingId;
   const effListing = getListingById(effListingId);
@@ -25,12 +28,26 @@ export async function GET(req: NextRequest) {
       checkOut: dispOut,
       nights: booking.nights,
       estimatedTotalMxn: booking.estimatedTotalMxn,
-      guestName: booking.guestName,
+      guestName: booking.contract?.snapshot.guestName ?? booking.guestName,
+      guestEmail: booking.contract?.snapshot.guestEmail ?? booking.guestEmail,
+      guestPhone: booking.contract?.snapshot.guestPhone ?? booking.guestPhone,
       createdAt: booking.createdAt,
       listingTitle: effListing?.title ?? listing?.title ?? "Alojamiento",
       listingSlug: effListing?.slug ?? listing?.slug,
       bookingApprovalMode: effListing?.bookingApprovalMode ?? listing?.bookingApprovalMode ?? "approval",
       paidAt: booking.paidAt,
+      contract: booking.contract
+        ? {
+            generated: true,
+            accepted: Boolean(booking.contract.hostAcceptedAt && booking.contract.guestAcceptedAt),
+            hostAcceptedAt: booking.contract.hostAcceptedAt,
+            hostAcceptedName: booking.contract.hostAcceptedName,
+            guestAcceptedAt: booking.contract.guestAcceptedAt,
+            guestAcceptedName: booking.contract.guestAcceptedName,
+            templateTitle: booking.contract.snapshot.templateTitle,
+            lines: contractPlainLines(booking.contract),
+          }
+        : { generated: false, accepted: false },
     },
   });
 }

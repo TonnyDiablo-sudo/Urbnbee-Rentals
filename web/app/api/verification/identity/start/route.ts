@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { getStripe } from "@/lib/stripe-server";
 import { publicOriginFromRequest } from "@/lib/public-origin";
+import { appReturnPath } from "@/lib/app-return-path";
 import {
   getVerification,
   stripeIdentityEnabled,
@@ -35,7 +36,8 @@ export async function POST(_req: NextRequest) {
   }
 
   const origin = publicOriginFromRequest(_req);
-  const returnUrl = `${origin}/guest/membresia?identity=return`;
+  const body = (await _req.json().catch(() => ({}))) as { returnPath?: string };
+  const returnUrl = `${origin}${appReturnPath(body.returnPath) ?? "/guest/membresia"}?identity=return`;
 
   try {
     const session = await stripe.identity.verificationSessions.create({

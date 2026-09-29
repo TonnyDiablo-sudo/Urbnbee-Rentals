@@ -2,6 +2,8 @@ import "server-only";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import type { ListingDetail } from "@/lib/listing-detail-data";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
+import { listingReviewsForPublic } from "@/lib/stay-reviews";
+import { hostShowsVerifiedRibbon } from "@/lib/verification-store";
 
 const PLACEHOLDER =
   "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80";
@@ -59,13 +61,14 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
       ? { ...record.nightlyPriceOverrides }
       : undefined,
     cleaningFee: record.cleaningFee,
+    depositMxn: record.contract?.depositMxn || undefined,
     category: categoryLabel(record.categoryKey),
     spaceType: record.spaceType,
     guests: record.guests,
     bedrooms: record.bedrooms,
     bathrooms: record.bathrooms,
     size: record.size,
-    verified: record.verified,
+    verified: hostShowsVerifiedRibbon(record.hostId),
     propertyId: hashPropertyId(record.id),
     blockedDates: [...record.blockedDates],
     photos,
@@ -74,6 +77,6 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
       : ["Internet Inalámbrico", "Agua caliente", "Elementos básicos"],
     rules: record.rules,
     host,
-    reviews: [],
+    reviews: listingReviewsForPublic(record.id),
   };
 }

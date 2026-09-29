@@ -19,6 +19,7 @@ export async function GET() {
       listingSlug: listing?.slug,
       lastAt: t.lastAt,
       lastPreview: last?.body?.slice(0, 140) ?? "",
+      lastSender: last?.sender,
       messageCount: t.messages.length,
     };
   });

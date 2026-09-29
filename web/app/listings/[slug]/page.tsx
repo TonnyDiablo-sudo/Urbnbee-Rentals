@@ -61,7 +61,7 @@ export default async function ListingDetailPage({ params }: Props) {
                     className="mt-1 rounded px-3 py-1 text-xs font-semibold text-white shrink-0"
                     style={{ backgroundColor: "#dcb81e" }}
                   >
-                    Verificado
+                    Miembro verificado
                   </span>
                 )}
               </div>
@@ -105,6 +105,12 @@ export default async function ListingDetailPage({ params }: Props) {
                     {listing.priceWeekly && <PriceRow label="Precio por noche (7d+)" value={`$ ${listing.priceWeekly}`} />}
                     {listing.priceMonthly && <PriceRow label="Precio por noche (30d+)" value={`$ ${listing.priceMonthly}`} />}
                     {listing.cleaningFee && <PriceRow label="Tarifa de limpieza" value={`$ ${listing.cleaningFee} — Tarifa única`} />}
+                    {listing.depositMxn ? (
+                      <PriceRow
+                        label="Depósito (fuera de Cabibee)"
+                        value={`$ ${listing.depositMxn.toLocaleString("es-MX")} — se pacta y entrega entre anfitrión y huésped`}
+                      />
+                    ) : null}
                   </div>
                 </div>
               </section>
@@ -117,7 +123,7 @@ export default async function ListingDetailPage({ params }: Props) {
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <div className="rounded border p-5 text-sm" style={{ borderColor: "#ebebeb" }}>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <DetailRow label="Estado" value={listing.verified ? "Verificado" : "Pendiente"} />
+                    <DetailRow label="Estado" value={listing.verified ? "Miembro verificado" : "Pendiente"} />
                     <DetailRow label="ID de propiedad" value={String(listing.propertyId)} />
                     {listing.size && <DetailRow label="Tamaño" value={listing.size} />}
                     <DetailRow label="Habitaciones" value={String(listing.bedrooms)} />
@@ -243,6 +249,7 @@ export default async function ListingDetailPage({ params }: Props) {
                   listingSlug={slug}
                   pricePerNight={listing.pricePerNight}
                   cleaningFee={listing.cleaningFee}
+                  depositMxn={listing.depositMxn}
                   blockedDates={listing.blockedDates}
                   nightlyPriceOverrides={listing.nightlyPriceOverrides}
                 />

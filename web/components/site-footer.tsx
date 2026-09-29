@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function SiteFooter() {
   return (
     <footer className="bg-white border-t py-12" style={{ borderColor: "#ebebeb" }}>
@@ -19,6 +21,17 @@ export function SiteFooter() {
             >
               hola@cabibee.com
             </a>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-[#484848]">App Cabibee</h3>
+            <Link
+              href="/app"
+              className="mt-1 block text-sm transition hover:text-[#c9a71a]"
+              style={{ color: "#dcb81e" }}
+            >
+              Instálala en tu celular
+            </Link>
+            <p className="mt-0.5 text-xs text-[#717171]">Busca, chatea y administra tus anuncios desde el teléfono.</p>
           </div>
           <div>
             <h3 className="text-sm font-semibold text-[#484848]">Síguenos:</h3>
