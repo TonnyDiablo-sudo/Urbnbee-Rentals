@@ -6,18 +6,18 @@ export function SiteFooter() {
           La información en este directorio ha sido proporcionada por los anfitriones o
           recopilada de fuentes públicas con autorización. Si eres el propietario de un
           alojamiento y deseas modificar o eliminar tu perfil, contáctanos.{" "}
-          Urbnbee se compromete a ofrecer un alto nivel de experiencia, servicio al cliente
+          Cabibee se compromete a ofrecer un alto nivel de experiencia, servicio al cliente
           y atención al detalle en el mercado de reservas de alojamiento.
         </p>
         <div className="flex flex-col gap-6 sm:flex-row sm:justify-between">
           <div>
             <h3 className="text-sm font-semibold text-[#484848]">Contacto</h3>
             <a
-              href="mailto:hola@urbnbee.com"
+              href="mailto:hola@cabibee.com"
               className="mt-1 block text-sm transition hover:text-[#c9a71a]"
               style={{ color: "#dcb81e" }}
             >
-              hola@urbnbee.com
+              hola@cabibee.com
             </a>
           </div>
           <div>
@@ -26,7 +26,7 @@ export function SiteFooter() {
           </div>
         </div>
         <p className="text-xs text-[#3a3a3a]">
-          Todos los derechos reservados: Urbnbee® {new Date().getFullYear()}.
+          Todos los derechos reservados: Cabibee® {new Date().getFullYear()}.
         </p>
       </div>
     </footer>

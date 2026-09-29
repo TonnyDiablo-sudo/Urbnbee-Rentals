@@ -11,8 +11,8 @@ const roboto = Roboto({
 
 export const metadata: Metadata = {
   title: {
-    default: "Urbnbee — Alojamientos verificados",
-    template: "%s · Urbnbee",
+    default: "Cabibee — Alojamientos verificados",
+    template: "%s · Cabibee",
   },
   description:
     "Directorio de anfitriones verificados. Explora habitaciones, casas, departamentos y más con transparencia total.",

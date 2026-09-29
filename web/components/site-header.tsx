@@ -68,10 +68,10 @@ export function SiteHeader({ heroSentinelRef }: Props) {
             </svg>
           </button>
 
-          {/* Logo: URBN white + BEE gold + tagline */}
+          {/* Logo: CABI white + BEE gold + tagline */}
           <Link href="/" className="flex shrink-0 flex-col leading-none">
             <span className="text-xl font-bold tracking-wider">
-              <span className="text-white">URBN</span>
+              <span className="text-white">CABI</span>
               <span style={{ color: "#dcb81e" }}>BEE</span>
             </span>
             <span className="text-[10px] font-light tracking-widest text-white/70">

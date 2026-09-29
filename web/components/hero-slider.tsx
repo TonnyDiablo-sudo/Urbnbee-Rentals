@@ -6,19 +6,19 @@ const slides = [
     n: "01",
     title: "– Directorio de Anfitriones Verificados",
     body: "Reserva con Confianza – Conectamos viajeros con anfitriones verificados, reduciendo el riesgo de fraudes. Cada perfil es revisado para garantizar autenticidad y seguridad.",
-    bg: "https://urbnbee.com/wp-content/uploads/2025/02/URBNBEE-CONFIANZA-1920x790.jpeg",
+    bg: "https://images.unsplash.com/photo-1758983065583-9cea714214f9?w=1920&q=80",
   },
   {
     n: "02",
     title: "– Accede a la Información de los Anfitriones",
     body: "Transparencia Total – Obtén todos los detalles del alojamiento para tomar la mejor decisión. Consulta diferentes formas de contacto y opciones de reserva.",
-    bg: "https://urbnbee.com/wp-content/uploads/2025/02/URBNBEE-ALOJAMIENTO-1920x790.jpeg",
+    bg: "https://images.unsplash.com/photo-1682184805271-11671b7ecf4c?w=1920&q=80",
   },
   {
     n: "03",
     title: "– Evalúa al Anfitrión con Opiniones Reales",
     body: "Consulta valoraciones y referencias en distintos sitios para tomar una mejor decisión. Transparencia total: revisa la reputación antes de reservar.",
-    bg: "https://urbnbee.com/wp-content/uploads/2025/02/URBNBEE-AUTENTICIDAD-1920x790.jpeg",
+    bg: "https://images.unsplash.com/photo-1753569632676-961830e89de2?w=1920&q=80",
   },
 ];
 
