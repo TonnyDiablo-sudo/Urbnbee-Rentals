@@ -1,4 +1,5 @@
 import "server-only";
+import { getHostStripe } from "@/lib/host-stripe";
 
 /** Margen mínimo sobre el cobro de estancia (no es % tipo Airbnb sobre todo el negocio — cargo explícito de infra). */
 export function platformBookingFeeMxn(stayAndCleaningTotalMxn: number): number {
@@ -13,4 +14,10 @@ export function platformBookingFeeMxn(stayAndCleaningTotalMxn: number): number {
 
 export function totalBookingChargeMxn(stayAndCleaningTotalMxn: number): number {
   return stayAndCleaningTotalMxn + platformBookingFeeMxn(stayAndCleaningTotalMxn);
+}
+
+/** Misma regla que Checkout: si el anfitrión cobra en su Stripe, no se suma el cargo de plataforma (Q1). */
+export function stayPlatformFeeMxn(hostId: string, stayAndCleaningTotalMxn: number): number {
+  if (getHostStripe(hostId)) return 0;
+  return platformBookingFeeMxn(stayAndCleaningTotalMxn);
 }

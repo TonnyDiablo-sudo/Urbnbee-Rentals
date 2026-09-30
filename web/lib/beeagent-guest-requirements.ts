@@ -26,7 +26,9 @@ export function guestRequirementsOf(booking: BookingRecord | undefined, origin: 
     ? resolveGuestBookingAccess(booking.guestUserId)
     : { allowed: false, via: "open" as const, needsMembership: true, needsIdentity: false };
   const v = booking.guestUserId ? getVerification(booking.guestUserId) : undefined;
-  const membershipActive = hasAccount && !access.needsMembership;
+  const membershipActive = Boolean(
+    hasAccount && (!access.needsMembership || booking.usedMembershipPass)
+  );
   const identityVerified = Boolean(hasAccount && (v?.kycStatus === "verified" || !access.needsIdentity));
   const contractSigned = Boolean(booking.contract?.guestAcceptedAt);
   const unpaid = booking.status === "AWAITING_PAYMENT";
@@ -36,12 +38,6 @@ export function guestRequirementsOf(booking: BookingRecord | undefined, origin: 
   if (!hasAccount) {
     next_step = "register";
     next_step_url = `${origin}/register?next=${encodeURIComponent(`/contrato/${booking.token}?pay=1`)}`;
-  } else if (access.needsMembership) {
-    next_step = "membership";
-    next_step_url = `${origin}/guest/membresia`;
-  } else if (access.needsIdentity) {
-    next_step = "identity";
-    next_step_url = `${origin}/guest/membresia`;
   } else if (unpaid && !contractSigned) {
     next_step = "contract";
     next_step_url = `${origin}/contrato/${booking.token}?pay=1`;

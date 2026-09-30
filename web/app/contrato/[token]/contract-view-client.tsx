@@ -86,7 +86,7 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cancelPath: `/contrato/${token}?pay=1`,
-          returnPath: "/viajes",
+          returnPath: "/bookings/confirm",
         }),
       });
       const data = await res.json().catch(() => ({}));

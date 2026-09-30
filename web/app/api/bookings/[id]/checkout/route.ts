@@ -9,7 +9,7 @@ import { getHostStripe } from "@/lib/host-stripe";
 import { getStripe, allowSimulatedBookingPayment } from "@/lib/stripe-server";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 import { appReturnPath } from "@/lib/app-return-path";
-import { platformBookingFeeMxn } from "@/lib/platform-fees";
+import { stayPlatformFeeMxn } from "@/lib/platform-fees";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -70,9 +70,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
 
   const title = listing?.title ?? "Reserva Cabibee";
   const platformFeeMxn =
-    chargedVia === "host"
-      ? 0
-      : (booking.platformFeeMxn ?? platformBookingFeeMxn(booking.estimatedTotalMxn));
+    chargedVia === "host" ? 0 : stayPlatformFeeMxn(booking.hostId, booking.estimatedTotalMxn);
   const stayCents = Math.max(1, Math.round(booking.estimatedTotalMxn * 100));
   const feeCents = chargedVia === "host" ? 0 : Math.max(0, Math.round(platformFeeMxn * 100));
   const totalCents = stayCents + feeCents;

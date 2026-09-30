@@ -104,6 +104,13 @@ export function findBookingByBeeagentRef(ref: string): BookingRecord | undefined
   return rows.find((r) => r.beeagentRef === key);
 }
 
+export function findBookingByCheckoutSessionId(sessionId: string): BookingRecord | undefined {
+  syncIfStale();
+  const key = sessionId.trim();
+  if (!key.startsWith("cs_")) return undefined;
+  return rows.find((r) => r.stripeCheckoutSessionId === key);
+}
+
 export function listBookingsForHost(hostId: string): BookingRecord[] {
   syncIfStale();
   return [...rows]

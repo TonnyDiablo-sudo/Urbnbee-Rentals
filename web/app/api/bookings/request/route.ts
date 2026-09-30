@@ -14,7 +14,7 @@ import {
 } from "@/lib/booking-helpers";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { getSessionUser } from "@/lib/session";
-import { platformBookingFeeMxn } from "@/lib/platform-fees";
+import { stayPlatformFeeMxn } from "@/lib/platform-fees";
 import {
   consumeBookingPass,
   hostAcceptsBookings,
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
   const { staySubtotal } = sumStayMxn(listing, checkIn, checkOut);
   const cleaning = listing.cleaningFee ?? 0;
   const estimatedTotalMxn = Math.round(staySubtotal + cleaning);
-  const platformFeeMxn = platformBookingFeeMxn(estimatedTotalMxn);
+  const platformFeeMxn = stayPlatformFeeMxn(listing.hostId, estimatedTotalMxn);
 
   // El pase se descuenta antes de crear la reserva: si se descontara después, dos
   // solicitudes seguidas podrían colarse con un solo pase.

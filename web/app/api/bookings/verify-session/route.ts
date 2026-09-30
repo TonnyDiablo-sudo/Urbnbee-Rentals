@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { retrieveBookingCheckoutSession } from "@/lib/booking-checkout-session";
 import { settleBookingCheckoutSession } from "@/lib/booking-payment-settle";
+import { getHostStripe } from "@/lib/host-stripe";
+import { findBookingByCheckoutSessionId } from "@/lib/bookings-store";
 import { getStripe } from "@/lib/stripe-server";
 
 export async function POST(req: NextRequest) {
@@ -9,14 +12,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Sesión inválida." }, { status: 400 });
   }
 
-  const stripe = getStripe();
-  if (!stripe) {
+  const known = findBookingByCheckoutSessionId(sessionId);
+  const hasStripe =
+    Boolean(getStripe()) || Boolean(known && getHostStripe(known.hostId));
+  if (!hasStripe) {
     return NextResponse.json({ error: "Stripe no configurado." }, { status: 503 });
   }
 
   let session;
   try {
-    session = await stripe.checkout.sessions.retrieve(sessionId);
+    session = await retrieveBookingCheckoutSession(sessionId);
   } catch (e) {
     console.warn("[verify-session]", e);
     return NextResponse.json({ error: "No se pudo verificar el pago." }, { status: 502 });

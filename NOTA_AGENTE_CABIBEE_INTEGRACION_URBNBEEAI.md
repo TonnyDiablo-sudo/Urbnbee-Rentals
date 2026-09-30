@@ -369,7 +369,7 @@ C2 se puede hacer en cualquier momento y es chica: conviene sacarla pronto.
 
 | Fecha | Fase | Qué quedó / qué cambió | Cómo se probó |
 |---|---|---|---|
-| 2026-09-29 | QA | Identity start ya acepta pase (antes exigía suscripción). Stripe de Cabibee está en **live** + `STRIPE_IDENTITY_ENABLED=true`: no usé datos inventados. Huésped QA marcado `kycStatus=verified` + 1 pase. Admin: regalar pase y marcar identidad. | Volume + `tsc`. |
+| 2026-09-29 | QA | Pago host: `verify-session` lee la sesión en el Stripe que cobró (anfitrión o Cabibee). `/viajes` en cabibee.com redirige a confirmar. Quote/request sin cargo de plataforma si el host cobra en su Stripe (misma regla que Checkout; Q1 sigue abierto). Reserva existente no pide membresía otra vez (`usedMembershipPass` / ya existe). Cerré `bkg_90c494ed5dcedf50a67d` con la sesión ya cobrada; no reembolsé ni volví a cobrar. | `tsc`. `verify-session` en prod → CONFIRMED/paid + C10. `/viajes?session_id=` → confirm. |
 | 2026-09-29 | C10 | Cola saliente HMAC a urbnbeeai. Eventos de reserva, unlink y entitlements Cabibee. Sin C11. | `tsc --noEmit`. Casos de firma/clasificación 200/400/401/503. |
 | 2026-09-29 | C1–C9 | Código de C1–C9 a `main`/Railway (antes solo local). Arranque aplica `002`–`004` + `json-to-mysql`. Sin C10/C11. | `tsc --noEmit`. Push `main` → autodeploy Urbnbee Rentals. |
 | 2026-09-29 | urbnbeeai U2 | urbnbeeai etiqueta `metadata.app="urbnbee"` e ignora lo tuyo en su webhook (también tus objetos viejos con `metadata.userId`). | Deploy SUCCESS |
