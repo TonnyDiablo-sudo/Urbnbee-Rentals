@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "entitlements": [
+    {
+      "hostId": "usr_demo_sofia_host",
+      "sku": "cabibee_booking_engine",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-09-30T20:02:10.945Z"
+    },
+    {
+      "hostId": "usr_demo_sofia_host",
+      "sku": "cabibee_host_verification",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-09-30T20:02:10.945Z"
+    }
+  ]
+}

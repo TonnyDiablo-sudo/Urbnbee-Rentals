@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "verifications": [
+    {
+      "userId": "usr_demo_sofia_host",
+      "subscriptionStatus": "active",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "kycStatus": "verified",
+      "hostVerifiedAt": "2026-08-02T12:00:00.000Z",
+      "hostVerificationSource": "admin",
+      "hostSubscriptionStatus": "active",
+      "hostCurrentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "bookingPassesRemaining": 4,
+      "updatedAt": "2026-09-30T20:02:10.945Z"
+    },
+    {
+      "userId": "usr_demo_diego_guest",
+      "subscriptionStatus": "active",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "kycStatus": "verified",
+      "bookingPassesRemaining": 3,
+      "updatedAt": "2026-09-30T20:02:10.945Z"
+    }
+  ]
+}

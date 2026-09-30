@@ -12,7 +12,8 @@
     "start:next": "next start",
     "lint": "eslint",
     "db:migrate": "node scripts/db-migrate.mjs",
-    "db:sync-json": "node scripts/json-to-mysql.mjs"
+    "db:sync-json": "node scripts/json-to-mysql.mjs",
+    "seed:demo": "node scripts/seed-demo-accounts.mjs"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4",

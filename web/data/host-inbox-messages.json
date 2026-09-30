@@ -65,6 +65,209 @@
       "guestEmail": "sofia.hospeda@gmail.com",
       "body": "¿Tienen disponibilidad para 3 noches del 20 al 23 de junio? Somos 2 personas. Si sí, ¿hay descuento por estancia un poco larga?",
       "createdAt": "2026-05-08T16:45:00.000Z"
+    },
+    {
+      "id": "msg_demo_roma_g1",
+      "listingId": "lst_demo_sofia_roma",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_demo_diego_guest",
+      "sender": "guest",
+      "guestName": "Diego Morales",
+      "guestEmail": "diego@urbnbee.test",
+      "body": "Hola Sofía, ya reservé del 27 de septiembre al 4 de octubre. ¿Puedo llegar como a las 11? Vuelo de Guadalajara que aterriza a las 9:40.",
+      "createdAt": "2026-09-12T17:05:00.000Z"
+    },
+    {
+      "id": "msg_demo_roma_h1",
+      "listingId": "lst_demo_sofia_roma",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_demo_diego_guest",
+      "sender": "host",
+      "guestName": "",
+      "body": "¡Hola Diego! Sí, te dejo la caja de llaves desde las 11. Te mando el código el día anterior. ¿Vienes solo o con alguien?",
+      "createdAt": "2026-09-12T18:40:00.000Z"
+    },
+    {
+      "id": "msg_demo_roma_g2",
+      "listingId": "lst_demo_sofia_roma",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_demo_diego_guest",
+      "sender": "guest",
+      "guestName": "Diego Morales",
+      "guestEmail": "diego@urbnbee.test",
+      "body": "Voy solo. Ya estoy en el loft, todo impecable. Una duda: ¿el wifi del escritorio es el mismo que el de la sala? Se me corta un poco en videollamadas.",
+      "createdAt": "2026-09-27T19:12:00.000Z"
+    },
+    {
+      "id": "msg_demo_roma_h2",
+      "listingId": "lst_demo_sofia_roma",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_demo_diego_guest",
+      "sender": "host",
+      "guestName": "",
+      "body": "Es la misma red. Reinicia el módem (caja blanca detrás del sofá, 10 segundos). Si sigue inestable te paso el 5 GHz: Cabibee-Roma-5G / te lo mando por aquí.",
+      "createdAt": "2026-09-27T19:31:00.000Z"
+    },
+    {
+      "id": "msg_demo_roma_g3",
+      "listingId": "lst_demo_sofia_roma",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_demo_diego_guest",
+      "sender": "guest",
+      "guestName": "Diego Morales",
+      "guestEmail": "diego@urbnbee.test",
+      "body": "Listo, ya está estable. Gracias. Mañana trabajo desde aquí todo el día.",
+      "createdAt": "2026-09-28T08:14:00.000Z"
+    },
+    {
+      "id": "msg_demo_coyo_g1",
+      "listingId": "lst_demo_sofia_coyoacan",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_demo_diego_guest",
+      "sender": "guest",
+      "guestName": "Diego Morales",
+      "guestEmail": "diego@urbnbee.test",
+      "body": "Sofía, para la casa de Coyoacán en octubre: ¿el patio está cerrado? Voy con mi hermana y su niño de 6. También, ¿aceptas al perro chico (7 kg)?",
+      "createdAt": "2026-09-20T20:10:00.000Z"
+    },
+    {
+      "id": "msg_demo_coyo_h1",
+      "listingId": "lst_demo_sofia_coyoacan",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_demo_diego_guest",
+      "sender": "host",
+      "guestName": "",
+      "body": "El patio tiene barda de 1.80 y la puerta de servicio se traba. El perrito sí, con la condición de que no suba a sofás. Hay súper (La Comer) a 6 minutos caminando.",
+      "createdAt": "2026-09-20T21:02:00.000Z"
+    },
+    {
+      "id": "msg_demo_coyo_g2",
+      "listingId": "lst_demo_sofia_coyoacan",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_demo_diego_guest",
+      "sender": "guest",
+      "guestName": "Diego Morales",
+      "guestEmail": "diego@urbnbee.test",
+      "body": "Perfecto, entonces confirmamos. ¿Hay cuna o me conviene llevar una plegable?",
+      "createdAt": "2026-09-21T10:44:00.000Z"
+    },
+    {
+      "id": "msg_demo_condesa_g1",
+      "listingId": "lst_demo_sofia_condesa",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_demo_diego_guest",
+      "sender": "guest",
+      "guestName": "Diego Morales",
+      "guestEmail": "diego@urbnbee.test",
+      "body": "Hola, mandé solicitud para noviembre (6–9). Trabajo remoto: ¿el escritorio aguanta monitor + laptop? ¿Hay silla de verdad o es de comedor?",
+      "createdAt": "2026-09-28T21:18:00.000Z"
+    },
+    {
+      "id": "msg_demo_condesa_h1",
+      "listingId": "lst_demo_sofia_condesa",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_demo_diego_guest",
+      "sender": "host",
+      "guestName": "",
+      "body": "Hay escritorio de 120 cm y silla de oficina. El wifi mide ~180 Mbps en esa recámara. Te reviso la solicitud hoy en la noche.",
+      "createdAt": "2026-09-28T22:05:00.000Z"
+    },
+    {
+      "id": "msg_demo_valle_g1",
+      "listingId": "lst_demo_sofia_valle",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_demo_diego_guest",
+      "sender": "guest",
+      "guestName": "Diego Morales",
+      "guestEmail": "diego@urbnbee.test",
+      "body": "Para Valle en noviembre: ¿la chimenea tiene leña incluida o compro en el pueblo? Y el check-in, ¿puedo llegar después de las 9 pm?",
+      "createdAt": "2026-09-29T15:02:00.000Z"
+    },
+    {
+      "id": "msg_demo_camila_g1",
+      "listingId": "lst_demo_sofia_coyoacan",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "sess_demo_camila_coyo",
+      "sender": "guest",
+      "guestName": "Camila Reyes",
+      "guestEmail": "camila.reyes.demo@gmail.com",
+      "body": "Hola Sofía, solicité el 8–12 de octubre para 3 adultos. ¿Hay cama extra o sofá cama en la sala? Viajamos por un congreso en CU.",
+      "createdAt": "2026-09-29T18:25:00.000Z"
+    },
+    {
+      "id": "msg_demo_familia_g1",
+      "listingId": "lst_demo_sofia_valle",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "sess_demo_familia_valle",
+      "sender": "guest",
+      "guestName": "Familia Ortega",
+      "guestEmail": "ortega.viaje@outlook.com",
+      "body": "Buenas tardes, ¿la cabaña está libre el puente de diciembre (12–16)? Somos 2 adultos y 2 niños. ¿Hay calefacción además de la chimenea?",
+      "createdAt": "2026-09-30T11:40:00.000Z"
+    },
+    {
+      "id": "msg_demo_sofia_pedro_condesa_g1",
+      "listingId": "lst_pedro_habitacion_condesa",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "gu_usr_demo_sofia_host",
+      "sender": "guest",
+      "guestName": "Sofía Ramírez",
+      "guestEmail": "sofia@urbnbee.test",
+      "body": "Hola Pedro, reservé tu habitación de Condesa del 29 al 2. Trabajo remoto: ¿puedo usar el escritorio todo el día? Llego hoy cerca de las 4.",
+      "createdAt": "2026-09-18T15:20:00.000Z"
+    },
+    {
+      "id": "msg_demo_sofia_pedro_condesa_h1",
+      "listingId": "lst_pedro_habitacion_condesa",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "gu_usr_demo_sofia_host",
+      "sender": "host",
+      "guestName": "",
+      "body": "¡Claro Sofía! El escritorio es tuyo. Te dejo café en la cocina y la clave del wifi en la mesa. Si llegas después de las 3, usa la caja de la reja: 4028.",
+      "createdAt": "2026-09-18T16:05:00.000Z"
+    },
+    {
+      "id": "msg_demo_sofia_pedro_condesa_g2",
+      "listingId": "lst_pedro_habitacion_condesa",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "gu_usr_demo_sofia_host",
+      "sender": "guest",
+      "guestName": "Sofía Ramírez",
+      "guestEmail": "sofia@urbnbee.test",
+      "body": "Ya estoy instalada, todo bien. ¿Hay un súper cerca para comprar fruta? Mañana tengo junta a las 9.",
+      "createdAt": "2026-09-29T22:18:00.000Z"
+    },
+    {
+      "id": "msg_demo_sofia_pedro_coyo_g1",
+      "listingId": "lst_pedro_casa_coyoacan",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "gu_usr_demo_sofia_host",
+      "sender": "guest",
+      "guestName": "Sofía Ramírez",
+      "guestEmail": "sofia@urbnbee.test",
+      "body": "Pedro, para la casa de Coyoacán a finales de octubre: ¿puedo llevar a mi mamá? Seríamos 2. ¿El patio se puede usar de noche?",
+      "createdAt": "2026-09-22T12:10:00.000Z"
+    },
+    {
+      "id": "msg_demo_sofia_pedro_coyo_h1",
+      "listingId": "lst_pedro_casa_coyoacan",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "gu_usr_demo_sofia_host",
+      "sender": "host",
+      "guestName": "",
+      "body": "Sí, dos personas está perfecto. El patio tiene luz cálida hasta las 11. Hay un limonero: córtalos si quieres. Te mando el pin una semana antes.",
+      "createdAt": "2026-09-22T13:40:00.000Z"
+    },
+    {
+      "id": "msg_demo_sofia_pedro_roma_g1",
+      "listingId": "lst_pedro_departamento_roma",
+      "hostId": "usr_seed_pedro_dev",
+      "guestSessionId": "gu_usr_demo_sofia_host",
+      "sender": "guest",
+      "guestName": "Sofía Ramírez",
+      "guestEmail": "sofia@urbnbee.test",
+      "body": "Mandé solicitud para noviembre en tu loft de Roma. ¿El edificio tiene elevador? Voy con una maleta grande.",
+      "createdAt": "2026-09-28T09:35:00.000Z"
     }
   ]
 }
