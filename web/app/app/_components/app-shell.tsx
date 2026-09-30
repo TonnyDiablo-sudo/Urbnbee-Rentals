@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { IconCalendar, IconChat, IconHome, IconMenu, IconSearch, IconToday, IconTrips, IconUser } from "./icons";
 import { prefetchHostData } from "../host/_shared/host-data";
-import { setCacheOwner } from "./cached-fetch";
+import { GUEST_THREADS_URL, prefetchCached, setCacheOwner } from "./cached-fetch";
 import { threadIsUnread } from "./seen";
 import { UpdateBanner } from "./update-banner";
 
@@ -31,6 +31,10 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
   const hostMode = isHost && (pathname === "/host" || pathname.startsWith("/host/"));
   setCacheOwner(user?.id ?? null);
   const unread = useUnreadCount(hostMode ? "host" : "guest", user);
+
+  useEffect(() => {
+    if (user) prefetchCached([GUEST_THREADS_URL]);
+  }, [user]);
 
   useEffect(() => {
     if (!isHost) return;

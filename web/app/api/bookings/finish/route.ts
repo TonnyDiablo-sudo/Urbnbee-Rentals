@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { guestAcceptBookingContract } from "@/lib/booking-contract";
+import { ensureBookingContract, guestAcceptBookingContract } from "@/lib/booking-contract";
 import { findBookingByToken } from "@/lib/bookings-store";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { findUserById } from "@/lib/marketplace-store";
@@ -23,10 +23,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Código inválido." }, { status: 400 });
   }
 
-  const booking = findBookingByToken(token);
-  if (!booking) {
+  const found = findBookingByToken(token);
+  if (!found) {
     return NextResponse.json({ error: "Reserva no encontrada." }, { status: 404 });
   }
+  const booking =
+    found.contract || !["AWAITING_PAYMENT", "AWAITING_DETAILS", "CONFIRMED"].includes(found.status)
+    ? found
+    : ensureBookingContract(found.id, { role: "system", userId: found.hostId }) ?? found;
 
   const canAccept =
     booking.status === "AWAITING_PAYMENT" ||

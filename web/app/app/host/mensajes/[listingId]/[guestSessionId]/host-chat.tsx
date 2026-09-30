@@ -2,16 +2,29 @@
 
 import { useCallback, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { revalidate } from "../../../../_components/cached-fetch";
 import { ChatThread, type ChatMessage } from "../../../../_components/chat-thread";
+import { HOST_URLS } from "../../../_shared/host-data";
 import type { HostThread } from "../../host-inbox";
 
-export function HostChat({ listingId, guestSessionId }: { listingId: string; guestSessionId: string }) {
+type Meta = { guestName: string; listingTitle: string; guestEmail?: string };
+export type HostChatInitial = Meta & { messages: ChatMessage[] };
+
+export function HostChat({
+  listingId,
+  guestSessionId,
+  initial,
+}: {
+  listingId: string;
+  guestSessionId: string;
+  initial?: HostChatInitial;
+}) {
   const t = useT();
-  const [meta, setMeta] = useState<{ guestName: string; listingTitle: string; guestEmail?: string } | null>(null);
+  const [meta, setMeta] = useState<Meta | null>(initial ?? null);
 
   const load = useCallback(async (): Promise<ChatMessage[]> => {
-    const res = await fetch("/api/host/inbox", { cache: "no-store" });
-    const data = await res.json();
+    const data = await revalidate<{ threads?: HostThread[] }>(HOST_URLS.inbox);
+    if (!data) throw new Error("offline");
     const threads: HostThread[] = Array.isArray(data.threads) ? data.threads : [];
     const th = threads.find((x) => x.listingId === listingId && x.guestSessionId === guestSessionId);
     if (!th) return [];
@@ -39,10 +52,11 @@ export function HostChat({ listingId, guestSessionId }: { listingId: string; gue
 
   return (
     <ChatThread
-      title={meta?.guestName ?? t("Conversación")}
+      title={meta?.guestName || t("Conversación")}
       subtitle={meta ? `${meta.listingTitle}${meta.guestEmail ? ` · ${meta.guestEmail}` : ""}` : undefined}
       back="/host/mensajes"
       me="host"
+      initial={initial?.messages}
       seenKey={`h:${listingId}:${guestSessionId}`}
       load={load}
       send={send}

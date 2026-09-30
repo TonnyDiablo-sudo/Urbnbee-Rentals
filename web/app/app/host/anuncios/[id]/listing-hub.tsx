@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { AMENITY_OPTIONS } from "@/lib/amenity-options";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
+import { getContractTemplate } from "@/lib/booking-contract-templates";
 import { sizedImage } from "@/lib/image-url";
 import type { ListingCategory } from "@/lib/mock-data";
 import { IconChevron, IconClose, IconExternal, IconPlus } from "../../../_components/icons";
@@ -227,6 +228,11 @@ export function ListingHub({ listingId }: { listingId: string }) {
             label={t("Cómo se reserva")}
             value={listing.bookingApprovalMode === "instant" ? t("Reservación inmediata") : t("Tú apruebas cada solicitud")}
             onClick={() => setPanel("booking")}
+          />
+          <Row
+            label={t("Contrato")}
+            value={t(getContractTemplate(listing.contract?.templateId).title)}
+            href={`/host/contratos?anuncio=${encodeURIComponent(listing.id)}`}
           />
         </ul>
       ) : (

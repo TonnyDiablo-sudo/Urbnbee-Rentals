@@ -32,9 +32,8 @@ export function ListingActionBar(p: Props) {
   const [sheet, setSheet] = useState<"book" | "contact" | null>(null);
   const here = `/alojamiento/${p.slug}`;
   const authQ = `next=${encodeURIComponent(here)}`;
-  const chatHref = p.loggedIn
-    ? `/mensajes/${p.listingId}`
-    : `/cuenta/registro?next=${encodeURIComponent(`/mensajes/${p.listingId}`)}`;
+  const chatPath = `/mensajes/${encodeURIComponent(p.listingId)}`;
+  const chatHref = p.loggedIn ? chatPath : `/cuenta/registro?next=${encodeURIComponent(chatPath)}`;
 
   const openContact = () => {
     setSheet("contact");
@@ -54,8 +53,8 @@ export function ListingActionBar(p: Props) {
             <p className="text-[15px] text-[#222]">
               <span className="font-bold">${p.pricePerNight.toLocaleString(numberLocale(lang))}</span> MXN {t("noche")}
             </p>
-            {p.chatAvailable && !p.isOwn && (
-              <Link href={chatHref} className="text-sm font-semibold text-[#222] underline">
+            {p.chatAvailable && !p.isOwn && p.bookable && (
+              <Link href={chatHref} prefetch className="text-sm font-semibold text-[#222] underline">
                 {t("Enviar mensaje")}
               </Link>
             )}
@@ -68,11 +67,20 @@ export function ListingActionBar(p: Props) {
                 type="button"
                 onClick={openContact}
                 className={`rounded-xl px-4 py-3 text-[15px] font-semibold ${
-                  p.bookable ? "border border-[#222] text-[#222]" : "bg-[#dcb81e] text-black"
+                  p.bookable || p.chatAvailable ? "border border-[#222] text-[#222]" : "bg-[#dcb81e] text-black"
                 }`}
               >
                 {t("Contacto")}
               </button>
+              {!p.bookable && p.chatAvailable && (
+                <Link
+                  href={chatHref}
+                  prefetch
+                  className="rounded-xl bg-[#dcb81e] px-5 py-3 text-[15px] font-semibold text-black"
+                >
+                  {t("Mensaje")}
+                </Link>
+              )}
               {p.bookable && (
                 <button
                   type="button"

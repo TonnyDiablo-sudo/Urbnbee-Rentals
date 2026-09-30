@@ -4,8 +4,9 @@ import { refundBookingPayment } from "@/lib/booking-refunds";
 import {
   buildContractSnapshot,
   contractPlainLines,
-  ensureBookingContract,
   hostSignBookingContract,
+  previewContractLines,
+  syncContractWithBooking,
 } from "@/lib/booking-contract";
 import { restoreBookingPass } from "@/lib/verification-store";
 import { acceptBookingByHost, isPendingHostApproval, rejectBookingByHost } from "@/lib/booking-machine";
@@ -40,7 +41,7 @@ function requestIp(req: NextRequest): string | undefined {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
   const user = await getSessionUser();
@@ -52,6 +53,48 @@ export async function GET(
   if (!booking || booking.hostId !== user.id) {
     return NextResponse.json({ error: "No encontrada." }, { status: 404 });
   }
+
+  // Vista previa con las fechas o el alojamiento que el anfitrión está proponiendo.
+  const q = req.nextUrl.searchParams;
+  const pIn = q.get("checkIn")?.trim() || "";
+  const pOut = q.get("checkOut")?.trim() || "";
+  const pListing = q.get("listingId")?.trim() || "";
+  if (pIn || pOut || pListing) {
+    const effIn = pIn || (booking.hostAdjustedCheckIn ?? booking.checkIn);
+    const effOut = pOut || (booking.hostAdjustedCheckOut ?? booking.checkOut);
+    const listing = getListingById(pListing || (booking.hostAdjustedListingId ?? booking.listingId));
+    if (!listing || listing.hostId !== user.id) {
+      return NextResponse.json({ error: "El alojamiento elegido no está disponible." }, { status: 400 });
+    }
+    const nights = countNights(effIn, effOut);
+    if (nights < 1) {
+      return NextResponse.json({ error: "Las fechas deben dejar al menos una noche." }, { status: 400 });
+    }
+    const { staySubtotal } = sumStayMxn(listing, effIn, effOut);
+    const estimatedTotalMxn = Math.round(staySubtotal + (listing.cleaningFee ?? 0));
+    const preview = previewContractLines(booking, {
+      checkIn: effIn,
+      checkOut: effOut,
+      listingId: listing.id,
+      nights,
+      estimatedTotalMxn,
+    });
+    if (!preview) {
+      return NextResponse.json({ error: "No se pudo armar el contrato." }, { status: 409 });
+    }
+    return NextResponse.json({
+      generated: Boolean(booking.contract),
+      preview: true,
+      accepted: false,
+      nights,
+      estimatedTotalMxn,
+      paidTotalMxn: booking.paidAt ? booking.estimatedTotalMxn : undefined,
+      blocked: nightsBlockedByListing(listing, effIn, effOut),
+      overlapping: hasOverlappingActiveBooking(listing.id, effIn, effOut, booking.id),
+      ...preview,
+    });
+  }
+
   if (booking.contract) {
     return NextResponse.json({
       generated: true,
@@ -271,7 +314,7 @@ export async function PATCH(
   });
 
   const withContract = next
-    ? ensureBookingContract(next.id, {
+    ? syncContractWithBooking(next.id, {
         role: "host",
         userId: user.id,
         ip: requestIp(req),

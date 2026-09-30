@@ -24,8 +24,18 @@ type Trip = {
   platformFeeMxn?: number;
   listingId: string;
   hostAdjustedListingId?: string;
+  listingPhoto?: string;
+  listingCity?: string;
   arrival?: ArrivalGuide & { address?: string };
+  canReview?: boolean;
+  myReview?: { rating: number; comment: string } | null;
 };
+
+const CLOSED = new Set(["CANCELLED", "EXPIRED", "REJECTED"]);
+
+function tripEnd(trip: Trip): string {
+  return trip.hostAdjustedCheckOut ?? trip.checkOut;
+}
 
 export function TripsList() {
   const t = useT();
@@ -37,6 +47,7 @@ export function TripsList() {
   const [notice, setNotice] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [guide, setGuide] = useState<Trip | null>(null);
+  const [reviewing, setReviewing] = useState<Trip | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -76,6 +87,23 @@ export function TripsList() {
 
   if (trips === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
 
+  const today = new Date().toISOString().slice(0, 10);
+  const isPast = (x: Trip) => x.status === "COMPLETED" || CLOSED.has(x.status) || tripEnd(x) < today;
+  const sections = [
+    {
+      title: "Próximos viajes",
+      past: false,
+      items: trips.filter((x) => !isPast(x)).sort((a, b) => a.checkIn.localeCompare(b.checkIn)),
+    },
+    {
+      title: "Viajes anteriores",
+      past: true,
+      items: trips
+        .filter(isPast)
+        .sort((a, b) => Number(Boolean(b.canReview)) - Number(Boolean(a.canReview)) || tripEnd(b).localeCompare(tripEnd(a))),
+    },
+  ];
+
   return (
     <div className="px-5 pb-6">
       {notice && <p className="mb-4 rounded-2xl bg-[#e6f6ea] px-4 py-3 text-sm text-[#1e7a3a]">{t(notice)}</p>}
@@ -90,15 +118,27 @@ export function TripsList() {
           </Link>
         </div>
       ) : (
+        <div className="space-y-7">
+          {sections.map((sec) =>
+            sec.items.length === 0 ? null : (
+        <section key={sec.title}>
+        <h2 className="mb-3 text-[17px] font-semibold text-[#222]">{t(sec.title)}</h2>
         <ul className="space-y-3">
-          {trips.map((trip) => {
+          {sec.items.map((trip) => {
             const st = GUEST_STATUS[trip.status] ?? { label: trip.status, tone: "off" as const };
             const inD = trip.hostAdjustedCheckIn ?? trip.checkIn;
             const outD = trip.hostAdjustedCheckOut ?? trip.checkOut;
             return (
               <li key={trip.id} className="rounded-2xl border border-[#ebebeb] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 text-[15px] font-semibold text-[#222]">{trip.listingTitle}</p>
+                <div className="flex items-start gap-3">
+                  {trip.listingPhoto && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={trip.listingPhoto} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" loading="lazy" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-semibold leading-snug text-[#222]">{trip.listingTitle}</p>
+                    {trip.listingCity && <p className="text-[13px] text-[#717171]">{trip.listingCity}</p>}
+                  </div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${TONE_CLS[st.tone]}`}>
                     {t(st.label)}
                   </span>
@@ -109,8 +149,25 @@ export function TripsList() {
                 <p className="text-sm text-[#555]">
                   {fmtMxn(trip.estimatedTotalMxn + (trip.platformFeeMxn ?? 0))} · {t("código {code}", { code: trip.token })}
                 </p>
+                {trip.myReview && (
+                  <div className="mt-3 rounded-xl bg-[#f7f7f7] px-3 py-2.5">
+                    <p className="text-[13px] font-semibold text-[#222]">
+                      {t("Tu reseña")} · <Stars value={trip.myReview.rating} />
+                    </p>
+                    <p className="mt-0.5 line-clamp-3 text-[13px] text-[#555]">{trip.myReview.comment}</p>
+                  </div>
+                )}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {trip.arrival && (
+                  {trip.canReview && (
+                    <button
+                      type="button"
+                      onClick={() => setReviewing(trip)}
+                      className="rounded-xl bg-[#dcb81e] px-4 py-2 text-sm font-semibold text-black"
+                    >
+                      {t("Dejar reseña")}
+                    </button>
+                  )}
+                  {trip.arrival && !sec.past && (
                     <button
                       type="button"
                       onClick={() => setGuide(trip)}
@@ -156,6 +213,10 @@ export function TripsList() {
             );
           })}
         </ul>
+        </section>
+            )
+          )}
+        </div>
       )}
 
       <WebLink
@@ -169,6 +230,103 @@ export function TripsList() {
       <Sheet open={Boolean(guide)} onClose={() => setGuide(null)} title={t("Guía de llegada")}>
         {guide?.arrival && <ArrivalGuideView trip={guide} />}
       </Sheet>
+
+      <Sheet open={Boolean(reviewing)} onClose={() => setReviewing(null)} title={t("Dejar reseña")}>
+        {reviewing && (
+          <ReviewForm
+            key={reviewing.id}
+            trip={reviewing}
+            onDone={(review) => {
+              setTrips((prev) =>
+                prev?.map((x) => (x.id === reviewing.id ? { ...x, canReview: false, myReview: review } : x)) ?? prev
+              );
+              setReviewing(null);
+              setNotice("¡Gracias! Tu reseña ya aparece en el anuncio.");
+            }}
+          />
+        )}
+      </Sheet>
+    </div>
+  );
+}
+
+function Stars({ value }: { value: number }) {
+  return (
+    <span className="text-[#222]" aria-label={`${value}/5`}>
+      {"★".repeat(value)}
+      <span className="text-[#ccc]">{"★".repeat(5 - value)}</span>
+    </span>
+  );
+}
+
+const RATING_WORDS = ["", "Malo", "Regular", "Bien", "Muy bien", "Excelente"];
+
+function ReviewForm({ trip, onDone }: { trip: Trip; onDone: (r: { rating: number; comment: string }) => void }) {
+  const t = useT();
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const ok = rating > 0 && comment.trim().length >= 10;
+
+  async function submit() {
+    setBusy(true);
+    setErr(null);
+    const res = await fetch(`/api/guest/bookings/${encodeURIComponent(trip.id)}/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rating, comment: comment.trim() }),
+    }).catch(() => null);
+    const data = res ? await res.json().catch(() => ({})) : {};
+    setBusy(false);
+    if (!res?.ok) {
+      setErr(typeof data.error === "string" ? data.error : "No se pudo guardar. Intenta de nuevo.");
+      return;
+    }
+    onDone({ rating, comment: comment.trim() });
+  }
+
+  return (
+    <div className="space-y-5">
+      <p className="text-[15px] font-semibold text-[#222]">{trip.listingTitle}</p>
+      <div>
+        <p className="text-sm font-semibold text-[#222]">{t("¿Cómo estuvo tu estancia?")}</p>
+        <div className="mt-2 flex gap-1">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setRating(n)}
+              aria-label={`${n}/5`}
+              className={`h-11 w-11 text-[32px] leading-none ${n <= rating ? "text-[#dcb81e]" : "text-[#d6d6d6]"}`}
+            >
+              ★
+            </button>
+          ))}
+        </div>
+        {rating > 0 && <p className="mt-1 text-sm text-[#717171]">{t(RATING_WORDS[rating])}</p>}
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-[#222]">{t("Cuéntale a otros viajeros")}</p>
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          rows={5}
+          maxLength={1200}
+          placeholder={t("¿Qué te gustó? ¿Algo que mejorar?")}
+          className="mt-2 w-full rounded-2xl border border-[#ddd] px-4 py-3 text-base outline-none focus:border-[#222]"
+        />
+        <p className="text-xs text-[#999]">{t("Mínimo 10 caracteres.")}</p>
+      </div>
+      {err && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{t(err)}</p>}
+      <button
+        type="button"
+        disabled={!ok || busy}
+        onClick={() => void submit()}
+        className="w-full rounded-xl bg-[#222] py-3.5 text-[15px] font-semibold text-white disabled:opacity-40"
+      >
+        {busy ? t("Enviando…") : t("Publicar reseña")}
+      </button>
     </div>
   );
 }

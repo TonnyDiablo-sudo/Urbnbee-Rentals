@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No hay reserva con ese código." }, { status: 404 });
   }
   let booking = applyBookingLifecycle(found);
-  if (!booking.contract && booking.status === "AWAITING_PAYMENT") {
+  if (!booking.contract && !["CANCELLED", "EXPIRED", "REJECTED"].includes(booking.status)) {
     booking = ensureBookingContract(booking.id, { role: "system", userId: booking.hostId }) ?? booking;
   }
   const listing = getListingById(booking.listingId);

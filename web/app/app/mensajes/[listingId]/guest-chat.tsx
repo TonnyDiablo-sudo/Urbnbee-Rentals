@@ -11,7 +11,9 @@ export function GuestChat({
   subtitle,
   slug,
   closed = false,
+  initial,
 }: {
+  initial?: ChatMessage[];
   listingId: string;
   title: string;
   subtitle: string;
@@ -21,7 +23,7 @@ export function GuestChat({
 }) {
   const t = useT();
   const load = useCallback(async (): Promise<ChatMessage[]> => {
-    const res = await fetch(`/api/listings/${listingId}/messages`, { cache: "no-store" });
+    const res = await fetch(`/api/listings/${encodeURIComponent(listingId)}/messages`, { cache: "no-store" });
     const data = await res.json();
     return Array.isArray(data.messages) ? data.messages : [];
   }, [listingId]);
@@ -29,7 +31,7 @@ export function GuestChat({
   const send = useCallback(
     async (body: string): Promise<string | null> => {
       try {
-        const res = await fetch(`/api/listings/${listingId}/messages`, {
+        const res = await fetch(`/api/listings/${encodeURIComponent(listingId)}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ body }),
@@ -50,6 +52,7 @@ export function GuestChat({
       subtitle={subtitle}
       back="/mensajes"
       me="guest"
+      initial={initial}
       seenKey={`g:${listingId}`}
       load={load}
       send={send}

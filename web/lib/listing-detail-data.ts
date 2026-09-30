@@ -10,6 +10,9 @@ export type HostContact = {
   instagram?: string;
   website?: string;
   airbnbUrl?: string;
+  work?: string;
+  livesIn?: string;
+  languages?: string[];
 };
 
 export type Review = {

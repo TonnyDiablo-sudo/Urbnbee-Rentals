@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LangSwitch } from "@/components/lang-switch";
 import { getT } from "@/lib/i18n/server";
+import { getHostProfile } from "@/lib/marketplace-store";
 import type { UserRecord } from "@/lib/marketplace-types";
 import { IconChevron, IconExternal, IconSwitch } from "./icons";
 import { LogoutButton } from "./logout-button";
@@ -23,14 +24,16 @@ function ItemText({ item }: { item: Item }) {
 export async function ProfileView({ user, mode }: { user: UserRecord | null; mode: "guest" | "host" }) {
   const t = await getT();
   const isHost = user?.role === "host" || user?.role === "admin";
+  const avatarUrl = user ? getHostProfile(user.id)?.avatarUrl : undefined;
 
   const items: Item[] =
     mode === "host"
       ? [
           { href: "/host/motor", label: t("Reservas en línea"), hint: t("Membresía e identidad de anfitrión") },
           { href: "/host/anuncios", label: t("Mis anuncios") },
+          { href: "/host/contratos", label: t("Contratos"), hint: t("Machotes, tus datos y cláusulas por anuncio") },
           { href: "/host/calendar", label: t("Calendario y precios por fecha"), web: true },
-          { href: "/host/requests", label: t("Contratos, depósitos y reseñas"), web: true },
+          { href: "/host/requests", label: t("Depósitos y reseñas de huéspedes"), web: true },
           { href: "/host/settings/pagos", label: t("Pagos de la estancia (tu Stripe)"), web: true },
           { href: "/host/settings/integrations", label: t("BeeAgent e integraciones"), web: true },
           { href: "/host/dashboard", label: t("Panel completo de anfitrión"), web: true },
@@ -38,7 +41,7 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
       : [
           { href: "/membresia", label: t("Membresía de huésped"), hint: t("Identidad verificada para reservar") },
           { href: "/viajes", label: t("Mis viajes") },
-          ...(user ? [{ href: "/guest/profile", label: t("Datos personales y foto"), web: true }] : []),
+          ...(user ? [{ href: "/perfil/editar", label: t("Datos personales y foto") }] : []),
           { href: "/", label: t("Sitio web de Cabibee"), web: true },
         ];
 
@@ -47,15 +50,24 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
       <TabHeader title={mode === "host" ? t("Menú") : t("Perfil")} right={<LangSwitch className="mt-2" />} />
       <div className="px-5 pb-8">
         {user ? (
-          <div className="flex items-center gap-4 border-b border-[#ebebeb] pb-5">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#111] text-xl font-bold text-[#dcb81e]">
-              {(user.fullName || user.email).trim().charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0">
+          <Link
+            href={mode === "host" ? "/perfil/editar?from=host" : "/perfil/editar"}
+            className="flex items-center gap-4 border-b border-[#ebebeb] pb-5"
+          >
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" className="h-16 w-16 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#111] text-2xl font-bold text-[#dcb81e]">
+                {(user.fullName || user.email).trim().charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
               <p className="truncate text-lg font-semibold text-[#222]">{user.fullName || t("Tu cuenta")}</p>
-              <p className="truncate text-sm text-[#717171]">{user.email}</p>
+              <p className="truncate text-sm text-[#717171]">{t("Editar perfil y foto")}</p>
             </div>
-          </div>
+            <IconChevron className="h-5 w-5 shrink-0 text-[#999]" />
+          </Link>
         ) : (
           <div className="border-b border-[#ebebeb] pb-6">
             <p className="text-[15px] leading-relaxed text-[#555]">

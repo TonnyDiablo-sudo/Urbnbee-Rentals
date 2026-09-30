@@ -70,6 +70,12 @@ spawnSync(process.execPath, [join(cwd, "scripts", "fix-listing-photos.mjs")], {
   env: process.env,
 });
 
+spawnSync(process.execPath, [join(cwd, "scripts", "seed-showcase.mjs")], {
+  stdio: "inherit",
+  cwd,
+  env: process.env,
+});
+
 console.log(`[start] DATA_DIR=${targetDataDir}`);
 console.log(`[start] UPLOADS_DIR=${targetUploadsDir}`);
 console.log(`[start] PORT=${process.env.PORT ?? "(default)"}`);

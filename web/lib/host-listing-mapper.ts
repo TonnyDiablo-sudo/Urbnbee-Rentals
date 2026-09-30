@@ -43,6 +43,9 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
     instagram: profile?.instagram,
     website: profile?.website,
     airbnbUrl: profile?.airbnbUrl,
+    work: profile?.work || undefined,
+    livesIn: profile?.livesIn || undefined,
+    languages: profile?.languages?.length ? profile.languages : undefined,
   };
 
   return {

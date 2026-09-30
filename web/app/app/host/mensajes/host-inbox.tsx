@@ -75,7 +75,7 @@ export function HostInbox() {
         const unread = isUnread(th);
         return (
           <li key={`${th.listingId}:${th.guestSessionId}`}>
-            <Link href={hostThreadHref(th)} className="flex items-start gap-3 px-5 py-4 active:bg-[#fafafa]">
+            <Link href={hostThreadHref(th)} prefetch className="flex items-start gap-3 px-5 py-4 active:bg-[#fafafa]">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#111] text-base font-bold text-[#dcb81e]">
                 {th.guestName.trim().charAt(0).toUpperCase() || "?"}
               </div>

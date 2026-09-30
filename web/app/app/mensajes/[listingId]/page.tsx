@@ -1,10 +1,12 @@
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { resolveListingDetail } from "@/lib/get-listing-detail";
-import { listAllThreadsForGuest } from "@/lib/host-inbox-store";
+import { guestSessionIdForUser, listAllThreadsForGuest, listThreadMerged } from "@/lib/host-inbox-store";
 import { getT } from "@/lib/i18n/server";
 import { findUserById, getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 import { AuthGate } from "../../_components/auth-gate";
+import type { ChatMessage } from "../../_components/chat-thread";
 import { TopBar } from "../../_components/top-bar";
 import { GuestChat } from "./guest-chat";
 
@@ -13,6 +15,19 @@ type Props = { params: Promise<{ listingId: string }> };
 export async function generateMetadata() {
   const t = await getT();
   return { title: t("Chat") };
+}
+
+/** Mismo hilo que devuelve GET /api/listings/[id]/messages, para pintarlo sin esperar. */
+async function initialMessages(listingId: string, userId: string): Promise<ChatMessage[]> {
+  const jar = await cookies();
+  let cookieSid: string | undefined;
+  try {
+    cookieSid = (JSON.parse(jar.get("urb_chat_sess")?.value ?? "{}") as Record<string, string>)[listingId];
+  } catch {
+    cookieSid = undefined;
+  }
+  const ids = [guestSessionIdForUser(userId), cookieSid].filter(Boolean) as string[];
+  return listThreadMerged(listingId, ids).map((m) => ({ id: m.id, sender: m.sender, body: m.body, createdAt: m.createdAt }));
 }
 
 export default async function AppGuestThreadPage({ params }: Props) {
@@ -25,7 +40,7 @@ export default async function AppGuestThreadPage({ params }: Props) {
   if (!record?.published) {
     // Si el anuncio se pausó o se borró, la conversación sigue siendo del huésped.
     const thread = user ? listAllThreadsForGuest(user.id).find((th) => th.listingId === listingId) : undefined;
-    if (!thread) notFound();
+    if (!thread || !user) notFound();
     const hostId = thread.messages[0]?.hostId;
     const hostName = (hostId && findUserById(hostId)?.fullName) || t("Anfitrión");
     return (
@@ -33,6 +48,7 @@ export default async function AppGuestThreadPage({ params }: Props) {
         listingId={listingId}
         title={hostName}
         subtitle={record?.title ?? t("Anuncio no disponible")}
+        initial={await initialMessages(listingId, user.id)}
         closed
       />
     );
@@ -54,5 +70,13 @@ export default async function AppGuestThreadPage({ params }: Props) {
     );
   }
 
-  return <GuestChat listingId={listingId} title={hostName} subtitle={record.title} slug={record.slug} />;
+  return (
+    <GuestChat
+      listingId={listingId}
+      title={hostName}
+      subtitle={record.title}
+      slug={record.slug}
+      initial={await initialMessages(listingId, user.id)}
+    />
+  );
 }

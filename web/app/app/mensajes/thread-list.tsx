@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
+import { GUEST_THREADS_URL, useCached } from "../_components/cached-fetch";
 import { threadIsUnread } from "../_components/seen";
 
 type Thread = {
@@ -17,14 +17,8 @@ type Thread = {
 export function GuestThreadList() {
   const t = useT();
   const lang = useLang();
-  const [threads, setThreads] = useState<Thread[] | null>(null);
-
-  useEffect(() => {
-    fetch("/api/guest/messages", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => setThreads(Array.isArray(d.threads) ? d.threads : []))
-      .catch(() => setThreads([]));
-  }, []);
+  const res = useCached<{ threads?: Thread[] }>(GUEST_THREADS_URL);
+  const threads = res.data ? (Array.isArray(res.data.threads) ? res.data.threads : []) : res.error ? [] : null;
 
   if (threads === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
   if (threads.length === 0) {
@@ -47,7 +41,7 @@ export function GuestThreadList() {
         const unread = th.lastSender === "host" && threadIsUnread(`g:${th.listingId}`, th.lastAt);
         return (
           <li key={th.listingId}>
-            <Link href={`/mensajes/${th.listingId}`} className="flex items-start gap-3 px-5 py-4 active:bg-[#fafafa]">
+            <Link href={`/mensajes/${encodeURIComponent(th.listingId)}`} prefetch className="flex items-start gap-3 px-5 py-4 active:bg-[#fafafa]">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#fdf6d8] text-lg">🏠</div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">

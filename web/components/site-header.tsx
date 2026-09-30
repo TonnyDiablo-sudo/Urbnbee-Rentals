@@ -106,10 +106,13 @@ export function SiteHeader({ heroSentinelRef }: Props) {
             <div className="hidden sm:flex">
               <LangSwitch dark />
             </div>
-            <AuthNav />
+            {/* En celular la cuenta y «Enviar propiedad» viven en el menú: en la barra no caben. */}
+            <div className="hidden items-center gap-4 sm:flex">
+              <AuthNav />
+            </div>
             <Link
               href="/register?intent=host"
-              className="rounded px-4 py-2 text-sm font-semibold text-black transition hover:brightness-90"
+              className="hidden rounded px-4 py-2 text-sm font-semibold text-black transition hover:brightness-90 sm:inline-block"
               style={{ backgroundColor: "#dcb81e" }}
             >
               {t("Enviar propiedad")}
@@ -154,6 +157,13 @@ export function SiteHeader({ heroSentinelRef }: Props) {
               {t("Usar la app de Cabibee")}
               <span aria-hidden>→</span>
             </a>
+            <Link
+              href="/register?intent=host"
+              className="mt-2 block rounded-lg border border-[#dcb81e] px-3 py-3 text-sm font-semibold text-[#dcb81e]"
+              onClick={() => setMobileOpen(false)}
+            >
+              {t("Enviar propiedad")}
+            </Link>
             <hr className="my-3 border-white/10" />
             <AuthNavMobile onNavigate={() => setMobileOpen(false)} />
           </nav>

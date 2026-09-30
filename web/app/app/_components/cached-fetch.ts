@@ -8,6 +8,8 @@ import { useEffect, useSyncExternalStore } from "react";
  */
 type Entry = { data?: unknown; error?: boolean };
 
+export const GUEST_THREADS_URL = "/api/guest/messages";
+
 const store = new Map<string, Entry>();
 const inflight = new Map<string, Promise<unknown>>();
 const subs = new Set<() => void>();

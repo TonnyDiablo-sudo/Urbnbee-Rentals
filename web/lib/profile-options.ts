@@ -1,0 +1,48 @@
+/** Opciones del editor de perfil (tipo Airbnb): idiomas e intereses que se muestran como chips. */
+export const PROFILE_LANGUAGES = [
+  "Español",
+  "Inglés",
+  "Francés",
+  "Portugués",
+  "Italiano",
+  "Alemán",
+  "Chino",
+  "Japonés",
+  "Coreano",
+  "Lengua de señas",
+];
+
+export const PROFILE_INTERESTS = [
+  "Playa",
+  "Montaña",
+  "Senderismo",
+  "Buceo",
+  "Surf",
+  "Yoga",
+  "Correr",
+  "Ciclismo",
+  "Fútbol",
+  "Café de especialidad",
+  "Vino",
+  "Cocina",
+  "Comida callejera",
+  "Mercados",
+  "Arte",
+  "Museos",
+  "Arquitectura",
+  "Historia",
+  "Fotografía",
+  "Música en vivo",
+  "Baile",
+  "Lectura",
+  "Cine",
+  "Videojuegos",
+  "Diseño",
+  "Tecnología",
+  "Mascotas",
+  "Viajar con niños",
+  "Trabajo remoto",
+  "Vida nocturna",
+];
+
+export const PROFILE_MAX_CHIPS = 12;

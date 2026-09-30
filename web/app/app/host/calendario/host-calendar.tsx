@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { memo, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
 import { nightPrice, type ListingPricing } from "@/lib/listing-pricing";
@@ -43,7 +43,6 @@ function eachNight(start: string, end: string): string[] {
 export function HostCalendar() {
   const t = useT();
   const lang = useLang();
-  const router = useRouter();
   const params = useSearchParams();
   const listings = useHostListings();
   const bookings = useHostBookings() ?? NO_BOOKINGS;
@@ -65,12 +64,19 @@ export function HostCalendar() {
     return () => window.clearTimeout(id);
   }, [toast]);
 
-  const wanted = params.get("anuncio");
+  const [wanted, setWanted] = useState(() => params.get("anuncio"));
+  const [picked, setPicked] = useState(wanted);
+  const [switching, startSwitch] = useTransition();
   const listing = listings?.find((l) => l.id === wanted) ?? listings?.[0] ?? null;
+  const pickedId = picked ?? listing?.id;
 
   const choose = (id: string) => {
-    setSel(NO_NIGHTS);
-    router.replace(`/host/calendario?anuncio=${encodeURIComponent(id)}`, { scroll: false });
+    window.history.replaceState(null, "", `/host/calendario?anuncio=${encodeURIComponent(id)}`);
+    setPicked(id);
+    startSwitch(() => {
+      setSel(NO_NIGHTS);
+      setWanted(id);
+    });
   };
 
   /** Noche → reserva que la ocupa, para este anuncio. */
@@ -144,7 +150,7 @@ export function HostCalendar() {
     <div className="pb-40">
       <div className="flex gap-2.5 overflow-x-auto px-5 pb-3 [scrollbar-width:none]">
         {listings.map((l) => {
-          const on = l.id === listing.id;
+          const on = l.id === pickedId;
           return (
             <button
               key={l.id}
@@ -185,21 +191,23 @@ export function HostCalendar() {
         ))}
       </div>
 
-      {months.slice(0, monthsShown).map((m) => {
-        const mk = monthKey(m);
-        return (
-          <MonthGrid
-            key={mk}
-            month={m}
-            lang={lang}
-            today={today}
-            listing={listing}
-            nightToBooking={nightToBooking}
-            selKey={selected.filter((d) => d.startsWith(mk)).join(",")}
-            onTap={tapDay}
-          />
-        );
-      })}
+      <div className={`transition-opacity ${switching ? "opacity-50" : ""}`}>
+        {months.slice(0, monthsShown).map((m) => {
+          const mk = monthKey(m);
+          return (
+            <MonthGrid
+              key={mk}
+              month={m}
+              lang={lang}
+              today={today}
+              listing={listing}
+              nightToBooking={nightToBooking}
+              selKey={selected.filter((d) => d.startsWith(mk)).join(",")}
+              onTap={tapDay}
+            />
+          );
+        })}
+      </div>
 
       {sel.size > 0 && (
         <div

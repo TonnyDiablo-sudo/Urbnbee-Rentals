@@ -7,7 +7,7 @@ import { IconSend } from "./icons";
 import { markThreadSeen } from "./seen";
 import { TopBar } from "./top-bar";
 
-export type ChatMessage = { id: string; sender: "guest" | "host"; body: string; createdAt: string };
+export type ChatMessage = { id: string; sender: "guest" | "host"; body: string; createdAt: string; pending?: boolean };
 
 const POLL_MS = 8_000;
 
@@ -33,7 +33,10 @@ export function ChatThread({
   emptyText,
   headerRight,
   closedNotice,
+  initial,
 }: {
+  /** Mensajes que ya trae la página: la conversación se pinta sin esperar otra consulta. */
+  initial?: ChatMessage[];
   title: string;
   subtitle?: string;
   back: string;
@@ -48,17 +51,17 @@ export function ChatThread({
 }) {
   const t = useT();
   const lang = useLang();
-  const [messages, setMessages] = useState<ChatMessage[] | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[] | null>(initial ?? null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastCount = useRef(0);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (sentId?: string) => {
     try {
       const rows = await load();
-      setMessages(rows);
+      setMessages((prev) => [...rows, ...(prev ?? []).filter((x) => x.pending && x.id !== sentId)]);
       const last = rows[rows.length - 1];
       markThreadSeen(seenKey, last?.createdAt);
     } catch {
@@ -86,16 +89,20 @@ export function ChatThread({
     e.preventDefault();
     const body = text.trim();
     if (!body || busy) return;
+    const temp: ChatMessage = { id: `tmp_${Date.now()}`, sender: me, body, createdAt: new Date().toISOString(), pending: true };
     setBusy(true);
     setErr(null);
+    setText("");
+    setMessages((m) => [...(m ?? []), temp]);
     const error = await send(body);
     setBusy(false);
     if (error) {
       setErr(error);
+      setMessages((m) => (m ?? []).filter((x) => x.id !== temp.id));
+      setText((cur) => cur || body);
       return;
     }
-    setText("");
-    await refresh();
+    await refresh(temp.id);
   };
 
   return (
@@ -121,7 +128,7 @@ export function ChatThread({
                   >
                     <p className="whitespace-pre-wrap break-words">{m.body}</p>
                     <p className={`mt-0.5 text-right text-[10px] ${mine ? "text-black/60" : "text-[#999]"}`}>
-                      {timeLabel(m.createdAt, lang)}
+                      {m.pending ? t("Enviando…") : timeLabel(m.createdAt, lang)}
                     </p>
                   </div>
                 </li>

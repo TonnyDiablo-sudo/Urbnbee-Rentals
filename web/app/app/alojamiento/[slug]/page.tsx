@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AmenitiesGrid } from "@/components/listing/amenities-grid";
 import { ReviewsSection } from "@/components/listing/reviews-section";
@@ -8,8 +9,10 @@ import { stripHostContactChannels } from "@/lib/host-contact-policy";
 import { getT } from "@/lib/i18n/server";
 import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
+import { IconChat } from "../../_components/icons";
 import { FloatingBack } from "./floating-back";
 import { ListingActionBar } from "./listing-action-bar";
+import { ListingMap } from "./listing-map";
 import { PhotoGallery } from "./photo-gallery";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -35,6 +38,8 @@ export default async function AppListingPage({ params }: Props) {
   const place = [listing.city, listing.zone].filter(Boolean).join(", ");
   const mxn = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
   const pricing = listing.pricing;
+  const chatPath = `/mensajes/${encodeURIComponent(listing.id)}`;
+  const chatHref = viewer ? chatPath : `/cuenta/registro?next=${encodeURIComponent(chatPath)}`;
 
   const rules = [
     { label: "Mascotas", v: listing.rules.pets },
@@ -92,6 +97,25 @@ export default async function AppListingPage({ params }: Props) {
               <p className="line-clamp-2 text-sm text-[#717171]">{listing.host.bio}</p>
             </div>
           </div>
+          {(listing.host.work || listing.host.livesIn || listing.host.languages?.length) && (
+            <ul className="mt-3 space-y-1 text-sm text-[#333]">
+              {listing.host.work && <li>💼 {t("Trabaja como: {work}", { work: listing.host.work })}</li>}
+              {listing.host.livesIn && <li>📍 {t("Vive en {place}", { place: listing.host.livesIn })}</li>}
+              {listing.host.languages?.length ? (
+                <li>🗣️ {t("Habla {list}", { list: listing.host.languages.map((l) => t(l)).join(", ") })}</li>
+              ) : null}
+            </ul>
+          )}
+          {hostListing && !isOwn && (
+            <Link
+              href={chatHref}
+              prefetch
+              className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-[#222] py-3 text-[15px] font-semibold text-[#222] active:bg-[#f7f7f7]"
+            >
+              <IconChat className="h-5 w-5" />
+              {t("Enviar mensaje a {name}", { name: listing.host.name.split(" ")[0] })}
+            </Link>
+          )}
         </Section>
 
         {!bookable && (
@@ -154,16 +178,7 @@ export default async function AppListingPage({ params }: Props) {
         </Section>
 
         <Section title={t("Ubicación aproximada")}>
-          <div className="h-52 overflow-hidden rounded-2xl border border-[#ebebeb]">
-            <iframe
-              title={t("Mapa aproximado")}
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              loading="lazy"
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${listing.lng - 0.02}%2C${listing.lat - 0.015}%2C${listing.lng + 0.02}%2C${listing.lat + 0.015}&layer=mapnik&marker=${listing.lat}%2C${listing.lng}`}
-            />
-          </div>
+          <ListingMap lat={listing.lat} lng={listing.lng} />
           <p className="mt-2 text-xs text-[#999]">{t("La dirección exacta se comparte al confirmar la reserva.")}</p>
         </Section>
 

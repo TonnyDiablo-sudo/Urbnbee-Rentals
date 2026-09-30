@@ -67,5 +67,19 @@ export type BookingContractRecord = {
   /** Texto exacto que el huésped vio y aceptó (sin la firma posterior). */
   acceptedPlainText?: string;
   acceptedSha256?: string;
+  /** Versiones reemplazadas por un cambio de fechas, anuncio o montos; conservan sus firmas. */
+  previousVersions?: BookingContractPreviousVersion[];
   events: BookingContractEvent[];
+};
+
+export type BookingContractPreviousVersion = {
+  generatedAt: string;
+  supersededAt: string;
+  snapshot: BookingContractSnapshot;
+  hostAcceptedAt?: string;
+  hostAcceptedName?: string;
+  guestAcceptedAt?: string;
+  guestAcceptedName?: string;
+  acceptedSha256?: string;
+  changes: string[];
 };

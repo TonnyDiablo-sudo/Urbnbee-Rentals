@@ -258,20 +258,35 @@ function PendingActions({
   const [adjOut, setAdjOut] = useState(booking.checkOut);
   const [adjListingId, setAdjListingId] = useState(booking.listingId);
   const [lines, setLines] = useState<string[]>([]);
+  const [preview, setPreview] = useState<{
+    changes?: string[];
+    guestMustResign?: boolean;
+    estimatedTotalMxn?: number;
+    paidTotalMxn?: number;
+    blocked?: boolean;
+    overlapping?: boolean;
+    error?: string;
+  }>({});
   const [signName, setSignName] = useState("");
   const [acceptContract, setAcceptContract] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      const res = await fetch(`/api/host/bookings/${booking.id}`, { cache: "no-store" });
+    const q = new URLSearchParams({ checkIn: adjIn, checkOut: adjOut, listingId: adjListingId });
+    const timer = setTimeout(async () => {
+      const res = await fetch(`/api/host/bookings/${booking.id}?${q}`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
-      if (!cancelled && Array.isArray(data.lines)) setLines(data.lines);
-    })();
+      if (cancelled) return;
+      if (Array.isArray(data.lines)) setLines(data.lines);
+      setPreview(res.ok ? data : { error: typeof data.error === "string" ? data.error : "No se pudo armar el contrato." });
+      // Si cambian los términos, la firma anterior ya no aplica: hay que volver a revisar.
+      setAcceptContract(false);
+    }, 250);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [booking.id]);
+  }, [booking.id, adjIn, adjOut, adjListingId]);
 
   const listingOptions: HostListing[] =
     publishedListings.length > 0
@@ -288,6 +303,31 @@ function PendingActions({
           "Revisa el contrato con los datos del huésped (su cuenta) y los tuyos (la plantilla del anuncio). Al aceptar lo firmas."
         )}
       </p>
+      {preview.error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{t(preview.error)}</p>}
+      {(preview.blocked || preview.overlapping) && (
+        <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+          {t(preview.blocked ? "Hay noches bloqueadas en ese rango." : "Esas fechas ya tienen otra solicitud o reserva activa.")}
+        </p>
+      )}
+      {preview.changes && preview.changes.length > 0 && (
+        <div className="mb-3 rounded border border-[#f0d77a] bg-[#fdf6d8] px-3 py-2 text-sm text-[#6b5308]">
+          <p className="font-semibold">{t("El contrato se actualizará")}</p>
+          <p className="mt-0.5">{preview.changes.join(" · ")}</p>
+          {preview.guestMustResign && (
+            <p className="mt-1">
+              {t("El huésped ya había firmado: su firma queda archivada y tendrá que firmar la versión nueva antes de que se confirme.")}
+            </p>
+          )}
+          {preview.paidTotalMxn != null && preview.estimatedTotalMxn != null && preview.estimatedTotalMxn !== preview.paidTotalMxn && (
+            <p className="mt-1">
+              {t("El huésped pagó {paid}; el nuevo total es {total}. Acuerden la diferencia por el chat.", {
+                paid: `$${preview.paidTotalMxn.toLocaleString("es-MX")}`,
+                total: `$${preview.estimatedTotalMxn.toLocaleString("es-MX")}`,
+              })}
+            </p>
+          )}
+        </div>
+      )}
       {lines.length > 0 && (
         <pre
           className="mb-4 max-h-56 overflow-auto whitespace-pre-wrap rounded border bg-[#fafafa] p-3 text-xs leading-relaxed text-[#3a3a3a]"

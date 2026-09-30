@@ -30,6 +30,12 @@ export type HostProfileRecord = {
   instagram?: string;
   website?: string;
   airbnbUrl?: string;
+  /** A qué se dedica («Diseñadora», «Estudiante de medicina»). */
+  work?: string;
+  /** Ciudad donde vive. */
+  livesIn?: string;
+  languages?: string[];
+  interests?: string[];
 };
 
 export type HostListingRecord = {

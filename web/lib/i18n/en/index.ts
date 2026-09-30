@@ -2,6 +2,7 @@ import { appCore } from "./app-core";
 import { appGuest } from "./app-guest";
 import { appHost } from "./app-host";
 import { appHostTools } from "./app-host-tools";
+import { appProfileContracts } from "./app-profile-contracts";
 import { common } from "./common";
 import { siteAccount } from "./site-account";
 import { siteHome } from "./site-home";
@@ -21,4 +22,5 @@ export const EN: Record<string, string> = {
   ...siteHost,
   ...siteHostListings,
   ...appHostTools,
+  ...appProfileContracts,
 };

@@ -5,6 +5,7 @@ import {
   contractFacilitatorNote,
   defaultListingContract,
   getContractTemplate,
+  type ListingContractSettings,
 } from "@/lib/booking-contract-templates";
 import type {
   BookingContractActor,
@@ -44,12 +45,20 @@ export function sha256Text(text: string): string {
   return createHash("sha256").update(text, "utf8").digest("hex");
 }
 
+function given(v: string | undefined): string {
+  const t = (v ?? "").trim();
+  return t && t !== "—" ? t : "no proporcionado";
+}
+
 function cleanName(v: string | undefined, fallback: string): string {
   const t = (v ?? "").trim();
   return t || fallback;
 }
 
-export function buildContractSnapshot(booking: BookingRecord): BookingContractSnapshot | null {
+export function buildContractSnapshot(
+  booking: BookingRecord,
+  settingsOverride?: ListingContractSettings
+): BookingContractSnapshot | null {
   const listingId = booking.hostAdjustedListingId ?? booking.listingId;
   const listing = getListingById(listingId);
   if (!listing) return null;
@@ -57,7 +66,7 @@ export function buildContractSnapshot(booking: BookingRecord): BookingContractSn
   const host = findUserById(booking.hostId);
   const hostProfile = getHostProfile(booking.hostId);
   const guest = booking.guestUserId ? findUserById(booking.guestUserId) : undefined;
-  const settings = defaultListingContract(listing.contract);
+  const settings = settingsOverride ?? defaultListingContract(listing.contract);
   const template = getContractTemplate(settings.templateId);
 
   const checkIn = booking.hostAdjustedCheckIn ?? booking.checkIn;
@@ -79,11 +88,12 @@ export function buildContractSnapshot(booking: BookingRecord): BookingContractSn
     hostId: booking.hostId,
     hostLegalName: cleanName(settings.hostLegalName, host?.fullName?.trim() || "Anfitrión"),
     hostAddress: settings.hostAddress || host?.addressLine || listing.addressLine || "—",
-    hostEmail: host?.email ?? hostProfile?.email ?? "",
+    hostEmail: hostProfile?.email || host?.email || "",
     hostPhone: hostProfile?.phone || host?.phone || "",
     guestName: cleanName(guest?.fullName, booking.guestName),
     guestEmail: guest?.email || booking.guestEmail,
-    guestPhone: guest?.phone || booking.guestPhone || "",
+    guestPhone:
+      guest?.phone || booking.guestPhone || (booking.guestUserId ? getHostProfile(booking.guestUserId)?.phone : "") || "",
     guestAddress: guest?.addressLine || "",
     checkIn,
     checkOut,
@@ -183,6 +193,172 @@ export function ensureBookingContract(
   return saved ? attachDepositIfNeeded(saved) : saved;
 }
 
+const MONEY_FIELDS = new Set<keyof BookingContractSnapshot>(["stayMxn", "cleaningMxn", "totalMxn", "depositMxn"]);
+const TERM_LABELS: [keyof BookingContractSnapshot, string][] = [
+  ["listingId", "alojamiento"],
+  ["checkIn", "entrada"],
+  ["checkOut", "salida"],
+  ["nights", "noches"],
+  ["stayMxn", "monto de la estancia"],
+  ["cleaningMxn", "limpieza"],
+  ["totalMxn", "total"],
+  ["depositMxn", "depósito"],
+];
+
+/** Términos que cambian lo que las partes firmaron (no cuentan correcciones de nombre o teléfono). */
+export function changedContractTerms(prev: BookingContractSnapshot, next: BookingContractSnapshot): string[] {
+  const out: string[] = [];
+  for (const [key, label] of TERM_LABELS) {
+    const a = prev[key];
+    const b = next[key];
+    if (a === b) continue;
+    if (MONEY_FIELDS.has(key)) {
+      out.push(`${label}: $${Number(a).toLocaleString("es-MX")} → $${Number(b).toLocaleString("es-MX")}`);
+    } else if (key === "listingId") {
+      out.push(`${label}: ${prev.listingTitle} → ${next.listingTitle}`);
+    } else {
+      out.push(`${label}: ${a} → ${b}`);
+    }
+  }
+  return out;
+}
+
+/**
+ * Deja el contrato alineado con la reserva. Si cambiaron fechas, alojamiento o montos,
+ * se genera una versión nueva; la anterior (con sus firmas) queda archivada y el huésped
+ * tiene que volver a firmar — nunca se le cambian los términos a una firma ya puesta.
+ */
+export function syncContractWithBooking(
+  bookingId: string,
+  actor: { role: BookingContractActor; userId?: string; ip?: string; signName?: string }
+): BookingRecord | undefined {
+  const booking = getBookingById(bookingId);
+  if (!booking) return undefined;
+  if (!booking.contract) return ensureBookingContract(bookingId, actor);
+
+  const fresh = buildContractSnapshot(booking);
+  if (!fresh) return booking;
+  const prev = booking.contract;
+  const changes = changedContractTerms(prev.snapshot, fresh);
+  if (changes.length === 0) return ensureBookingContract(bookingId, actor);
+
+  const at = nowIso();
+  const signName = actor.signName?.trim().slice(0, 160) ?? "";
+  const hostSigns = actor.role === "host" && signName.length >= 3;
+  const guestHadSigned = Boolean(prev.guestAcceptedAt);
+  const archived =
+    prev.hostAcceptedAt || prev.guestAcceptedAt
+      ? [
+          ...(prev.previousVersions ?? []),
+          {
+            generatedAt: prev.generatedAt,
+            supersededAt: at,
+            snapshot: prev.snapshot,
+            hostAcceptedAt: prev.hostAcceptedAt,
+            hostAcceptedName: prev.hostAcceptedName,
+            guestAcceptedAt: prev.guestAcceptedAt,
+            guestAcceptedName: prev.guestAcceptedName,
+            acceptedSha256: prev.acceptedSha256,
+            changes,
+          },
+        ]
+      : prev.previousVersions;
+
+  const contract: BookingContractRecord = {
+    version: 1,
+    templateId: fresh.templateId,
+    generatedAt: at,
+    snapshot: fresh,
+    previousVersions: archived,
+    hostAcceptedAt: hostSigns ? at : undefined,
+    hostAcceptedByUserId: hostSigns ? actor.userId : undefined,
+    hostAcceptedName: hostSigns ? signName : undefined,
+    hostAcceptedIp: hostSigns ? actor.ip : undefined,
+    events: [
+      ...prev.events,
+      event(
+        actor.role,
+        "amended",
+        `Se actualizó el contrato (${changes.join("; ")}).${
+          guestHadSigned ? " La firma anterior del huésped quedó archivada y tiene que firmar la versión nueva." : ""
+        }`,
+        actor.ip
+      ),
+      ...(hostSigns ? [event("host", "signed", `El anfitrión firmó como «${signName}».`, actor.ip)] : []),
+    ],
+  };
+  return patchBookingRecord(bookingId, { contract, contractStatus: "pending" });
+}
+
+/** Texto del contrato como quedaría con otras fechas o alojamiento (vista previa, no guarda nada). */
+export function previewContractLines(
+  booking: BookingRecord,
+  proposal: { checkIn?: string; checkOut?: string; listingId?: string; nights?: number; estimatedTotalMxn?: number }
+): { lines: string[]; changes: string[]; guestMustResign: boolean } | null {
+  const draft: BookingRecord = {
+    ...booking,
+    hostAdjustedCheckIn: proposal.checkIn && proposal.checkIn !== booking.checkIn ? proposal.checkIn : undefined,
+    hostAdjustedCheckOut: proposal.checkOut && proposal.checkOut !== booking.checkOut ? proposal.checkOut : undefined,
+    hostAdjustedListingId: proposal.listingId && proposal.listingId !== booking.listingId ? proposal.listingId : undefined,
+    nights: proposal.nights ?? booking.nights,
+    estimatedTotalMxn: proposal.estimatedTotalMxn ?? booking.estimatedTotalMxn,
+  };
+  const snapshot = buildContractSnapshot(draft);
+  if (!snapshot) return null;
+  const changes = booking.contract ? changedContractTerms(booking.contract.snapshot, snapshot) : [];
+  const record: BookingContractRecord =
+    booking.contract && changes.length === 0
+      ? booking.contract
+      : {
+          version: 1,
+          templateId: snapshot.templateId,
+          generatedAt: nowIso(),
+          snapshot,
+          previousVersions: booking.contract?.previousVersions,
+          events: [],
+        };
+  return {
+    lines: contractPlainLines(record),
+    changes,
+    guestMustResign: Boolean(booking.contract?.guestAcceptedAt && changes.length > 0),
+  };
+}
+
+/** Cómo se vería el contrato de un anuncio con estos ajustes, con un huésped y fechas de ejemplo. */
+export function sampleContractLines(listingId: string, settings: ListingContractSettings): string[] | null {
+  const listing = getListingById(listingId);
+  if (!listing) return null;
+  const day = (offset: number) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+  const nights = 3;
+  const total = listing.pricePerNight * nights + (listing.cleaningFee ?? 0);
+  const at = nowIso();
+  const sample = {
+    id: "preview",
+    listingId,
+    hostId: listing.hostId,
+    guestName: "Nombre del huésped (ejemplo)",
+    guestEmail: "correo del huésped",
+    guestPhone: "teléfono del huésped",
+    checkIn: day(14),
+    checkOut: day(14 + nights),
+    nights,
+    estimatedTotalMxn: total,
+    status: "PENDING",
+    token: "000000",
+    createdAt: at,
+    updatedAt: at,
+  } as BookingRecord;
+  const snapshot = buildContractSnapshot(sample, settings);
+  if (!snapshot) return null;
+  return contractPlainLines({
+    version: 1,
+    templateId: snapshot.templateId,
+    generatedAt: at,
+    snapshot: { ...snapshot, guestAddress: "domicilio del huésped" },
+    events: [],
+  }).filter((l) => !l.startsWith("BITÁCORA"));
+}
+
 export function attachContractIfInstant(booking: BookingRecord): BookingRecord {
   if (booking.status !== "CONFIRMED" || booking.contract) return booking;
   return ensureBookingContract(booking.id, { role: "system", userId: booking.hostId }) ?? booking;
@@ -271,13 +447,14 @@ export function contractPlainLines(c: BookingContractRecord): string[] {
     "",
     "PARTES",
     `Anfitrión: ${hostName}`,
-    s.hostAddress ? `Domicilio anfitrión: ${s.hostAddress}` : "",
-    s.hostEmail ? `Correo anfitrión: ${s.hostEmail}` : "",
-    s.hostPhone ? `Teléfono anfitrión: ${s.hostPhone}` : "",
+    `Domicilio anfitrión: ${given(s.hostAddress)}`,
+    `Correo anfitrión: ${given(s.hostEmail)}`,
+    `Teléfono anfitrión: ${given(s.hostPhone)}`,
+    "",
     `Huésped: ${s.guestName}`,
-    s.guestAddress ? `Domicilio huésped: ${s.guestAddress}` : "",
-    `Correo huésped: ${s.guestEmail}`,
-    s.guestPhone ? `Teléfono huésped: ${s.guestPhone}` : "",
+    `Domicilio huésped: ${given(s.guestAddress)}`,
+    `Correo huésped: ${given(s.guestEmail)}`,
+    `Teléfono huésped: ${given(s.guestPhone)}`,
     "",
     "INMUEBLE",
     `${s.listingTitle} · ${s.listingCity}, ${s.listingZone}`,
@@ -313,6 +490,19 @@ export function contractPlainLines(c: BookingContractRecord): string[] {
       : "Huésped: pendiente de firma",
     c.acceptedSha256 ? `Huella SHA-256 del texto aceptado: ${c.acceptedSha256}` : "",
     "",
+    ...(c.previousVersions?.length
+      ? [
+          "VERSIONES ANTERIORES",
+          ...c.previousVersions.flatMap((v, i) => [
+            `Versión ${i + 1} (${v.snapshot.checkIn} → ${v.snapshot.checkOut}, ${money(v.snapshot.totalMxn)}) · reemplazada ${v.supersededAt.slice(0, 19).replace("T", " ")} UTC`,
+            `  Cambios: ${v.changes.join("; ")}`,
+            v.guestAcceptedAt
+              ? `  Firmada por el huésped (${v.guestAcceptedName ?? s.guestName}) el ${v.guestAcceptedAt.slice(0, 19).replace("T", " ")} UTC${v.acceptedSha256 ? ` · SHA-256 ${v.acceptedSha256}` : ""}`
+              : "  Sin firma del huésped",
+          ]),
+          "",
+        ]
+      : []),
     s.facilitatorNote,
     "",
     "BITÁCORA",

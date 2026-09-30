@@ -28,6 +28,8 @@ export async function GET(req: NextRequest) {
       ...b,
       listingTitle: listing?.title ?? "Alojamiento",
       listingSlug: effListing?.slug ?? listing?.slug,
+      listingPhoto: stayListing?.photos?.[0],
+      listingCity: stayListing?.city,
       arrival:
         confirmed && stayListing
           ? { ...(stayListing.arrivalGuide ?? {}), address: [stayListing.addressLine, stayListing.zone, stayListing.city].filter(Boolean).join(", ") }
