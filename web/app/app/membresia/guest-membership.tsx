@@ -128,7 +128,7 @@ export function GuestMembership() {
         {data.identityEnabled && <Row label="Identidad" value={KYC_LABEL[data.kycStatus] ?? data.kycStatus} />}
       </dl>
 
-      {needsIdentity && subActive && (
+      {needsIdentity && (subActive || data.bookingPassesRemaining > 0) && (
         <button
           type="button"
           disabled={busy}

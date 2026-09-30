@@ -220,8 +220,10 @@ export function MembresiaPanel() {
 
   const subActive =
     data?.subscriptionStatus === "active" || data?.subscriptionStatus === "trialing";
-  const needsIdentity =
-    Boolean(data?.identityEnabled && data?.configured && subActive && data?.kycStatus !== "verified");
+  const hasPass = (data?.bookingPassesRemaining ?? 0) > 0;
+  const needsIdentity = Boolean(
+    data?.identityEnabled && (subActive || hasPass) && data?.kycStatus !== "verified"
+  );
 
   const showRegionToggle = Boolean(
     data && regionSells(data, "mx") && regionSells(data, "us")

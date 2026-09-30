@@ -227,6 +227,17 @@ export function isGuestEligibleToBook(userId: string): boolean {
   return resolveGuestBookingAccess(userId).allowed;
 }
 
+/** Membresía o pase: basta para abrir Stripe Identity (el pase también reserva). */
+export function guestMayStartIdentity(userId: string): boolean {
+  if (!membershipRequiredToBook()) return true;
+  const access = resolveGuestBookingAccess(userId);
+  return !access.needsMembership;
+}
+
+export function markGuestIdentityVerified(userId: string): GuestVerificationRecord {
+  return upsertVerification(userId, { kycStatus: "verified" });
+}
+
 /**
  * Acredita un pase comprado. Idempotente por sesión de Checkout, porque el mismo
  * pago llega dos veces: por el regreso del huésped y por el webhook.

@@ -258,6 +258,32 @@ export default function AdminUserDetailPage() {
           {passBusy ? "Acreditando…" : "Regalar 1 pase (sin cobro)"}
         </button>
         {passMsg && <p className="text-sm text-gray-600 mt-2">{passMsg}</p>}
+        <p className="text-sm text-gray-600 mt-4 mb-2">
+          Identidad (KYC): <strong>{user.kycStatus}</strong>
+        </p>
+        <button
+          onClick={async () => {
+            setPassBusy(true);
+            setPassMsg("");
+            const res = await fetch(`/api/admin/users/${id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ verifyGuestIdentity: true }),
+            });
+            const j = await res.json().catch(() => ({}));
+            setPassBusy(false);
+            if (res.ok) {
+              setUser((prev) => (prev ? { ...prev, kycStatus: "verified" } : prev));
+              setPassMsg("Identidad marcada como verificada (sin Stripe Identity).");
+            } else {
+              setPassMsg((j as { error?: string }).error ?? "No se pudo verificar.");
+            }
+          }}
+          disabled={passBusy || user.kycStatus === "verified"}
+          className="px-4 py-2 rounded-lg text-sm font-medium border border-amber-500 text-amber-800 hover:bg-amber-50 disabled:opacity-40"
+        >
+          Marcar identidad verificada
+        </button>
       </div>
 
       {(user.role === "host" || user.role === "admin" || user.listingsCount > 0) && (

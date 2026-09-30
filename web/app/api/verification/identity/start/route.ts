@@ -6,6 +6,7 @@ import { publicOriginFromRequest } from "@/lib/public-origin";
 import { appReturnPath } from "@/lib/app-return-path";
 import {
   getVerification,
+  guestMayStartIdentity,
   stripeIdentityEnabled,
   upsertVerification,
 } from "@/lib/verification-store";
@@ -28,13 +29,13 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({ error: "Stripe no configurado." }, { status: 503 });
   }
 
-  const v = getVerification(user.id);
-  if (!v || (v.subscriptionStatus !== "active" && v.subscriptionStatus !== "trialing")) {
+  if (!guestMayStartIdentity(user.id)) {
     return NextResponse.json(
-      { error: "Activa tu membresía de verificación antes de identificarte." },
+      { error: "Activa tu membresía o usa un pase por reserva antes de identificarte." },
       { status: 409 }
     );
   }
+  const v = getVerification(user.id);
 
   const origin = publicOriginFromRequest(_req);
   const body = (await _req.json().catch(() => ({}))) as { returnPath?: string };
@@ -45,7 +46,7 @@ export async function POST(_req: NextRequest) {
       type: "document",
       metadata: cabibeeMeta({ userId: user.id }),
       return_url: returnUrl,
-      ...(v.stripeCustomerId ? { related_customer: v.stripeCustomerId } : {}),
+      ...(v?.stripeCustomerId ? { related_customer: v.stripeCustomerId } : {}),
       provided_details: user.email ? { email: user.email } : undefined,
       options: {
         document: {
