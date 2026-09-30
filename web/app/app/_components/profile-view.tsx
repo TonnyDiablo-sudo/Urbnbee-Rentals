@@ -69,7 +69,7 @@ export function ProfileView({ user, mode }: { user: UserRecord | null; mode: "gu
                 href="/cuenta/entrar?next=/perfil"
                 className="flex-1 rounded-xl border border-[#222] py-3 text-center text-[15px] font-semibold text-[#222]"
               >
-                Entrar
+                Iniciar sesión
               </Link>
             </div>
           </div>

@@ -49,7 +49,7 @@ export default async function AppExplorePage({ searchParams }: Props) {
             defaultValue={q}
             placeholder="¿A dónde vas? Ciudad, zona o tipo"
             enterKeyHint="search"
-            className="w-full rounded-full border border-[#e5e5e5] bg-white py-3.5 pl-12 pr-4 text-[15px] shadow-[0_3px_12px_rgba(0,0,0,0.08)] outline-none placeholder:text-[#8a8a8a] focus:border-[#222]"
+            className="w-full rounded-full border border-[#e5e5e5] bg-white py-3.5 pl-12 pr-4 text-base shadow-[0_3px_12px_rgba(0,0,0,0.08)] outline-none placeholder:text-[#8a8a8a] focus:border-[#222]"
           />
         </form>
         <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">

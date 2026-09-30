@@ -10,9 +10,19 @@ type Props = {
   required?: boolean;
   minLength?: number;
   placeholder?: string;
+  inputClassName?: string;
 };
 
-export function PasswordField({ id, value, onChange, autoComplete, required, minLength, placeholder }: Props) {
+export function PasswordField({
+  id,
+  value,
+  onChange,
+  autoComplete,
+  required,
+  minLength,
+  placeholder,
+  inputClassName = "w-full rounded-lg border border-[#ddd] py-2 pl-3 pr-11 text-sm outline-none focus:border-[#dcb81e]",
+}: Props) {
   const [visible, setVisible] = useState(false);
 
   return (
@@ -24,7 +34,7 @@ export function PasswordField({ id, value, onChange, autoComplete, required, min
         minLength={minLength}
         autoComplete={autoComplete}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-[#ddd] py-2 pl-3 pr-11 text-sm outline-none focus:border-[#dcb81e]"
+        className={inputClassName}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

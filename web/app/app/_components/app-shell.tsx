@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { IconChat, IconHome, IconMenu, IconSearch, IconToday, IconTrips, IconUser } from "./icons";
@@ -44,7 +44,7 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
         { href: "/", label: "Explorar", icon: <IconSearch /> },
         { href: "/viajes", label: "Viajes", icon: <IconTrips /> },
         { href: "/mensajes", label: "Mensajes", icon: <IconChat />, badge: unread > 0 },
-        { href: "/perfil", label: user ? "Perfil" : "Entrar", icon: <IconUser /> },
+        { href: "/perfil", label: user ? "Perfil" : "Iniciar sesión", icon: <IconUser /> },
       ];
 
   const fullscreen = FULLSCREEN.some((r) => r.test(pathname));
@@ -72,15 +72,9 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
                 <Link
                   key={t.href}
                   href={t.href}
-                  className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
-                    active ? "text-black" : "text-[#9a9a9a]"
-                  }`}
+                  className="relative flex flex-1 touch-manipulation flex-col items-center justify-center gap-0.5 text-[11px] font-medium"
                 >
-                  <span className={active ? "text-[#dcb81e]" : ""}>{t.icon}</span>
-                  <span>{t.label}</span>
-                  {t.badge && (
-                    <span className="absolute right-[calc(50%-18px)] top-2 h-2.5 w-2.5 rounded-full bg-[#e0452b] ring-2 ring-white" />
-                  )}
+                  <TabContent tab={t} active={active} />
                 </Link>
               );
             })}
@@ -88,6 +82,21 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
         </nav>
       )}
     </div>
+  );
+}
+
+/** Se pinta como activa en cuanto se toca, sin esperar a que llegue la pantalla. */
+function TabContent({ tab, active }: { tab: Tab; active: boolean }) {
+  const { pending } = useLinkStatus();
+  const on = active || pending;
+  return (
+    <>
+      <span className={on ? "text-[#dcb81e]" : "text-[#9a9a9a]"}>{tab.icon}</span>
+      <span className={on ? "text-black" : "text-[#9a9a9a]"}>{tab.label}</span>
+      {tab.badge && (
+        <span className="absolute right-[calc(50%-18px)] top-2 h-2.5 w-2.5 rounded-full bg-[#e0452b] ring-2 ring-white" />
+      )}
+    </>
   );
 }
 
