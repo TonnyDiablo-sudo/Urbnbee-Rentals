@@ -1,8 +1,8 @@
 /**
- * Aplica web/sql/001_schema.sql contra MySQL.
+ * Aplica web/sql/*.sql en orden contra MySQL.
  * Requiere DATABASE_URL (mysql://...) o MYSQL_URL o DB_HOST + DB_USER + DB_PASSWORD + DB_NAME.
  */
-import { readFileSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import mysql from "mysql2/promise";
@@ -53,14 +53,29 @@ function getConfig() {
   );
 }
 
-const sqlPath = join(__dirname, "..", "sql", "001_schema.sql");
-const sql = readFileSync(sqlPath, "utf8");
+const sqlDir = join(__dirname, "..", "sql");
+const files = readdirSync(sqlDir)
+  .filter((f) => f.endsWith(".sql"))
+  .sort();
 
 const cfg = getConfig();
 const conn = await mysql.createConnection(cfg);
 try {
-  await conn.query(sql);
-  console.log("db-migrate: OK (001_schema.sql)");
+  for (const f of files) {
+    const sql = readFileSync(join(sqlDir, f), "utf8");
+    await conn.query(sql);
+    console.log("db-migrate: OK", f);
+  }
+
+  const [cols] = await conn.query(
+    `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'urb_users' AND COLUMN_NAME = 'address_line'`,
+    [cfg.database]
+  );
+  if (!Array.isArray(cols) || cols.length === 0) {
+    await conn.query("ALTER TABLE urb_users ADD COLUMN address_line VARCHAR(512) NULL");
+    console.log("db-migrate: OK urb_users.address_line");
+  }
 } finally {
   await conn.end();
 }

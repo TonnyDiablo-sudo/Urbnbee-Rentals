@@ -28,7 +28,6 @@ export function TripsList() {
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -65,41 +64,6 @@ export function TripsList() {
       await load();
     })();
   }, [sessionId, load, router]);
-
-  const pay = async (t: Trip) => {
-    setBusyId(t.id);
-    setErr(null);
-    try {
-      const res = await fetch(`/api/bookings/${t.id}/checkout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cancelPath: "/viajes", returnPath: "/viajes" }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setErr(typeof data.error === "string" ? data.error : "No se pudo iniciar el pago.");
-        return;
-      }
-      if (typeof data.checkoutUrl === "string") {
-        window.location.assign(data.checkoutUrl);
-        return;
-      }
-      if (data.simulatePayment) {
-        const sim = await fetch(`/api/bookings/${t.id}/simulate-payment`, { method: "POST" });
-        if (!sim.ok) {
-          const j = await sim.json().catch(() => ({}));
-          setErr(typeof j.error === "string" ? j.error : "No se pudo confirmar el pago (demo).");
-        } else {
-          setNotice("Pago de prueba registrado.");
-        }
-        await load();
-      }
-    } catch {
-      setErr("Sin conexión.");
-    } finally {
-      setBusyId(null);
-    }
-  };
 
   if (trips === null) return <p className="px-5 py-6 text-sm text-[#999]">Cargando…</p>;
 
@@ -138,14 +102,12 @@ export function TripsList() {
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {t.status === "AWAITING_PAYMENT" && (
-                    <button
-                      type="button"
-                      disabled={busyId === t.id}
-                      onClick={() => void pay(t)}
-                      className="rounded-xl bg-[#dcb81e] px-4 py-2 text-sm font-semibold text-black disabled:opacity-60"
+                    <WebLink
+                      path={`/contrato/${t.token}?pay=1`}
+                      className="rounded-xl bg-[#dcb81e] px-4 py-2 text-sm font-semibold text-black"
                     >
-                      {busyId === t.id ? "Abriendo…" : "Pagar ahora"}
-                    </button>
+                      Firmar y pagar
+                    </WebLink>
                   )}
                   {t.status === "AWAITING_DETAILS" && (
                     <WebLink

@@ -88,7 +88,7 @@ export function HostToday() {
   if (bookings === null) return <p className="px-5 py-6 text-sm text-[#999]">Cargando…</p>;
 
   const today = todayIso();
-  const pending = bookings.filter((b) => b.status === "PENDING");
+  const pending = bookings.filter((b) => b.status === "PENDING" || b.status === "PENDING_HOST");
   const upcoming = bookings
     .filter((b) => (b.status === "CONFIRMED" || b.status === "AWAITING_DETAILS") && (b.hostAdjustedCheckOut ?? b.checkOut) >= today)
     .sort((a, b) => (a.hostAdjustedCheckIn ?? a.checkIn).localeCompare(b.hostAdjustedCheckIn ?? b.checkIn));

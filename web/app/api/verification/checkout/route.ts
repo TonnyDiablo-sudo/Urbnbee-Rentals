@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getSessionUser } from "@/lib/session";
+import { cabibeeMeta } from "@/lib/stripe-app-meta";
 import { getStripe } from "@/lib/stripe-server";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 import {
@@ -81,6 +82,9 @@ async function catalogCheckout(
         success_url: `${origin}${successPath}?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}${cancelPath}`,
         metadata: pieces.metadata,
+        ...(pieces.mode === "payment"
+          ? { payment_intent_data: { metadata: pieces.metadata } }
+          : {}),
         ...(pieces.subscriptionMetadata
           ? { subscription_data: { metadata: pieces.subscriptionMetadata } }
           : {}),
@@ -213,8 +217,8 @@ export async function POST(req: NextRequest) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}${appReturnPath(body.returnPath) ?? "/guest/membresia"}?subscription=success`,
       cancel_url: `${origin}${cancelPath}`,
-      metadata: { userId: user.id },
-      subscription_data: { metadata: { userId: user.id } },
+      metadata: cabibeeMeta({ userId: user.id }),
+      subscription_data: { metadata: cabibeeMeta({ userId: user.id }) },
       ...(prevCustomerId
         ? { customer: prevCustomerId }
         : { customer_email: user.email }),

@@ -10,6 +10,12 @@ import type {
 } from "@/lib/marketplace-types";
 import type { ListingCategory } from "@/lib/mock-data";
 import { defaultListingContract } from "@/lib/booking-contract-templates";
+import {
+  scheduleMysql,
+  upsertHostProfileRow,
+  upsertListingRow,
+  upsertUserRow,
+} from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 /** In-memory store (replace with MySQL per SYSTEM_ARCHITECTURE_AND_ROADMAP). */
@@ -46,6 +52,11 @@ function persistToDisk() {
     if (existsSync(STORE_FILE)) {
       cachedDiskMtimeMs = statSync(STORE_FILE).mtimeMs;
     }
+    scheduleMysql(async () => {
+      for (const u of snapshot.users) await upsertUserRow(u);
+      for (const p of Object.values(snapshot.hostProfiles)) await upsertHostProfileRow(p);
+      for (const l of snapshot.listings) await upsertListingRow(l);
+    });
   } catch (e) {
     console.warn("[marketplace-store] persist failed:", e);
   }

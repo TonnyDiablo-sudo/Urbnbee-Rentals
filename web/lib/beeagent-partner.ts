@@ -69,8 +69,9 @@ export function partnerCorsHeaders(req: NextRequest): Record<string, string> {
   if (!partnerAllowedOrigins().includes(origin)) return {};
   return {
     "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Urbnbee-Signature, X-Request-Id",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "Authorization, Content-Type, X-Urbnbee-Signature, X-Request-Id, X-Beeagent-Customer-Id",
     Vary: "Origin",
   };
 }
@@ -96,6 +97,44 @@ export function withPartnerCors<T extends NextResponse>(res: T, req: NextRequest
 
 export function partnerJson(data: unknown, req: NextRequest, init?: ResponseInit): NextResponse {
   return withPartnerCors(NextResponse.json(data, init), req);
+}
+
+export function parseBeeagentCustomerId(req: NextRequest): number | null {
+  const raw = req.headers.get("x-beeagent-customer-id")?.trim() ?? "";
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) return null;
+  return n;
+}
+
+export function connectReturnOrigins(): string[] {
+  const raw = process.env.URBNBEEAI_CONNECT_RETURN_ORIGINS?.trim();
+  if (!raw) return ["https://www.urbnbeeai.com", "https://urbnbeeai.com"];
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export function parseAllowedConnectReturnUrl(raw: string): URL | null {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  if (url.protocol === "http:" && url.hostname !== "localhost" && url.hostname !== "127.0.0.1") {
+    return null;
+  }
+  if (!connectReturnOrigins().includes(url.origin)) return null;
+  return url;
+}
+
+export function beeagentConnectStartUrl(): string {
+  return (
+    process.env.URBNBEEAI_CONNECT_START_URL?.trim() ||
+    "https://www.urbnbeeai.com/integrations/cabibee/start"
+  );
 }
 
 /** `X-Urbnbee-Signature: sha256=<hex>` con HMAC-SHA256 del cuerpo en bruto. */

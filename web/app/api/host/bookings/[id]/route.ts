@@ -8,10 +8,11 @@ import {
   hostSignBookingContract,
 } from "@/lib/booking-contract";
 import { restoreBookingPass } from "@/lib/verification-store";
+import { acceptBookingByHost, isPendingHostApproval, rejectBookingByHost } from "@/lib/booking-machine";
+import { mysqlApplyBookingOccupancy } from "@/lib/booking-nights";
 import {
   getBookingById,
   hasOverlappingActiveBooking,
-  updateBooking,
 } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
 import { notifyGuestBookingDecision } from "@/lib/push";
@@ -98,7 +99,7 @@ export async function PATCH(
   const action = typeof body.action === "string" ? body.action.trim().toLowerCase() : "";
 
   if (action === "reject") {
-    if (booking.status !== "PENDING") {
+    if (!isPendingHostApproval(booking.status)) {
       return NextResponse.json(
         { error: "Solo se pueden rechazar solicitudes pendientes." },
         { status: 409 }
@@ -127,8 +128,14 @@ export async function PATCH(
       restoreBookingPass(booking.guestUserId);
     }
 
-    const next = updateBooking(id, user.id, { status: "REJECTED" });
-    if (next) notifyGuestBookingDecision(next, false);
+    const next = rejectBookingByHost(id);
+    if (next) {
+      const occ = await mysqlApplyBookingOccupancy(next);
+      if (occ === "error") {
+        console.warn("[host/bookings] no se pudieron soltar las noches de", id);
+      }
+      notifyGuestBookingDecision(next, false);
+    }
     return NextResponse.json({ ok: true, booking: next, refund: refund.kind });
   }
 
@@ -152,7 +159,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Acción no válida (accept | reject | sign)." }, { status: 400 });
   }
 
-  if (booking.status !== "PENDING") {
+  if (!isPendingHostApproval(booking.status)) {
     return NextResponse.json(
       { error: "Solo se pueden aceptar solicitudes pendientes." },
       { status: 409 }
@@ -232,8 +239,30 @@ export async function PATCH(
     );
   }
 
-  const next = updateBooking(id, user.id, {
-    status: "AWAITING_DETAILS",
+  const proposed = {
+    ...booking,
+    status: "AWAITING_DETAILS" as const,
+    nights,
+    estimatedTotalMxn,
+    hostAdjustedListingId,
+    hostAdjustedCheckIn,
+    hostAdjustedCheckOut,
+  };
+  const occ = await mysqlApplyBookingOccupancy(proposed);
+  if (occ === "overlap") {
+    return NextResponse.json(
+      { error: "Esas fechas ya tienen otra solicitud o reserva activa." },
+      { status: 409 }
+    );
+  }
+  if (occ === "error") {
+    return NextResponse.json(
+      { error: "No se pudieron reservar esas noches. Intenta de nuevo." },
+      { status: 500 }
+    );
+  }
+
+  const next = acceptBookingByHost(id, {
     nights,
     estimatedTotalMxn,
     hostAdjustedListingId,

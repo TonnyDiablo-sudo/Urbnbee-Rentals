@@ -85,17 +85,21 @@ export function FinishBookingClient({ token }: { token: string }) {
   const statusLabels: Record<string, string> = {
     AWAITING_PAYMENT: "Pago pendiente",
     PENDING: "Pendiente de anfitrión",
+    PENDING_HOST: "Pendiente de anfitrión",
     AWAITING_DETAILS: "Aprobada — acepta el contrato",
     CONFIRMED: "Confirmada",
     REJECTED: "Rechazada",
     CANCELLED: "Cancelada",
     COMPLETED: "Completada",
+    EXPIRED: "Expirada",
   };
 
   const needsContract =
     Boolean(booking.contract?.generated) &&
-    !booking.contract?.accepted &&
-    (booking.status === "AWAITING_DETAILS" || booking.status === "CONFIRMED");
+    !booking.contract?.guestAcceptedAt &&
+    (booking.status === "AWAITING_PAYMENT" ||
+      booking.status === "AWAITING_DETAILS" ||
+      booking.status === "CONFIRMED");
   const canFinish = needsContract;
   const pdfHref = `/api/bookings/contract?token=${encodeURIComponent(token)}&format=pdf`;
 
@@ -179,10 +183,19 @@ export function FinishBookingClient({ token }: { token: string }) {
                 prev
                   ? {
                       ...prev,
-                      status: typeof data.status === "string" ? data.status : "CONFIRMED",
+                      status: typeof data.status === "string" ? data.status : prev.status,
                       contract: prev.contract
-                        ? { ...prev.contract, accepted: true }
-                        : { generated: true, accepted: true },
+                        ? {
+                            ...prev.contract,
+                            accepted: Boolean(data.contractAccepted) && prev.contract.accepted,
+                            guestAcceptedAt:
+                              prev.contract.guestAcceptedAt ?? new Date().toISOString(),
+                          }
+                        : {
+                            generated: true,
+                            accepted: Boolean(data.contractAccepted),
+                            guestAcceptedAt: new Date().toISOString(),
+                          },
                     }
                   : prev
               );
@@ -246,7 +259,11 @@ export function FinishBookingClient({ token }: { token: string }) {
             className="w-full rounded py-3 text-sm font-semibold text-black disabled:opacity-60"
             style={{ backgroundColor: "#dcb81e" }}
           >
-            {saving ? "Guardando…" : "Aceptar contrato y confirmar"}
+            {saving
+              ? "Guardando…"
+              : booking.status === "AWAITING_PAYMENT"
+                ? "Aceptar contrato"
+                : "Aceptar contrato y confirmar"}
           </button>
         </form>
       )}
@@ -257,26 +274,21 @@ export function FinishBookingClient({ token }: { token: string }) {
         </div>
       )}
 
-      {booking.status === "AWAITING_PAYMENT" && (
+      {booking.status === "AWAITING_PAYMENT" && booking.contract?.guestAcceptedAt && (
         <div className="mt-8 rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-          <p className="font-medium">Falta completar el pago</p>
-          <p className="mt-2 text-amber-900">
-            Con la misma cuenta, abre el anuncio y pulsa «Reservar y pagar».
-          </p>
-          {booking.listingSlug && (
-            <Link
-              href={`/listings/${booking.listingSlug}`}
-              className="mt-3 inline-block font-semibold text-amber-900 underline"
-            >
-              Ir al anuncio
-            </Link>
-          )}
+          <p className="font-medium">Contrato firmado. Falta el pago</p>
+          <Link
+            href={`/contrato/${token}?pay=1`}
+            className="mt-3 inline-block font-semibold text-amber-900 underline"
+          >
+            Ir a pagar
+          </Link>
         </div>
       )}
 
-      {!canFinish && !saved && booking.status === "PENDING" && (
+      {!canFinish && !saved && (booking.status === "PENDING" || booking.status === "PENDING_HOST") && (
         <p className="mt-8 text-sm text-[#888]">
-          Tu solicitud está pendiente de revisión por el anfitrión. El contrato se genera cuando acepte.
+          Tu solicitud está pendiente de revisión por el anfitrión.
         </p>
       )}
 

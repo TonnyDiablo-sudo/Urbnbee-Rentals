@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { getSessionUser } from "@/lib/session";
@@ -6,7 +7,9 @@ import { getSessionUser } from "@/lib/session";
 export default async function HostLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
   if (!user) {
-    redirect("/login?next=/host/dashboard");
+    const path = (await headers()).get("x-cabibee-path") ?? "/host/dashboard";
+    const next = path.startsWith("/host") ? path : "/host/dashboard";
+    redirect(`/login?next=${encodeURIComponent(next)}`);
   }
   if (user.role !== "host" && user.role !== "admin") {
     redirect("/register?intent=host");
@@ -56,6 +59,12 @@ export default async function HostLayout({ children }: { children: React.ReactNo
               className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
             >
               Verificación
+            </Link>
+            <Link
+              href="/host/settings/pagos"
+              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
+            >
+              Pagos
             </Link>
             <Link
               href="/host/settings/integrations"

@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
   }
 
   const canAccept =
+    booking.status === "AWAITING_PAYMENT" ||
     booking.status === "AWAITING_DETAILS" ||
     (booking.status === "CONFIRMED" && booking.contract && !booking.contract.guestAcceptedAt);
   if (!canAccept) {
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   if (!booking.contract) {
     return NextResponse.json(
-      { error: "Esta reserva aún no tiene contrato. Espera a que el anfitrión acepte." },
+      { error: "Esta reserva aún no tiene contrato." },
       { status: 409 }
     );
   }
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip")?.trim() ||
     "unknown";
+  const userAgent = req.headers.get("user-agent")?.slice(0, 300) || undefined;
   if (!allowHostInboxPost(`booking_finish:${ip}:${token}`, 15_000)) {
     return NextResponse.json({ error: "Espera un momento." }, { status: 429 });
   }
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
   const updated = guestAcceptBookingContract(booking.id, {
     name: signedName,
     ip,
+    userAgent,
     phone: guestPhone || guestAccount?.phone || undefined,
     notes: guestFinishNotes || undefined,
   });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import { cabibeeMeta } from "@/lib/stripe-app-meta";
 import { getStripe } from "@/lib/stripe-server";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 import { appReturnPath } from "@/lib/app-return-path";
@@ -42,7 +43,7 @@ export async function POST(_req: NextRequest) {
   try {
     const session = await stripe.identity.verificationSessions.create({
       type: "document",
-      metadata: { userId: user.id },
+      metadata: cabibeeMeta({ userId: user.id }),
       return_url: returnUrl,
       ...(v.stripeCustomerId ? { related_customer: v.stripeCustomerId } : {}),
       provided_details: user.email ? { email: user.email } : undefined,

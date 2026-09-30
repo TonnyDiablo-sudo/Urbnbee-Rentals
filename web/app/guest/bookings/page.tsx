@@ -36,11 +36,13 @@ type Row = {
 const labels: Record<string, string> = {
   AWAITING_PAYMENT: "Esperando pago",
   PENDING: "Pendiente anfitrión",
+  PENDING_HOST: "Pendiente anfitrión",
   AWAITING_DETAILS: "Acepta el contrato",
   CONFIRMED: "Confirmada",
   REJECTED: "Rechazada",
   CANCELLED: "Cancelada",
   COMPLETED: "Completada",
+  EXPIRED: "Expirada",
 };
 
 export default function GuestBookingsPage() {
@@ -124,9 +126,14 @@ export default function GuestBookingsPage() {
                   Ver anuncio
                 </Link>
               )}
-              {(b.status === "AWAITING_DETAILS" ||
-                (b.contract && !b.contract.guestAcceptedAt && b.status === "CONFIRMED")) && (
-                <Link href={`/contrato/${b.token}`} className="text-sm font-medium text-[#dcb81e] underline">
+              {(b.status === "AWAITING_PAYMENT" ||
+                b.status === "AWAITING_DETAILS" ||
+                (b.contract && !b.contract.guestAcceptedAt && b.status === "CONFIRMED")) &&
+                !b.contract?.guestAcceptedAt && (
+                <Link
+                  href={b.status === "AWAITING_PAYMENT" ? `/contrato/${b.token}?pay=1` : `/contrato/${b.token}`}
+                  className="text-sm font-medium text-[#dcb81e] underline"
+                >
                   Firmar contrato
                 </Link>
               )}

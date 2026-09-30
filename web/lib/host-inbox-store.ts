@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
 import type { HostInboxMessageRecord } from "@/lib/host-inbox-types";
+import { scheduleMysql, upsertInboxRow } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 const DATA_FILE = join(getDataDir(), "host-inbox-messages.json");
@@ -17,6 +18,9 @@ function persist() {
     if (existsSync(DATA_FILE)) {
       cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
     }
+    scheduleMysql(async () => {
+      for (const m of rows) await upsertInboxRow(m);
+    });
   } catch (e) {
     console.warn("[host-inbox-store] persist failed:", e);
   }

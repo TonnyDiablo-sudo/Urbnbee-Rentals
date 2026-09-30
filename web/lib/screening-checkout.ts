@@ -10,6 +10,7 @@ import {
 } from "@/lib/screening-service";
 import { getScreeningPrice, patchScreening, updateScreeningPrice } from "@/lib/screening-store";
 import { SCREENING_KIND, screeningPayerOf, type ScreeningPayer, type ScreeningRecord } from "@/lib/screening-types";
+import { cabibeeMeta } from "@/lib/stripe-app-meta";
 import { allowSimulatedBookingPayment, getStripe } from "@/lib/stripe-server";
 import { getVerification } from "@/lib/verification-store";
 import { verificationRegionFromRequest } from "@/lib/verification-region";
@@ -38,7 +39,7 @@ export async function ensureScreeningStripeProduct(stripe: Stripe): Promise<stri
   const product = await stripe.products.create({
     name: "Screening Cabibee",
     description: "Consulta de screening con proveedor externo. Cabibee no es el buró.",
-    metadata: { cabibee_sku: "screening" },
+    metadata: cabibeeMeta({ cabibee_sku: "screening" }),
   });
   updateScreeningPrice({ stripeProductId: product.id });
   return product.id;
@@ -75,12 +76,12 @@ export async function buildScreeningCheckout(
         },
       },
     ],
-    metadata: {
+    metadata: cabibeeMeta({
       userId,
       kind: SCREENING_KIND,
       screeningId,
       payer,
-    },
+    }),
   };
 }
 
@@ -176,6 +177,7 @@ export async function runScreeningCheckout(
         success_url: `${origin}${opts.successPath}${opts.successPath.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}${opts.cancelPath}`,
         metadata: pieces.metadata,
+        payment_intent_data: { metadata: pieces.metadata },
         ...(prevCustomerId
           ? { customer: prevCustomerId }
           : { customer_email: opts.payerUser.email }),

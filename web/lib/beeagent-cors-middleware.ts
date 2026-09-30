@@ -17,8 +17,9 @@ export function beeagentMiddlewareCorsHeaders(req: NextRequest): Record<string, 
   if (!origin || !allowedOrigins().includes(origin)) return {};
   return {
     "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Urbnbee-Signature, X-Request-Id",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "Authorization, Content-Type, X-Urbnbee-Signature, X-Request-Id, X-Beeagent-Customer-Id",
     Vary: "Origin",
   };
 }

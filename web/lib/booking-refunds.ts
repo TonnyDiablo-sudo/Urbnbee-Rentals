@@ -3,7 +3,14 @@ import type Stripe from "stripe";
 import type { BookingRecord, BookingRefundReason } from "@/lib/booking-types";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
+import { getHostStripe } from "@/lib/host-stripe";
+import { cabibeeMeta } from "@/lib/stripe-app-meta";
 import { allowSimulatedBookingPayment, getStripe } from "@/lib/stripe-server";
+
+function stripeForBookingRefund(booking: BookingRecord) {
+  if (booking.chargedVia === "host") return getHostStripe(booking.hostId);
+  return getStripe();
+}
 
 /** Qué pasó con el dinero: nada que devolver, devuelto ahora, ya estaba devuelto, o demo. */
 export type BookingRefundKind = "not_needed" | "created" | "already_refunded" | "simulated";
@@ -67,15 +74,23 @@ export async function refundBookingPayment(
       refundAmountMxn: totalPaidMxn(booking),
       refundReason: reason,
       stripeRefundId: "simulated",
+      paymentStatus: "refunded",
     });
     return next
       ? { ok: true, kind: "simulated", booking: next }
       : { ok: false, status: 500, error: "No se pudo registrar el reembolso." };
   }
 
-  const stripe = getStripe();
+  const stripe = stripeForBookingRefund(booking);
   if (!stripe) {
-    return { ok: false, status: 503, error: "Reembolso no disponible: Stripe no está configurado." };
+    return {
+      ok: false,
+      status: 503,
+      error:
+        booking.chargedVia === "host"
+          ? "Esta estancia se cobró en el Stripe del anfitrión y ya no está conectado."
+          : "Reembolso no disponible: Stripe no está configurado.",
+    };
   }
 
   let paymentIntentId: string | null = null;
@@ -99,7 +114,7 @@ export async function refundBookingPayment(
       {
         payment_intent: paymentIntentId,
         reason: "requested_by_customer",
-        metadata: { bookingId: booking.id, refundReason: reason },
+        metadata: cabibeeMeta({ bookingId: booking.id, refundReason: reason }),
       },
       { idempotencyKey: `booking_refund_${booking.id}` }
     );
@@ -110,6 +125,7 @@ export async function refundBookingPayment(
         refundedAt: new Date().toISOString(),
         refundAmountMxn: totalPaidMxn(booking),
         refundReason: reason,
+        paymentStatus: "refunded",
       });
       return next
         ? { ok: true, kind: "already_refunded", booking: next }
@@ -129,6 +145,7 @@ export async function refundBookingPayment(
     refundAmountMxn: Math.round(refund.amount) / 100,
     stripeRefundId: refund.id,
     refundReason: reason,
+    paymentStatus: "refunded",
   });
 
   return next

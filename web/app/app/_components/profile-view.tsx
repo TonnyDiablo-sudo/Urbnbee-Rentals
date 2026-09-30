@@ -28,6 +28,7 @@ export function ProfileView({ user, mode }: { user: UserRecord | null; mode: "gu
           { href: "/host/anuncios", label: "Mis anuncios" },
           { href: "/host/calendar", label: "Calendario y precios por fecha", web: true },
           { href: "/host/requests", label: "Contratos, depósitos y reseñas", web: true },
+          { href: "/host/settings/pagos", label: "Pagos de la estancia (tu Stripe)", web: true },
           { href: "/host/settings/integrations", label: "BeeAgent e integraciones", web: true },
           { href: "/host/dashboard", label: "Panel completo de anfitrión", web: true },
         ]

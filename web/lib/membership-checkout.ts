@@ -11,6 +11,7 @@ import {
   MEMBERSHIP_PLAN_BILLING,
   type MembershipPlanCode,
 } from "@/lib/membership-plans-types";
+import { cabibeeMeta } from "@/lib/stripe-app-meta";
 import { membershipProductIdForCheckout } from "@/lib/stripe-membership-products";
 import type { VerificationRegion } from "@/lib/verification-types";
 
@@ -67,12 +68,12 @@ export async function buildMembershipCheckout(
       ],
       // `kind` es lo que evita que el webhook confunda este pago con el de una
       // reserva: los dos llegan como checkout.session.completed en modo payment.
-      metadata: {
+      metadata: cabibeeMeta({
         userId,
         kind: MEMBERSHIP_PASS_KIND,
         planCode: code,
         audience: MEMBERSHIP_PLAN_AUDIENCE[code],
-      },
+      }),
     };
   }
 
@@ -89,17 +90,19 @@ export async function buildMembershipCheckout(
         },
       },
     ],
-    metadata: {
+    metadata: cabibeeMeta({
       userId,
       kind: "membership_subscription",
       planCode: code,
       audience: MEMBERSHIP_PLAN_AUDIENCE[code],
-    },
-    subscriptionMetadata: {
+      ...(MEMBERSHIP_PLAN_AUDIENCE[code] === "host" ? { sku: "cabibee_booking_engine" } : {}),
+    }),
+    subscriptionMetadata: cabibeeMeta({
       userId,
       planCode: code,
       audience: MEMBERSHIP_PLAN_AUDIENCE[code],
-    },
+      ...(MEMBERSHIP_PLAN_AUDIENCE[code] === "host" ? { sku: "cabibee_booking_engine" } : {}),
+    }),
   };
 }
 

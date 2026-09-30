@@ -1,13 +1,9 @@
 import type { NextRequest } from "next/server";
 import { appendMessage } from "@/lib/host-inbox-store";
 import { getListingById, getListingBySlug, findUserById } from "@/lib/marketplace-store";
-import {
-  getPartnerApiSecret,
-  partnerJson,
-  partnerNotConfiguredResponse,
-  verifyPartnerBearer,
-  partnerAuthErrorResponse,
-} from "@/lib/beeagent-partner";
+import { partnerJson } from "@/lib/beeagent-partner";
+import { requirePartnerLinkedHost } from "@/lib/beeagent-require-link";
+import { partnerIdempotentJson } from "@/lib/beeagent-route-helpers";
 
 export const runtime = "nodejs";
 
@@ -24,9 +20,6 @@ function sanitizeBody(s: unknown): string {
 
 /** Lead / mensaje desde BeeAgent → bandeja del anfitrión (mismo store que el inbox web). */
 export async function POST(req: NextRequest) {
-  if (!getPartnerApiSecret()) return partnerNotConfiguredResponse(req);
-  if (!verifyPartnerBearer(req)) return partnerAuthErrorResponse(req);
-
   const body = await req.json().catch(() => ({}));
   const hostId = typeof body.hostId === "string" ? body.hostId.trim() : "";
   const listingRef = typeof body.listingId === "string" ? body.listingId.trim() : "";
@@ -41,6 +34,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const gate = requirePartnerLinkedHost(req, hostId);
+  if (!gate.ok) return gate.response;
+
   const host = findUserById(hostId);
   if (!host || host.role !== "host") {
     return partnerJson({ error: "Anfitrión no válido." }, req, { status: 404 });
@@ -51,22 +47,36 @@ export async function POST(req: NextRequest) {
     return partnerJson({ error: "Anuncio no encontrado o no pertenece al host." }, req, { status: 404 });
   }
 
-  const guestSessionId =
-    typeof body.threadKey === "string" && body.threadKey.trim().length > 0
-      ? `beeagent_${body.threadKey.trim().slice(0, 200)}`
-      : `beeagent_${listing.id}`;
+  const conversationKey =
+    typeof body.conversation_key === "string"
+      ? body.conversation_key.trim().slice(0, 200)
+      : typeof body.threadKey === "string"
+        ? body.threadKey.trim().slice(0, 200)
+        : "";
+  const guestSessionId = conversationKey
+    ? `beeagent_${conversationKey}`
+    : `beeagent_${listing.id}`;
 
   const guestEmail = typeof body.guestEmail === "string" ? body.guestEmail.trim().slice(0, 254) : undefined;
 
-  const msg = appendMessage({
-    listingId: listing.id,
-    hostId,
-    guestSessionId,
-    sender: "guest",
-    guestName,
-    guestEmail: guestEmail?.length ? guestEmail : undefined,
-    body: `[BeeAgent] ${text}`,
+  return partnerIdempotentJson(req, () => {
+    const msg = appendMessage({
+      listingId: listing.id,
+      hostId,
+      guestSessionId,
+      sender: "guest",
+      guestName,
+      guestEmail: guestEmail?.length ? guestEmail : undefined,
+      body: `[BeeAgent] ${text}`,
+    });
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        messageId: msg.id,
+        listingId: listing.id,
+        conversation_key: conversationKey || null,
+      },
+    };
   });
-
-  return partnerJson({ ok: true, messageId: msg.id, listingId: listing.id }, req);
 }

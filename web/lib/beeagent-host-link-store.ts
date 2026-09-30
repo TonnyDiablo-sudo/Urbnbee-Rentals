@@ -2,6 +2,7 @@ import "server-only";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
+import { replaceBeeagentLinks, scheduleMysql } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 const DATA_FILE = join(getDataDir(), "beeagent-host-links.json");
@@ -20,15 +21,24 @@ type PendingCode = {
   expiresAt: string;
 };
 
+export type PendingProvisionRecord = {
+  hostId: string;
+  beeagentCustomerId: number;
+  email: string;
+  createdAt: string;
+};
+
 type Snapshot = {
   version: 1;
   links: BeeagentHostLinkRecord[];
   pendingCodes: PendingCode[];
+  pendingProvisions?: PendingProvisionRecord[];
 };
 
 let linksByHostId = new Map<string, BeeagentHostLinkRecord>();
 let linksByCustomerId = new Map<number, BeeagentHostLinkRecord>();
 let pendingByCode = new Map<string, PendingCode>();
+let pendingProvisionsByHostId = new Map<string, PendingProvisionRecord>();
 let cachedMtimeMs = 0;
 
 function nowIso() {
@@ -42,9 +52,11 @@ function persist() {
       version: 1,
       links: [...linksByHostId.values()],
       pendingCodes: [...pendingByCode.values()],
+      pendingProvisions: [...pendingProvisionsByHostId.values()],
     };
     writeFileSync(DATA_FILE, JSON.stringify(snapshot, null, 2), "utf8");
     if (existsSync(DATA_FILE)) cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
+    scheduleMysql(() => replaceBeeagentLinks(snapshot.links, snapshot.pendingCodes));
   } catch (e) {
     console.warn("[beeagent-host-link] persist failed:", e);
   }
@@ -58,6 +70,7 @@ function reload() {
     linksByHostId.clear();
     linksByCustomerId.clear();
     pendingByCode.clear();
+    pendingProvisionsByHostId.clear();
     for (const l of data.links ?? []) {
       if (!l.hostId || !Number.isFinite(l.beeagentCustomerId)) continue;
       linksByHostId.set(l.hostId, l);
@@ -67,6 +80,10 @@ function reload() {
     for (const p of data.pendingCodes ?? []) {
       if (new Date(p.expiresAt).getTime() <= now) continue;
       pendingByCode.set(normalizeLinkCode(p.code), p);
+    }
+    for (const p of data.pendingProvisions ?? []) {
+      if (!p?.hostId || !Number.isFinite(p.beeagentCustomerId)) continue;
+      pendingProvisionsByHostId.set(p.hostId, p);
     }
     cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
   } catch (e) {
@@ -133,6 +150,7 @@ export function upsertBeeagentHostLink(input: {
   };
   linksByHostId.set(input.hostId, record);
   linksByCustomerId.set(input.beeagentCustomerId, record);
+  pendingProvisionsByHostId.delete(input.hostId);
   persist();
   return record;
 }
@@ -153,6 +171,35 @@ function purgeExpiredCodes() {
   for (const [k, p] of pendingByCode.entries()) {
     if (new Date(p.expiresAt).getTime() <= now) pendingByCode.delete(k);
   }
+}
+
+export function upsertPendingProvision(input: {
+  hostId: string;
+  beeagentCustomerId: number;
+  email: string;
+}): PendingProvisionRecord {
+  syncIfStale();
+  const record: PendingProvisionRecord = {
+    hostId: input.hostId,
+    beeagentCustomerId: input.beeagentCustomerId,
+    email: input.email.trim().toLowerCase(),
+    createdAt: nowIso(),
+  };
+  pendingProvisionsByHostId.set(input.hostId, record);
+  persist();
+  return record;
+}
+
+export function deleteBeeagentHostLink(hostId: string): BeeagentHostLinkRecord | undefined {
+  syncIfStale();
+  const prev = linksByHostId.get(hostId);
+  if (prev) {
+    linksByHostId.delete(hostId);
+    linksByCustomerId.delete(prev.beeagentCustomerId);
+  }
+  pendingProvisionsByHostId.delete(hostId);
+  persist();
+  return prev;
 }
 
 export function consumeLinkCode(code: string): { hostId: string } | undefined {

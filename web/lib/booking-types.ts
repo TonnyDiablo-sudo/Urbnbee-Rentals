@@ -4,11 +4,32 @@ import type { BookingDepositRecord } from "@/lib/booking-deposit-types";
 export type BookingStatus =
   | "AWAITING_PAYMENT"
   | "PENDING"
+  | "PENDING_HOST"
   | "AWAITING_DETAILS"
   | "CONFIRMED"
   | "REJECTED"
   | "CANCELLED"
-  | "COMPLETED";
+  | "COMPLETED"
+  | "EXPIRED";
+
+export type BookingPaymentStatus =
+  | "unpaid"
+  | "paid"
+  | "refunded"
+  | "partially_refunded"
+  | "failed";
+
+export type BookingContractStatus = "not_required" | "pending" | "signed";
+
+export type BookingActor = "host" | "guest" | "system" | "beeagent" | "admin";
+
+export type BookingTransitionEvent = {
+  at: string;
+  actor: BookingActor;
+  from: BookingStatus;
+  to: BookingStatus;
+  reason?: string;
+};
 
 /** Por qué se devolvió el dinero de una reserva ya pagada. */
 export type BookingRefundReason = "host_rejected";
@@ -30,6 +51,9 @@ export type BookingRecord = {
   platformFeeMxn?: number;
   cleaningFeeMxn: number;
   status: BookingStatus;
+  paymentStatus?: BookingPaymentStatus;
+  contractStatus?: BookingContractStatus;
+  lifecycle?: BookingTransitionEvent[];
   /** 6 dígitos — consulta sin cuenta */
   token: string;
   /** Usuario registrado que reserva (obligatorio en flujo actual). */
@@ -38,6 +62,8 @@ export type BookingRecord = {
   usedMembershipPass?: boolean;
   paidAt?: string;
   stripeCheckoutSessionId?: string;
+  /** Dónde se cobró la estancia. Sin esto se asume la cuenta de Cabibee. */
+  chargedVia?: "platform" | "host";
   /** PaymentIntent del cobro de la estancia — necesario para devolver. */
   stripePaymentIntentId?: string;
   refundedAt?: string;
@@ -50,6 +76,9 @@ export type BookingRecord = {
   hostAdjustedCheckIn?: string;
   hostAdjustedCheckOut?: string;
   hostAdjustedListingId?: string;
+  /** Liga del bot (booking-link). */
+  beeagentRef?: string;
+  conversationKey?: string;
   /** Contrato de esta reserva. Se genera al aceptar (o al confirmar instantáneo). */
   contract?: BookingContractRecord;
   /** Depósito pactado. Cabibee solo documenta; no retiene el dinero. */

@@ -6,7 +6,14 @@ import type {
   VerificationRegion,
   VerificationSubscriptionStatus,
 } from "@/lib/verification-types";
+import {
+  applyHostEntitlement,
+  getHostEntitlement,
+  HOST_SKU_BOOKING_ENGINE,
+  hostEntitlementAllowsAccess,
+} from "@/lib/host-entitlements";
 import { membershipCatalogHasPricedPlan } from "@/lib/membership-plans-store";
+import { scheduleMysql, upsertVerificationRow } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 const DATA_FILE = join(getDataDir(), "guest-verification.json");
@@ -22,6 +29,9 @@ function persist() {
     };
     writeFileSync(DATA_FILE, JSON.stringify(snapshot, null, 2), "utf8");
     if (existsSync(DATA_FILE)) cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
+    scheduleMysql(async () => {
+      for (const r of snapshot.verifications) await upsertVerificationRow(r);
+    });
   } catch (e) {
     console.warn("[verification-store] persist failed:", e);
   }
@@ -247,19 +257,49 @@ export function isHostIdentityVerified(userId: string): boolean {
   return Boolean(getVerification(userId)?.hostVerifiedAt);
 }
 
+function entitlementStatusFromLegacy(
+  status: VerificationSubscriptionStatus | undefined
+): "active" | "past_due" | "cancelled" | null {
+  if (status === "active" || status === "trialing") return "active";
+  if (status === "past_due") return "past_due";
+  if (status === "canceled" || status === "unpaid") return "cancelled";
+  return null;
+}
+
+function backfillEngineFromLegacyMembership(hostId: string) {
+  if (getHostEntitlement(hostId, HOST_SKU_BOOKING_ENGINE)) return;
+  const v = getVerification(hostId);
+  const mapped = entitlementStatusFromLegacy(v?.hostSubscriptionStatus);
+  if (!mapped || mapped === "cancelled") return;
+  applyHostEntitlement({
+    hostId,
+    sku: HOST_SKU_BOOKING_ENGINE,
+    status: mapped,
+    source: "cabibee_direct",
+    stripeSubscriptionId: v?.hostStripeSubscriptionId,
+    currentPeriodEnd: v?.hostCurrentPeriodEnd,
+  });
+}
+
 export function isHostMembershipActive(userId: string): boolean {
+  backfillEngineFromLegacyMembership(userId);
+  const engine = getHostEntitlement(userId, HOST_SKU_BOOKING_ENGINE);
+  if (engine) return hostEntitlementAllowsAccess(engine.status);
   const s = getVerification(userId)?.hostSubscriptionStatus;
-  return s === "active" || s === "trialing";
+  return s === "active" || s === "trialing" || s === "past_due";
 }
 
 /**
- * El motor de reservas de un anuncio lo enciende la membresía de anfitrión. Mientras
- * el catálogo no venda ningún plan de anfitrión, el candado queda abierto: si se
- * cerrara, ningún anuncio podría recibir reservas porque no habría nada que comprar.
+ * El motor lo enciende `cabibee_booking_engine`. Mientras el catálogo no venda
+ * un plan de anfitrión, el candado queda abierto: si se cerrara, nadie podría
+ * reservar porque el founder aún no cobra el motor.
  */
 export function hostAcceptsBookings(hostId: string): boolean {
+  backfillEngineFromLegacyMembership(hostId);
+  const engine = getHostEntitlement(hostId, HOST_SKU_BOOKING_ENGINE);
+  if (engine) return hostEntitlementAllowsAccess(engine.status);
   if (!membershipCatalogHasPricedPlan("host")) return true;
-  return isHostMembershipActive(hostId);
+  return false;
 }
 
 /**

@@ -47,11 +47,13 @@ type BookingRow = {
 const statusLabel: Record<string, string> = {
   AWAITING_PAYMENT: "Esperando pago del huésped",
   PENDING: "Pendiente de tu respuesta",
+  PENDING_HOST: "Pendiente de tu respuesta",
   AWAITING_DETAILS: "Esperando datos huésped",
   CONFIRMED: "Confirmada",
   REJECTED: "Rechazada",
   CANCELLED: "Cancelada",
   COMPLETED: "Completada",
+  EXPIRED: "Expirada (sin pago)",
 };
 
 export function HostRequestsClient() {
@@ -117,7 +119,7 @@ export function HostRequestsClient() {
           <p className="text-sm text-[#888]">Aún no hay solicitudes de reserva.</p>
         )}
         {bookings.map((b) => {
-          const pending = b.status === "PENDING";
+          const pending = b.status === "PENDING" || b.status === "PENDING_HOST";
           const awaitingPay = b.status === "AWAITING_PAYMENT";
           return (
             <div

@@ -84,6 +84,17 @@ if (dbUrl) {
     console.error("[start] db-migrate falló con código", mig.status);
     process.exit(mig.status ?? 1);
   }
+  const syncScript = join(cwd, "scripts", "json-to-mysql.mjs");
+  console.log("[start] sincronizando JSON → MySQL");
+  const sync = spawnSync(process.execPath, [syncScript], {
+    stdio: "inherit",
+    cwd,
+    env: process.env,
+  });
+  if (sync.status !== 0) {
+    console.error("[start] json-to-mysql falló con código", sync.status);
+    process.exit(sync.status ?? 1);
+  }
 }
 
 if (process.env.URBNBEE_ADMIN_EMAIL?.trim()) {

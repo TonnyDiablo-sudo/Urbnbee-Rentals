@@ -2,12 +2,15 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { settleBookingCheckoutSession } from "@/lib/booking-payment-settle";
+import { applyHostEntitlement, HOST_SKU_BOOKING_ENGINE } from "@/lib/host-entitlements";
+import type { HostEntitlementStatus } from "@/lib/host-entitlement-types";
 import { grantHostVerification, syncHostBadgeToListings } from "@/lib/host-verification";
 import { MEMBERSHIP_PASS_KIND } from "@/lib/membership-checkout";
 import { settleScreeningCheckoutSession } from "@/lib/screening-service";
 import { SCREENING_KIND } from "@/lib/screening-types";
 import { isMembershipPlanCode } from "@/lib/membership-plans-store";
 import { MEMBERSHIP_PLAN_AUDIENCE } from "@/lib/membership-plans-types";
+import { stripeEventBelongsToCabibee } from "@/lib/stripe-app-meta";
 import { constructStripeWebhookEvent, getStripe } from "@/lib/stripe-server";
 import {
   grantBookingPass,
@@ -37,6 +40,18 @@ function mapSubStatus(status: Stripe.Subscription.Status): VerificationSubscript
       return "none";
     default:
       return "none";
+  }
+}
+
+function mapEntitlementStatus(status: Stripe.Subscription.Status): HostEntitlementStatus {
+  switch (status) {
+    case "active":
+    case "trialing":
+      return "active";
+    case "past_due":
+      return "past_due";
+    default:
+      return "cancelled";
   }
 }
 
@@ -76,6 +91,14 @@ async function syncFromSubscription(sub: Stripe.Subscription, explicitUserId?: s
       hostStripeSubscriptionId: sub.id,
       hostSubscriptionStatus: mapSubStatus(sub.status),
       hostCurrentPeriodEnd: end,
+    });
+    applyHostEntitlement({
+      hostId: userId,
+      sku: HOST_SKU_BOOKING_ENGINE,
+      status: mapEntitlementStatus(sub.status),
+      source: "cabibee_direct",
+      stripeSubscriptionId: sub.id,
+      currentPeriodEnd: end,
     });
     syncHostBadgeToListings(userId);
     return;
@@ -149,12 +172,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Stripe no configurado." }, { status: 503 });
   }
 
+  if (!stripeEventBelongsToCabibee(event)) {
+    return NextResponse.json({ ignored: "not_cabibee" });
+  }
+
   try {
     if (event.type.startsWith("identity.verification_session.")) {
       const session = event.data.object as Stripe.Identity.VerificationSession;
       syncIdentityFromSession(session);
     } else {
       switch (event.type) {
+        case "checkout.session.async_payment_succeeded":
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
           // Dos cobros distintos llegan como pago único: el pase de membresía y la

@@ -12,6 +12,13 @@ function isInRange(d: Date, start: Date | null, end: Date | null) {
   if (!start || !end) return false;
   return d > start && d < end;
 }
+function parseIsoLocal(iso?: string): Date | null {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
 function localISO(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -121,8 +128,13 @@ type Props = {
   depositMxn?: number;
   /** Si se pasa, el flujo exige usuario registrado y pago antes de confirmar. */
   listingId?: string;
+  /** Si es false, el anuncio queda en directorio: chat/contacto, sin «Reserva con cuenta». */
+  bookable?: boolean;
   /** Para cancel_url de Stripe y enlaces de login */
   listingSlug?: string;
+  initialCheckIn?: string;
+  initialCheckOut?: string;
+  bookingRef?: string;
   /** Rutas propias de la app instalada; sin esto se usan las del sitio web. */
   appRoutes?: {
     login: string;
@@ -140,14 +152,20 @@ export function AvailabilityCalendar({
   nightlyPriceOverrides,
   depositMxn = 0,
   listingId,
+  bookable = true,
   listingSlug = "",
+  initialCheckIn,
+  initialCheckOut,
+  bookingRef,
   appRoutes,
 }: Props) {
   const today = new Date(); today.setHours(0,0,0,0);
-  const [baseMonth, setBaseMonth] = useState(today.getMonth());
-  const [baseYear, setBaseYear] = useState(today.getFullYear());
-  const [checkin, setCheckin] = useState<Date | null>(null);
-  const [checkout, setCheckout] = useState<Date | null>(null);
+  const seedIn = parseIsoLocal(initialCheckIn);
+  const seedOut = parseIsoLocal(initialCheckOut);
+  const [baseMonth, setBaseMonth] = useState((seedIn ?? today).getMonth());
+  const [baseYear, setBaseYear] = useState((seedIn ?? today).getFullYear());
+  const [checkin, setCheckin] = useState<Date | null>(seedIn);
+  const [checkout, setCheckout] = useState<Date | null>(seedOut && seedIn && seedOut > seedIn ? seedOut : null);
   const [hover, setHover] = useState<Date | null>(null);
   const [sessionUser, setSessionUser] = useState<{
     fullName: string;
@@ -334,7 +352,13 @@ export function AvailabilityCalendar({
         </div>
       )}
 
-      {listingId && (
+      {listingId && !bookable && (
+        <p className="mt-4 rounded border bg-[#f7f7f7] p-3 text-sm leading-relaxed text-[#484848]" style={{ borderColor: "#ebebeb" }}>
+          Este anfitrión todavía no recibe reservas dentro de Cabibee. Puedes escribirle por el chat o usar sus datos de contacto.
+        </p>
+      )}
+
+      {listingId && bookable && (
         <div className="mt-4 space-y-3 border-t pt-4 text-left" style={{ borderColor: "#ebebeb" }}>
           <p className="text-xs font-semibold uppercase tracking-wide text-[#484848]">Reserva con cuenta</p>
           {sessionLoading && <p className="text-sm text-[#888]">Comprobando sesión…</p>}
@@ -427,6 +451,7 @@ export function AvailabilityCalendar({
         </div>
       )}
 
+      {!(listingId && !bookable) && (
       <button
         type="button"
         disabled={
@@ -458,6 +483,7 @@ export function AvailabilityCalendar({
                 listingId,
                 checkIn: localISO(checkin),
                 checkOut: localISO(checkout),
+                ref: bookingRef || undefined,
               }),
             });
             const data = await res.json().catch(() => ({}));
@@ -482,34 +508,8 @@ export function AvailabilityCalendar({
               setBookingErr("Respuesta incompleta del servidor.");
               return;
             }
-
-            const co = await fetch(`/api/bookings/${booking.id}/checkout`, {
-              method: "POST",
-              credentials: "include",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                cancelPath: reservePath,
-                returnPath: appRoutes?.successPath,
-              }),
-            });
-            const pay = await co.json().catch(() => ({}));
-            if (!co.ok) {
-              setBookingErr(typeof pay.error === "string" ? pay.error : "No se pudo iniciar el pago.");
-              return;
-            }
-            if (typeof pay.checkoutUrl === "string" && pay.checkoutUrl.startsWith("http")) {
-              window.location.assign(pay.checkoutUrl);
-              return;
-            }
-            if (pay.simulatePayment) {
-              setReserveDone({
-                token: booking.token,
-                bookingId: booking.id,
-                needsDemoPayment: true,
-              });
-              return;
-            }
-            setBookingErr("No se obtuvo enlace de pago.");
+            window.location.assign(`/contrato/${booking.token}?pay=1`);
+            return;
           } catch {
             setBookingErr("Error de red. Intenta de nuevo.");
           } finally {
@@ -527,12 +527,13 @@ export function AvailabilityCalendar({
                 : reserveDone
                   ? "Listo"
                   : checkin && checkout
-                    ? "Reservar y pagar"
+                    ? "Reservar"
                     : "Elige fechas primero"
           : checkin && checkout
             ? "Solicitar una reserva"
             : "Comprobar disponibilidad"}
       </button>
+      )}
     </div>
   );
 }

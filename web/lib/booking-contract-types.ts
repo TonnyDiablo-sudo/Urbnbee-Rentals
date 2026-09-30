@@ -10,6 +10,7 @@ export type BookingContractEvent = {
   action: string;
   detail?: string;
   ip?: string;
+  userAgent?: string;
 };
 
 export type BookingContractSnapshot = {
@@ -62,5 +63,9 @@ export type BookingContractRecord = {
   guestAcceptedAt?: string;
   guestAcceptedName?: string;
   guestAcceptedIp?: string;
+  guestAcceptedUserAgent?: string;
+  /** Texto exacto que el huésped vio y aceptó (sin la firma posterior). */
+  acceptedPlainText?: string;
+  acceptedSha256?: string;
   events: BookingContractEvent[];
 };

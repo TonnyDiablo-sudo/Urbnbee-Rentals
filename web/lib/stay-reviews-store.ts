@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
 import type { StayReviewKind, StayReviewRecord } from "@/lib/stay-review-types";
+import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 const DATA_FILE = join(getDataDir(), "stay-reviews.json");
@@ -14,6 +15,7 @@ function persist() {
     ensureDir(getDataDir());
     writeFileSync(DATA_FILE, JSON.stringify({ version: 1, reviews: rows }, null, 2), "utf8");
     if (existsSync(DATA_FILE)) cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
+    scheduleMysql(() => upsertJsonBlob("stay-reviews", { version: 1, reviews: rows }));
   } catch (e) {
     console.warn("[stay-reviews] persist failed:", e);
   }

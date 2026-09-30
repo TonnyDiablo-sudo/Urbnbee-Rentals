@@ -2,6 +2,7 @@ import "server-only";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import type { BlogPost } from "@/lib/blog-types";
+import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 const DATA_FILE = join(getDataDir(), "blog-published-posts.json");
@@ -18,6 +19,7 @@ function persist() {
       "utf8"
     );
     if (existsSync(DATA_FILE)) cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
+    scheduleMysql(() => upsertJsonBlob("blog-published-posts", { version: 1, posts: rows }));
   } catch (e) {
     console.warn("[blog-published-store] persist failed:", e);
   }

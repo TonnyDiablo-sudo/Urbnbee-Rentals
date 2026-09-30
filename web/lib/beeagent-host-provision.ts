@@ -2,18 +2,19 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import {
+  consumeLinkCode,
+  getBeeagentLinkForCustomer,
+  getBeeagentLinkForHost,
+  upsertBeeagentHostLink,
+  upsertPendingProvision,
+} from "@/lib/beeagent-host-link-store";
+import {
   createUser,
   findUserByEmail,
   findUserById,
   listListingsForHost,
-  setUserRole,
   upsertHostProfile,
 } from "@/lib/marketplace-store";
-import {
-  getBeeagentLinkForCustomer,
-  upsertBeeagentHostLink,
-  consumeLinkCode,
-} from "@/lib/beeagent-host-link-store";
 
 function parseCustomerId(v: unknown): number | null {
   const n = typeof v === "number" ? v : typeof v === "string" ? Number(v.trim()) : NaN;
@@ -28,43 +29,6 @@ function parseEmail(v: unknown): string | null {
   return email;
 }
 
-async function ensureHostUser(input: {
-  email: string;
-  fullName: string;
-  phone?: string;
-}): Promise<{ userId: string; created: boolean }> {
-  const existing = findUserByEmail(input.email);
-  if (existing) {
-    if (existing.role === "host" || existing.role === "admin") {
-      upsertHostProfile(existing.id, {
-        phone: input.phone,
-        email: input.email,
-      });
-      return { userId: existing.id, created: false };
-    }
-    if (existing.role === "guest") {
-      const upgraded = setUserRole(existing.id, "host");
-      if (!upgraded) throw new Error("UPGRADE_FAILED");
-      upsertHostProfile(upgraded.id, {
-        phone: input.phone ?? upgraded.phone,
-        email: input.email,
-      });
-      return { userId: upgraded.id, created: false };
-    }
-    throw new Error("EMAIL_NOT_HOST_ELIGIBLE");
-  }
-
-  const passwordHash = await bcrypt.hash(randomBytes(32).toString("hex"), 11);
-  const user = createUser({
-    email: input.email,
-    passwordHash,
-    fullName: input.fullName.trim() || "Anfitrión Cabibee",
-    phone: input.phone,
-    role: "host",
-  });
-  return { userId: user.id, created: true };
-}
-
 export type ProvisionResult =
   | {
       ok: true;
@@ -73,8 +37,9 @@ export type ProvisionResult =
       created: boolean;
       linked: boolean;
       listings_count: number;
+      pending_confirm?: boolean;
     }
-  | { ok: false; error: string; status: number };
+  | { ok: false; error: string; status: number; code?: string };
 
 export async function provisionHostFromBeeagent(body: {
   beeagent_customer_id?: unknown;
@@ -88,7 +53,6 @@ export async function provisionHostFromBeeagent(body: {
     return { ok: false, error: "Requiere beeagent_customer_id (entero) y email válido.", status: 400 };
   }
 
-  const other = getBeeagentLinkForCustomer(beeagentCustomerId);
   const fullName =
     typeof body.full_name === "string" && body.full_name.trim()
       ? body.full_name.trim()
@@ -98,40 +62,85 @@ export async function provisionHostFromBeeagent(body: {
       ? body.phone_e164.trim()
       : undefined;
 
-  try {
-    const { userId, created } = await ensureHostUser({ email, fullName, phone });
-    if (other && other.hostId !== userId) {
+  const existingCustomer = getBeeagentLinkForCustomer(beeagentCustomerId);
+  const existingEmail = findUserByEmail(email);
+
+  if (existingCustomer) {
+    if (existingEmail && existingCustomer.hostId === existingEmail.id) {
+      const user = findUserById(existingEmail.id);
       return {
-        ok: false,
-        error: "Este workspace BeeAgent ya está vinculado a otro anfitrión.",
-        status: 409,
+        ok: true,
+        host_id: existingEmail.id,
+        display_name: user?.fullName ?? fullName,
+        created: false,
+        linked: true,
+        listings_count: listListingsForHost(existingEmail.id).length,
       };
     }
-    upsertBeeagentHostLink({
-      hostId: userId,
-      beeagentCustomerId,
-      email,
-    });
-    const user = findUserById(userId);
-    const listings = listListingsForHost(userId);
     return {
-      ok: true,
-      host_id: userId,
-      display_name: user?.fullName ?? fullName,
-      created,
-      linked: true,
-      listings_count: listings.length,
+      ok: false,
+      error: "Este workspace BeeAgent ya está vinculado a otro anfitrión.",
+      status: 409,
+      code: "customer_already_linked",
     };
+  }
+
+  if (existingEmail) {
+    const already = getBeeagentLinkForHost(existingEmail.id);
+    if (already && already.beeagentCustomerId === beeagentCustomerId) {
+      return {
+        ok: true,
+        host_id: existingEmail.id,
+        display_name: existingEmail.fullName,
+        created: false,
+        linked: true,
+        listings_count: listListingsForHost(existingEmail.id).length,
+      };
+    }
+    return {
+      ok: false,
+      error: "Ese correo ya tiene cuenta en Cabibee. El anfitrión debe confirmar el vínculo en Integraciones.",
+      status: 409,
+      code: "host_exists_confirm_required",
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(randomBytes(32).toString("hex"), 11);
+  let userId: string;
+  try {
+    const user = createUser({
+      email,
+      passwordHash,
+      fullName,
+      phone,
+      role: "host",
+    });
+    userId = user.id;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (msg === "EMAIL_IN_USE" || msg === "EMAIL_NOT_HOST_ELIGIBLE") {
-      return { ok: false, error: "El correo no puede usarse como anfitrión.", status: 409 };
-    }
-    if (msg === "BEEAGENT_CUSTOMER_LINKED_TO_OTHER_HOST") {
-      return { ok: false, error: "Workspace BeeAgent ya vinculado a otro host.", status: 409 };
+    if (msg === "EMAIL_IN_USE") {
+      return {
+        ok: false,
+        error: "Ese correo ya tiene cuenta en Cabibee. El anfitrión debe confirmar el vínculo en Integraciones.",
+        status: 409,
+        code: "host_exists_confirm_required",
+      };
     }
     return { ok: false, error: "No se pudo provisionar el anfitrión.", status: 500 };
   }
+
+  upsertHostProfile(userId, { phone, email });
+  upsertPendingProvision({ hostId: userId, beeagentCustomerId, email });
+  const user = findUserById(userId);
+  return {
+    ok: true,
+    host_id: userId,
+    display_name: user?.fullName ?? fullName,
+    created: true,
+    linked: false,
+    pending_confirm: true,
+    listings_count: 0,
+  };
 }
 
 export type LinkByCodeResult =
@@ -148,8 +157,7 @@ export async function linkHostByBeeagentCode(body: {
   link_code?: unknown;
 }): Promise<LinkByCodeResult> {
   const beeagentCustomerId = parseCustomerId(body.beeagent_customer_id);
-  const code =
-    typeof body.link_code === "string" ? body.link_code.trim() : "";
+  const code = typeof body.link_code === "string" ? body.link_code.trim() : "";
   if (!beeagentCustomerId || !code) {
     return {
       ok: false,

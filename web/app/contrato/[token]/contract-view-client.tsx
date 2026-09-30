@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Lookup = {
+  id: string;
   status: string;
   token: string;
   guestName: string;
@@ -11,22 +12,26 @@ type Lookup = {
   contract?: {
     generated: boolean;
     accepted: boolean;
+    guestAccepted?: boolean;
     hostAcceptedAt?: string;
     hostAcceptedName?: string;
     guestAcceptedAt?: string;
     guestAcceptedName?: string;
+    acceptedSha256?: string;
     templateTitle?: string;
     lines?: string[];
   };
 };
 
-export function ContractViewClient({ token }: { token: string }) {
+export function ContractViewClient({ token, wantPay }: { token: string; wantPay?: boolean }) {
   const [booking, setBooking] = useState<Lookup | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [signedName, setSignedName] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [payErr, setPayErr] = useState<string | null>(null);
 
   async function load() {
     if (token.length !== 6) {
@@ -64,9 +69,55 @@ export function ContractViewClient({ token }: { token: string }) {
     return <div className="mx-auto max-w-2xl px-4 py-16 text-center text-[#888]">Cargando…</div>;
   }
 
-  const c = booking.contract;
+  const row = booking;
+  const c = row.contract;
   const pdfHref = `/api/bookings/contract?token=${encodeURIComponent(token)}&format=pdf`;
   const needsGuestSign = Boolean(c?.generated) && !c?.guestAcceptedAt;
+  const canPay = row.status === "AWAITING_PAYMENT" && Boolean(c?.guestAcceptedAt);
+
+  async function startPay() {
+    const bookingId = row.id;
+    setPayErr(null);
+    setPaying(true);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/checkout`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cancelPath: `/contrato/${token}?pay=1`,
+          returnPath: "/viajes",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPayErr(typeof data.error === "string" ? data.error : "No se pudo iniciar el pago.");
+        return;
+      }
+      if (typeof data.checkoutUrl === "string" && data.checkoutUrl.startsWith("http")) {
+        window.location.assign(data.checkoutUrl);
+        return;
+      }
+      if (data.simulatePayment) {
+        const sim = await fetch(`/api/bookings/${bookingId}/simulate-payment`, {
+          method: "POST",
+          credentials: "include",
+        });
+        const simData = await sim.json().catch(() => ({}));
+        if (!sim.ok) {
+          setPayErr(typeof simData.error === "string" ? simData.error : "No se pudo confirmar el pago (demo).");
+          return;
+        }
+        await load();
+        return;
+      }
+      setPayErr("No se obtuvo enlace de pago.");
+    } catch {
+      setPayErr("Error de red.");
+    } finally {
+      setPaying(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
@@ -110,8 +161,13 @@ export function ContractViewClient({ token }: { token: string }) {
         </>
       ) : (
         <p className="mt-6 text-sm text-[#888]">
-          El contrato se arma cuando el anfitrión acepta la solicitud (o al pagar si el anuncio es
-          de aceptación automática).
+          El contrato aún no está listo. Si acabas de reservar, recarga en un momento.
+        </p>
+      )}
+
+      {wantPay && needsGuestSign && (
+        <p className="mt-6 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+          Lee y firma el contrato para poder pagar.
         </p>
       )}
 
@@ -183,10 +239,31 @@ export function ContractViewClient({ token }: { token: string }) {
         </form>
       )}
 
+      {c?.acceptedSha256 && (
+        <p className="mt-4 font-mono text-[11px] break-all text-[#888]">
+          SHA-256: {c.acceptedSha256}
+        </p>
+      )}
+
       {c?.accepted && (
         <p className="mt-6 rounded border border-green-200 bg-green-50 p-3 text-sm text-green-900">
           Firmado por ambas partes. Puedes descargar el PDF cuando quieras.
         </p>
+      )}
+
+      {canPay && (
+        <div className="mt-6 space-y-3">
+          {payErr && <p className="text-sm text-red-600">{payErr}</p>}
+          <button
+            type="button"
+            disabled={paying}
+            onClick={() => void startPay()}
+            className="w-full rounded py-3 text-sm font-semibold text-black disabled:opacity-60"
+            style={{ backgroundColor: "#dcb81e" }}
+          >
+            {paying ? "Abriendo pago…" : "Pagar ahora"}
+          </button>
+        </div>
       )}
 
       <Link href={`/finish/${token}`} className="mt-8 inline-block text-sm text-[#dcb81e] underline">

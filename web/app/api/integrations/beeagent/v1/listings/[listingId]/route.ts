@@ -1,26 +1,27 @@
 import type { NextRequest } from "next/server";
-import { getListingById, getListingBySlug } from "@/lib/marketplace-store";
-import {
-  getPartnerApiSecret,
-  partnerJson,
-  partnerNotConfiguredResponse,
-  verifyPartnerBearer,
-  partnerAuthErrorResponse,
-} from "@/lib/beeagent-partner";
+import { requirePartnerLinkedHost } from "@/lib/beeagent-require-link";
+import { partnerJson } from "@/lib/beeagent-partner";
+import { listingPartnerView } from "@/lib/beeagent-listing-public";
+import { resolvePartnerListing } from "@/lib/beeagent-resolve-listing";
 
 export const runtime = "nodejs";
 
 type Ctx = { params: Promise<{ listingId: string }> };
 
 export async function GET(req: NextRequest, ctx: Ctx) {
-  if (!getPartnerApiSecret()) return partnerNotConfiguredResponse(req);
-  if (!verifyPartnerBearer(req)) return partnerAuthErrorResponse(req);
-
   const { listingId: raw } = await ctx.params;
-  const key = decodeURIComponent(raw);
-  const listing = getListingById(key) ?? getListingBySlug(key);
+  const listing = resolvePartnerListing(raw);
   if (!listing) {
     return partnerJson({ error: "Anuncio no encontrado." }, req, { status: 404 });
   }
-  return partnerJson({ listing }, req);
+
+  const hostId = req.nextUrl.searchParams.get("hostId")?.trim() || listing.hostId;
+  if (listing.hostId !== hostId) {
+    return partnerJson({ error: "Anuncio no encontrado." }, req, { status: 404 });
+  }
+
+  const gate = requirePartnerLinkedHost(req, listing.hostId);
+  if (!gate.ok) return gate.response;
+
+  return partnerJson({ listing: listingPartnerView(listing) }, req);
 }

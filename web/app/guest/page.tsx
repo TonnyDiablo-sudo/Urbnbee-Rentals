@@ -10,7 +10,7 @@ export default async function GuestDashboardPage() {
   const bookings = listBookingsForGuest(user.id);
   const threads = listAllThreadsForGuest(user.id);
   const activeBookings = bookings.filter((b) =>
-    ["AWAITING_PAYMENT", "PENDING", "AWAITING_DETAILS", "CONFIRMED"].includes(b.status)
+    ["AWAITING_PAYMENT", "PENDING", "PENDING_HOST", "AWAITING_DETAILS", "CONFIRMED"].includes(b.status)
   );
 
   return (

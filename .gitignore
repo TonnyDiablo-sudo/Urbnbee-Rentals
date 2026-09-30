@@ -15,6 +15,11 @@ web/data/marketplace-store.json
 web/data/screening-cases.json
 web/data/screening-price.json
 web/data/push-subscriptions.json
+web/data/host-payment-creds.json
+web/data/booking-transactions.json
+
+# Respaldos locales C0 (pueden tener PII de huéspedes/anfitriones)
+_backups/
 
 .DS_Store
 Thumbs.db

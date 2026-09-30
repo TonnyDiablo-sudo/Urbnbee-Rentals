@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "crypto";
 import {
   contractDepositNote,
   contractFacilitatorNote,
@@ -13,6 +14,7 @@ import type {
 } from "@/lib/booking-contract-types";
 import type { BookingRecord } from "@/lib/booking-types";
 import { attachDepositIfNeeded } from "@/lib/booking-deposit";
+import { confirmBookingAfterGuestContract } from "@/lib/booking-machine";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { findUserById, getHostProfile, getListingById } from "@/lib/marketplace-store";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
@@ -31,9 +33,14 @@ function event(
   actor: BookingContractActor,
   action: string,
   detail?: string,
-  ip?: string
+  ip?: string,
+  userAgent?: string
 ): BookingContractEvent {
-  return { at: nowIso(), actor, action, detail, ip };
+  return { at: nowIso(), actor, action, detail, ip, userAgent };
+}
+
+export function sha256Text(text: string): string {
+  return createHash("sha256").update(text, "utf8").digest("hex");
 }
 
 function cleanName(v: string | undefined, fallback: string): string {
@@ -109,8 +116,8 @@ function hostSignsOnGenerate(
 }
 
 /**
- * Crea el contrato si no existe. El anfitrión firma al aceptar, o al generar
- * una reserva instantánea si ya confirmó la plantilla en el anuncio.
+ * Crea el contrato si no existe (al solicitar la reserva).
+ * Si ya existe y el anfitrión acepta sin haber firmado, lo firma aquí.
  */
 export function ensureBookingContract(
   bookingId: string,
@@ -118,7 +125,16 @@ export function ensureBookingContract(
 ): BookingRecord | undefined {
   const booking = getBookingById(bookingId);
   if (!booking) return undefined;
-  if (booking.contract) return booking;
+  if (booking.contract) {
+    if (actor.role === "host" && actor.signName && !booking.contract.hostAcceptedAt) {
+      return hostSignBookingContract(bookingId, {
+        name: actor.signName,
+        userId: actor.userId,
+        ip: actor.ip,
+      }) ?? booking;
+    }
+    return booking;
+  }
 
   const snapshot = buildContractSnapshot(booking);
   if (!snapshot) return undefined;
@@ -143,7 +159,9 @@ export function ensureBookingContract(
         actor.role,
         "generated",
         actor.role === "system"
-          ? "Reserva instantánea: se usó la plantilla que el anfitrión configuró en el anuncio."
+          ? booking.status === "AWAITING_PAYMENT"
+            ? "Se generó el contrato al solicitar la reserva."
+            : "Reserva instantánea: se usó la plantilla que el anfitrión configuró en el anuncio."
           : "El anfitrión aceptó la solicitud y se generó el contrato.",
         actor.ip
       ),
@@ -160,7 +178,7 @@ export function ensureBookingContract(
     ],
   };
 
-  const saved = patchBookingRecord(bookingId, { contract });
+  const saved = patchBookingRecord(bookingId, { contract, contractStatus: "pending" });
   return saved ? attachDepositIfNeeded(saved) : saved;
 }
 
@@ -197,7 +215,7 @@ export function hostSignBookingContract(
 
 export function guestAcceptBookingContract(
   bookingId: string,
-  opts: { name: string; ip?: string; phone?: string; notes?: string }
+  opts: { name: string; ip?: string; userAgent?: string; phone?: string; notes?: string }
 ): BookingRecord | undefined {
   const booking = getBookingById(bookingId);
   if (!booking?.contract) return undefined;
@@ -206,27 +224,29 @@ export function guestAcceptBookingContract(
   if (!booking.contract.guestAcceptedAt) {
     if (name.length < 3) return undefined;
     const acceptedAt = nowIso();
+    const acceptedPlainText = contractPlainLines(booking.contract).join("\n");
     const contract: BookingContractRecord = {
       ...booking.contract,
       guestAcceptedAt: acceptedAt,
       guestAcceptedName: name,
       guestAcceptedIp: opts.ip,
+      guestAcceptedUserAgent: opts.userAgent?.slice(0, 300),
+      acceptedPlainText,
+      acceptedSha256: sha256Text(acceptedPlainText),
       events: [
         ...booking.contract.events,
-        event("guest", "signed", `El huésped firmó como «${name}».`, opts.ip),
+        event("guest", "signed", `El huésped firmó como «${name}».`, opts.ip, opts.userAgent),
       ],
     };
-    return patchBookingRecord(bookingId, {
+    const saved = patchBookingRecord(bookingId, {
       contract,
       guestPhone: opts.phone || booking.guestPhone,
       guestFinishNotes: opts.notes || booking.guestFinishNotes,
-      status: booking.status === "AWAITING_DETAILS" ? "CONFIRMED" : booking.status,
     });
+    return saved ? confirmBookingAfterGuestContract(saved.id) ?? saved : undefined;
   }
 
-  return booking.status === "AWAITING_DETAILS"
-    ? patchBookingRecord(bookingId, { status: "CONFIRMED" })
-    : booking;
+  return confirmBookingAfterGuestContract(bookingId) ?? booking;
 }
 
 export function contractIsFullyAccepted(c: BookingContractRecord | undefined): boolean {
@@ -286,6 +306,7 @@ export function contractPlainLines(c: BookingContractRecord): string[] {
     c.guestAcceptedAt
       ? `Huésped (${c.guestAcceptedName ?? s.guestName}): ${c.guestAcceptedAt.slice(0, 19).replace("T", " ")} UTC${c.guestAcceptedIp ? ` · IP ${c.guestAcceptedIp}` : ""}`
       : "Huésped: pendiente de firma",
+    c.acceptedSha256 ? `Huella SHA-256 del texto aceptado: ${c.acceptedSha256}` : "",
     "",
     s.facilitatorNote,
     "",

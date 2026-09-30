@@ -2,7 +2,8 @@ import "server-only";
 import type Stripe from "stripe";
 import type { BookingRecord } from "@/lib/booking-types";
 import { attachContractIfInstant } from "@/lib/booking-contract";
-import { completeBookingAfterPayment, getBookingById } from "@/lib/bookings-store";
+import { markBookingPaid, paymentStatusOf } from "@/lib/booking-machine";
+import { getBookingById } from "@/lib/bookings-store";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
 import { notifyHostBookingPaid } from "@/lib/push";
 
@@ -36,14 +37,17 @@ export function settleBookingCheckoutSession(
   if (!booking) {
     return { ok: false, status: 404, error: "Reserva no encontrada." };
   }
-  if (booking.paidAt) {
+  if (booking.paidAt || paymentStatusOf(booking) === "paid" || paymentStatusOf(booking) === "refunded") {
     return { ok: true, kind: "already_settled", booking };
   }
   if (booking.status !== "AWAITING_PAYMENT") {
     return { ok: false, status: 409, error: "Reserva ya procesada o inválida." };
   }
 
-  const fee = booking.platformFeeMxn ?? platformBookingFeeMxn(booking.estimatedTotalMxn);
+  const chargedVia =
+    session.metadata?.chargedVia === "host" || booking.chargedVia === "host" ? "host" : "platform";
+  const fee =
+    chargedVia === "host" ? 0 : (booking.platformFeeMxn ?? platformBookingFeeMxn(booking.estimatedTotalMxn));
   const expectedCents = Math.round((booking.estimatedTotalMxn + fee) * 100);
   const paidCents = session.amount_total ?? 0;
   if (paidCents > 0 && Math.abs(paidCents - expectedCents) > 2) {
@@ -56,7 +60,7 @@ export function settleBookingCheckoutSession(
       ? session.payment_intent
       : session.payment_intent?.id;
 
-  const next = completeBookingAfterPayment(bookingId, {
+  const next = markBookingPaid(bookingId, {
     stripeCheckoutSessionId: session.id,
     stripePaymentIntentId: paymentIntentId,
   });

@@ -4,7 +4,9 @@ import { join } from "path";
 import { randomBytes } from "crypto";
 import type { BookingRecord, BookingStatus } from "@/lib/booking-types";
 import { dateRangesOverlap } from "@/lib/booking-helpers";
+import { mysqlInsertBookingWithNights } from "@/lib/booking-nights";
 import { getListingById } from "@/lib/marketplace-store";
+import { scheduleMysql, upsertBookingRow } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 const DATA_FILE = join(getDataDir(), "bookings.json");
@@ -14,6 +16,7 @@ let cachedMtimeMs = 0;
 const ACTIVE_BLOCKING: BookingStatus[] = [
   "AWAITING_PAYMENT",
   "PENDING",
+  "PENDING_HOST",
   "AWAITING_DETAILS",
   "CONFIRMED",
 ];
@@ -23,6 +26,9 @@ function persist() {
     ensureDir(getDataDir());
     writeFileSync(DATA_FILE, JSON.stringify({ version: 1, bookings: rows }, null, 2), "utf8");
     if (existsSync(DATA_FILE)) cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
+    scheduleMysql(async () => {
+      for (const b of rows) await upsertBookingRow(b);
+    });
   } catch (e) {
     console.warn("[bookings-store] persist failed:", e);
   }
@@ -91,6 +97,13 @@ export function getBookingById(bookingId: string): BookingRecord | undefined {
   return rows.find((r) => r.id === bookingId);
 }
 
+export function findBookingByBeeagentRef(ref: string): BookingRecord | undefined {
+  syncIfStale();
+  const key = ref.trim();
+  if (!key) return undefined;
+  return rows.find((r) => r.beeagentRef === key);
+}
+
 export function listBookingsForHost(hostId: string): BookingRecord[] {
   syncIfStale();
   return [...rows]
@@ -146,27 +159,6 @@ export function patchBookingRecord(
   return next;
 }
 
-/** Tras Checkout exitoso: instant → CONFIRMED, approval → PENDING (pagado). */
-export function completeBookingAfterPayment(
-  bookingId: string,
-  opts?: { stripeCheckoutSessionId?: string; stripePaymentIntentId?: string }
-): BookingRecord | undefined {
-  syncIfStale();
-  const prev = getBookingById(bookingId);
-  if (!prev || prev.status !== "AWAITING_PAYMENT") return undefined;
-  if (prev.paidAt) return undefined;
-  const listing = getListingById(prev.listingId);
-  const mode = listing?.bookingApprovalMode ?? "approval";
-  const nextStatus = mode === "instant" ? "CONFIRMED" : "PENDING";
-  const paidAt = nowIso();
-  return patchBookingRecord(bookingId, {
-    status: nextStatus,
-    paidAt,
-    stripeCheckoutSessionId: opts?.stripeCheckoutSessionId ?? prev.stripeCheckoutSessionId,
-    stripePaymentIntentId: opts?.stripePaymentIntentId ?? prev.stripePaymentIntentId,
-  });
-}
-
 export function insertBooking(
   record: Omit<BookingRecord, "id" | "createdAt" | "updatedAt" | "token"> & { token?: string }
 ): BookingRecord {
@@ -176,12 +168,37 @@ export function insertBooking(
     ...record,
     token,
     id: id("bkg"),
+    paymentStatus: record.paymentStatus ?? "unpaid",
+    contractStatus: record.contractStatus ?? "pending",
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
   rows.push(b);
   persist();
   return b;
+}
+
+/** Crea la reserva; con MySQL ocupa las noches en la misma transacción. */
+export async function insertBookingLocked(
+  record: Omit<BookingRecord, "id" | "createdAt" | "updatedAt" | "token"> & { token?: string }
+): Promise<{ ok: true; booking: BookingRecord } | { ok: false; reason: "overlap" | "error" }> {
+  syncIfStale();
+  const token = record.token && !tokenExists(record.token) ? record.token : uniqueToken();
+  const booking: BookingRecord = {
+    ...record,
+    token,
+    id: id("bkg"),
+    paymentStatus: record.paymentStatus ?? "unpaid",
+    contractStatus: record.contractStatus ?? "pending",
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  };
+  const locked = await mysqlInsertBookingWithNights(booking);
+  if (locked === "overlap") return { ok: false, reason: "overlap" };
+  if (locked === "error") return { ok: false, reason: "error" };
+  rows.push(booking);
+  persist();
+  return { ok: true, booking };
 }
 
 /** Huésped con token 6 dígitos — solo campos de contacto en AWAITING_DETAILS. */

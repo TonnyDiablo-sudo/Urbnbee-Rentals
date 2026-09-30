@@ -104,6 +104,13 @@ export function BookingEngine() {
         <Row label="Listón «Miembro verificado»" value={data.ribbon ? "Sí" : "No"} />
       </dl>
 
+      <p className="text-sm leading-relaxed text-[#666]">
+        <WebLink path="/host/settings/pagos" className="font-medium underline">
+          Conecta tu Stripe
+        </WebLink>{" "}
+        para cobrar la estancia en tu cuenta. Si no lo haces, se sigue cobrando en Cabibee.
+      </p>
+
       {!data.identityVerified && data.identityEnabled && data.stripeConfigured && (
         <button
           type="button"

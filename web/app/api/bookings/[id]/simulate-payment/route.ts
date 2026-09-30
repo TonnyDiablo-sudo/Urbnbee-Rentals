@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { attachContractIfInstant } from "@/lib/booking-contract";
-import { completeBookingAfterPayment, getBookingById } from "@/lib/bookings-store";
+import { markBookingPaid } from "@/lib/booking-machine";
+import { getBookingById } from "@/lib/bookings-store";
 import { getSessionUser } from "@/lib/session";
 import { notifyHostBookingPaid } from "@/lib/push";
 import { allowSimulatedBookingPayment } from "@/lib/stripe-server";
@@ -25,8 +26,18 @@ export async function POST(_req: Request, ctx: Ctx) {
   if (booking.status !== "AWAITING_PAYMENT") {
     return NextResponse.json({ error: "Esta reserva no está pendiente de pago." }, { status: 409 });
   }
+  if (!booking.contract?.guestAcceptedAt) {
+    return NextResponse.json(
+      {
+        error: "Debes aceptar el contrato antes de pagar.",
+        needsContract: true,
+        token: booking.token,
+      },
+      { status: 409 }
+    );
+  }
 
-  const next = completeBookingAfterPayment(booking.id, { stripeCheckoutSessionId: "simulated" });
+  const next = markBookingPaid(booking.id, { stripeCheckoutSessionId: "simulated" });
   if (!next) {
     return NextResponse.json({ error: "No se pudo completar el pago." }, { status: 409 });
   }

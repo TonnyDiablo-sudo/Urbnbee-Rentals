@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { getBeeagentAgentStatus } from "@/lib/beeagent-agent-status";
 import { getBeeagentLinkForHost } from "@/lib/beeagent-host-link-store";
+import { beeagentConnectStartUrl } from "@/lib/beeagent-partner";
 import { getSessionUser } from "@/lib/session";
 
 const DEFAULT_SIGNUP = "https://www.urbnbeeai.com/signup";
@@ -17,5 +19,7 @@ export async function GET() {
     beeagentCustomerId: link?.beeagentCustomerId ?? null,
     linkedAt: link?.linkedAt ?? null,
     signupUrl: process.env.URBNBEEAI_SIGNUP_URL?.trim() || DEFAULT_SIGNUP,
+    startUrl: beeagentConnectStartUrl(),
+    agentStatus: getBeeagentAgentStatus(user.id) ?? null,
   });
 }

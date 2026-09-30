@@ -85,6 +85,7 @@ export function ListingActionBar(p: Props) {
         <AvailabilityCalendar
           listingId={p.listingId}
           listingSlug={p.slug}
+          bookable={p.bookable}
           pricePerNight={p.pricePerNight}
           cleaningFee={p.cleaningFee}
           depositMxn={p.depositMxn}

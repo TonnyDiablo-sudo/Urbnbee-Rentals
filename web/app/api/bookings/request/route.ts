@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBeeagentBookingLink } from "@/lib/beeagent-booking-links";
+import { ensureBookingContract } from "@/lib/booking-contract";
 import { getListingById } from "@/lib/marketplace-store";
 import {
   hasOverlappingActiveBooking,
-  insertBooking,
+  insertBookingLocked,
 } from "@/lib/bookings-store";
 import {
   countNights,
@@ -16,6 +18,7 @@ import {
   consumeBookingPass,
   hostAcceptsBookings,
   resolveGuestBookingAccess,
+  restoreBookingPass,
 } from "@/lib/verification-store";
 
 function clientIp(req: NextRequest): string {
@@ -47,6 +50,8 @@ export async function POST(req: NextRequest) {
   const listingId = typeof body.listingId === "string" ? body.listingId.trim() : "";
   const checkIn = typeof body.checkIn === "string" ? body.checkIn.trim() : "";
   const checkOut = typeof body.checkOut === "string" ? body.checkOut.trim() : "";
+  const ref = typeof body.ref === "string" ? body.ref.trim().slice(0, 80) : "";
+  const link = ref ? getBeeagentBookingLink(ref) : undefined;
 
   if (!listingId || !checkIn || !checkOut) {
     return NextResponse.json({ error: "Faltan fechas o alojamiento." }, { status: 400 });
@@ -127,7 +132,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const booking = insertBooking({
+  const created = await insertBookingLocked({
     listingId,
     hostId: listing.hostId,
     guestUserId: user.id,
@@ -142,7 +147,28 @@ export async function POST(req: NextRequest) {
     cleaningFeeMxn: cleaning,
     status: "AWAITING_PAYMENT",
     usedMembershipPass: usedMembershipPass || undefined,
+    beeagentRef: link && link.listingId === listingId ? link.ref : undefined,
+    conversationKey: link && link.listingId === listingId ? link.conversationKey : undefined,
   });
+  if (!created.ok) {
+    if (usedMembershipPass) restoreBookingPass(user.id);
+    if (created.reason === "overlap") {
+      return NextResponse.json(
+        { error: "Esas fechas ya tienen una solicitud o reserva activa." },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      { error: "No se pudo crear la reserva. Intenta de nuevo." },
+      { status: 500 }
+    );
+  }
+  const booking =
+    ensureBookingContract(created.booking.id, {
+      role: "system",
+      userId: listing.hostId,
+      ip,
+    }) ?? created.booking;
 
   return NextResponse.json({
     booking: {

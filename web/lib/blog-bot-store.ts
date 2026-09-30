@@ -2,6 +2,7 @@ import "server-only";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import type { BlogBotConfigRecord } from "@/lib/blog-bot-types";
+import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 const DATA_FILE = join(getDataDir(), "blog-bot-config.json");
@@ -72,6 +73,7 @@ function persist(record: BlogBotConfigRecord) {
     if (existsSync(DATA_FILE)) {
       cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
     }
+    scheduleMysql(() => upsertJsonBlob("blog-bot-config", payload));
   } catch (e) {
     console.warn("[blog-bot-store] persist failed:", e);
   }

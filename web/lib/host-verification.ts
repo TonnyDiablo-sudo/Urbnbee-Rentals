@@ -1,4 +1,5 @@
 import "server-only";
+import { applyHostEntitlement, HOST_SKU_BOOKING_ENGINE } from "@/lib/host-entitlements";
 import { setHostListingsVerified } from "@/lib/marketplace-store";
 import {
   getVerification,
@@ -73,6 +74,14 @@ export function setHostMembershipActive(
     hostSubscriptionStatus: active ? "active" : "canceled",
     hostCurrentPeriodEnd: active ? opts?.periodEnd : undefined,
     hostStripeSubscriptionId: active ? opts?.subscriptionId : undefined,
+  });
+  applyHostEntitlement({
+    hostId: userId,
+    sku: HOST_SKU_BOOKING_ENGINE,
+    status: active ? "active" : "cancelled",
+    source: "cabibee_direct",
+    stripeSubscriptionId: active ? opts?.subscriptionId : undefined,
+    currentPeriodEnd: active ? opts?.periodEnd : undefined,
   });
   return { membershipActive: active, listingsUpdated: syncHostBadgeToListings(userId) };
 }

@@ -6,21 +6,25 @@ import type { AdminBookingRow } from "@/lib/admin-data";
 const STATUS_COLORS: Record<string, string> = {
   AWAITING_PAYMENT: "bg-yellow-100 text-yellow-800",
   PENDING: "bg-blue-100 text-blue-800",
+  PENDING_HOST: "bg-blue-100 text-blue-800",
   CONFIRMED: "bg-green-100 text-green-800",
   COMPLETED: "bg-emerald-100 text-emerald-800",
   REJECTED: "bg-red-100 text-red-800",
   CANCELLED: "bg-gray-100 text-gray-600",
   AWAITING_DETAILS: "bg-purple-100 text-purple-800",
+  EXPIRED: "bg-gray-100 text-gray-600",
 };
 
 const STATUS_LABELS: Record<string, string> = {
   AWAITING_PAYMENT: "Esperando pago",
   PENDING: "Pendiente",
+  PENDING_HOST: "Pendiente anfitrión",
   CONFIRMED: "Confirmada",
   COMPLETED: "Completada",
   REJECTED: "Rechazada",
   CANCELLED: "Cancelada",
   AWAITING_DETAILS: "Espera datos",
+  EXPIRED: "Expirada",
 };
 
 const ALL_STATUSES = Object.keys(STATUS_LABELS);

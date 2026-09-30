@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ensureBookingContract } from "@/lib/booking-contract";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
+import { cabibeeMeta } from "@/lib/stripe-app-meta";
+import { recordBookingTransaction } from "@/lib/booking-transactions";
+import { getHostStripe } from "@/lib/host-stripe";
 import { getStripe, allowSimulatedBookingPayment } from "@/lib/stripe-server";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 import { appReturnPath } from "@/lib/app-return-path";
@@ -16,12 +20,25 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
 
   const { id } = await ctx.params;
-  const booking = getBookingById(id);
+  let booking = getBookingById(id);
   if (!booking || booking.guestUserId !== user.id) {
     return NextResponse.json({ error: "Reserva no encontrada." }, { status: 404 });
   }
   if (booking.status !== "AWAITING_PAYMENT") {
     return NextResponse.json({ error: "Esta reserva no está pendiente de pago." }, { status: 409 });
+  }
+  if (!booking.contract) {
+    booking = ensureBookingContract(booking.id, { role: "system", userId: booking.hostId }) ?? booking;
+  }
+  if (!booking.contract?.guestAcceptedAt) {
+    return NextResponse.json(
+      {
+        error: "Debes aceptar el contrato antes de pagar.",
+        needsContract: true,
+        token: booking.token,
+      },
+      { status: 409 }
+    );
   }
 
   const body = await req.json().catch(() => ({}));
@@ -33,7 +50,9 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   const cancelUrl = `${origin}${cancelPath}`;
 
   const listing = getListingById(booking.listingId);
-  const stripe = getStripe();
+  const hostStripe = getHostStripe(booking.hostId);
+  const chargedVia = hostStripe ? "host" : "platform";
+  const stripe = hostStripe ?? getStripe();
 
   if (!stripe) {
     if (!allowSimulatedBookingPayment()) {
@@ -51,9 +70,11 @@ export async function POST(req: NextRequest, ctx: Ctx) {
 
   const title = listing?.title ?? "Reserva Cabibee";
   const platformFeeMxn =
-    booking.platformFeeMxn ?? platformBookingFeeMxn(booking.estimatedTotalMxn);
+    chargedVia === "host"
+      ? 0
+      : (booking.platformFeeMxn ?? platformBookingFeeMxn(booking.estimatedTotalMxn));
   const stayCents = Math.max(1, Math.round(booking.estimatedTotalMxn * 100));
-  const feeCents = Math.max(0, Math.round(platformFeeMxn * 100));
+  const feeCents = chargedVia === "host" ? 0 : Math.max(0, Math.round(platformFeeMxn * 100));
   const totalCents = stayCents + feeCents;
   if (totalCents < 50) {
     return NextResponse.json({ error: "Importe de reserva demasiado bajo." }, { status: 400 });
@@ -92,17 +113,40 @@ export async function POST(req: NextRequest, ctx: Ctx) {
       ],
       success_url: `${origin}${appReturnPath(body.returnPath) ?? "/bookings/confirm"}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
-      metadata: {
+      metadata: cabibeeMeta({
         bookingId: booking.id,
         guestUserId: user.id,
+        hostId: booking.hostId,
+        chargedVia,
         stayTotalMxn: String(booking.estimatedTotalMxn),
         platformFeeMxn: String(platformFeeMxn),
+      }),
+      payment_intent_data: {
+        metadata: cabibeeMeta({
+          bookingId: booking.id,
+          guestUserId: user.id,
+          hostId: booking.hostId,
+          chargedVia,
+        }),
       },
       client_reference_id: booking.id,
     });
 
     if (session.id) {
-      patchBookingRecord(booking.id, { stripeCheckoutSessionId: session.id });
+      patchBookingRecord(booking.id, {
+        stripeCheckoutSessionId: session.id,
+        chargedVia,
+        platformFeeMxn: chargedVia === "host" ? 0 : platformFeeMxn,
+      });
+      recordBookingTransaction({
+        bookingId: booking.id,
+        hostId: booking.hostId,
+        chargedVia,
+        providerRef: session.id,
+        amountCents: totalCents,
+        currency: "mxn",
+        status: "created",
+      });
     }
 
     const url = session.url;

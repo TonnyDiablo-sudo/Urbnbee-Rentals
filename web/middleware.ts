@@ -39,7 +39,9 @@ export function middleware(req: NextRequest) {
   if (pathname.startsWith("/api/integrations/beeagent") && req.method === "OPTIONS") {
     return new NextResponse(null, { status: 204, headers: beeagentMiddlewarePreflightHeaders(req) });
   }
-  return NextResponse.next();
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-cabibee-path", `${pathname}${search}`);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {

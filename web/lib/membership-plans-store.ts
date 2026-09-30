@@ -12,6 +12,7 @@ import {
   type MembershipPlansSnapshot,
 } from "@/lib/membership-plans-types";
 import type { VerificationRegion } from "@/lib/verification-types";
+import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 const DATA_FILE = join(getDataDir(), "membership-plans.json");
@@ -87,6 +88,7 @@ function persist() {
     };
     writeFileSync(DATA_FILE, JSON.stringify(snapshot, null, 2), "utf8");
     if (existsSync(DATA_FILE)) cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
+    scheduleMysql(() => upsertJsonBlob("membership-plans", snapshot));
   } catch (e) {
     console.warn("[membership-plans] persist failed:", e);
   }

@@ -51,9 +51,13 @@ Riesgos:
 
 **Qué hacer:** pasar todo a MySQL (el esquema ya existe; amplíalo con lo de esta nota). Script de migración idempotente desde los JSON actuales. Reservas con candado a nivel base de datos para no reservar dos veces las mismas noches (transacción + `SELECT ... FOR UPDATE` sobre el listing, o tabla de noches ocupadas con índice único por `(listing_id, fecha)`).
 
+**C1 (2026-09-29):** `sql/002_c1_nights_and_json.sql` + `scripts/json-to-mysql.mjs` (arranque). Los stores siguen el JSON como caché y escriben MySQL. Crear/aceptar/rechazar reserva usa `urb_booking_nights` (índice único `listing_id + night_date`). Sin MySQL (dev local) el flujo JSON no cambia.
+
+**C3 (2026-09-29):** `lib/booking-machine.ts` es el único módulo que cambia el estado de reserva. `PENDING` viejo se trata como `PENDING_HOST`. Pago y contrato van en campos aparte. Impago 48 h → `EXPIRED`. `AWAITING_DETAILS` termina en `CONFIRMED` al firmar el huésped. Eventos en `lifecycle` (webhooks §9.4 = C10, no aquí).
+
 ### 2.2 El pago de una reserva puede no registrarse
 
-`app/api/webhooks/stripe/route.ts` solo procesa membresía (`mode === "subscription"`) y Stripe Identity. La reserva se marca pagada **solo** si el huésped regresa a `/bookings/confirm` (`POST /api/bookings/verify-session` → `completeBookingAfterPayment`). Si paga y cierra la pestaña, se queda en `AWAITING_PAYMENT` aunque Stripe ya cobró.
+`app/api/webhooks/stripe/route.ts` (C3): cierra el pago de la estancia en `checkout.session.completed` y `checkout.session.async_payment_succeeded` vía `settleBookingCheckoutSession` → `markBookingPaid`. `verify-session` es el camino rápido e idempotente.
 
 **Qué hacer:** el webhook tiene que cerrar el pago (`checkout.session.completed` con `mode === "payment"` y `payment_status === "paid"`, más `checkout.session.async_payment_succeeded`), buscando la reserva por `metadata.bookingId`. `verify-session` se queda como camino rápido, pero **idempotente**: el que llegue segundo no hace nada. Con §5, este webhook pasa a ser el webhook **por anfitrión**.
 
@@ -84,16 +88,9 @@ Problemas:
 
 ### 2.4 La API de integración no está acotada por anfitrión
 
-`lib/beeagent-partner.ts`: un solo secreto compartido (`URBNBEE_PARTNER_API_SECRET`) más un `hostId` que manda urbnbeeai. Hoy solo expone datos públicos, pero en cuanto exponga reservas y huéspedes, **cualquier error del lado de urbnbeeai expondría datos de otro anfitrión**.
+**C8 (2026-09-29):** `requirePartnerLinkedHost` en host, listings, listing y booking-leads. Hace falta Bearer + `X-Beeagent-Customer-Id` + vínculo activo. Si falta cualquiera: `403` (`customer_id_required` / `not_linked`).
 
-**Qué hacer:** toda ruta con datos privados (reservas, huéspedes, pagos, estado de membresía) exige:
-1. el Bearer del secreto de socio (autentica a urbnbeeai como plataforma), **y**
-2. el header `X-Beeagent-Customer-Id`, **y**
-3. que exista un vínculo activo en la tabla de vínculos entre ese `hostId` y ese `beeagent_customer_id`.
-
-Si falta cualquiera: `403`. Así, aunque urbnbeeai se equivoque de ID, Cabibee no entrega nada que no esté vinculado.
-
-Además, `POST /v1/hosts/provision` **enlaza por email sin comprobar nada**. Cualquiera que tenga en urbnbeeai el email de un anfitrión de Cabibee se quedaría con su cuenta. Quítale el enlace automático: si el email ya existe en Cabibee, responde `409 { code: "host_exists_confirm_required" }` y el enlace se hace por §8. Crear host nuevo por `provision` sí puede seguir (el huésped nunca lo usa; lo usa el vendedor de urbnbeeai al darle de alta un paquete), pero la cuenta nace sin contraseña y con `link` pendiente de confirmar por el anfitrión.
+`POST /v1/hosts/provision`: email existente → `409 { code: "host_exists_confirm_required" }` (no enlaza). Email nuevo → crea host sin contraseña usable, `linked: false`, `pending_confirm: true`. El vínculo lo confirma el anfitrión por §8.
 
 ---
 
@@ -114,16 +111,17 @@ Todos nacen apagados y en 0, igual que tus semillas. El **motor de reservas** in
 
 Y del lado de urbnbeeai, producto suyo (D9): la tool del bot "Cabibee" (id interno `host`, SKU `tool_host`). Hoy cuesta $9.90 y sube a $100/mes cuando el bot ya pueda ver disponibilidad y reservas (§9.2).
 
-Hoy **nada de esto existe como producto para anfitriones**. Solo se cobra la membresía del huésped (Price IDs en variables de entorno `STRIPE_PRICE_VERIFICATION_*`) y la comisión por reserva (`PLATFORM_BOOKING_FEE_PERCENT`). `urb_host_entitlements` existe en el esquema pero ningún código la usa.
+Los SKU de anfitrión se cobran con el catálogo local (`anfitrion_6` / `anfitrion_12` en `/admin/pricing`). C7 moverá esos montos a `pricing_catalog` de urbnbeeai. El huésped sigue con `pase_reserva` / `meses_6` / `meses_12`. Comisión por reserva: `PLATFORM_BOOKING_FEE_PERCENT` (Q1 abierta).
 
 ### 3.1 Derechos (entitlements) del anfitrión
 
-Cabibee es quien **hace cumplir** qué puede hacer cada anfitrión, así que Cabibee guarda los derechos:
+**C6 (2026-09-29):** Cabibee guarda los derechos en `urb_host_sku_entitlements` + `host-entitlements.json` (`lib/host-entitlements.ts`).
 
-- Tabla `host_entitlements`: `host_id`, `sku`, `status` (`active`, `past_due`, `cancelled`), `source` (`cabibee_direct` si lo compró en cabibee.com, `urbnbeeai_seller` si se lo vendió un vendedor de urbnbeeai), `stripe_subscription_id`, `current_period_end`, `updated_at`.
-- `cabibee_booking_engine` activo ⇒ `cabibee_host_verification` activo (derivado; no se cobra aparte).
-- Sin `cabibee_booking_engine`, el listing se sigue publicando como directorio (chat con el anfitrión, datos de contacto), pero **no** muestra "Reserva con cuenta" ni acepta `POST /api/bookings/request`.
-- Quien creó la suscripción en Stripe es quien procesa sus webhooks (por `metadata.app`, §6) y le avisa al otro sistema: si la vendió urbnbeeai, urbnbeeai llama a `POST /v1/hosts/{hostId}/entitlements` (§9.3); si la compró el anfitrión en cabibee.com, Cabibee manda `host.entitlements_changed` (§9.4).
+- Filas por `(host_id, sku)`: `status` (`active`, `past_due`, `cancelled`), `source` (`cabibee_direct`, `urbnbeeai_seller`, `derived`), `stripe_subscription_id`, `current_period_end`.
+- Membresía de anfitrión (Stripe o admin) escribe `cabibee_booking_engine` y deriva `cabibee_host_verification` (no se cobra aparte). `past_due` sigue abriendo el motor.
+- Sin motor: el listing sigue publicado (chat / contacto); no muestra «Reserva con cuenta» ni acepta `POST /api/bookings/request`. Mientras el catálogo no tenga plan de anfitrión con precio, el candado queda abierto (el founder aún no cobra el motor).
+- Checkout de anfitrión lleva `metadata.sku=cabibee_booking_engine`. `POST /v1/hosts/{hostId}/entitlements` = C9. `host.entitlements_changed` = C10. No los empiezo aquí.
+- `urb_host_entitlements` (plan_tier de 001) no se usa.
 
 ---
 
@@ -137,11 +135,7 @@ La moneda la decide Cabibee (D2). Hoy está fija en `mxn`; si la cambias por lis
 
 ### 4.2 Firma de contrato
 
-**No existe hoy.** Mínimo viable:
-- Plantilla de contrato por anfitrión (texto con variables: nombre del huésped, fechas, listing, total, reglas, política de cancelación). Opcional por listing.
-- El huésped la acepta **antes de pagar**: nombre completo tecleado + casilla "Acepto" + fecha y hora + IP + user agent. Se guarda el texto exacto que aceptó (no la plantilla, que puede cambiar) y un hash SHA-256 de ese texto.
-- PDF descargable para huésped y anfitrión.
-- Estado `contract_status` en la reserva (§2.3).
+**C5 (2026-09-29):** El contrato se genera al **solicitar** la reserva (`ensureBookingContract` en `/api/bookings/request`). El huésped firma en `/contrato/{token}` **antes de pagar**: nombre + casilla + IP + `user-agent`. Se guardan `acceptedPlainText` y `acceptedSha256` (SHA-256 del texto que vio, sin la firma posterior). Checkout y pago demo responden `409 needsContract` si no hay `guestAcceptedAt`. El calendario redirige a `/contrato/{token}?pay=1`; «Pagar ahora» aparece tras firmar. PDF incluye la huella. `contractStatus` `pending` → `signed` cuando ambas partes firman (en `AWAITING_PAYMENT` no se cambia el estado de la reserva). Si el anfitrión acepta después y aún no ha firmado, `ensureBookingContract` lo firma. Plantillas por listing / PDF / firma dual ya existían.
 
 ### 4.3 Bloqueo de fechas
 
@@ -152,6 +146,8 @@ Ya existe `listing.blockedDates` (el anfitrión bloquea a mano) y el calendario 
 ## 5. Pagos de la estancia al Stripe del anfitrión (D3)
 
 Hoy la estancia se cobra con Stripe Checkout en la cuenta de la plataforma (`STRIPE_SECRET_KEY`). Eso cambia: **la estancia se cobra en la cuenta de Stripe del propio anfitrión.**
+
+**C4 (2026-09-29):** `/host/settings/pagos` guarda `sk_`/`rk_` + `whsec_` cifrados (`HOST_PAYMENT_CREDS_KEY`). Webhook `POST /api/webhooks/stripe/host/[hostId]`. Si el anfitrión está conectado, Checkout usa su llave y **no** suma el 1% (Q1 abierta). Si no, sigue la cuenta de Cabibee para no tumbar reservas mientras el founder configura. Reembolso usa la misma cuenta que cobró.
 
 Copia el patrón que ya funciona en urbnbeeai (Payment Hub):
 
@@ -171,7 +167,7 @@ Copia el patrón que ya funciona en urbnbeeai (Payment Hub):
 Cabibee y urbnbeeai usan **la misma cuenta de Stripe** para suscripciones y membresías. Cada webhook recibe los eventos del otro. Regla:
 
 - **Todo** lo que Cabibee crea en la cuenta compartida lleva `metadata.app = "cabibee"`: Checkout Sessions, `subscription_data.metadata`, `payment_intent_data.metadata`, Customers, sesiones de Stripe Identity. Las facturas heredan la metadata de la suscripción.
-- El webhook de plataforma de Cabibee (`app/api/webhooks/stripe/route.ts`) **ignora** (responde `200 { ignored: "not_cabibee" }`) cualquier evento cuyo objeto no tenga `metadata.app === "cabibee"`. Compatibilidad: acepta también los objetos viejos sin `app` pero con `metadata.userId`, que son las membresías de huésped creadas antes de este cambio.
+- El webhook de plataforma de Cabibee (`app/api/webhooks/stripe/route.ts`) **ignora** (responde `200 { ignored: "not_cabibee" }`) cualquier evento cuyo objeto no tenga `metadata.app === "cabibee"`. Compatibilidad: acepta también los objetos viejos sin `app` pero con `metadata.userId`, `bookingId` o `kind` (membresías, reservas y screening creados antes de este cambio).
 - urbnbeeai hace lo mismo con `metadata.app = "urbnbee"`. Hoy urbnbeeai escucha `invoice.*` y guardaría como huérfanas las facturas de membresías de Cabibee; se arregla de su lado.
 - Las cuentas de Stripe **de los anfitriones** (§5) no son la compartida: ahí no aplica este filtro, porque cada anfitrión tiene su propio webhook.
 
@@ -207,6 +203,8 @@ Lo que hace Cabibee:
 ## 8. Conexión de cuentas Cabibee ↔ urbnbeeai (D10)
 
 Lo que ya existe y se reutiliza: códigos de vinculación de 10 minutos (`lib/beeagent-host-link-store.ts`, `POST /api/host/integrations/beeagent/link-code`, pantalla `/host/settings/integrations`) y `POST /v1/hosts/link`.
+
+**C8 (2026-09-29):** `/host/settings/integrations/connect?return_url=&state=` (origen de `return_url` en `URBNBEEAI_CONNECT_RETURN_ORIGINS`). «Permitir» genera el código de 10 min y redirige a `return_url?code=&state=`. Desde Integraciones: «Activar agente IA» → `URBNBEEAI_CONNECT_START_URL`. Desconectar en Cabibee y `DELETE /v1/hosts/:hostId/link`. Sin webhook `host.unlinked` (C10).
 
 ### 8.1 Camino principal: botón "Conectar" con redirección (sin copiar y pegar)
 
@@ -246,6 +244,8 @@ Desde ese momento §2.4 devuelve `403` a todo.
 ---
 
 ## 9. API de socio v2 (lo que el bot necesita)
+
+**C9 (2026-09-29):** `api_version: "v2"` en `/meta`. Host trae `entitlements` y `payments_connected`. Listings: `bookable` (publicado + motor + Stripe del anfitrión), moneda, noches mín., huéspedes, limpieza, reglas, cancelación. Availability / quote / booking-link usan `sumStayMxn` + `platformBookingFeeMxn` y el mismo candado de noches que el calendario. `booking-link` abre `/listings/{slug}?checkIn=&checkOut=&ref=`. Leads guardan `conversation_key`. Incoming `agent.status_changed` y `entitlements.changed` aplican estado/SKU. POSTs respetan `Idempotency-Key`. Webhooks salientes = C10. Chat al agente = C11.
 
 Base: `https://cabibee.com/api/integrations/beeagent/v1`. Todas con Bearer `URBNBEE_PARTNER_API_SECRET`. Las marcadas 🔒 además con `X-Beeagent-Customer-Id` y vínculo activo (§2.4). Respuestas en JSON, fechas `YYYY-MM-DD` en la zona del listing, montos como número con `currency` explícita.
 
@@ -367,9 +367,20 @@ C2 se puede hacer en cualquier momento y es chica: conviene sacarla pronto.
 
 | Fecha | Fase | Qué quedó / qué cambió | Cómo se probó |
 |---|---|---|---|
+| 2026-09-29 | C1–C9 | Código de C1–C9 a `main`/Railway (antes solo local). Arranque aplica `002`–`004` + `json-to-mysql`. Sin C10/C11. | `tsc --noEmit`. Push `main` → autodeploy Urbnbee Rentals. |
 | 2026-09-29 | urbnbeeai U2 | urbnbeeai etiqueta `metadata.app="urbnbee"` e ignora lo tuyo en su webhook (también tus objetos viejos con `metadata.userId`). | Deploy SUCCESS |
 | 2026-09-29 | urbnbeeai U1 | La tool se llama Cabibee y apunta a `https://cabibee.com`. Manda `X-Beeagent-Customer-Id` en **cada** llamada a `/v1`. Ya no acepta host ID a mano. Muestra el 409 `host_exists_confirm_required` como "usa un código". | Deploy SUCCESS |
 | 2026-09-29 | urbnbeeai U5+U6 | Catálogo con tus 5 planes + motor, en MXN y USD, y la API de §7 en producción. | 31 casos contra la base de prod; deploy SUCCESS |
 | 2026-09-29 | urbnbeeai U8 | Receptor de webhooks de §9.4 en producción. **C10 desbloqueado.** | 27 casos contra la base de prod con un agente de prueba |
-| 2026-09-29 | Cabibee C9 | **Pendiente de push.** El founder dice que C9 (API v2) quedó hecho y probado en local, pero no está en `main`. Súbelo y anota aquí las rutas exactas con un ejemplo de respuesta de cada una: con eso el agente de urbnbeeai programa las tools del bot (U7). | — |
-| | | | |
+| 2026-09-29 | C0 | Respaldo local de 7 JSON en `_backups/json-c0-2026-09-29/` (gitignore `_backups/`). Faltan en local: stay-reviews, membership-plans, beeagent-host-links, guest-verification, blog-bot-config. | `git pull` → `9c77bc7`. Copia de `web/data/*.json`. |
+| 2026-09-29 | C0 | Founder dijo que ya están las vars. **Sigo sin ver el proyecto Urbnbee Rentals:** `RAILWAY_TOKEN` de esta máquina es de `urbnbee-prod`; la sesión OAuth local está vencida (`invalid_grant`) y `railway login` no corre en modo no-interactivo. No pude leer `URBNBEE_DATA_DIR` / `URBNBEE_UPLOADS_DIR` ni el mount path. C0 sigue abierto; no C1. | `railway status` → `urbnbee-prod`. `railway whoami` sin token → login vencido. |
+| 2026-09-29 | C0 | Founder mostró Railway **Urbnbee Rentals** (workspace `superb-learning`, env production). Canvas: **MySQL** (`mysql-volume`) + **Urbnbee Rentals** (`www.cabibee.com`, volume `superb-learning-volume`). | Captura del canvas Railway. |
+| 2026-09-29 | C9 | API v2: meta, host entitlements/pagos, listings bookable, availability, quote, booking-link, bookings, guest-requirements, entitlements POST, agent-status, leads con conversation_key, webhook inbound. Idempotency-Key. Sin C10/C11. **Aviso al founder: ya puede avisar al agente de urbnbeeai.** | `tsc --noEmit`. Quote/availability 401/503 sin secreto; meta lista rutas v2. |
+| 2026-09-29 | C8 | Rutas privadas: Bearer + `X-Beeagent-Customer-Id` + vínculo. `provision` ya no enlaza por email (409 `host_exists_confirm_required`; host nuevo sin link). Connect por redirect + código. Disconnect local y DELETE link. Sin C10. No aviso a urbnbeeai (falta C9). | `tsc --noEmit`. Host/listings sin header → 403. return_url fuera de lista → 400. |
+| 2026-09-29 | C6 | `urb_host_sku_entitlements` + store. Membresía anfitrión = `cabibee_booking_engine` (+ verificación derivada). Sin motor: directorio, no request. Candado abierto si el catálogo host no tiene precio. No C9/C10. No aviso a urbnbeeai. | `tsc --noEmit`. Request 403 `hostNotBookable` si hay entitlement cancelled y plan host con precio. |
+| 2026-09-29 | C5 | Contrato al request. Huésped firma antes de pagar (texto + SHA-256 + IP + UA). Checkout 409 sin firma. Calendario → `/contrato/{token}?pay=1`. Firma en `AWAITING_PAYMENT` no confirma la reserva. No aviso a urbnbeeai. | `tsc --noEmit`. Flujo request → contrato → firma → checkout. |
+| 2026-09-29 | C0 | **C0 cerrado.** Login `tonny_voss@outlook.com`, link a `superb-learning` / `Urbnbee Rentals`. Volume `superb-learning-volume` mount **`/data`**. Vars: `URBNBEE_DATA_DIR=/data/json`, `URBNBEE_UPLOADS_DIR=/data/uploads`, `DATABASE_URL` set. Respaldo prod byte-exact en `_backups/json-c0-prod-2026-09-29/` (4 JSON; los del volume datan de mayo). No hay screening/reviews/membership/verification/beeagent en el volume. No arranco C1 en este mismo eje. | `railway whoami` / `link` / `variables` (solo keys de persistencia). `railway ssh -- ls /data/json`. Copia via `base64` (tamaños 3888/540/2943/9223). |
+| 2026-09-29 | C4 | `/host/settings/pagos` + API + webhook por anfitrión. Creds AES-256-GCM (`HOST_PAYMENT_CREDS_KEY`, tú la pones después). Sin conectar, Checkout sigue en Cabibee. Conectar → cobro en su Stripe, sin línea de comisión (Q1). Reembolso en la cuenta que cobró. Log `urb_booking_transactions`. No aviso a urbnbeeai. | `tsc --noEmit`. `db-migrate` prod: 003_c4_host_payments.sql. |
+| 2026-09-29 | C3 | Máquina en `lib/booking-machine.ts`: pago → instant `CONFIRMED` / approval `PENDING_HOST`; host acepta → `AWAITING_DETAILS`; huésped firma → `CONFIRMED`; 48 h sin pagar → `EXPIRED`; estancia terminada → `COMPLETED`. Campos `paymentStatus`, `contractStatus`, `lifecycle`. Webhook también `checkout.session.async_payment_succeeded`. `verify-session` idempotente. `PENDING` viejo = `PENDING_HOST`. No aviso a urbnbeeai. | `tsc --noEmit`. |
+| 2026-09-29 | C2 | `metadata.app=cabibee` en Checkout, `subscription_data`, `payment_intent_data`, Identity, Products y reembolsos. Webhook responde `200 { ignored: "not_cabibee" }` si el objeto es de otro `app`. Legacy sin `app`: acepta `userId` / `bookingId` / `kind`. Helper `lib/stripe-app-meta.ts`. No aviso al agente de urbnbeeai (eso es C8/C9). | `tsc --noEmit`. Casos del filtro: cabibee sí, urbnbee no, legacy userId/bookingId/kind sí, vacío no. |
+| 2026-09-29 | C1 | MySQL es destino: `002_c1_nights_and_json.sql` (`urb_booking_nights` único por listing+noche, inbox, beeagent, `urb_json_blobs`). `json-to-mysql.mjs` idempotente (stubs si una reserva apunta a un listing que no está en el store). Stores JSON dual-write. `insertBookingLocked` + aceptar/rechazar usan transacción + `FOR UPDATE`. Arranque: migrate + sync. Esquema y datos de prod ya corridos a mano contra MySQL. | `tsc --noEmit` OK. `db-migrate` prod: 001+002+`address_line`. `json-to-mysql` ×2 desde backup C0: users 3, listings 4, bookings 1, nights 4, inbox 6, blobs 1, nightConflicts 0. |

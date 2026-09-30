@@ -244,11 +244,13 @@ export function getAdminLogs(limit = 200): AdminLogRow[] {
   const statusLabel: Record<string, string> = {
     AWAITING_PAYMENT: "Reserva creada — esperando pago",
     PENDING: "Pago recibido — pendiente de aprobación del anfitrión",
+    PENDING_HOST: "Pago recibido — pendiente de aprobación del anfitrión",
     AWAITING_DETAILS: "En espera de datos del huésped",
     CONFIRMED: "Reserva confirmada",
     REJECTED: "Reserva rechazada",
     CANCELLED: "Reserva cancelada",
     COMPLETED: "Reserva completada",
+    EXPIRED: "Reserva expirada — no se pagó a tiempo",
   };
 
   for (const b of bookings) {

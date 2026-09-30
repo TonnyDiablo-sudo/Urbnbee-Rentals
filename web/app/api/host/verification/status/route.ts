@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { entitlementsPublicView } from "@/lib/host-entitlements";
 import { hostVerificationSummary } from "@/lib/host-verification";
 import { listListingsForHost } from "@/lib/marketplace-store";
 import { membershipPublicPlans } from "@/lib/membership-plans-store";
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
       us: membershipPublicPlans("us", "host"),
     },
     acceptsBookings: hostAcceptsBookings(user.id),
+    entitlements: entitlementsPublicView(user.id),
     listingsTotal: listings.length,
     listingsWithBadge: summary.ribbon ? listings.length : 0,
   });

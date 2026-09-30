@@ -4,6 +4,7 @@ import {
   DEPOSIT_CUSTODY_NOTE,
   type BookingDepositRecord,
 } from "@/lib/booking-deposit-types";
+import { completeStayIfDue, expireUnpaidIfDue } from "@/lib/booking-machine";
 import type { BookingRecord } from "@/lib/booking-types";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 
@@ -42,13 +43,9 @@ export function buildDeclaredDeposit(booking: BookingRecord): BookingDepositReco
 export function advanceDepositRecord(
   booking: BookingRecord,
   now = new Date()
-): { status?: BookingRecord["status"]; deposit?: BookingDepositRecord } {
-  const patch: { status?: BookingRecord["status"]; deposit?: BookingDepositRecord } = {};
+): { deposit?: BookingDepositRecord } {
+  const patch: { deposit?: BookingDepositRecord } = {};
   const ended = stayHasEnded(booking, now);
-
-  if (booking.status === "CONFIRMED" && ended) {
-    patch.status = "COMPLETED";
-  }
 
   let deposit = booking.deposit ?? buildDeclaredDeposit(booking);
   if (!deposit) return patch;
@@ -78,16 +75,12 @@ export function advanceDepositRecord(
 }
 
 export function applyBookingLifecycle(booking: BookingRecord): BookingRecord {
-  const patch = advanceDepositRecord(booking);
-  const sameStatus = !patch.status || patch.status === booking.status;
-  const sameDeposit = JSON.stringify(patch.deposit ?? null) === JSON.stringify(booking.deposit ?? null);
-  if (sameStatus && sameDeposit) return booking;
-  return (
-    patchBookingRecord(booking.id, {
-      ...(patch.status ? { status: patch.status } : {}),
-      ...(patch.deposit ? { deposit: patch.deposit } : {}),
-    }) ?? booking
-  );
+  const expired = expireUnpaidIfDue(booking);
+  const completed = completeStayIfDue(expired, stayHasEnded(expired));
+  const patch = advanceDepositRecord(completed);
+  const sameDeposit = JSON.stringify(patch.deposit ?? null) === JSON.stringify(completed.deposit ?? null);
+  if (sameDeposit) return completed;
+  return patchBookingRecord(completed.id, { deposit: patch.deposit }) ?? completed;
 }
 
 export function attachDepositIfNeeded(booking: BookingRecord): BookingRecord {
@@ -130,8 +123,8 @@ export function hostClaimDeposit(
     return { error: "Describe el daño o el motivo (mínimo 10 caracteres).", status: 400 };
   }
 
-  const updated = patchBookingRecord(next.id, {
-    status: next.status === "CONFIRMED" ? "COMPLETED" : next.status,
+  const afterStay = completeStayIfDue(next, true);
+  const updated = patchBookingRecord(afterStay.id, {
     deposit: {
       ...deposit,
       status: "claimed",

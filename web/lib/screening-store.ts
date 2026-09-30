@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
 import type { ScreeningPrice, ScreeningRecord } from "@/lib/screening-types";
+import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 const CASES_FILE = join(getDataDir(), "screening-cases.json");
@@ -49,6 +50,7 @@ function persistCases() {
     ensureDir(getDataDir());
     writeFileSync(CASES_FILE, JSON.stringify({ version: 1, cases }, null, 2), "utf8");
     if (existsSync(CASES_FILE)) casesMtime = statSync(CASES_FILE).mtimeMs;
+    scheduleMysql(() => upsertJsonBlob("screening-cases", { version: 1, cases }));
   } catch (e) {
     console.warn("[screening] persist cases failed:", e);
   }
@@ -59,6 +61,7 @@ function persistPrice() {
     ensureDir(getDataDir());
     writeFileSync(PRICE_FILE, JSON.stringify({ version: 1, price }, null, 2), "utf8");
     if (existsSync(PRICE_FILE)) priceMtime = statSync(PRICE_FILE).mtimeMs;
+    scheduleMysql(() => upsertJsonBlob("screening-price", { version: 1, price }));
   } catch (e) {
     console.warn("[screening] persist price failed:", e);
   }

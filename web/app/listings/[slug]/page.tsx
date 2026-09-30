@@ -10,20 +10,26 @@ import { AvailabilityCalendar } from "@/components/listing/availability-calendar
 import { ReviewsSection } from "@/components/listing/reviews-section";
 import { AiChatWidget } from "@/components/listing/ai-chat-widget";
 import { ListingHostChat } from "@/components/listing/listing-host-chat";
+import { listingIsBookable } from "@/lib/app-listings";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { getSessionUser } from "@/lib/session";
 import { stripHostContactChannels } from "@/lib/host-contact-policy";
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ checkIn?: string; checkOut?: string; ref?: string }>;
+};
 
-export default async function ListingDetailPage({ params }: Props) {
+export default async function ListingDetailPage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const q = await searchParams;
   const listing = getListingDetail(slug);
   if (!listing) notFound();
 
   const viewer = await getSessionUser();
   const canViewHostContacts = Boolean(viewer);
   const hostForUi = canViewHostContacts ? listing.host : stripHostContactChannels(listing.host);
+  const bookable = listingIsBookable(listing.id);
 
   const ruleIcons = [
     { label: "Fumar", allowed: listing.rules.smoking, icon: "🚬" },
@@ -247,6 +253,10 @@ export default async function ListingDetailPage({ params }: Props) {
                 <AvailabilityCalendar
                   listingId={listing.id}
                   listingSlug={slug}
+                  bookable={bookable}
+                  initialCheckIn={q.checkIn}
+                  initialCheckOut={q.checkOut}
+                  bookingRef={q.ref}
                   pricePerNight={listing.pricePerNight}
                   cleaningFee={listing.cleaningFee}
                   depositMxn={listing.depositMxn}

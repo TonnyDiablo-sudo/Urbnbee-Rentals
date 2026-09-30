@@ -1,6 +1,7 @@
 import "server-only";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
+import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 export type PushSubscriptionRecord = {
@@ -23,6 +24,7 @@ function persist() {
     ensureDir(getDataDir());
     writeFileSync(DATA_FILE, JSON.stringify({ version: 1, subscriptions: rows }, null, 2), "utf8");
     if (existsSync(DATA_FILE)) cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
+    scheduleMysql(() => upsertJsonBlob("push-subscriptions", { version: 1, subscriptions: rows }));
   } catch (e) {
     console.warn("[push-store] persist failed:", e);
   }

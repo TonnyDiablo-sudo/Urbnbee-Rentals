@@ -1,12 +1,10 @@
 import type { NextRequest } from "next/server";
+import { getBeeagentAgentStatus } from "@/lib/beeagent-agent-status";
+import { entitlementsPublicView } from "@/lib/host-entitlements";
+import { getHostPaymentPublic } from "@/lib/host-payment-store";
+import { requirePartnerLinkedHost } from "@/lib/beeagent-require-link";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
-import {
-  getPartnerApiSecret,
-  partnerJson,
-  partnerNotConfiguredResponse,
-  verifyPartnerBearer,
-  partnerAuthErrorResponse,
-} from "@/lib/beeagent-partner";
+import { partnerJson } from "@/lib/beeagent-partner";
 
 export const runtime = "nodejs";
 
@@ -22,14 +20,23 @@ function publicUser(u: NonNullable<ReturnType<typeof findUserById>>) {
 }
 
 export async function GET(req: NextRequest, ctx: Ctx) {
-  if (!getPartnerApiSecret()) return partnerNotConfiguredResponse(req);
-  if (!verifyPartnerBearer(req)) return partnerAuthErrorResponse(req);
-
   const { hostId } = await ctx.params;
+  const gate = requirePartnerLinkedHost(req, hostId);
+  if (!gate.ok) return gate.response;
+
   const user = findUserById(hostId);
-  if (!user || user.role !== "host") {
+  if (!user || (user.role !== "host" && user.role !== "admin")) {
     return partnerJson({ error: "Anfitrión no encontrado." }, req, { status: 404 });
   }
   const profile = getHostProfile(hostId);
-  return partnerJson({ user: publicUser(user), profile: profile ?? null }, req);
+  return partnerJson(
+    {
+      user: publicUser(user),
+      profile: profile ?? null,
+      entitlements: entitlementsPublicView(hostId),
+      payments_connected: getHostPaymentPublic(hostId).connected,
+      agent_status: getBeeagentAgentStatus(hostId) ?? { hostId, active: false },
+    },
+    req
+  );
 }

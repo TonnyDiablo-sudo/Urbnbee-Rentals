@@ -6,6 +6,7 @@ import {
   updateMembershipPlan,
 } from "@/lib/membership-plans-store";
 import type { MembershipPlanCode, MembershipPlanRecord } from "@/lib/membership-plans-types";
+import { cabibeeMeta } from "@/lib/stripe-app-meta";
 import { getStripe } from "@/lib/stripe-server";
 
 const LOG = "[stripe-membership-products]";
@@ -71,7 +72,7 @@ export async function ensureMembershipProduct(
     (await stripe.products.create({
       name: plan.label,
       description: plan.description || undefined,
-      metadata: { [META_KEY]: plan.code },
+      metadata: cabibeeMeta({ [META_KEY]: plan.code }),
     }));
 
   if (product.id !== plan.stripeProductId) {

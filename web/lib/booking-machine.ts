@@ -1,0 +1,231 @@
+import "server-only";
+import type {
+  BookingActor,
+  BookingContractStatus,
+  BookingPaymentStatus,
+  BookingRecord,
+  BookingStatus,
+  BookingTransitionEvent,
+} from "@/lib/booking-types";
+import { mysqlApplyBookingOccupancy } from "@/lib/booking-nights";
+import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
+import { getListingById } from "@/lib/marketplace-store";
+import { scheduleMysql } from "@/lib/mysql-sync";
+
+/** Sin pagar en 48 h → EXPIRED y se sueltan las noches. */
+export const UNPAID_EXPIRE_MS = 48 * 60 * 60 * 1000;
+
+const ALLOWED: Record<BookingStatus, BookingStatus[]> = {
+  AWAITING_PAYMENT: ["PENDING_HOST", "CONFIRMED", "EXPIRED", "CANCELLED"],
+  PENDING: ["AWAITING_DETAILS", "REJECTED", "CANCELLED", "PENDING_HOST"],
+  PENDING_HOST: ["AWAITING_DETAILS", "REJECTED", "CANCELLED"],
+  AWAITING_DETAILS: ["CONFIRMED", "CANCELLED"],
+  CONFIRMED: ["COMPLETED", "CANCELLED"],
+  REJECTED: [],
+  CANCELLED: [],
+  COMPLETED: [],
+  EXPIRED: [],
+};
+
+export function canonicalBookingStatus(status: BookingStatus): BookingStatus {
+  return status === "PENDING" ? "PENDING_HOST" : status;
+}
+
+export function isPendingHostApproval(status: BookingStatus): boolean {
+  return status === "PENDING" || status === "PENDING_HOST";
+}
+
+export function bookingHoldsNights(status: BookingStatus): boolean {
+  const s = canonicalBookingStatus(status);
+  return s === "AWAITING_PAYMENT" || s === "PENDING_HOST" || s === "AWAITING_DETAILS" || s === "CONFIRMED";
+}
+
+export function paymentStatusOf(booking: BookingRecord): BookingPaymentStatus {
+  if (booking.paymentStatus) return booking.paymentStatus;
+  if (booking.refundedAt) return "refunded";
+  if (booking.paidAt) return "paid";
+  return "unpaid";
+}
+
+export function contractStatusOf(booking: BookingRecord): BookingContractStatus {
+  if (booking.contractStatus) return booking.contractStatus;
+  const c = booking.contract;
+  if (!c) return "pending";
+  if (c.hostAcceptedAt && c.guestAcceptedAt) return "signed";
+  return "pending";
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function pushEvent(
+  booking: BookingRecord,
+  actor: BookingActor,
+  from: BookingStatus,
+  to: BookingStatus,
+  reason?: string
+): BookingTransitionEvent[] {
+  return [
+    ...(booking.lifecycle ?? []),
+    { at: nowIso(), actor, from, to, reason },
+  ];
+}
+
+function syncNights(bookingId: string) {
+  scheduleMysql(async () => {
+    const live = getBookingById(bookingId);
+    if (live) await mysqlApplyBookingOccupancy(live);
+  });
+}
+
+export function transitionBooking(
+  bookingId: string,
+  to: BookingStatus,
+  opts: {
+    actor: BookingActor;
+    reason?: string;
+    paymentStatus?: BookingPaymentStatus;
+    contractStatus?: BookingContractStatus;
+    patch?: Partial<BookingRecord>;
+  }
+): BookingRecord | undefined {
+  const prev = getBookingById(bookingId);
+  if (!prev) return undefined;
+  const from = prev.status;
+  const fromCanon = canonicalBookingStatus(from);
+  const toCanon = canonicalBookingStatus(to);
+  if (fromCanon === toCanon && from !== "PENDING") {
+    return prev;
+  }
+  const allowed = ALLOWED[from] ?? ALLOWED[fromCanon] ?? [];
+  if (!allowed.includes(to) && !allowed.includes(toCanon)) {
+    return undefined;
+  }
+  const next = patchBookingRecord(bookingId, {
+    ...opts.patch,
+    status: toCanon === "PENDING_HOST" && to === "PENDING_HOST" ? "PENDING_HOST" : toCanon,
+    paymentStatus: opts.paymentStatus ?? prev.paymentStatus ?? paymentStatusOf(prev),
+    contractStatus: opts.contractStatus ?? prev.contractStatus ?? contractStatusOf(prev),
+    lifecycle: pushEvent(prev, opts.actor, from, toCanon, opts.reason),
+  });
+  if (next && bookingHoldsNights(from) !== bookingHoldsNights(next.status)) {
+    syncNights(next.id);
+  }
+  return next;
+}
+
+/** Pago de estancia. Idempotente: si ya hay paidAt / paymentStatus=paid, no mueve el estado. */
+export function markBookingPaid(
+  bookingId: string,
+  opts?: { stripeCheckoutSessionId?: string; stripePaymentIntentId?: string; actor?: BookingActor }
+): BookingRecord | undefined {
+  const prev = getBookingById(bookingId);
+  if (!prev) return undefined;
+  if (prev.paidAt || paymentStatusOf(prev) === "paid" || paymentStatusOf(prev) === "refunded") {
+    return prev;
+  }
+  if (canonicalBookingStatus(prev.status) !== "AWAITING_PAYMENT") return undefined;
+
+  const listing = getListingById(prev.listingId);
+  const to: BookingStatus = listing?.bookingApprovalMode === "instant" ? "CONFIRMED" : "PENDING_HOST";
+  return transitionBooking(bookingId, to, {
+    actor: opts?.actor ?? "system",
+    reason: "payment_received",
+    paymentStatus: "paid",
+    contractStatus: to === "CONFIRMED" ? contractStatusOf(prev) : "pending",
+    patch: {
+      paidAt: nowIso(),
+      stripeCheckoutSessionId: opts?.stripeCheckoutSessionId ?? prev.stripeCheckoutSessionId,
+      stripePaymentIntentId: opts?.stripePaymentIntentId ?? prev.stripePaymentIntentId,
+    },
+  });
+}
+
+export function acceptBookingByHost(
+  bookingId: string,
+  patch: Partial<
+    Pick<
+      BookingRecord,
+      | "nights"
+      | "estimatedTotalMxn"
+      | "hostAdjustedListingId"
+      | "hostAdjustedCheckIn"
+      | "hostAdjustedCheckOut"
+    >
+  >
+): BookingRecord | undefined {
+  const prev = getBookingById(bookingId);
+  if (!prev || !isPendingHostApproval(prev.status)) return undefined;
+  return transitionBooking(bookingId, "AWAITING_DETAILS", {
+    actor: "host",
+    reason: "host_accepted",
+    paymentStatus: paymentStatusOf(prev),
+    contractStatus: "pending",
+    patch,
+  });
+}
+
+export function rejectBookingByHost(bookingId: string): BookingRecord | undefined {
+  const prev = getBookingById(bookingId);
+  if (!prev || !isPendingHostApproval(prev.status)) return undefined;
+  const paid = paymentStatusOf(prev) === "paid" || Boolean(prev.paidAt);
+  return transitionBooking(bookingId, "REJECTED", {
+    actor: "host",
+    reason: "host_rejected",
+    paymentStatus: paid ? "refunded" : paymentStatusOf(prev),
+    patch: paid && !prev.refundedAt ? { refundedAt: nowIso(), refundReason: "host_rejected" } : undefined,
+  });
+}
+
+export function confirmBookingAfterGuestContract(bookingId: string): BookingRecord | undefined {
+  const prev = getBookingById(bookingId);
+  if (!prev) return undefined;
+  const bothSigned = Boolean(prev.contract?.hostAcceptedAt && prev.contract?.guestAcceptedAt);
+  const contractStatus: BookingContractStatus = bothSigned ? "signed" : "pending";
+  if (canonicalBookingStatus(prev.status) === "CONFIRMED") {
+    return patchBookingRecord(bookingId, { contractStatus }) ?? prev;
+  }
+  if (canonicalBookingStatus(prev.status) === "AWAITING_PAYMENT") {
+    return patchBookingRecord(bookingId, { contractStatus }) ?? prev;
+  }
+  if (prev.status !== "AWAITING_DETAILS") return prev;
+  return transitionBooking(bookingId, "CONFIRMED", {
+    actor: "guest",
+    reason: "guest_signed_contract",
+    contractStatus,
+    paymentStatus: paymentStatusOf(prev),
+  });
+}
+
+export function expireUnpaidIfDue(booking: BookingRecord, now = Date.now()): BookingRecord {
+  if (canonicalBookingStatus(booking.status) !== "AWAITING_PAYMENT") return booking;
+  if (paymentStatusOf(booking) === "paid" || booking.paidAt) return booking;
+  const created = new Date(booking.createdAt).getTime();
+  if (!Number.isFinite(created) || now - created < UNPAID_EXPIRE_MS) return booking;
+  return (
+    transitionBooking(booking.id, "EXPIRED", {
+      actor: "system",
+      reason: "unpaid_timeout",
+      paymentStatus: "unpaid",
+    }) ?? booking
+  );
+}
+
+export function completeStayIfDue(booking: BookingRecord, stayEnded: boolean): BookingRecord {
+  if (canonicalBookingStatus(booking.status) !== "CONFIRMED" || !stayEnded) return booking;
+  return (
+    transitionBooking(booking.id, "COMPLETED", {
+      actor: "system",
+      reason: "stay_ended",
+      paymentStatus: paymentStatusOf(booking),
+      contractStatus: contractStatusOf(booking),
+    }) ?? booking
+  );
+}
+
+export function markBookingPaymentRefunded(bookingId: string): BookingRecord | undefined {
+  const prev = getBookingById(bookingId);
+  if (!prev) return undefined;
+  return patchBookingRecord(bookingId, { paymentStatus: "refunded" });
+}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { contractPlainLines } from "@/lib/booking-contract";
+import { contractPlainLines, ensureBookingContract } from "@/lib/booking-contract";
 import { applyBookingLifecycle } from "@/lib/booking-deposit";
 import { findBookingByToken } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
@@ -13,7 +13,10 @@ export async function GET(req: NextRequest) {
   if (!found) {
     return NextResponse.json({ error: "No hay reserva con ese código." }, { status: 404 });
   }
-  const booking = applyBookingLifecycle(found);
+  let booking = applyBookingLifecycle(found);
+  if (!booking.contract && booking.status === "AWAITING_PAYMENT") {
+    booking = ensureBookingContract(booking.id, { role: "system", userId: booking.hostId }) ?? booking;
+  }
   const listing = getListingById(booking.listingId);
   const effListingId = booking.hostAdjustedListingId ?? booking.listingId;
   const effListing = getListingById(effListingId);
@@ -40,10 +43,12 @@ export async function GET(req: NextRequest) {
         ? {
             generated: true,
             accepted: Boolean(booking.contract.hostAcceptedAt && booking.contract.guestAcceptedAt),
+            guestAccepted: Boolean(booking.contract.guestAcceptedAt),
             hostAcceptedAt: booking.contract.hostAcceptedAt,
             hostAcceptedName: booking.contract.hostAcceptedName,
             guestAcceptedAt: booking.contract.guestAcceptedAt,
             guestAcceptedName: booking.contract.guestAcceptedName,
+            acceptedSha256: booking.contract.acceptedSha256,
             templateTitle: booking.contract.snapshot.templateTitle,
             lines: contractPlainLines(booking.contract),
           }
