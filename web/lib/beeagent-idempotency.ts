@@ -64,6 +64,7 @@ export function replayPartnerIdempotency(
   const row = rows.get(makeKey(method, path, raw));
   if (!row) return null;
   if (Date.now() - new Date(row.at).getTime() > TTL_MS) return null;
+  if (row.status < 200 || row.status >= 300) return null;
   return { status: row.status, body: row.body };
 }
 
@@ -76,6 +77,7 @@ export function rememberPartnerIdempotency(
 ): void {
   const raw = header?.trim();
   if (!raw) return;
+  if (status < 200 || status >= 300) return;
   sync();
   rows.set(makeKey(method, path, raw), {
     key: makeKey(method, path, raw),
