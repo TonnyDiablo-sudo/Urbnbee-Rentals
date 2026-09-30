@@ -1,4 +1,5 @@
 import type { HostListingRecord } from "@/lib/marketplace-types";
+import { mutateCached, prefetchCached, useCached } from "../../_components/cached-fetch";
 
 export type HostListing = HostListingRecord;
 
@@ -64,15 +65,39 @@ export function hostChatHref(b: HostBooking): string | null {
   return `/host/mensajes/${encodeURIComponent(listingId)}/${encodeURIComponent(`gu_${b.guestUserId}`)}`;
 }
 
-export async function loadHostData(): Promise<{ listings: HostListing[]; bookings: HostBooking[] }> {
-  const [l, b] = await Promise.all([
-    fetch("/api/host/listings", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
-    fetch("/api/host/bookings", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
-  ]);
-  return {
-    listings: Array.isArray(l.listings) ? l.listings : [],
-    bookings: Array.isArray(b.bookings) ? b.bookings : [],
-  };
+export const HOST_URLS = {
+  listings: "/api/host/listings",
+  bookings: "/api/host/bookings",
+  status: "/api/host/verification/status",
+  inbox: "/api/host/inbox",
+  listing: (id: string) => `/api/host/listings/${encodeURIComponent(id)}`,
+};
+
+/** Lo que el anfitrión ve seguido: se pide en cuanto entra a la app para que las pestañas abran al instante. */
+export function prefetchHostData() {
+  prefetchCached([HOST_URLS.listings, HOST_URLS.bookings, HOST_URLS.status, HOST_URLS.inbox]);
+}
+
+function useList<T>(url: string, key: string): T[] | null {
+  const { data, error } = useCached<Record<string, unknown>>(url);
+  if (data) return Array.isArray(data[key]) ? (data[key] as T[]) : [];
+  return error ? [] : null;
+}
+
+export const useHostListings = () => useList<HostListing>(HOST_URLS.listings, "listings");
+export const useHostBookings = () => useList<HostBooking>(HOST_URLS.bookings, "bookings");
+
+export function putListing(l: HostListing) {
+  mutateCached<{ listings?: HostListing[] }>(HOST_URLS.listings, (prev) =>
+    prev?.listings ? { ...prev, listings: prev.listings.map((x) => (x.id === l.id ? l : x)) } : prev
+  );
+  mutateCached(HOST_URLS.listing(l.id), () => ({ listing: l }));
+}
+
+export function dropListing(id: string) {
+  mutateCached<{ listings?: HostListing[] }>(HOST_URLS.listings, (prev) =>
+    prev?.listings ? { ...prev, listings: prev.listings.filter((x) => x.id !== id) } : prev
+  );
 }
 
 export async function patchListing(
@@ -86,5 +111,6 @@ export async function patchListing(
   }).catch(() => null);
   const j = res ? await res.json().catch(() => ({})) : {};
   if (!res?.ok || !j.listing) return { error: typeof j.error === "string" ? j.error : res ? "No se pudo guardar." : "Sin conexión." };
+  putListing(j.listing);
   return { listing: j.listing };
 }

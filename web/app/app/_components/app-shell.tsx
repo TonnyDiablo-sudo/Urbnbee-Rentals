@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { IconCalendar, IconChat, IconHome, IconMenu, IconSearch, IconToday, IconTrips, IconUser } from "./icons";
+import { prefetchHostData } from "../host/_shared/host-data";
+import { setCacheOwner } from "./cached-fetch";
 import { threadIsUnread } from "./seen";
 import { UpdateBanner } from "./update-banner";
 
@@ -27,7 +29,18 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
   const isHost = user?.role === "host" || user?.role === "admin";
   // Sin cuenta de anfitrión, /host es sólo la invitación: se conserva la navegación de huésped.
   const hostMode = isHost && (pathname === "/host" || pathname.startsWith("/host/"));
+  setCacheOwner(user?.id ?? null);
   const unread = useUnreadCount(hostMode ? "host" : "guest", user);
+
+  useEffect(() => {
+    if (!isHost) return;
+    if (hostMode) {
+      prefetchHostData();
+      return;
+    }
+    const id = window.setTimeout(prefetchHostData, 2500);
+    return () => window.clearTimeout(id);
+  }, [isHost, hostMode]);
 
   useEffect(() => {
     document.cookie = `cabibee_mode=${hostMode ? "host" : "guest"}; path=/; max-age=31536000; samesite=lax`;
@@ -79,6 +92,7 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
                 <Link
                   key={tab.href}
                   href={tab.href}
+                  prefetch
                   className="relative flex flex-1 touch-manipulation flex-col items-center justify-center gap-0.5 text-[11px] font-medium"
                 >
                   <TabContent tab={tab} active={active} />

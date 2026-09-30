@@ -12,7 +12,8 @@ import { IconChevron, IconClose, IconExternal, IconPlus } from "../../../_compon
 import { WebLink } from "../../../_components/site-origin";
 import { TopBar } from "../../../_components/top-bar";
 import { PriceSettings } from "../../calendario/host-calendar";
-import { patchListing, type HostListing } from "../../_shared/host-data";
+import { HOST_URLS, dropListing, patchListing, putListing, type HostListing } from "../../_shared/host-data";
+import { peekCached, useCached } from "../../../_components/cached-fetch";
 import { CATEGORY_OPTIONS, SPACE_OPTIONS } from "../listing-options";
 
 const inputCls = "mt-1 w-full rounded-xl border border-[#ccc] px-3.5 py-3 text-base outline-none focus:border-[#222]";
@@ -40,8 +41,10 @@ const money = (n: number) => `$${Math.round(n).toLocaleString("es-MX")}`;
 export function ListingHub({ listingId }: { listingId: string }) {
   const t = useT();
   const router = useRouter();
-  const [listing, setListing] = useState<HostListing | null>(null);
-  const [missing, setMissing] = useState(false);
+  const detail = useCached<{ listing?: HostListing }>(HOST_URLS.listing(listingId));
+  const fromList = peekCached<{ listings?: HostListing[] }>(HOST_URLS.listings)?.listings?.find((l) => l.id === listingId);
+  const listing = detail.data?.listing ?? fromList ?? null;
+  const missing = detail.error && !listing;
   const [tab, setTab] = useState<"space" | "arrival">("space");
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [pricesOpen, setPricesOpen] = useState(false);
@@ -50,20 +53,13 @@ export function ListingHub({ listingId }: { listingId: string }) {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/host/listings/${listingId}`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((j) => setListing(j.listing))
-      .catch(() => setMissing(true));
-  }, [listingId]);
-
-  useEffect(() => {
     if (!toast) return;
     const id = window.setTimeout(() => setToast(null), 2500);
     return () => window.clearTimeout(id);
   }, [toast]);
 
   const saved = useCallback((l: HostListing, msg = "Cambios guardados.") => {
-    setListing(l);
+    putListing(l);
     setPanel(null);
     setToast(msg);
   }, []);
@@ -113,7 +109,10 @@ export function ListingHub({ listingId }: { listingId: string }) {
     setBusy(true);
     const res = await fetch(`/api/host/listings/${listing.id}`, { method: "DELETE" }).catch(() => null);
     setBusy(false);
-    if (res?.ok) router.replace("/host/anuncios");
+    if (res?.ok) {
+      dropListing(listing.id);
+      router.replace("/host/anuncios");
+    }
     else setErr("No se pudo eliminar.");
   };
 
@@ -307,7 +306,7 @@ export function ListingHub({ listingId }: { listingId: string }) {
       />
 
       {panel && (
-        <PanelBody key={panel} id={panel} listing={listing} onClose={() => setPanel(null)} onSaved={(l) => saved(l)} onPhotos={setListing} />
+        <PanelBody key={panel} id={panel} listing={listing} onClose={() => setPanel(null)} onSaved={(l) => saved(l)} onPhotos={putListing} />
       )}
     </div>
   );

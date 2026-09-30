@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   env: { NEXT_PUBLIC_BUILD_ID: buildId },
   // En local la app se abre en http://app.localhost:3005 (ver middleware.ts).
   allowedDevOrigins: ["app.localhost"],
+  // Las pestañas de la app se precargan y, ya visitadas, se reusan unos segundos: cambiar de pestaña es instantáneo.
+  experimental: { staleTimes: { dynamic: 30, static: 60 } },
   images: {
     remotePatterns: [
       {

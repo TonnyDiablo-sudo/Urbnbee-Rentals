@@ -32,8 +32,8 @@ export const appHostTools: Record<string, string> = {
   "Máximo de noches": "Maximum nights",
   "Los cambios aplican a reservas nuevas; las que ya existen conservan su precio.":
     "Changes apply to new bookings; existing ones keep their price.",
-  "Toca una noche para bloquearla o cambiar su precio. Toca otra para elegir varias.":
-    "Tap a night to block it or change its price. Tap another to select several.",
+  "Toca la primera y la última noche para elegir el rango. Toca una noche elegida para quitarla.":
+    "Tap the first and last night to select the range. Tap a selected night to remove it.",
   "1 noche seleccionada": "1 night selected",
   "{n} noches seleccionadas": "{n} nights selected",
 

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { sizedImage } from "@/lib/image-url";
+import { useCached } from "../../_components/cached-fetch";
+import { HOST_URLS, useHostListings } from "../_shared/host-data";
 
 type Listing = {
   id: string;
@@ -19,18 +20,9 @@ type Listing = {
 
 export function HostListings() {
   const t = useT();
-  const [rows, setRows] = useState<Listing[] | null>(null);
-  const [acceptsBookings, setAcceptsBookings] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    void Promise.all([
-      fetch("/api/host/listings", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
-      fetch("/api/host/verification/status", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
-    ]).then(([l, s]) => {
-      setRows(Array.isArray(l.listings) ? l.listings : []);
-      if (typeof s.acceptsBookings === "boolean") setAcceptsBookings(s.acceptsBookings);
-    });
-  }, []);
+  const rows: Listing[] | null = useHostListings();
+  const status = useCached<{ acceptsBookings?: boolean }>(HOST_URLS.status).data;
+  const acceptsBookings = typeof status?.acceptsBookings === "boolean" ? status.acceptsBookings : null;
 
   if (rows === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
 
@@ -58,7 +50,7 @@ export function HostListings() {
         <ul className="space-y-6">
           {rows.map((l) => (
             <li key={l.id}>
-              <Link href={`/host/anuncios/${l.id}`} className="block">
+              <Link href={`/host/anuncios/${l.id}`} prefetch className="block">
                 <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-[#eee]">
                   {l.photos[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element

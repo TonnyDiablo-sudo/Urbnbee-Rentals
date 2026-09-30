@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { revalidate, useCached } from "../_components/cached-fetch";
 import { useLang, useT } from "@/components/i18n-provider";
 import { HOST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../_components/booking-status";
 import { IconChevron } from "../_components/icons";
@@ -9,7 +10,17 @@ import { PushPrompt } from "../_components/push";
 import { threadIsUnread } from "../_components/seen";
 import { Sheet } from "../_components/sheet";
 import { WebLink } from "../_components/site-origin";
-import { addDays, isConfirmed, isPending, stayOf, todayIso, type HostBooking } from "./_shared/host-data";
+import {
+  HOST_URLS,
+  addDays,
+  isConfirmed,
+  isPending,
+  stayOf,
+  todayIso,
+  useHostBookings,
+  useHostListings,
+  type HostBooking,
+} from "./_shared/host-data";
 import { ReservationSheet } from "./_shared/reservation-sheet";
 
 type Booking = HostBooking;
@@ -37,36 +48,24 @@ export function HostToday() {
   const t = useT();
   const [filter, setFilter] = useState<Filter | null>(null);
   const [opened, setOpened] = useState<Booking | null>(null);
-  const [bookings, setBookings] = useState<Booking[] | null>(null);
-  const [status, setStatus] = useState<Status | null>(null);
-  const [published, setPublished] = useState(0);
-  const [newChats, setNewChats] = useState(0);
+  const bookings = useHostBookings();
+  const listings = useHostListings();
+  const statusRes = useCached<Status>(HOST_URLS.status).data;
+  const status = statusRes && typeof statusRes.acceptsBookings === "boolean" ? statusRes : null;
+  const inbox = useCached<{ threads?: Thread[] }>(HOST_URLS.inbox).data;
   const [reviewing, setReviewing] = useState<Booking | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const [b, s, l, i] = await Promise.all([
-      fetch("/api/host/bookings", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
-      fetch("/api/host/verification/status", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-      fetch("/api/host/listings", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
-      fetch("/api/host/inbox", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
-    ]);
-    setBookings(Array.isArray(b.bookings) ? b.bookings : []);
-    if (s && typeof s.acceptsBookings === "boolean") setStatus(s);
-    setPublished(Array.isArray(l.listings) ? l.listings.filter((x: { published: boolean }) => x.published).length : 0);
-    const threads: Thread[] = Array.isArray(i.threads) ? i.threads : [];
-    setNewChats(
-      threads.filter(
-        (th) =>
-          th.messages[th.messages.length - 1]?.sender === "guest" &&
-          threadIsUnread(`h:${th.listingId}:${th.guestSessionId}`, th.lastAt)
-      ).length
-    );
-  }, []);
+  const published = (listings ?? []).filter((x) => x.published).length;
+  const newChats = (Array.isArray(inbox?.threads) ? inbox.threads : []).filter(
+    (th) =>
+      th.messages[th.messages.length - 1]?.sender === "guest" &&
+      threadIsUnread(`h:${th.listingId}:${th.guestSessionId}`, th.lastAt)
+  ).length;
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const load = useCallback(async () => {
+    await Promise.all([revalidate(HOST_URLS.bookings), revalidate(HOST_URLS.status), revalidate(HOST_URLS.listings), revalidate(HOST_URLS.inbox)]);
+  }, []);
 
   const reject = async (b: Booking) => {
     if (!window.confirm(t("¿Rechazar la solicitud de {name}? Si ya pagó, se le devuelve el dinero.", { name: b.guestName }))) return;

@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
+import { revalidate, useCached } from "../../_components/cached-fetch";
 import { threadIsUnread } from "../../_components/seen";
+import { HOST_URLS } from "../_shared/host-data";
 
 export type HostThread = {
   listingId: string;
@@ -23,17 +25,12 @@ export function hostThreadHref(t: { listingId: string; guestSessionId: string })
 export function HostInbox() {
   const t = useT();
   const lang = useLang();
-  const [threads, setThreads] = useState<HostThread[] | null>(null);
+  const inbox = useCached<{ threads?: HostThread[] }>(HOST_URLS.inbox);
+  const threads = inbox.data ? (Array.isArray(inbox.data.threads) ? inbox.data.threads : []) : inbox.error ? [] : null;
   const [onlyUnread, setOnlyUnread] = useState(false);
 
   useEffect(() => {
-    const load = () =>
-      fetch("/api/host/inbox", { cache: "no-store" })
-        .then((r) => r.json())
-        .then((d) => setThreads(Array.isArray(d.threads) ? d.threads : []))
-        .catch(() => setThreads((t) => t ?? []));
-    void load();
-    const timer = window.setInterval(() => document.visibilityState === "visible" && void load(), 20_000);
+    const timer = window.setInterval(() => document.visibilityState === "visible" && void revalidate(HOST_URLS.inbox), 20_000);
     return () => window.clearInterval(timer);
   }, []);
 

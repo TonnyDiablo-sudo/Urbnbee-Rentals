@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
 import { nightPrice, type ListingPricing } from "@/lib/listing-pricing";
@@ -13,20 +13,22 @@ import {
   holdsNights,
   isConfirmed,
   isPending,
-  loadHostData,
   patchListing,
   stayOf,
   toIso,
   todayIso,
+  useHostBookings,
+  useHostListings,
   type HostBooking,
   type HostListing,
 } from "../_shared/host-data";
 import { ReservationSheet } from "../_shared/reservation-sheet";
 
 const MONTHS_AHEAD = 12;
+const FIRST_PAINT_MONTHS = 2;
 const inputCls = "mt-1 w-full rounded-xl border border-[#ccc] px-3.5 py-3 text-base outline-none focus:border-[#222]";
-
-type Range = { start: string; end: string };
+const NO_NIGHTS: ReadonlySet<string> = new Set();
+const NO_BOOKINGS: HostBooking[] = [];
 
 function shortMoney(n: number): string {
   return `$${Math.round(n).toLocaleString("es-MX")}`;
@@ -43,19 +45,18 @@ export function HostCalendar() {
   const lang = useLang();
   const router = useRouter();
   const params = useSearchParams();
-  const [listings, setListings] = useState<HostListing[] | null>(null);
-  const [bookings, setBookings] = useState<HostBooking[]>([]);
-  const [range, setRange] = useState<Range | null>(null);
+  const listings = useHostListings();
+  const bookings = useHostBookings() ?? NO_BOOKINGS;
+  const [sel, setSel] = useState<ReadonlySet<string>>(NO_NIGHTS);
   const [editOpen, setEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [openBooking, setOpenBooking] = useState<HostBooking | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [monthsShown, setMonthsShown] = useState(FIRST_PAINT_MONTHS);
 
   useEffect(() => {
-    void loadHostData().then((d) => {
-      setListings(d.listings);
-      setBookings(d.bookings);
-    });
+    const id = window.requestAnimationFrame(() => window.setTimeout(() => setMonthsShown(MONTHS_AHEAD), 0));
+    return () => window.cancelAnimationFrame(id);
   }, []);
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export function HostCalendar() {
   const listing = listings?.find((l) => l.id === wanted) ?? listings?.[0] ?? null;
 
   const choose = (id: string) => {
-    setRange(null);
+    setSel(NO_NIGHTS);
     router.replace(`/host/calendario?anuncio=${encodeURIComponent(id)}`, { scroll: false });
   };
 
@@ -91,6 +92,37 @@ export function HostCalendar() {
     return Array.from({ length: MONTHS_AHEAD }, (_, i) => new Date(now.getFullYear(), now.getMonth() + i, 1));
   }, []);
 
+  /**
+   * Como Airbnb: con una noche elegida, tocar otra marca todo el rango; tocar una elegida la quita;
+   * con varias elegidas, tocar otra la suma.
+   */
+  const tapDay = useCallback(
+    (iso: string) => {
+      const b = nightToBooking.get(iso);
+      if (b) {
+        setOpenBooking(b);
+        return;
+      }
+      if (iso < today) return;
+      setSel((prev) => {
+        const next = new Set(prev);
+        if (next.has(iso)) {
+          next.delete(iso);
+          return next;
+        }
+        if (prev.size === 1) {
+          const [anchor] = prev;
+          const [from, to] = anchor < iso ? [anchor, iso] : [iso, anchor];
+          for (const d of eachNight(from, to)) if (!nightToBooking.has(d)) next.add(d);
+          return next;
+        }
+        next.add(iso);
+        return next;
+      });
+    },
+    [today, nightToBooking]
+  );
+
   if (listings === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
 
   if (!listing) {
@@ -105,22 +137,8 @@ export function HostCalendar() {
     );
   }
 
-  const blocked = new Set(listing.blockedDates);
-
-  const tapDay = (iso: string) => {
-    const b = nightToBooking.get(iso);
-    if (b) {
-      setOpenBooking(b);
-      return;
-    }
-    if (iso < today) return;
-    if (!range) return setRange({ start: iso, end: iso });
-    if (range.start === range.end && range.start === iso) return setRange(null);
-    if (range.start === range.end && iso > range.start) return setRange({ start: range.start, end: iso });
-    setRange({ start: iso, end: iso });
-  };
-
-  const selected = range ? eachNight(range.start, range.end).filter((d) => !nightToBooking.has(d)) : [];
+  const selected = [...sel].sort();
+  const monthKey = (m: Date) => toIso(m).slice(0, 7);
 
   return (
     <div className="pb-40">
@@ -167,66 +185,23 @@ export function HostCalendar() {
         ))}
       </div>
 
-      {months.map((m) => {
-        const first = m.getDay();
-        const days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
-        const cells: (string | null)[] = Array(first).fill(null);
-        for (let d = 1; d <= days; d++) cells.push(toIso(new Date(m.getFullYear(), m.getMonth(), d)));
+      {months.slice(0, monthsShown).map((m) => {
+        const mk = monthKey(m);
         return (
-          <section key={m.toISOString()} className="px-3 pt-5">
-            <h2 className="mb-2 px-2 text-lg font-semibold text-[#222] first-letter:uppercase">
-              {m.toLocaleDateString(numberLocale(lang), { month: "long", year: "numeric" })}
-            </h2>
-            <div className="grid grid-cols-7 gap-px">
-              {cells.map((iso, i) => {
-                if (!iso) return <div key={i} />;
-                const b = nightToBooking.get(iso);
-                const past = iso < today;
-                const isBlocked = blocked.has(iso);
-                const isSel = Boolean(range && iso >= range.start && iso <= range.end && !b);
-                const price = nightPrice(listing, iso);
-                const custom = listing.nightlyPriceOverrides?.[iso] !== undefined;
-                const day = Number(iso.slice(8));
-                const bStart = b ? stayOf(b).checkIn === iso : false;
-                const showName = b && (bStart || new Date(`${iso}T12:00:00`).getDay() === 0);
-
-                let cls = "bg-white text-[#222]";
-                if (b) cls = isConfirmed(b.status) ? "bg-[#111] text-white" : isPending(b.status) ? "bg-[#f3d45c] text-black" : "bg-[#e5e5e5] text-[#555]";
-                else if (isSel) cls = "bg-[#222] text-white ring-2 ring-inset ring-[#dcb81e]";
-                else if (isBlocked) cls = "bg-[#f1f1f1] text-[#aaa] bg-[repeating-linear-gradient(135deg,transparent_0_6px,#e0e0e0_6px_7px)]";
-                if (past && !b) cls = "bg-white text-[#cfcfcf]";
-
-                return (
-                  <button
-                    key={iso}
-                    type="button"
-                    onClick={() => tapDay(iso)}
-                    disabled={past && !b}
-                    aria-label={`${iso}${b ? ` · ${b.guestName}` : isBlocked ? ` · ${t("Bloqueada")}` : ` · ${shortMoney(price)}`}`}
-                    className={`relative flex h-[68px] touch-manipulation flex-col justify-between overflow-hidden rounded-md p-1.5 text-left ${cls}`}
-                  >
-                    <span className={`text-[13px] font-semibold leading-none ${iso === today ? "underline decoration-2 underline-offset-2" : ""} ${isBlocked && !b ? "line-through" : ""}`}>
-                      {day}
-                    </span>
-                    {b ? (
-                      showName && <span className="truncate text-[10px] font-semibold leading-tight">{b.guestName.split(" ")[0]}</span>
-                    ) : (
-                      !past &&
-                      !isBlocked && (
-                        <span className={`truncate text-[10px] leading-tight ${custom && !isSel ? "font-semibold text-[#8a6d0f]" : ""}`}>
-                          {shortMoney(price)}
-                        </span>
-                      )
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+          <MonthGrid
+            key={mk}
+            month={m}
+            lang={lang}
+            today={today}
+            listing={listing}
+            nightToBooking={nightToBooking}
+            selKey={selected.filter((d) => d.startsWith(mk)).join(",")}
+            onTap={tapDay}
+          />
         );
       })}
 
-      {range && (
+      {sel.size > 0 && (
         <div
           className="fixed inset-x-0 z-40 border-t border-[#ebebeb] bg-white"
           style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}
@@ -236,7 +211,7 @@ export function HostCalendar() {
               <p className="text-[15px] font-semibold text-[#222]">
                 {selected.length === 1 ? t("1 noche seleccionada") : t("{n} noches seleccionadas", { n: selected.length })}
               </p>
-              <button type="button" onClick={() => setRange(null)} className="text-sm text-[#717171] underline">
+              <button type="button" onClick={() => setSel(NO_NIGHTS)} className="text-sm text-[#717171] underline">
                 {t("Quitar selección")}
               </button>
             </div>
@@ -259,15 +234,14 @@ export function HostCalendar() {
       )}
 
       <NightsEditor
-        key={`${listing.id}:${range?.start}:${range?.end}:${editOpen}`}
+        key={`${listing.id}:${editOpen}`}
         open={editOpen}
         listing={listing}
         nights={selected}
         onClose={() => setEditOpen(false)}
-        onSaved={(l) => {
-          setListings((ls) => ls?.map((x) => (x.id === l.id ? l : x)) ?? ls);
+        onSaved={() => {
           setEditOpen(false);
-          setRange(null);
+          setSel(NO_NIGHTS);
           setToast("Calendario actualizado.");
         }}
       />
@@ -277,8 +251,7 @@ export function HostCalendar() {
         open={settingsOpen}
         listing={listing}
         onClose={() => setSettingsOpen(false)}
-        onSaved={(l) => {
-          setListings((ls) => ls?.map((x) => (x.id === l.id ? l : x)) ?? ls);
+        onSaved={() => {
           setSettingsOpen(false);
           setToast("Precios guardados.");
         }}
@@ -288,6 +261,87 @@ export function HostCalendar() {
     </div>
   );
 }
+
+/** Un mes del calendario; sólo se vuelve a pintar si cambia algo de ese mes. */
+const MonthGrid = memo(function MonthGrid({
+  month,
+  lang,
+  today,
+  listing,
+  nightToBooking,
+  selKey,
+  onTap,
+}: {
+  month: Date;
+  lang: ReturnType<typeof useLang>;
+  today: string;
+  listing: HostListing;
+  nightToBooking: Map<string, HostBooking>;
+  selKey: string;
+  onTap: (iso: string) => void;
+}) {
+  const t = useT();
+  const selSet = new Set(selKey ? selKey.split(",") : []);
+  const blocked = new Set(listing.blockedDates);
+  const first = month.getDay();
+  const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const cells: (string | null)[] = Array(first).fill(null);
+  for (let d = 1; d <= days; d++) cells.push(toIso(new Date(month.getFullYear(), month.getMonth(), d)));
+
+  return (
+    <section className="px-3 pt-5">
+      <h2 className="mb-2 px-2 text-lg font-semibold text-[#222] first-letter:uppercase">
+        {month.toLocaleDateString(numberLocale(lang), { month: "long", year: "numeric" })}
+      </h2>
+      <div className="grid grid-cols-7 gap-px">
+        {cells.map((iso, i) => {
+          if (!iso) return <div key={i} />;
+          const b = nightToBooking.get(iso);
+          const past = iso < today;
+          const isBlocked = blocked.has(iso);
+          const isSel = selSet.has(iso);
+          const price = nightPrice(listing, iso);
+          const custom = listing.nightlyPriceOverrides?.[iso] !== undefined;
+          const day = Number(iso.slice(8));
+          const bStart = b ? stayOf(b).checkIn === iso : false;
+          const showName = b && (bStart || new Date(`${iso}T12:00:00`).getDay() === 0);
+
+          let cls = "bg-white text-[#222] active:bg-[#f3f3f3]";
+          if (b) cls = isConfirmed(b.status) ? "bg-[#111] text-white" : isPending(b.status) ? "bg-[#f3d45c] text-black" : "bg-[#e5e5e5] text-[#555]";
+          else if (isSel) cls = "bg-[#222] text-white ring-2 ring-inset ring-[#dcb81e]";
+          else if (isBlocked) cls = "bg-[#f1f1f1] text-[#aaa] bg-[repeating-linear-gradient(135deg,transparent_0_6px,#e0e0e0_6px_7px)]";
+          if (past && !b) cls = "bg-white text-[#cfcfcf]";
+
+          return (
+            <button
+              key={iso}
+              type="button"
+              onClick={() => onTap(iso)}
+              disabled={past && !b}
+              aria-pressed={isSel}
+              aria-label={`${iso}${b ? ` · ${b.guestName}` : isBlocked ? ` · ${t("Bloqueada")}` : ` · ${shortMoney(price)}`}`}
+              className={`relative flex h-[68px] touch-manipulation select-none flex-col justify-between overflow-hidden rounded-md p-1.5 text-left [-webkit-tap-highlight-color:transparent] ${cls}`}
+            >
+              <span className={`text-[13px] font-semibold leading-none ${iso === today ? "underline decoration-2 underline-offset-2" : ""} ${isBlocked && !b ? "line-through" : ""}`}>
+                {day}
+              </span>
+              {b ? (
+                showName && <span className="truncate text-[10px] font-semibold leading-tight">{b.guestName.split(" ")[0]}</span>
+              ) : (
+                !past &&
+                !isBlocked && (
+                  <span className={`truncate text-[10px] leading-tight ${custom && !isSel ? "font-semibold text-[#8a6d0f]" : ""}`}>
+                    {shortMoney(price)}
+                  </span>
+                )
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+});
 
 function Legend({ cls, label }: { cls: string; label: string }) {
   return (

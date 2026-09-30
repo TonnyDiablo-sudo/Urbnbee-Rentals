@@ -12,7 +12,7 @@ export default async function AppHostCalendarPage() {
   const t = await getT();
   return (
     <>
-      <TabHeader title={t("Calendario")} subtitle={t("Toca una noche para bloquearla o cambiar su precio. Toca otra para elegir varias.")} />
+      <TabHeader title={t("Calendario")} subtitle={t("Toca la primera y la última noche para elegir el rango. Toca una noche elegida para quitarla.")} />
       <Suspense>
         <HostCalendar />
       </Suspense>
