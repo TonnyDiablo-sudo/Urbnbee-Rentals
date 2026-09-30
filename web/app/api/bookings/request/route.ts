@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBeeagentBookingLink } from "@/lib/beeagent-booking-links";
+import { enqueueBookingOutbound } from "@/lib/beeagent-outbound";
 import { ensureBookingContract } from "@/lib/booking-contract";
 import { getListingById } from "@/lib/marketplace-store";
 import {
@@ -169,6 +170,7 @@ export async function POST(req: NextRequest) {
       userId: listing.hostId,
       ip,
     }) ?? created.booking;
+  enqueueBookingOutbound("booking.requested", booking);
 
   return NextResponse.json({
     booking: {

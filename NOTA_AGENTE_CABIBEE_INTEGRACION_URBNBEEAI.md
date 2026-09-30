@@ -286,7 +286,9 @@ Todas las POST aceptan header `Idempotency-Key`; un reintento con la misma llave
 - "¿Qué me falta?" → `guest-requirements` y manda `next_step_url`.
 - El anfitrión pregunta "¿qué reservas tengo esta semana?" → `hosts/:hostId/bookings`.
 
-### 9.4 Webhooks salientes Cabibee → urbnbeeai (no existen hoy)
+### 9.4 Webhooks salientes Cabibee → urbnbeeai
+
+**C10 (2026-09-29):** Cola en `urb_outbound_webhooks` + JSON. Firma `X-Cabibee-Signature: sha256=<hex>`. Reintentos con espera hasta 24 h. 200/duplicate/ignored = entregado; 400/401 = no reintenta; 500/503/red = reintenta. Solo hosts con vínculo, salvo `host.unlinked` (se encola con el customer id antes de borrar). `host.entitlements_changed` solo si el cambio nació en Cabibee (`cabibee_direct` / `derived`), no si vino de urbnbeeai. Worker al arrancar + cada 60 s + `GET /api/cron/partner-webhooks`. URL: `URBNBEEAI_WEBHOOK_URL` o `https://www.urbnbeeai.com/api/integrations/cabibee/webhooks`. Sin C11.
 
 `POST https://www.urbnbeeai.com/api/integrations/cabibee/webhooks` con header `X-Cabibee-Signature: sha256=<hex>` = HMAC-SHA256 del cuerpo crudo con `URBNBEE_PARTNER_WEBHOOK_SECRET` (el mismo mecanismo que ya usas de entrada, en sentido contrario).
 
@@ -367,6 +369,7 @@ C2 se puede hacer en cualquier momento y es chica: conviene sacarla pronto.
 
 | Fecha | Fase | Qué quedó / qué cambió | Cómo se probó |
 |---|---|---|---|
+| 2026-09-29 | C10 | Cola saliente HMAC a urbnbeeai. Eventos de reserva, unlink y entitlements Cabibee. Sin C11. | `tsc --noEmit`. Casos de firma/clasificación 200/400/401/503. |
 | 2026-09-29 | C1–C9 | Código de C1–C9 a `main`/Railway (antes solo local). Arranque aplica `002`–`004` + `json-to-mysql`. Sin C10/C11. | `tsc --noEmit`. Push `main` → autodeploy Urbnbee Rentals. |
 | 2026-09-29 | urbnbeeai U2 | urbnbeeai etiqueta `metadata.app="urbnbee"` e ignora lo tuyo en su webhook (también tus objetos viejos con `metadata.userId`). | Deploy SUCCESS |
 | 2026-09-29 | urbnbeeai U1 | La tool se llama Cabibee y apunta a `https://cabibee.com`. Manda `X-Beeagent-Customer-Id` en **cada** llamada a `/v1`. Ya no acepta host ID a mano. Muestra el 409 `host_exists_confirm_required` como "usa un código". | Deploy SUCCESS |

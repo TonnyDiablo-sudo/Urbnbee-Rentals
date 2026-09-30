@@ -7,6 +7,7 @@ import type {
   BookingStatus,
   BookingTransitionEvent,
 } from "@/lib/booking-types";
+import { enqueueBookingOutbound } from "@/lib/beeagent-outbound";
 import { mysqlApplyBookingOccupancy } from "@/lib/booking-nights";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
@@ -112,6 +113,12 @@ export function transitionBooking(
   if (next && bookingHoldsNights(from) !== bookingHoldsNights(next.status)) {
     syncNights(next.id);
   }
+  if (next) {
+    if (toCanon === "CONFIRMED") enqueueBookingOutbound("booking.confirmed", next);
+    if (toCanon === "REJECTED") enqueueBookingOutbound("booking.rejected", next);
+    if (toCanon === "CANCELLED") enqueueBookingOutbound("booking.cancelled", next);
+    if (toCanon === "EXPIRED") enqueueBookingOutbound("booking.expired", next);
+  }
   return next;
 }
 
@@ -129,7 +136,7 @@ export function markBookingPaid(
 
   const listing = getListingById(prev.listingId);
   const to: BookingStatus = listing?.bookingApprovalMode === "instant" ? "CONFIRMED" : "PENDING_HOST";
-  return transitionBooking(bookingId, to, {
+  const next = transitionBooking(bookingId, to, {
     actor: opts?.actor ?? "system",
     reason: "payment_received",
     paymentStatus: "paid",
@@ -140,6 +147,8 @@ export function markBookingPaid(
       stripePaymentIntentId: opts?.stripePaymentIntentId ?? prev.stripePaymentIntentId,
     },
   });
+  if (next) enqueueBookingOutbound("booking.paid", next);
+  return next;
 }
 
 export function acceptBookingByHost(
@@ -170,12 +179,14 @@ export function rejectBookingByHost(bookingId: string): BookingRecord | undefine
   const prev = getBookingById(bookingId);
   if (!prev || !isPendingHostApproval(prev.status)) return undefined;
   const paid = paymentStatusOf(prev) === "paid" || Boolean(prev.paidAt);
-  return transitionBooking(bookingId, "REJECTED", {
+  const next = transitionBooking(bookingId, "REJECTED", {
     actor: "host",
     reason: "host_rejected",
     paymentStatus: paid ? "refunded" : paymentStatusOf(prev),
     patch: paid && !prev.refundedAt ? { refundedAt: nowIso(), refundReason: "host_rejected" } : undefined,
   });
+  if (next && paid && !prev.refundedAt) enqueueBookingOutbound("booking.refunded", next);
+  return next;
 }
 
 export function confirmBookingAfterGuestContract(bookingId: string): BookingRecord | undefined {
@@ -227,5 +238,8 @@ export function completeStayIfDue(booking: BookingRecord, stayEnded: boolean): B
 export function markBookingPaymentRefunded(bookingId: string): BookingRecord | undefined {
   const prev = getBookingById(bookingId);
   if (!prev) return undefined;
-  return patchBookingRecord(bookingId, { paymentStatus: "refunded" });
+  if (paymentStatusOf(prev) === "refunded" || prev.refundedAt) return prev;
+  const next = patchBookingRecord(bookingId, { paymentStatus: "refunded" });
+  if (next) enqueueBookingOutbound("booking.refunded", next);
+  return next;
 }

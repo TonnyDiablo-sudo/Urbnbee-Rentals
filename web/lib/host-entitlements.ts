@@ -8,6 +8,7 @@ import {
   type HostEntitlementStatus,
   type HostSku,
 } from "@/lib/host-entitlement-types";
+import { enqueueEntitlementsChanged } from "@/lib/beeagent-outbound";
 import {
   getHostEntitlement,
   listHostEntitlements,
@@ -58,6 +59,10 @@ export function applyHostEntitlement(input: ApplyHostEntitlementInput): HostEnti
         updatedAt: new Date().toISOString(),
       });
     }
+  }
+
+  if (input.source !== "urbnbeeai_seller") {
+    enqueueEntitlementsChanged(input.hostId, listHostEntitlements(input.hostId));
   }
 
   return row;

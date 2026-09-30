@@ -67,6 +67,7 @@ if (existsSync(bundledDataDir) && resolve(targetDataDir) !== resolve(bundledData
 console.log(`[start] DATA_DIR=${targetDataDir}`);
 console.log(`[start] UPLOADS_DIR=${targetUploadsDir}`);
 console.log(`[start] PORT=${process.env.PORT ?? "(default)"}`);
+console.log(`[start] OUTBOUND_WEBHOOKS=C10 queue + worker`);
 
 const dbUrl =
   process.env.DATABASE_URL?.trim() ||

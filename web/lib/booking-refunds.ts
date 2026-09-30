@@ -1,6 +1,7 @@
 import "server-only";
 import type Stripe from "stripe";
 import type { BookingRecord, BookingRefundReason } from "@/lib/booking-types";
+import { enqueueBookingOutbound } from "@/lib/beeagent-outbound";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
 import { getHostStripe } from "@/lib/host-stripe";
@@ -67,6 +68,11 @@ export async function refundBookingPayment(
   if (!booking.paidAt) return { ok: true, kind: "not_needed", booking };
   if (booking.refundedAt) return { ok: true, kind: "already_refunded", booking };
 
+  function recorded(next: BookingRecord, kind: BookingRefundKind): BookingRefundResult {
+    enqueueBookingOutbound("booking.refunded", next);
+    return { ok: true, kind, booking: next };
+  }
+
   // Modo demo: el pago nunca existió en Stripe, así que el reembolso solo se registra.
   if (booking.stripeCheckoutSessionId === "simulated" || allowSimulatedBookingPayment()) {
     const next = patchBookingRecord(bookingId, {
@@ -77,7 +83,7 @@ export async function refundBookingPayment(
       paymentStatus: "refunded",
     });
     return next
-      ? { ok: true, kind: "simulated", booking: next }
+      ? recorded(next, "simulated")
       : { ok: false, status: 500, error: "No se pudo registrar el reembolso." };
   }
 
@@ -128,7 +134,7 @@ export async function refundBookingPayment(
         paymentStatus: "refunded",
       });
       return next
-        ? { ok: true, kind: "already_refunded", booking: next }
+        ? recorded(next, "already_refunded")
         : { ok: false, status: 500, error: "No se pudo registrar el reembolso." };
     }
     console.warn("[refund] create", bookingId, e);
@@ -149,6 +155,6 @@ export async function refundBookingPayment(
   });
 
   return next
-    ? { ok: true, kind: "created", booking: next }
+    ? recorded(next, "created")
     : { ok: false, status: 500, error: "El reembolso se hizo pero no se pudo guardar." };
 }

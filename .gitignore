@@ -17,6 +17,7 @@ web/data/screening-price.json
 web/data/push-subscriptions.json
 web/data/host-payment-creds.json
 web/data/booking-transactions.json
+web/data/outbound-webhooks.json
 
 # Respaldos locales C0 (pueden tener PII de huéspedes/anfitriones)
 _backups/

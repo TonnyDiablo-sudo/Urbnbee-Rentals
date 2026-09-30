@@ -12,6 +12,7 @@ import type {
   BookingContractRecord,
   BookingContractSnapshot,
 } from "@/lib/booking-contract-types";
+import { enqueueBookingOutbound } from "@/lib/beeagent-outbound";
 import type { BookingRecord } from "@/lib/booking-types";
 import { attachDepositIfNeeded } from "@/lib/booking-deposit";
 import { confirmBookingAfterGuestContract } from "@/lib/booking-machine";
@@ -243,7 +244,11 @@ export function guestAcceptBookingContract(
       guestPhone: opts.phone || booking.guestPhone,
       guestFinishNotes: opts.notes || booking.guestFinishNotes,
     });
-    return saved ? confirmBookingAfterGuestContract(saved.id) ?? saved : undefined;
+    if (saved) {
+      enqueueBookingOutbound("booking.contract_signed", saved);
+      return confirmBookingAfterGuestContract(saved.id) ?? saved;
+    }
+    return undefined;
   }
 
   return confirmBookingAfterGuestContract(bookingId) ?? booking;
