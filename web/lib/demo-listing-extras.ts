@@ -229,7 +229,7 @@ export const extraListingDetails: Record<string, ListingDetail> = {
     bathrooms: 2,
     verified: true,
     propertyId: 155,
-    photos: [p("1763669632676-961830e89de2"), p("1449158743715-0a90ebb6d2d8"), p("1518780664697-55e3ad937233"), p("1758983065583-9cea714214f9")],
+    photos: [p("1587061949409-02df41d5e562"), p("1449158743715-0a90ebb6d2d8"), p("1518780664697-55e3ad937233"), p("1758983065583-9cea714214f9")],
     amenities: [...AMENITIES, "Chimenea Interior", "Asador", "Estacionamiento Gratuito", "Jardín / Patio"],
     pets: true,
     host: {
@@ -272,7 +272,7 @@ export const extraListingDetails: Record<string, ListingDetail> = {
     bathrooms: 1,
     verified: false,
     propertyId: 156,
-    photos: [p("1518780664697-55e3ad937233"), p("1449158743715-0a90ebb6d2d8"), p("1758983065583-9cea714214f9"), p("1763669632676-961830e89de2")],
+    photos: [p("1518780664697-55e3ad937233"), p("1449158743715-0a90ebb6d2d8"), p("1758983065583-9cea714214f9"), p("1542718610-a1d656d1884c")],
     amenities: [...AMENITIES, "Jardín / Patio", "Asador"],
     host: {
       name: "Diego Morales",

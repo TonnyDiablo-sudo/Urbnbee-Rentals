@@ -15,6 +15,7 @@ const file = join(dataDir, "marketplace-store.json");
 const DEAD = {
   "1449158743715-0a90ebb615d9": "1449158743715-0a90ebb6d2d8",
   "1600573472592-401e3a5e5a41": "1583847268964-b28dc8f51f92",
+  "1605146769289-440113cc31d1": "1464146072230-91cabc968266",
 };
 
 /** Fotos que no corresponden al tipo de lugar, por anuncio demo. */

@@ -161,7 +161,7 @@ export const demoListings: Record<ListingCategory, Listing[]> = {
       slug: "cabana-summerlin",
       title: "Cabaña Summerlin – Vacaciones Perfectas",
       imageSrc:
-        "https://images.unsplash.com/photo-1763669632676-961830e89de2?w=800&q=80",
+        "https://images.unsplash.com/photo-1587061949409-02df41d5e562?w=800&q=80",
       pricePerNight: 2500,
       currency: "$",
       rating: 4.5,
