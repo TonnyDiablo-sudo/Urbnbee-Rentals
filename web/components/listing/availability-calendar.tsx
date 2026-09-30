@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { quoteStay, stayLengthError, type ListingPricing } from "@/lib/listing-pricing";
 
 const DAYS = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"];
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -29,27 +30,6 @@ function localISO(d: Date): string {
 
 function isBlocked(d: Date, blocked: string[]) {
   return blocked.includes(localISO(d));
-}
-
-function sumStayNights(
-  checkin: Date,
-  checkout: Date,
-  basePrice: number,
-  overrides?: Record<string, number>
-): { total: number; sameRate: boolean } {
-  let total = 0;
-  let minP = Infinity;
-  let maxP = -Infinity;
-  const cursor = new Date(checkin);
-  while (cursor < checkout) {
-    const iso = localISO(cursor);
-    const p = overrides?.[iso] ?? basePrice;
-    total += p;
-    minP = Math.min(minP, p);
-    maxP = Math.max(maxP, p);
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return { total, sameRate: minP === maxP };
 }
 
 type CalendarMonthProps = {
@@ -127,6 +107,7 @@ type Props = {
   cleaningFee?: number;
   blockedDates: string[];
   nightlyPriceOverrides?: Record<string, number>;
+  pricing?: ListingPricing;
   depositMxn?: number;
   /** Si se pasa, el flujo exige usuario registrado y pago antes de confirmar. */
   listingId?: string;
@@ -152,6 +133,7 @@ export function AvailabilityCalendar({
   cleaningFee = 0,
   blockedDates,
   nightlyPriceOverrides,
+  pricing,
   depositMxn = 0,
   listingId,
   bookable = true,
@@ -243,11 +225,11 @@ export function AvailabilityCalendar({
   const nights = checkin && checkout
     ? Math.round((checkout.getTime() - checkin.getTime()) / 86400000)
     : 0;
+  const priceInput = { pricePerNight, nightlyPriceOverrides, pricing };
   const stay =
-    nights > 0 && checkin && checkout
-      ? sumStayNights(checkin, checkout, pricePerNight, nightlyPriceOverrides)
-      : null;
-  const total = stay ? stay.total + cleaningFee : 0;
+    nights > 0 && checkin && checkout ? quoteStay(priceInput, localISO(checkin), localISO(checkout)) : null;
+  const total = stay ? stay.staySubtotal + cleaningFee : 0;
+  const lengthErr = nights > 0 ? stayLengthError(priceInput, nights) : null;
 
   const fmtDate = (d: Date) => `${d.getDate()} ${t(MONTHS[d.getMonth()]).slice(0,3)} ${d.getFullYear()}`;
 
@@ -323,18 +305,24 @@ export function AvailabilityCalendar({
           {stay.sameRate ? (
             <div className="flex justify-between text-[#3a3a3a]">
               <span>
-                ${Math.round(stay.total / nights).toLocaleString("es-MX")} × {t("{n} noches", { n: nights })}
+                ${Math.round(stay.nightsSubtotal / nights).toLocaleString("es-MX")} × {t("{n} noches", { n: nights })}
               </span>
-              <span>${stay.total.toLocaleString("es-MX")}</span>
+              <span>${stay.nightsSubtotal.toLocaleString("es-MX")}</span>
             </div>
           ) : (
             <>
               <p className="mb-2 text-xs text-[#888]">{t("Precio por noche según fecha (definido por el anfitrión).")}</p>
               <div className="flex justify-between text-[#3a3a3a]">
                 <span>{t("{n} noches", { n: nights })}</span>
-                <span>${stay.total.toLocaleString("es-MX")}</span>
+                <span>${stay.nightsSubtotal.toLocaleString("es-MX")}</span>
               </div>
             </>
+          )}
+          {stay.discountMxn > 0 && (
+            <div className="flex justify-between text-[#1e7a3a]">
+              <span>{t(nights >= 28 ? "Descuento mensual ({n}%)" : "Descuento semanal ({n}%)", { n: stay.discountPct })}</span>
+              <span>−${stay.discountMxn.toLocaleString("es-MX")}</span>
+            </div>
           )}
           {cleaningFee > 0 && (
             <div className="flex justify-between text-[#3a3a3a]">
@@ -393,6 +381,11 @@ export function AvailabilityCalendar({
         </div>
       )}
 
+      {lengthErr && (
+        <p className="mt-3 text-sm text-red-600" role="alert">
+          {t(lengthErr.key, { n: lengthErr.n })}
+        </p>
+      )}
       {bookingErr && (
         <div className="mt-3 text-sm text-red-600" role="alert">
           <p>{t(bookingErr)}</p>
@@ -460,6 +453,7 @@ export function AvailabilityCalendar({
         disabled={
           bookingBusy ||
           Boolean(reserveDone) ||
+          Boolean(lengthErr) ||
           Boolean(listingId && (!sessionUser || sessionLoading))
         }
         className="mt-4 w-full rounded py-3 text-sm font-semibold text-black transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-60"

@@ -32,6 +32,7 @@ export function ChatThread({
   send,
   emptyText,
   headerRight,
+  closedNotice,
 }: {
   title: string;
   subtitle?: string;
@@ -42,6 +43,8 @@ export function ChatThread({
   send: (text: string) => Promise<string | null>;
   emptyText: string;
   headerRight?: React.ReactNode;
+  /** Si viene, la conversación se muestra pero ya no se puede escribir. */
+  closedNotice?: string;
 }) {
   const t = useT();
   const lang = useLang();
@@ -129,6 +132,14 @@ export function ChatThread({
         <div ref={bottomRef} />
       </div>
 
+      {closedNotice ? (
+        <p
+          className="border-t border-[#ebebeb] bg-white px-5 pt-3 text-center text-sm text-[#717171]"
+          style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
+        >
+          {closedNotice}
+        </p>
+      ) : (
       <form
         onSubmit={submit}
         className="border-t border-[#ebebeb] bg-white px-3 pt-2.5"
@@ -154,6 +165,7 @@ export function ChatThread({
           </button>
         </div>
       </form>
+      )}
     </div>
   );
 }

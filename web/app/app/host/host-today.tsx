@@ -9,22 +9,19 @@ import { PushPrompt } from "../_components/push";
 import { threadIsUnread } from "../_components/seen";
 import { Sheet } from "../_components/sheet";
 import { WebLink } from "../_components/site-origin";
+import { addDays, isConfirmed, isPending, stayOf, todayIso, type HostBooking } from "./_shared/host-data";
+import { ReservationSheet } from "./_shared/reservation-sheet";
 
-type Booking = {
-  id: string;
-  status: string;
-  guestName: string;
-  checkIn: string;
-  checkOut: string;
-  hostAdjustedCheckIn?: string;
-  hostAdjustedCheckOut?: string;
-  nights: number;
-  estimatedTotalMxn: number;
-  listingTitle: string;
-  effectiveListingTitle?: string;
-  paidAt?: string;
-  createdAt: string;
-};
+type Booking = HostBooking;
+
+type Filter = "leaving" | "hosting" | "arriving" | "upcoming";
+
+const FILTERS: { id: Filter; label: string; empty: string }[] = [
+  { id: "leaving", label: "Salen hoy", empty: "Nadie sale hoy." },
+  { id: "hosting", label: "Hospedando ahora", empty: "No tienes huéspedes hospedados ahora." },
+  { id: "arriving", label: "Llegan pronto", empty: "Nadie llega en los próximos 3 días." },
+  { id: "upcoming", label: "Próximas", empty: "Sin estancias próximas." },
+];
 
 type Status = {
   acceptsBookings: boolean;
@@ -36,13 +33,10 @@ type Status = {
 
 type Thread = { listingId: string; guestSessionId: string; lastAt: string; messages: { sender: string }[] };
 
-function todayIso() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 export function HostToday() {
   const t = useT();
+  const [filter, setFilter] = useState<Filter | null>(null);
+  const [opened, setOpened] = useState<Booking | null>(null);
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [published, setPublished] = useState(0);
@@ -90,10 +84,20 @@ export function HostToday() {
   if (bookings === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
 
   const today = todayIso();
-  const pending = bookings.filter((b) => b.status === "PENDING" || b.status === "PENDING_HOST");
-  const upcoming = bookings
-    .filter((b) => (b.status === "CONFIRMED" || b.status === "AWAITING_DETAILS") && (b.hostAdjustedCheckOut ?? b.checkOut) >= today)
-    .sort((a, b) => (a.hostAdjustedCheckIn ?? a.checkIn).localeCompare(b.hostAdjustedCheckIn ?? b.checkIn));
+  const soon = addDays(today, 3);
+  const pending = bookings.filter((b) => isPending(b.status));
+  const confirmed = bookings
+    .filter((b) => isConfirmed(b.status))
+    .sort((a, b) => stayOf(a).checkIn.localeCompare(stayOf(b).checkIn));
+  const groups: Record<Filter, Booking[]> = {
+    leaving: confirmed.filter((b) => stayOf(b).checkOut === today),
+    hosting: confirmed.filter((b) => stayOf(b).checkIn <= today && stayOf(b).checkOut > today),
+    arriving: confirmed.filter((b) => stayOf(b).checkIn >= today && stayOf(b).checkIn <= soon),
+    upcoming: confirmed.filter((b) => stayOf(b).checkIn > today),
+  };
+  const active = filter ?? FILTERS.find((f) => groups[f.id].length > 0)?.id ?? "upcoming";
+  const shown = groups[active];
+  const activeFilter = FILTERS.find((f) => f.id === active)!;
 
   return (
     <div className="space-y-6 px-5 pb-8">
@@ -143,7 +147,9 @@ export function HostToday() {
           <ul className="space-y-3">
             {pending.map((b) => (
               <li key={b.id} className="rounded-2xl border border-[#ebebeb] p-4">
-                <BookingSummary b={b} />
+                <button type="button" onClick={() => setOpened(b)} className="block w-full text-left">
+                  <BookingSummary b={b} />
+                </button>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -167,19 +173,47 @@ export function HostToday() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Próximas estancias")}</h2>
-        {upcoming.length === 0 ? (
-          <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#717171]">{t("Sin estancias próximas.")}</p>
+        <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Tus reservaciones")}</h2>
+        <div className="-mx-5 mb-3 flex gap-2 overflow-x-auto px-5 [scrollbar-width:none]">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium ${
+                active === f.id ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#222]"
+              }`}
+            >
+              {t(f.label)} ({groups[f.id].length})
+            </button>
+          ))}
+        </div>
+        {shown.length === 0 ? (
+          <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#717171]">{t(activeFilter.empty)}</p>
         ) : (
           <ul className="space-y-3">
-            {upcoming.map((b) => (
-              <li key={b.id} className="rounded-2xl border border-[#ebebeb] p-4">
-                <BookingSummary b={b} />
+            {shown.map((b) => (
+              <li key={b.id}>
+                <button type="button" onClick={() => setOpened(b)} className="block w-full rounded-2xl border border-[#ebebeb] p-4 text-left">
+                  <BookingSummary b={b} />
+                </button>
               </li>
             ))}
           </ul>
         )}
+        <Link href="/host/calendario" className="mt-3 block text-center text-sm font-medium text-[#222] underline">
+          {t("Ver todo en el calendario")}
+        </Link>
       </section>
+
+      <ReservationSheet
+        booking={opened}
+        onClose={() => setOpened(null)}
+        onReview={(b) => {
+          setOpened(null);
+          setReviewing(b);
+        }}
+      />
 
       <WebLink
         path="/host/requests"

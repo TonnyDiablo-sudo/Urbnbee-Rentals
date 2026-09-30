@@ -34,6 +34,7 @@ export default async function AppListingPage({ params }: Props) {
   const host = viewer ? listing.host : stripHostContactChannels(listing.host);
   const place = [listing.city, listing.zone].filter(Boolean).join(", ");
   const mxn = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
+  const pricing = listing.pricing;
 
   const rules = [
     { label: "Mascotas", v: listing.rules.pets },
@@ -117,8 +118,15 @@ export default async function AppListingPage({ params }: Props) {
           </Section>
         )}
 
-        {rules.length > 0 && (
+        {(rules.length > 0 || listing.checkInTime || listing.checkOutTime) && (
           <Section title={t("Reglas de la casa")}>
+            {(listing.checkInTime || listing.checkOutTime) && (
+              <p className="mb-3 text-sm text-[#333]">
+                {listing.checkInTime ? t("Llegada desde las {time}", { time: listing.checkInTime }) : ""}
+                {listing.checkInTime && listing.checkOutTime ? " · " : ""}
+                {listing.checkOutTime ? t("Salida antes de las {time}", { time: listing.checkOutTime }) : ""}
+              </p>
+            )}
             <ul className="grid grid-cols-2 gap-2 text-sm text-[#333]">
               {rules.map((r) => (
                 <li key={r.label}>
@@ -132,6 +140,14 @@ export default async function AppListingPage({ params }: Props) {
         <Section title={t("Precio")}>
           <dl className="space-y-1.5 text-[15px] text-[#333]">
             <Row label={t("Por noche")} value={mxn(listing.pricePerNight)} />
+            {pricing?.weekendPrice ? <Row label={t("Viernes y sábado")} value={mxn(pricing.weekendPrice)} /> : null}
+            {pricing?.weeklyDiscountPct ? (
+              <Row label={t("Descuento por semana (7+ noches)")} value={`${pricing.weeklyDiscountPct}%`} />
+            ) : null}
+            {pricing?.monthlyDiscountPct ? (
+              <Row label={t("Descuento por mes (28+ noches)")} value={`${pricing.monthlyDiscountPct}%`} />
+            ) : null}
+            {pricing?.minNights ? <Row label={t("Estancia mínima")} value={t("{n} noches", { n: pricing.minNights })} /> : null}
             {listing.cleaningFee ? <Row label={t("Limpieza (una vez)")} value={mxn(listing.cleaningFee)} /> : null}
             {listing.depositMxn ? <Row label={t("Depósito (entre ustedes)")} value={mxn(listing.depositMxn)} /> : null}
           </dl>
@@ -164,6 +180,7 @@ export default async function AppListingPage({ params }: Props) {
         depositMxn={listing.depositMxn}
         blockedDates={listing.blockedDates}
         nightlyPriceOverrides={listing.nightlyPriceOverrides}
+        pricing={listing.pricing}
         bookable={bookable}
         chatAvailable={hostListing}
         loggedIn={Boolean(viewer)}

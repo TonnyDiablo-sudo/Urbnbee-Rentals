@@ -60,6 +60,9 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
     nightlyPriceOverrides: record.nightlyPriceOverrides
       ? { ...record.nightlyPriceOverrides }
       : undefined,
+    pricing: record.pricing ? { ...record.pricing } : undefined,
+    checkInTime: record.arrivalGuide?.checkInTime,
+    checkOutTime: record.arrivalGuide?.checkOutTime,
     cleaningFee: record.cleaningFee,
     depositMxn: record.contract?.depositMxn || undefined,
     category: categoryLabel(record.categoryKey),

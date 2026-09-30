@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { sizedImage } from "@/lib/image-url";
 
 type Listing = {
   id: string;
@@ -20,38 +21,16 @@ export function HostListings() {
   const t = useT();
   const [rows, setRows] = useState<Listing[] | null>(null);
   const [acceptsBookings, setAcceptsBookings] = useState<boolean | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    const [l, s] = await Promise.all([
-      fetch("/api/host/listings", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
-      fetch("/api/host/verification/status", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
-    ]);
-    setRows(Array.isArray(l.listings) ? l.listings : []);
-    if (typeof s.acceptsBookings === "boolean") setAcceptsBookings(s.acceptsBookings);
-  }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  const togglePublish = async (l: Listing) => {
-    if (!l.published && (l.photos.length === 0 || !l.city.trim())) {
-      setErr("Antes de publicar agrega al menos una foto y la ciudad. Toca «Editar».");
-      return;
-    }
-    setBusyId(l.id);
-    setErr(null);
-    const res = await fetch(`/api/host/listings/${l.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ published: !l.published }),
-    }).catch(() => null);
-    if (!res?.ok) setErr("No se pudo cambiar el estado.");
-    setBusyId(null);
-    await load();
-  };
+    void Promise.all([
+      fetch("/api/host/listings", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
+      fetch("/api/host/verification/status", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
+    ]).then(([l, s]) => {
+      setRows(Array.isArray(l.listings) ? l.listings : []);
+      if (typeof s.acceptsBookings === "boolean") setAcceptsBookings(s.acceptsBookings);
+    });
+  }, []);
 
   if (rows === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
 
@@ -63,7 +42,6 @@ export function HostListings() {
           <span className="font-semibold underline">{t("Activa Reservas en línea")}</span>
         </Link>
       )}
-      {err && <p className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(err)}</p>}
 
       {rows.length === 0 ? (
         <div className="py-8">
@@ -77,58 +55,31 @@ export function HostListings() {
           </Link>
         </div>
       ) : (
-        <ul className="space-y-4">
+        <ul className="space-y-6">
           {rows.map((l) => (
-            <li key={l.id} className="overflow-hidden rounded-2xl border border-[#ebebeb]">
-              <div className="flex gap-3 p-3">
-                <div className="h-20 w-24 shrink-0 overflow-hidden rounded-xl bg-[#eee]">
-                  {l.photos[0] && (
+            <li key={l.id}>
+              <Link href={`/host/anuncios/${l.id}`} className="block">
+                <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-[#eee]">
+                  {l.photos[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={l.photos[0]} alt="" className="h-full w-full object-cover" />
+                    <img src={sizedImage(l.photos[0], 720)} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full items-center justify-center text-sm text-[#999]">{t("Sin fotos")}</span>
                   )}
+                  <span
+                    className={`absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-semibold shadow ${
+                      l.published ? "text-[#1e7a3a]" : "text-[#717171]"
+                    }`}
+                  >
+                    ● {l.published ? t("Publicado") : t("No publicado")}
+                  </span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[15px] font-semibold text-[#222]">{l.title}</p>
-                  <p className="truncate text-sm text-[#717171]">{[l.city, l.zone].filter(Boolean).join(", ") || t("Sin ciudad")}</p>
-                  <p className="text-sm text-[#333]">
-                    ${l.pricePerNight.toLocaleString("es-MX")} {t("MXN noche")}
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                        l.published ? "bg-[#e6f6ea] text-[#1e7a3a]" : "bg-[#f1f1f1] text-[#717171]"
-                      }`}
-                    >
-                      {l.published ? t("Publicado") : t("Borrador")}
-                    </span>
-                    {l.verified && (
-                      <span className="rounded-full bg-[#fdf6d8] px-2 py-0.5 text-[11px] font-semibold text-[#8a6d0f]">
-                        {t("✓ Verificado")}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 border-t border-[#f0f0f0] text-sm font-medium">
-                <Link href={`/host/anuncios/${l.id}`} className="py-3 text-center text-[#222]">
-                  {t("Editar")}
-                </Link>
-                <button
-                  type="button"
-                  disabled={busyId === l.id}
-                  onClick={() => void togglePublish(l)}
-                  className="border-x border-[#f0f0f0] py-3 text-[#222] disabled:opacity-50"
-                >
-                  {l.published ? t("Pausar") : t("Publicar")}
-                </button>
-                {l.published ? (
-                  <Link href={`/alojamiento/${l.slug}`} className="py-3 text-center text-[#222]">
-                    {t("Ver")}
-                  </Link>
-                ) : (
-                  <span className="py-3 text-center text-[#bbb]">{t("Ver")}</span>
-                )}
-              </div>
+                <p className="mt-2.5 truncate text-[15px] font-semibold text-[#222]">{l.title}</p>
+                <p className="truncate text-sm text-[#717171]">
+                  {[l.zone, l.city].filter(Boolean).join(", ") || t("Sin ciudad")} · ${l.pricePerNight.toLocaleString("es-MX")}{" "}
+                  {t("MXN noche")}
+                </p>
+              </Link>
             </li>
           ))}
         </ul>

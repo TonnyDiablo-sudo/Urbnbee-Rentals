@@ -10,11 +10,14 @@ export function GuestChat({
   title,
   subtitle,
   slug,
+  closed = false,
 }: {
   listingId: string;
   title: string;
   subtitle: string;
-  slug: string;
+  /** Sin slug el anuncio ya no está publicado: no hay a dónde enlazar. */
+  slug?: string;
+  closed?: boolean;
 }) {
   const t = useT();
   const load = useCallback(async (): Promise<ChatMessage[]> => {
@@ -51,10 +54,13 @@ export function GuestChat({
       load={load}
       send={send}
       emptyText={t("Saluda al anfitrión y pregúntale lo que necesites. Las respuestas las escribe él, no un robot.")}
+      closedNotice={closed ? t("Este anuncio ya no está disponible, así que ya no se pueden enviar mensajes.") : undefined}
       headerRight={
-        <Link href={`/alojamiento/${slug}`} className="rounded-full px-3 py-1.5 text-sm font-semibold text-[#222] underline">
-          {t("Ver anuncio")}
-        </Link>
+        slug ? (
+          <Link href={`/alojamiento/${slug}`} className="rounded-full px-3 py-1.5 text-sm font-semibold text-[#222] underline">
+            {t("Ver anuncio")}
+          </Link>
+        ) : undefined
       }
     />
   );

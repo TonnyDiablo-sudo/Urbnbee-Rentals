@@ -264,6 +264,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                   depositMxn={listing.depositMxn}
                   blockedDates={listing.blockedDates}
                   nightlyPriceOverrides={listing.nightlyPriceOverrides}
+                  pricing={listing.pricing}
                 />
 
                 <hr className="my-4" style={{ borderColor: "#ebebeb" }} />

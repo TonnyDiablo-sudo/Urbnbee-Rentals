@@ -1,3 +1,5 @@
+import type { ListingPricing } from "@/lib/listing-pricing";
+
 export type HostContact = {
   name: string;
   bio: string;
@@ -37,6 +39,11 @@ export type ListingDetail = {
   nightlyPriceOverrides?: Record<string, number>;
   priceWeekly?: number;
   priceMonthly?: number;
+  /** Fin de semana, descuentos por duración y estancia mínima/máxima. */
+  pricing?: ListingPricing;
+  /** Horarios públicos; el resto de la guía de llegada sólo se ve con reserva confirmada. */
+  checkInTime?: string;
+  checkOutTime?: string;
   cleaningFee?: number;
   /** Depósito pactado. Se entrega entre las partes; Cabibee no lo retiene. */
   depositMxn?: number;

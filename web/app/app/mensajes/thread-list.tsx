@@ -52,7 +52,7 @@ export function GuestThreadList() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
                   <p className={`truncate text-[15px] ${unread ? "font-bold" : "font-semibold"} text-[#222]`}>
-                    {th.listingTitle}
+                    {t(th.listingTitle)}
                   </p>
                   <span className="shrink-0 text-xs text-[#999]">
                     {new Date(th.lastAt).toLocaleDateString(numberLocale(lang), { day: "numeric", month: "short" })}

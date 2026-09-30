@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import type { ArrivalGuide } from "@/lib/arrival-guide";
 import { GUEST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../_components/booking-status";
+import { Sheet } from "../_components/sheet";
 import { WebLink } from "../_components/site-origin";
 
 type Trip = {
@@ -20,6 +22,9 @@ type Trip = {
   nights: number;
   estimatedTotalMxn: number;
   platformFeeMxn?: number;
+  listingId: string;
+  hostAdjustedListingId?: string;
+  arrival?: ArrivalGuide & { address?: string };
 };
 
 export function TripsList() {
@@ -31,6 +36,7 @@ export function TripsList() {
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [guide, setGuide] = useState<Trip | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -104,6 +110,23 @@ export function TripsList() {
                   {fmtMxn(trip.estimatedTotalMxn + (trip.platformFeeMxn ?? 0))} · {t("código {code}", { code: trip.token })}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
+                  {trip.arrival && (
+                    <button
+                      type="button"
+                      onClick={() => setGuide(trip)}
+                      className="rounded-xl bg-[#111] px-4 py-2 text-sm font-semibold text-white"
+                    >
+                      {t("Guía de llegada")}
+                    </button>
+                  )}
+                  {trip.status !== "CANCELLED" && trip.status !== "EXPIRED" && trip.status !== "REJECTED" && (
+                    <Link
+                      href={`/mensajes/${encodeURIComponent(trip.hostAdjustedListingId ?? trip.listingId)}`}
+                      className="rounded-xl border border-[#ddd] px-4 py-2 text-sm font-medium text-[#222]"
+                    >
+                      {t("Mensaje al anfitrión")}
+                    </Link>
+                  )}
                   {trip.status === "AWAITING_PAYMENT" && (
                     <WebLink
                       path={`/contrato/${trip.token}?pay=1`}
@@ -142,6 +165,55 @@ export function TripsList() {
       >
         {t("Contratos, depósitos y reseñas en la web")}{" "}
       </WebLink>
+
+      <Sheet open={Boolean(guide)} onClose={() => setGuide(null)} title={t("Guía de llegada")}>
+        {guide?.arrival && <ArrivalGuideView trip={guide} />}
+      </Sheet>
+    </div>
+  );
+}
+
+function ArrivalGuideView({ trip }: { trip: Trip }) {
+  const t = useT();
+  const lang = useLang();
+  const g = trip.arrival ?? {};
+  const inD = trip.hostAdjustedCheckIn ?? trip.checkIn;
+  const outD = trip.hostAdjustedCheckOut ?? trip.checkOut;
+  const items: { label: string; value?: string }[] = [
+    { label: "Dirección", value: g.address },
+    { label: "Cómo llegar", value: g.directions },
+    { label: "Cómo entrar", value: g.checkInMethod },
+    { label: "Wifi", value: g.wifiName ? `${g.wifiName}${g.wifiPassword ? `\n${t("Contraseña")}: ${g.wifiPassword}` : ""}` : undefined },
+    { label: "Manual de la casa", value: g.houseManual },
+    { label: "Instrucciones de salida", value: g.checkoutInstructions },
+  ];
+  const filled = items.filter((i) => i.value);
+  return (
+    <div className="space-y-5">
+      <p className="text-[15px] font-semibold text-[#222]">{trip.listingTitle}</p>
+      <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-[#ebebeb]">
+        <div className="border-r border-[#ebebeb] p-3">
+          <p className="text-xs font-semibold uppercase text-[#717171]">{t("Llegada")}</p>
+          <p className="mt-0.5 text-[15px] text-[#222]">{fmtDay(inD, lang)}</p>
+          {g.checkInTime && <p className="text-sm text-[#717171]">{t("desde las {time}", { time: g.checkInTime })}</p>}
+        </div>
+        <div className="p-3">
+          <p className="text-xs font-semibold uppercase text-[#717171]">{t("Salida")}</p>
+          <p className="mt-0.5 text-[15px] text-[#222]">{fmtDay(outD, lang)}</p>
+          {g.checkOutTime && <p className="text-sm text-[#717171]">{t("antes de las {time}", { time: g.checkOutTime })}</p>}
+        </div>
+      </div>
+      {filled.map((i) => (
+        <div key={i.label}>
+          <p className="text-sm font-semibold text-[#222]">{t(i.label)}</p>
+          <p className="mt-1 whitespace-pre-line text-[15px] leading-relaxed text-[#333]">{i.value}</p>
+        </div>
+      ))}
+      {filled.length <= 1 && (
+        <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#717171]">
+          {t("El anfitrión todavía no llena su guía de llegada. Escríbele por el chat si necesitas algo.")}
+        </p>
+      )}
     </div>
   );
 }

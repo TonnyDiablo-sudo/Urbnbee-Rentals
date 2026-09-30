@@ -6,6 +6,7 @@ import { useLang, useT } from "@/components/i18n-provider";
 import { AvailabilityCalendar } from "@/components/listing/availability-calendar";
 import { numberLocale } from "@/lib/i18n";
 import type { HostContact } from "@/lib/listing-detail-data";
+import type { ListingPricing } from "@/lib/listing-pricing";
 import { Sheet } from "../../_components/sheet";
 
 type Props = {
@@ -16,6 +17,7 @@ type Props = {
   depositMxn?: number;
   blockedDates: string[];
   nightlyPriceOverrides?: Record<string, number>;
+  pricing?: ListingPricing;
   bookable: boolean;
   /** Sólo los anuncios de anfitriones reales tienen chat; los de muestra no. */
   chatAvailable: boolean;
@@ -95,6 +97,7 @@ export function ListingActionBar(p: Props) {
           depositMxn={p.depositMxn}
           blockedDates={p.blockedDates}
           nightlyPriceOverrides={p.nightlyPriceOverrides}
+          pricing={p.pricing}
           appRoutes={{
             login: `/cuenta/entrar?${authQ}`,
             register: `/cuenta/registro?${authQ}`,

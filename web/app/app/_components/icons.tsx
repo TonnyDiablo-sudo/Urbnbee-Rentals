@@ -48,8 +48,17 @@ export function IconUser({ className = "h-6 w-6" }: P) {
 export function IconToday({ className = "h-6 w-6" }: P) {
   return (
     <svg className={className} {...base}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
+export function IconCalendar({ className = "h-6 w-6" }: P) {
+  return (
+    <svg className={className} {...base}>
       <rect x="3" y="4" width="18" height="17" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18M9 15l2 2 4-4" />
+      <path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01" />
     </svg>
   );
 }

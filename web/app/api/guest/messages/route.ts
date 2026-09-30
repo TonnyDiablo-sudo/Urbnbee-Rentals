@@ -15,8 +15,8 @@ export async function GET() {
     const last = t.messages[t.messages.length - 1];
     return {
       listingId: t.listingId,
-      listingTitle: listing?.title ?? "Alojamiento",
-      listingSlug: listing?.slug,
+      listingTitle: listing?.title ?? "Anuncio no disponible",
+      listingSlug: listing?.published ? listing.slug : undefined,
       lastAt: t.lastAt,
       lastPreview: last?.body?.slice(0, 140) ?? "",
       lastSender: last?.sender,

@@ -24,6 +24,7 @@ export function HostInbox() {
   const t = useT();
   const lang = useLang();
   const [threads, setThreads] = useState<HostThread[] | null>(null);
+  const [onlyUnread, setOnlyUnread] = useState(false);
 
   useEffect(() => {
     const load = () =>
@@ -48,11 +49,33 @@ export function HostInbox() {
     );
   }
 
+  const isUnread = (th: HostThread) =>
+    th.messages[th.messages.length - 1]?.sender === "guest" && threadIsUnread(`h:${th.listingId}:${th.guestSessionId}`, th.lastAt);
+  const unreadCount = threads.filter(isUnread).length;
+  const shown = onlyUnread ? threads.filter(isUnread) : threads;
+
   return (
+    <>
+    <div className="flex gap-2 px-5 pb-2">
+      {[
+        { v: false, label: t("Todos") },
+        { v: true, label: `${t("No leídos")}${unreadCount ? ` (${unreadCount})` : ""}` },
+      ].map((o) => (
+        <button
+          key={String(o.v)}
+          type="button"
+          onClick={() => setOnlyUnread(o.v)}
+          className={`rounded-full border px-4 py-2 text-sm font-medium ${onlyUnread === o.v ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#222]"}`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+    {shown.length === 0 && <p className="px-5 py-6 text-sm text-[#717171]">{t("No tienes mensajes sin leer.")}</p>}
     <ul className="divide-y divide-[#f0f0f0]">
-      {threads.map((th) => {
+      {shown.map((th) => {
         const last = th.messages[th.messages.length - 1];
-        const unread = last?.sender === "guest" && threadIsUnread(`h:${th.listingId}:${th.guestSessionId}`, th.lastAt);
+        const unread = isUnread(th);
         return (
           <li key={`${th.listingId}:${th.guestSessionId}`}>
             <Link href={hostThreadHref(th)} className="flex items-start gap-3 px-5 py-4 active:bg-[#fafafa]">
@@ -78,5 +101,6 @@ export function HostInbox() {
         );
       })}
     </ul>
+    </>
   );
 }

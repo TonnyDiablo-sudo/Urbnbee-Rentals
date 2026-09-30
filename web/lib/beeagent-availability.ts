@@ -2,6 +2,7 @@ import "server-only";
 import { addDaysIso, eachIsoNight, todayIsoLocal } from "@/lib/beeagent-iso-date";
 import { PARTNER_CURRENCY } from "@/lib/beeagent-listing-public";
 import { hasOverlappingActiveBooking } from "@/lib/bookings-store";
+import { nightPrice } from "@/lib/listing-pricing";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 
 export type NightAvailability = {
@@ -20,7 +21,7 @@ export function listingAvailabilityNights(
   const today = todayIsoLocal();
   const nights = eachIsoNight(from, addDaysIso(toInclusive, 1));
   return nights.map((date) => {
-    const price = listing.nightlyPriceOverrides?.[date] ?? listing.pricePerNight;
+    const price = nightPrice(listing, date);
     if (date < today) {
       return { date, available: false, reason: "past" as const, price };
     }

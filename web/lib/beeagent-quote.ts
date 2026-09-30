@@ -15,7 +15,7 @@ export function quoteListingStay(
 ) {
   const nights = countNights(checkIn, checkOut);
   const errors: QuoteError[] = [];
-  if (nights < 1) errors.push("min_nights");
+  if (nights < 1 || nights < (listing.pricing?.minNights ?? 1)) errors.push("min_nights");
   if (guests > listing.guests) errors.push("max_guests");
   if (!listingIsPartnerBookable(listing)) errors.push("not_bookable");
   if (

@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { resolveListingDetail } from "@/lib/get-listing-detail";
+import { listAllThreadsForGuest } from "@/lib/host-inbox-store";
 import { getT } from "@/lib/i18n/server";
-import { getListingById } from "@/lib/marketplace-store";
+import { findUserById, getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 import { AuthGate } from "../../_components/auth-gate";
 import { TopBar } from "../../_components/top-bar";
@@ -15,12 +16,29 @@ export async function generateMetadata() {
 }
 
 export default async function AppGuestThreadPage({ params }: Props) {
-  const { listingId } = await params;
+  const { listingId: raw } = await params;
+  const listingId = decodeURIComponent(raw);
   const record = getListingById(listingId);
-  if (!record?.published) notFound();
-  const detail = resolveListingDetail(listingId);
   const user = await getSessionUser();
   const t = await getT();
+
+  if (!record?.published) {
+    // Si el anuncio se pausó o se borró, la conversación sigue siendo del huésped.
+    const thread = user ? listAllThreadsForGuest(user.id).find((th) => th.listingId === listingId) : undefined;
+    if (!thread) notFound();
+    const hostId = thread.messages[0]?.hostId;
+    const hostName = (hostId && findUserById(hostId)?.fullName) || t("Anfitrión");
+    return (
+      <GuestChat
+        listingId={listingId}
+        title={hostName}
+        subtitle={record?.title ?? t("Anuncio no disponible")}
+        closed
+      />
+    );
+  }
+
+  const detail = resolveListingDetail(listingId);
   const hostName = detail?.host.name ?? t("Anfitrión");
 
   if (!user) {

@@ -4,7 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
-import { IconChat, IconHome, IconMenu, IconSearch, IconToday, IconTrips, IconUser } from "./icons";
+import { IconCalendar, IconChat, IconHome, IconMenu, IconSearch, IconToday, IconTrips, IconUser } from "./icons";
 import { threadIsUnread } from "./seen";
 import { UpdateBanner } from "./update-banner";
 
@@ -41,8 +41,9 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
   const tabs: Tab[] = hostMode
     ? [
         { href: "/host", label: t("Hoy"), icon: <IconToday /> },
-        { href: "/host/mensajes", label: t("Mensajes"), icon: <IconChat />, badge: unread > 0 },
+        { href: "/host/calendario", label: t("Calendario"), icon: <IconCalendar /> },
         { href: "/host/anuncios", label: t("Anuncios"), icon: <IconHome /> },
+        { href: "/host/mensajes", label: t("Mensajes"), icon: <IconChat />, badge: unread > 0 },
         { href: "/host/menu", label: t("Menú"), icon: <IconMenu /> },
       ]
     : [

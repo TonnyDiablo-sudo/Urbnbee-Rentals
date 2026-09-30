@@ -13,6 +13,7 @@ import {
   sumStayMxn,
 } from "@/lib/booking-helpers";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
+import { stayLengthError } from "@/lib/listing-pricing";
 import { getSessionUser } from "@/lib/session";
 import { stayPlatformFeeMxn } from "@/lib/platform-fees";
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
@@ -104,6 +105,11 @@ export async function POST(req: NextRequest) {
       { error: "La salida debe ser después de la entrada (mínimo 1 noche)." },
       { status: 400 }
     );
+  }
+
+  const lengthErr = stayLengthError(listing, nights);
+  if (lengthErr) {
+    return NextResponse.json({ error: lengthErr.key.replace("{n}", String(lengthErr.n)) }, { status: 400 });
   }
 
   if (nightsBlockedByListing(listing, checkIn, checkOut)) {

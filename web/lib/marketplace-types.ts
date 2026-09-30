@@ -1,4 +1,6 @@
+import type { ArrivalGuide } from "@/lib/arrival-guide";
 import type { ListingContractSettings } from "@/lib/booking-contract-templates";
+import type { ListingPricing } from "@/lib/listing-pricing";
 import type { ListingCategory } from "@/lib/mock-data";
 import type { ListingDetail } from "@/lib/listing-detail-data";
 
@@ -53,6 +55,9 @@ export type HostListingRecord = {
   cleaningFee: number;
   /** Precio por noche para fechas concretas (YYYY-MM-DD). Si falta la clave, aplica `pricePerNight`. */
   nightlyPriceOverrides?: Record<string, number>;
+  /** Fin de semana, descuentos por duración y estancia mínima/máxima. */
+  pricing?: ListingPricing;
+  arrivalGuide?: ArrivalGuide;
   photos: string[];
   amenities: string[];
   rules: ListingDetail["rules"];

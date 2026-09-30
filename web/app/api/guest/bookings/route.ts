@@ -21,10 +21,17 @@ export async function GET(req: NextRequest) {
     const effListing = effId !== b.listingId ? getListingById(effId) : listing;
     const reviews = reviewsForBooking(b.id);
     const screening = getScreeningByBooking(b.id);
+    // La dirección exacta y la guía sólo se comparten con la reserva confirmada.
+    const confirmed = b.status === "CONFIRMED" || b.status === "COMPLETED";
+    const stayListing = effListing ?? listing;
     return {
       ...b,
       listingTitle: listing?.title ?? "Alojamiento",
       listingSlug: effListing?.slug ?? listing?.slug,
+      arrival:
+        confirmed && stayListing
+          ? { ...(stayListing.arrivalGuide ?? {}), address: [stayListing.addressLine, stayListing.zone, stayListing.city].filter(Boolean).join(", ") }
+          : undefined,
       canReview: stayReviewEligible(b) && !reviews.guestToListing,
       myReview: reviews.guestToListing,
       hostReviewOfMe: reviews.hostToGuest,

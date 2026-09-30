@@ -1,3 +1,4 @@
+import { quoteStay } from "@/lib/listing-pricing";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 
 export function toLocalISODate(d: Date): string {
@@ -41,19 +42,12 @@ export function nightsBlockedByListing(
   return false;
 }
 
+/** Costo de las noches ya con fin de semana, precios por fecha y descuento por duración (sin limpieza). */
 export function sumStayMxn(
   listing: HostListingRecord,
   checkIn: string,
   checkOut: string
 ): { nights: number; staySubtotal: number } {
-  let staySubtotal = 0;
-  const cur = parseLocalDate(checkIn);
-  const end = parseLocalDate(checkOut);
-  while (cur < end) {
-    const iso = toLocalISODate(cur);
-    staySubtotal += listing.nightlyPriceOverrides?.[iso] ?? listing.pricePerNight;
-    cur.setDate(cur.getDate() + 1);
-  }
-  const nights = countNights(checkIn, checkOut);
-  return { nights, staySubtotal };
+  const q = quoteStay(listing, checkIn, checkOut);
+  return { nights: q.nights, staySubtotal: q.staySubtotal };
 }

@@ -6,7 +6,9 @@ import {
   slugifyTitle,
 } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
+import { sanitizeArrivalGuide } from "@/lib/arrival-guide";
 import { sanitizeListingContract } from "@/lib/booking-contract-templates";
+import { sanitizePricing } from "@/lib/listing-pricing";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import type { ListingCategory } from "@/lib/mock-data";
 
@@ -73,6 +75,8 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   if (body.nightlyPriceOverrides !== undefined) {
     patch.nightlyPriceOverrides = sanitizeNightlyPriceOverrides(body.nightlyPriceOverrides);
   }
+  if (body.pricing !== undefined) patch.pricing = sanitizePricing(body.pricing);
+  if (body.arrivalGuide !== undefined) patch.arrivalGuide = sanitizeArrivalGuide(body.arrivalGuide);
   if (body.rules && typeof body.rules === "object") {
     patch.rules = {
       smoking: body.rules.smoking ?? listing.rules.smoking,
