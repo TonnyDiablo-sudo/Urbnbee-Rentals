@@ -28,6 +28,11 @@ function hostToListingCard(categoryLabel: string, record: HostListingRecord): Li
   };
 }
 
+/** Anuncios de prueba de integraciones: se abren por enlace directo, pero no salen en búsquedas. */
+function isTestListing(record: HostListingRecord): boolean {
+  return /\bprueba\b|no reservar/i.test(record.title);
+}
+
 /** Merge demo listings with published host listings (host items first). */
 export function getMergedCategoryListings(category: ListingCategory): Listing[] {
   const labelForCategory: Record<ListingCategory, string> = {
@@ -38,7 +43,9 @@ export function getMergedCategoryListings(category: ListingCategory): Listing[] 
     vinos: "Viñedos",
   };
   const label = labelForCategory[category];
-  const hostRows = getPublishedByCategory(category).map((r) => hostToListingCard(label, r));
+  const hostRows = getPublishedByCategory(category)
+    .filter((r) => !isTestListing(r))
+    .map((r) => hostToListingCard(label, r));
   const demo = demoListings[category] ?? [];
   return [...hostRows, ...demo];
 }

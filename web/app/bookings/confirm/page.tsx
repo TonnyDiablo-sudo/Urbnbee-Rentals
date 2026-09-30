@@ -5,8 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { useT } from "@/components/i18n-provider";
 
 function ConfirmBody() {
+  const t = useT();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id") ?? "";
   const [msg, setMsg] = useState<string | null>(null);
@@ -58,22 +60,23 @@ function ConfirmBody() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">
-      {busy && <p className="text-[#888]">Confirmando pago…</p>}
-      {err && <p className="text-red-600">{err}</p>}
-      {msg && <p className="text-[#484848]">{msg}</p>}
+      {busy && <p className="text-[#888]">{t("Confirmando pago…")}</p>}
+      {err && <p className="text-red-600">{t(err)}</p>}
+      {msg && <p className="text-[#484848]">{t(msg)}</p>}
       <Link href="/" className="mt-8 inline-block text-sm text-[#dcb81e] underline">
-        Volver al inicio
+        {t("Volver al inicio")}
       </Link>
     </div>
   );
 }
 
 export default function BookingConfirmPage() {
+  const t = useT();
   return (
     <>
       <SiteHeader />
       <div style={{ paddingTop: 72 }}>
-        <Suspense fallback={<p className="py-16 text-center text-[#888]">Cargando…</p>}>
+        <Suspense fallback={<p className="py-16 text-center text-[#888]">{t("Cargando…")}</p>}>
           <ConfirmBody />
         </Suspense>
       </div>

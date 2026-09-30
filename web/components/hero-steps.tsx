@@ -1,3 +1,7 @@
+"use client";
+
+import { useT } from "@/components/i18n-provider";
+
 const steps = [
   {
     n: "01",
@@ -20,6 +24,7 @@ const steps = [
 ];
 
 export function HeroSteps() {
+  const t = useT();
   return (
     <section className="relative overflow-hidden border-b border-stone-200/80 bg-gradient-to-b from-amber-50/80 to-[color:var(--urb-bg)]">
       <div
@@ -29,15 +34,13 @@ export function HeroSteps() {
       <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-amber-800/90">
-            Marketplace de estadías
+            {t("Marketplace de estadías")}
           </p>
           <h1 className="mt-3 text-balance text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl md:text-5xl">
-            Encuentra tu próximo hogar lejos de casa
+            {t("Encuentra tu próximo hogar lejos de casa")}
           </h1>
           <p className="mt-4 text-pretty text-base text-stone-600 sm:text-lg">
-            Directorio curado de anfitriones verificados. Explora, compara y contacta con
-            total transparencia — la misma experiencia visual que ya conoces, con una base
-            técnica pensada para escalar.
+            {t("Directorio curado de anfitriones verificados. Explora, compara y contacta con total transparencia — la misma experiencia visual que ya conoces, con una base técnica pensada para escalar.")}
           </p>
         </div>
 
@@ -52,18 +55,18 @@ export function HeroSteps() {
                   {s.n}
                 </span>
                 <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600">
-                  /por noche aprox.
+                  {t("/por noche aprox.")}
                 </span>
               </div>
               <h2 className="mt-4 text-lg font-semibold leading-snug text-stone-900">
-                – {s.title}
+                – {t(s.title)}
               </h2>
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-stone-600">{s.body}</p>
+              <p className="mt-3 flex-1 text-sm leading-relaxed text-stone-600">{t(s.body)}</p>
               <button
                 type="button"
                 className="mt-6 text-left text-sm font-semibold text-amber-800 underline-offset-4 transition group-hover:underline"
               >
-                Ver datos de contacto y perfil en otras plataformas
+                {t("Ver datos de contacto y perfil en otras plataformas")}
               </button>
             </article>
           ))}
@@ -71,20 +74,20 @@ export function HeroSteps() {
 
         <div className="mx-auto mt-10 max-w-xl">
           <label className="sr-only" htmlFor="search-more">
-            Más opciones de búsqueda
+            {t("Más opciones de búsqueda")}
           </label>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
               id="search-more"
               type="search"
-              placeholder="Destino, barrio o referencia…"
+              placeholder={t("Destino, barrio o referencia…")}
               className="min-h-12 flex-1 rounded-full border border-stone-200 bg-white px-5 text-sm text-stone-900 shadow-inner outline-none ring-amber-500/0 transition placeholder:text-stone-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30"
             />
             <button
               type="button"
               className="inline-flex min-h-12 items-center justify-center rounded-full bg-amber-500 px-6 text-sm font-semibold text-amber-950 shadow-sm transition hover:bg-amber-400"
             >
-              Más opciones de búsqueda
+              {t("Más opciones de búsqueda")}
             </button>
           </div>
         </div>

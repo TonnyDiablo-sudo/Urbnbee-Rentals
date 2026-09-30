@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { BookingDepositPanel } from "@/components/booking-deposit-panel";
 import { BookingReviewPanel } from "@/components/booking-review-panel";
 import { BookingScreeningPanel } from "@/components/booking-screening-panel";
+import { useLang, useT } from "@/components/i18n-provider";
+import { numberLocale } from "@/lib/i18n";
 import type { BookingDepositRecord } from "@/lib/booking-deposit-types";
 import type { ScreeningPublicView, ScreeningQuote } from "@/lib/screening-types";
 import type { StayReviewRecord } from "@/lib/stay-review-types";
@@ -57,6 +59,8 @@ const statusLabel: Record<string, string> = {
 };
 
 export function HostRequestsClient() {
+  const t = useT();
+  const lang = useLang();
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [listings, setListings] = useState<HostListing[]>([]);
   const [loadErr, setLoadErr] = useState<string | null>(null);
@@ -112,11 +116,11 @@ export function HostRequestsClient() {
 
   return (
     <div className="max-w-4xl">
-      {loadErr && <p className="text-sm text-red-600">{loadErr}</p>}
+      {loadErr && <p className="text-sm text-red-600">{t(loadErr)}</p>}
 
       <div className="mt-6 space-y-6">
         {bookings.length === 0 && !loadErr && (
-          <p className="text-sm text-[#888]">Aún no hay solicitudes de reserva.</p>
+          <p className="text-sm text-[#888]">{t("Aún no hay solicitudes de reserva.")}</p>
         )}
         {bookings.map((b) => {
           const pending = b.status === "PENDING" || b.status === "PENDING_HOST";
@@ -134,37 +138,41 @@ export function HostRequestsClient() {
                     {b.guestName} · {b.guestEmail}
                   </p>
                   <p className="mt-2 text-[#3a3a3a]">
-                    Solicitado: {b.checkIn} → {b.checkOut} ({b.nights} noches)
+                    {t("Solicitado: {checkIn} → {checkOut} ({n} noches)", {
+                      checkIn: b.checkIn,
+                      checkOut: b.checkOut,
+                      n: b.nights,
+                    })}
                   </p>
                   <p className="mt-1">
-                    Total estimado:{" "}
-                    <span className="font-medium">${b.estimatedTotalMxn.toLocaleString("es-MX")} MXN</span>
+                    {t("Total estimado:")}{" "}
+                    <span className="font-medium">${b.estimatedTotalMxn.toLocaleString(numberLocale(lang))} MXN</span>
                     {b.paidAt && !b.refundedAt && (
                       <span className="ml-2 rounded bg-green-100 px-2 py-0.5 text-xs text-green-900">
-                        Pagado
+                        {t("Pagado")}
                       </span>
                     )}
                     {b.refundedAt && (
                       <span className="ml-2 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-900">
-                        Reembolsado al huésped
+                        {t("Reembolsado al huésped")}
                       </span>
                     )}
                   </p>
                   <p className="mt-2 text-xs text-[#aaa]">
-                    Código huésped: <span className="font-mono tracking-wide">{b.token}</span>
+                    {t("Código huésped:")} <span className="font-mono tracking-wide">{b.token}</span>
                   </p>
                   <p className="mt-2 text-xs text-[#3a3a3a]">
                     <Link href={`/contrato/${b.token}`} className="font-medium text-[#dcb81e] underline">
-                      Ver contrato
+                      {t("Ver contrato")}
                     </Link>
                     {b.contract && (
                       <>
                         {" · "}
                         {b.contract.hostAcceptedAt && b.contract.guestAcceptedAt
-                          ? "firmado por ambas partes"
+                          ? t("firmado por ambas partes")
                           : b.contract.hostAcceptedAt
-                            ? "falta firma del huésped"
-                            : "falta tu firma"}
+                            ? t("falta firma del huésped")
+                            : t("falta tu firma")}
                         {" · "}
                         <a
                           href={`/api/bookings/contract?id=${encodeURIComponent(b.id)}&format=pdf`}
@@ -183,7 +191,7 @@ export function HostRequestsClient() {
                     color: "#484848",
                   }}
                 >
-                  {statusLabel[b.status] ?? b.status}
+                  {t(statusLabel[b.status] ?? b.status)}
                 </span>
               </div>
 
@@ -245,6 +253,7 @@ function PendingActions({
   setActing: (id: string | null) => void;
   onDone: () => void;
 }) {
+  const t = useT();
   const [adjIn, setAdjIn] = useState(booking.checkIn);
   const [adjOut, setAdjOut] = useState(booking.checkOut);
   const [adjListingId, setAdjListingId] = useState(booking.listingId);
@@ -272,11 +281,12 @@ function PendingActions({
   return (
     <div className="mt-4 border-t pt-4" style={{ borderColor: "#ebebeb" }}>
       <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#aaa]">
-        Ajustes antes de aceptar (opcional)
+        {t("Ajustes antes de aceptar (opcional)")}
       </p>
       <p className="mb-3 text-xs text-[#888]">
-        Revisa el contrato con los datos del huésped (su cuenta) y los tuyos (la plantilla del
-        anuncio). Al aceptar lo firmas.
+        {t(
+          "Revisa el contrato con los datos del huésped (su cuenta) y los tuyos (la plantilla del anuncio). Al aceptar lo firmas."
+        )}
       </p>
       {lines.length > 0 && (
         <pre
@@ -287,7 +297,7 @@ function PendingActions({
         </pre>
       )}
       <label className="mb-3 block">
-        <span className="text-xs text-[#888]">Tu nombre legal (firma)</span>
+        <span className="text-xs text-[#888]">{t("Tu nombre legal (firma)")}</span>
         <input
           value={signName}
           onChange={(e) => setSignName(e.target.value)}
@@ -302,11 +312,11 @@ function PendingActions({
           onChange={(e) => setAcceptContract(e.target.checked)}
           className="mt-1 accent-[#dcb81e]"
         />
-        <span>He leído este contrato y lo firmo como anfitrión.</span>
+        <span>{t("He leído este contrato y lo firmo como anfitrión.")}</span>
       </label>
       <div className="grid gap-3 sm:grid-cols-3">
         <label>
-          <span className="text-xs text-[#888]">Entrada</span>
+          <span className="text-xs text-[#888]">{t("Entrada")}</span>
           <input
             type="date"
             value={adjIn}
@@ -316,7 +326,7 @@ function PendingActions({
           />
         </label>
         <label>
-          <span className="text-xs text-[#888]">Salida</span>
+          <span className="text-xs text-[#888]">{t("Salida")}</span>
           <input
             type="date"
             value={adjOut}
@@ -326,7 +336,7 @@ function PendingActions({
           />
         </label>
         <label>
-          <span className="text-xs text-[#888]">Alojamiento</span>
+          <span className="text-xs text-[#888]">{t("Alojamiento")}</span>
           <select
             value={adjListingId}
             onChange={(e) => setAdjListingId(e.target.value)}
@@ -364,7 +374,7 @@ function PendingActions({
               });
               const data = await res.json().catch(() => ({}));
               if (!res.ok) {
-                alert(typeof data.error === "string" ? data.error : "No se pudo aceptar.");
+                alert(t(typeof data.error === "string" ? data.error : "No se pudo aceptar."));
                 return;
               }
               onDone();
@@ -373,7 +383,7 @@ function PendingActions({
             }
           }}
         >
-          Firmar y aceptar
+          {t("Firmar y aceptar")}
         </button>
         <button
           type="button"
@@ -381,8 +391,8 @@ function PendingActions({
           className="rounded border border-[#ebebeb] px-5 py-2.5 text-sm font-medium text-[#484848] disabled:opacity-50"
           onClick={async () => {
             const msg = booking.paidAt
-              ? "Al rechazar se devuelve al huésped el total que pagó, incluido el cargo de servicio. ¿Continuar?"
-              : "¿Rechazar esta solicitud?";
+              ? t("Al rechazar se devuelve al huésped el total que pagó, incluido el cargo de servicio. ¿Continuar?")
+              : t("¿Rechazar esta solicitud?");
             if (!confirm(msg)) return;
             setActing(booking.id);
             try {
@@ -393,7 +403,7 @@ function PendingActions({
               });
               const data = await res.json().catch(() => ({}));
               if (!res.ok) {
-                alert(typeof data.error === "string" ? data.error : "No se pudo rechazar.");
+                alert(t(typeof data.error === "string" ? data.error : "No se pudo rechazar."));
                 return;
               }
               onDone();
@@ -402,7 +412,7 @@ function PendingActions({
             }
           }}
         >
-          Rechazar
+          {t("Rechazar")}
         </button>
       </div>
     </div>
@@ -444,14 +454,15 @@ function HostSignOnly({
   setActing: (id: string | null) => void;
   onDone: () => void;
 }) {
+  const t = useT();
   const [signName, setSignName] = useState("");
   return (
     <div className="mt-4 border-t pt-4" style={{ borderColor: "#ebebeb" }}>
-      <p className="mb-2 text-sm font-medium text-[#484848]">Falta tu firma en este contrato</p>
+      <p className="mb-2 text-sm font-medium text-[#484848]">{t("Falta tu firma en este contrato")}</p>
       <input
         value={signName}
         onChange={(e) => setSignName(e.target.value)}
-        placeholder="Tu nombre legal"
+        placeholder={t("Tu nombre legal")}
         className="w-full rounded border px-3 py-2 text-sm"
         style={{ borderColor: "#ebebeb" }}
       />
@@ -469,7 +480,7 @@ function HostSignOnly({
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-              alert(typeof data.error === "string" ? data.error : "No se pudo firmar.");
+              alert(t(typeof data.error === "string" ? data.error : "No se pudo firmar."));
               return;
             }
             onDone();
@@ -478,7 +489,7 @@ function HostSignOnly({
           }
         }}
       >
-        Firmar contrato
+        {t("Firmar contrato")}
       </button>
     </div>
   );

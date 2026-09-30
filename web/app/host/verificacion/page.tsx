@@ -2,6 +2,8 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useLang, useT } from "@/components/i18n-provider";
+import { numberLocale, type TFn } from "@/lib/i18n";
 import type { VerificationRegion } from "@/lib/verification-types";
 
 type CatalogBilling = { kind: "one_time" } | { kind: "subscription"; intervalCount: number };
@@ -45,24 +47,28 @@ function formatAmount(plan: CatalogPlan): string {
   return `$${plan.amount.toLocaleString("es-MX", { maximumFractionDigits: 0 })} ${currency}`;
 }
 
-function billingCaption(plan: CatalogPlan): string {
-  if (plan.billing.kind === "one_time") return "un solo pago";
+function billingCaption(plan: CatalogPlan, t: TFn): string {
+  if (plan.billing.kind === "one_time") return t("un solo pago");
   const meses = plan.billing.intervalCount;
   const perMonth = plan.amount / meses;
-  return `cada ${meses} meses · ≈ $${perMonth.toLocaleString("es-MX", {
-    maximumFractionDigits: 0,
-  })} por mes`;
+  return t("cada {n} meses · ≈ ${amount} por mes", {
+    n: meses,
+    amount: perMonth.toLocaleString("es-MX", { maximumFractionDigits: 0 }),
+  });
 }
 
 export default function HostVerificacionPage() {
+  const t = useT();
   return (
-    <Suspense fallback={<p className="text-sm text-[#888]">Cargando…</p>}>
+    <Suspense fallback={<p className="text-sm text-[#888]">{t("Cargando…")}</p>}>
       <HostVerificacionClient />
     </Suspense>
   );
 }
 
 function HostVerificacionClient() {
+  const t = useT();
+  const lang = useLang();
   const searchParams = useSearchParams();
   const justReturned = searchParams.get("identity") != null;
   const justPaid = searchParams.get("subscription") === "success";
@@ -165,32 +171,32 @@ function HostVerificacionClient() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-semibold text-[#484848]">Miembro verificado</h1>
+      <h1 className="text-2xl font-semibold text-[#484848]">{t("Miembro verificado")}</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#717171]">
-        El listón «Miembro verificado» en tus anuncios pide dos cosas: tu identidad
-        comprobada y una membresía de anfitrión vigente. Una sola no alcanza: si no,
-        el sello no valdría nada.
+        {t(
+          "El listón «Miembro verificado» en tus anuncios pide dos cosas: tu identidad comprobada y una membresía de anfitrión vigente. Una sola no alcanza: si no, el sello no valdría nada."
+        )}
       </p>
 
       {err && (
         <p className="mt-4 text-sm text-red-600" role="alert">
-          {err}
+          {t(err)}
         </p>
       )}
 
       {justPaid && (
         <p className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
-          Pago recibido. Si el listón no aparece, confirma también tu identidad.
+          {t("Pago recibido. Si el listón no aparece, confirma también tu identidad.")}
         </p>
       )}
 
       {justReturned && (
         <p className="mt-4 rounded-lg border border-[#ebebeb] bg-white px-4 py-3 text-sm text-[#484848]">
-          Si terminaste el proceso en Stripe, espera unos segundos y pulsa «Actualizar estado».
+          {t("Si terminaste el proceso en Stripe, espera unos segundos y pulsa «Actualizar estado».")}
         </p>
       )}
 
-      {!data && !err && <p className="mt-6 text-sm text-[#888]">Cargando…</p>}
+      {!data && !err && <p className="mt-6 text-sm text-[#888]">{t("Cargando…")}</p>}
 
       {data && (
         <>
@@ -201,41 +207,44 @@ function HostVerificacionClient() {
           >
             <p className="text-sm font-semibold text-[#222]">
               {data.ribbon
-                ? "Tus anuncios muestran «Miembro verificado»"
-                : "Todavía no tienes el listón"}
+                ? t("Tus anuncios muestran «Miembro verificado»")
+                : t("Todavía no tienes el listón")}
             </p>
             <p className="mt-1 text-sm text-[#484848]">
               {data.ribbon
-                ? `${data.listingsWithBadge} de ${data.listingsTotal} alojamientos lo muestran.`
-                : "Falta " +
-                  [
-                    !data.identityVerified ? "comprobar tu identidad" : null,
-                    !data.membershipActive ? "contratar la membresía" : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" y ") +
-                  "."}
+                ? t("{n} de {total} alojamientos lo muestran.", {
+                    n: data.listingsWithBadge,
+                    total: data.listingsTotal,
+                  })
+                : t("Falta {items}.", {
+                    items: [
+                      !data.identityVerified ? t("comprobar tu identidad") : null,
+                      !data.membershipActive ? t("contratar la membresía") : null,
+                    ]
+                      .filter(Boolean)
+                      .join(t(" y ")),
+                  })}
             </p>
           </div>
 
           <dl className="mt-6 grid gap-3 rounded-xl border border-[#ebebeb] bg-white p-5 text-sm shadow-sm">
             <div className="flex justify-between gap-4 border-b border-[#f0f0f0] pb-3">
-              <dt className="text-[#717171]">Identidad</dt>
+              <dt className="text-[#717171]">{t("Identidad")}</dt>
               <dd className="font-medium text-[#222]">
-                {data.identityVerified ? "Comprobada" : KYC_LABEL[data.kycStatus] ?? data.kycStatus}
+                {data.identityVerified ? t("Comprobada") : t(KYC_LABEL[data.kycStatus] ?? data.kycStatus)}
               </dd>
             </div>
             <div className="flex justify-between gap-4 border-b border-[#f0f0f0] pb-3">
-              <dt className="text-[#717171]">Membresía de anfitrión</dt>
+              <dt className="text-[#717171]">{t("Membresía de anfitrión")}</dt>
               <dd className="font-medium text-[#222]">
-                {data.membershipActive ? "Activa" : "Sin contratar"}
+                {data.membershipActive ? t("Activa") : t("Sin contratar")}
               </dd>
             </div>
             {data.hostCurrentPeriodEnd && (
               <div className="flex justify-between gap-4">
-                <dt className="text-[#717171]">Vence</dt>
+                <dt className="text-[#717171]">{t("Vence")}</dt>
                 <dd className="font-medium text-[#222]">
-                  {new Date(data.hostCurrentPeriodEnd).toLocaleDateString("es-MX")}
+                  {new Date(data.hostCurrentPeriodEnd).toLocaleDateString(numberLocale(lang))}
                 </dd>
               </div>
             )}
@@ -243,7 +252,7 @@ function HostVerificacionClient() {
 
           {showRegionToggle && (
             <div className="mt-6 flex flex-wrap items-center gap-2">
-              <span className="text-sm text-[#717171]">Precios:</span>
+              <span className="text-sm text-[#717171]">{t("Precios:")}</span>
               <div className="inline-flex rounded-lg border border-[#ddd] bg-white p-0.5">
                 {(["mx", "us"] as VerificationRegion[]).map((r) => (
                   <button
@@ -255,7 +264,7 @@ function HostVerificacionClient() {
                       selectedRegion === r ? "bg-black text-white" : "text-[#484848]"
                     }`}
                   >
-                    {r === "mx" ? "México (MXN)" : "USA (USD)"}
+                    {r === "mx" ? t("México (MXN)") : "USA (USD)"}
                   </button>
                 ))}
               </div>
@@ -271,7 +280,7 @@ function HostVerificacionClient() {
                 >
                   <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{p.label}</p>
                   <p className="mt-3 text-2xl font-semibold text-[#222]">{formatAmount(p)}</p>
-                  <p className="mt-1 text-xs text-[#888]">{billingCaption(p)}</p>
+                  <p className="mt-1 text-xs text-[#888]">{billingCaption(p, t)}</p>
                   {p.description && (
                     <p className="mt-3 text-sm leading-relaxed text-[#484848]">{p.description}</p>
                   )}
@@ -281,7 +290,7 @@ function HostVerificacionClient() {
                     onClick={() => void startCheckout(p.code)}
                     className="mt-5 w-full rounded-lg bg-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#222] disabled:opacity-50"
                   >
-                    {data.stripeConfigured ? "Contratar" : "Contratar (demo)"}
+                    {data.stripeConfigured ? t("Contratar") : t("Contratar (demo)")}
                   </button>
                 </div>
               ))}
@@ -290,15 +299,17 @@ function HostVerificacionClient() {
 
           {catalogPlans.length === 0 && !data.membershipActive && (
             <p className="mt-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              Todavía no hay planes de anfitrión con precio. El equipo los define en
-              Administración → Precios (anfitrion_6 y anfitrion_12).
+              {t(
+                "Todavía no hay planes de anfitrión con precio. El equipo los define en Administración → Precios (anfitrion_6 y anfitrion_12)."
+              )}
             </p>
           )}
 
           {!data.identityEnabled && !data.identityVerified && (
             <p className="mt-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              La verificación automática está apagada. El equipo puede comprobar tu
-              identidad a mano desde el panel de administración.
+              {t(
+                "La verificación automática está apagada. El equipo puede comprobar tu identidad a mano desde el panel de administración."
+              )}
             </p>
           )}
 
@@ -311,10 +322,10 @@ function HostVerificacionClient() {
                 className="rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#222] disabled:opacity-50"
               >
                 {busy
-                  ? "Abriendo…"
+                  ? t("Abriendo…")
                   : data.kycStatus === "pending"
-                    ? "Continuar verificación"
-                    : "Verificar mi identidad"}
+                    ? t("Continuar verificación")
+                    : t("Verificar mi identidad")}
               </button>
             )}
             <button
@@ -323,7 +334,7 @@ function HostVerificacionClient() {
               onClick={() => void load()}
               className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#717171] underline-offset-2 hover:underline"
             >
-              Actualizar estado
+              {t("Actualizar estado")}
             </button>
           </div>
         </>

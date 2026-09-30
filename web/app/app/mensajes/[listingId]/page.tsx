@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { resolveListingDetail } from "@/lib/get-listing-detail";
+import { getT } from "@/lib/i18n/server";
 import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 import { AuthGate } from "../../_components/auth-gate";
@@ -8,7 +9,10 @@ import { GuestChat } from "./guest-chat";
 
 type Props = { params: Promise<{ listingId: string }> };
 
-export const metadata = { title: "Chat" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("Chat") };
+}
 
 export default async function AppGuestThreadPage({ params }: Props) {
   const { listingId } = await params;
@@ -16,14 +20,15 @@ export default async function AppGuestThreadPage({ params }: Props) {
   if (!record?.published) notFound();
   const detail = resolveListingDetail(listingId);
   const user = await getSessionUser();
-  const hostName = detail?.host.name ?? "Anfitrión";
+  const t = await getT();
+  const hostName = detail?.host.name ?? t("Anfitrión");
 
   if (!user) {
     return (
       <>
         <TopBar title={record.title} back={`/alojamiento/${record.slug}`} />
         <AuthGate
-          title={`Escríbele a ${hostName}`}
+          title={t("Escríbele a {name}", { name: hostName })}
           message="Necesitas una cuenta gratuita para chatear. Así ligamos cada conversación a una persona real."
           next={`/mensajes/${listingId}`}
         />

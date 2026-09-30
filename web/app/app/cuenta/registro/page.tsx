@@ -1,7 +1,11 @@
 import { Suspense } from "react";
+import { getT } from "@/lib/i18n/server";
 import { AuthForm } from "../auth-form";
 
-export const metadata = { title: "Crear cuenta" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("Crear cuenta") };
+}
 
 export default function AppRegisterPage() {
   return (

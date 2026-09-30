@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useT } from "@/components/i18n-provider";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 
 const MONTH_NAMES = [
@@ -88,6 +89,7 @@ function buildBulkPriceState(
 }
 
 function ListingThumb({ listing }: { listing: HostListingRecord }) {
+  const t = useT();
   return (
     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[#ebebeb] shadow-sm">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -96,13 +98,14 @@ function ListingThumb({ listing }: { listing: HostListingRecord }) {
         className={`absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white shadow ${
           listing.published ? "bg-green-500" : "bg-[#bbb]"
         }`}
-        title={listing.published ? "Publicado" : "Borrador"}
+        title={listing.published ? t("Publicado") : t("Borrador")}
       />
     </div>
   );
 }
 
 export function HostCalendarView() {
+  const t = useT();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -200,9 +203,9 @@ export function HostCalendarView() {
   }, []);
 
   function goToday() {
-    const t = new Date();
-    setYear(t.getFullYear());
-    setMonth(t.getMonth());
+    const today = new Date();
+    setYear(today.getFullYear());
+    setMonth(today.getMonth());
   }
 
   function prevMonth() {
@@ -330,10 +333,10 @@ export function HostCalendarView() {
       const freshSlice = listingSlice.map((l) => byId.get(l.id) ?? l);
       setBulkPriceByListing(buildBulkPriceState(freshSlice, isos));
 
-      setToast("Cambios aplicados");
+      setToast(t("Cambios aplicados"));
       setTimeout(() => setToast(null), 2500);
     } catch (e) {
-      setToast(e instanceof Error ? e.message : "Error al guardar");
+      setToast(e instanceof Error ? t(e.message) : t("Error al guardar"));
       setTimeout(() => setToast(null), 2500);
     } finally {
       setApplyBusy(false);
@@ -366,10 +369,10 @@ export function HostCalendarView() {
           }
         })
       );
-      setToast("Precios especiales quitados en la selección");
+      setToast(t("Precios especiales quitados en la selección"));
       setTimeout(() => setToast(null), 2500);
     } catch (e) {
-      setToast(e instanceof Error ? e.message : "Error");
+      setToast(e instanceof Error ? t(e.message) : "Error");
       setTimeout(() => setToast(null), 2500);
     } finally {
       setApplyBusy(false);
@@ -433,17 +436,18 @@ export function HostCalendarView() {
       <div className="min-w-0 flex-1 space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-[#484848]">Calendario</h1>
+            <h1 className="text-2xl font-semibold text-[#484848]">{t("Calendario")}</h1>
             <p className="mt-1 text-sm text-[#888]">
-              Mantén pulsado y arrastra horizontal o verticalmente para elegir varios días (una fila o varias). El panel
-              a la derecha aplica cambios a todo el bloque.
+              {t(
+                "Mantén pulsado y arrastra horizontal o verticalmente para elegir varios días (una fila o varias). El panel a la derecha aplica cambios a todo el bloque."
+              )}
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-b border-[#ebebeb] pb-4">
           <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">Mes</label>
+            <label className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">{t("Mes")}</label>
             <select
               className="rounded-lg border border-[#ddd] bg-white px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
               value={month}
@@ -454,7 +458,7 @@ export function HostCalendarView() {
             >
               {MONTH_NAMES.map((name, i) => (
                 <option key={name} value={i}>
-                  {name}
+                  {t(name)}
                 </option>
               ))}
             </select>
@@ -478,14 +482,14 @@ export function HostCalendarView() {
             onClick={goToday}
             className="rounded-full border border-[#ddd] bg-white px-4 py-2 text-sm font-semibold text-[#484848] transition hover:bg-[#f5f5f5]"
           >
-            Hoy
+            {t("Hoy")}
           </button>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={prevMonth}
               className="rounded-lg border border-[#ddd] px-3 py-2 text-sm font-semibold text-[#484848] hover:bg-[#f5f5f5]"
-              aria-label="Mes anterior"
+              aria-label={t("Mes anterior")}
             >
               ‹
             </button>
@@ -493,7 +497,7 @@ export function HostCalendarView() {
               type="button"
               onClick={nextMonth}
               className="rounded-lg border border-[#ddd] px-3 py-2 text-sm font-semibold text-[#484848] hover:bg-[#f5f5f5]"
-              aria-label="Mes siguiente"
+              aria-label={t("Mes siguiente")}
             >
               ›
             </button>
@@ -501,20 +505,20 @@ export function HostCalendarView() {
         </div>
 
         {error && (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>
+          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{t(error)}</p>
         )}
 
         {loading ? (
-          <p className="text-sm text-[#888]">Cargando calendario…</p>
+          <p className="text-sm text-[#888]">{t("Cargando calendario…")}</p>
         ) : listings.length === 0 ? (
           <div className="rounded-xl border border-[#ebebeb] bg-white p-10 text-center shadow-sm">
-            <p className="text-sm text-[#888]">No tienes alojamientos aún.</p>
+            <p className="text-sm text-[#888]">{t("No tienes alojamientos aún.")}</p>
             <Link
               href="/host/listings/new"
               className="mt-4 inline-flex rounded-full px-5 py-2.5 text-sm font-semibold text-black shadow"
               style={{ backgroundColor: "#dcb81e" }}
             >
-              Crear alojamiento
+              {t("Crear alojamiento")}
             </Link>
           </div>
         ) : (
@@ -528,24 +532,24 @@ export function HostCalendarView() {
                       className="sticky left-0 z-[25] w-[min(18rem,48vw)] min-w-[17rem] border-r border-[#ebebeb] bg-white px-3 py-3 text-left align-top shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)]"
                     >
                       <p className="text-xs font-bold uppercase tracking-wide text-[#aaa]">
-                        {listings.length} alojamiento{listings.length === 1 ? "" : "s"}
+                        {t(listings.length === 1 ? "{n} alojamiento" : "{n} alojamientos", { n: listings.length })}
                       </p>
                       <input
                         type="search"
-                        placeholder="Buscar…"
+                        placeholder={t("Buscar…")}
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                         className="mt-2 w-full rounded-lg border border-[#ddd] px-2 py-1.5 text-xs outline-none focus:border-[#dcb81e]"
                       />
                     <p className="mt-3 text-[10px] leading-snug text-[#aaa]">
-                      Arrastra en el calendario para multiselección. Rayas = bloqueado. Esc = limpiar.
+                      {t("Arrastra en el calendario para multiselección. Rayas = bloqueado. Esc = limpiar.")}
                     </p>
                     </th>
                     <th
                       colSpan={days.length}
                       className="border-b border-[#ebebeb] bg-[#fafafa] py-2 text-center text-sm font-semibold capitalize text-[#484848]"
                     >
-                      {MONTH_NAMES[month]} {year}
+                      {t(MONTH_NAMES[month])} {year}
                     </th>
                   </tr>
                   <tr className="border-b border-[#ebebeb] bg-[#fafafa]">
@@ -554,7 +558,7 @@ export function HostCalendarView() {
                         key={`dow-${toLocalISODate(d)}`}
                         className="w-[52px] min-w-[52px] border-l border-[#f0f0f0] py-1.5 text-center text-[10px] font-medium text-[#888]"
                       >
-                        {DOW_LETTER[d.getDay()]}
+                        {t(DOW_LETTER[d.getDay()])}
                       </th>
                     ))}
                   </tr>
@@ -656,36 +660,37 @@ export function HostCalendarView() {
 
       {/* Panel lateral tipo Airbnb */}
       <aside className="w-full shrink-0 rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm lg:sticky lg:top-[88px] lg:max-h-[calc(100vh-100px)] lg:w-[min(28rem,100%)] lg:overflow-y-auto">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-[#aaa]">Editar selección</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-[#aaa]">{t("Editar selección")}</h2>
         {!selectionSummary ? (
           <p className="mt-3 text-sm leading-relaxed text-[#888]">
-            Selecciona un bloque en la cuadrícula arrastrando el ratón (o el dedo). Podrás marcar fechas como{" "}
-            <strong>disponibles</strong> o <strong>no disponibles</strong> y opcionalmente fijar un{" "}
-            <strong>precio por noche</strong> para esas fechas.
+            {t("Selecciona un bloque en la cuadrícula arrastrando el ratón (o el dedo). Podrás marcar fechas como")}{" "}
+            <strong>{t("disponibles")}</strong> {t("o")} <strong>{t("no disponibles")}</strong>{" "}
+            {t("y opcionalmente fijar un")} <strong>{t("precio por noche")}</strong> {t("para esas fechas.")}
           </p>
         ) : (
           <div className="mt-4 space-y-4">
             <div>
-              <p className="text-xs font-semibold text-[#aaa]">Rango</p>
+              <p className="text-xs font-semibold text-[#aaa]">{t("Rango")}</p>
               <p className="mt-1 text-sm font-medium text-[#484848]">
                 {selectionSummary.startLabel} → {selectionSummary.endLabel}
               </p>
               <p className="mt-1 text-xs text-[#888]">
-                {selectionSummary.dayCount} día{selectionSummary.dayCount === 1 ? "" : "s"} ·{" "}
-                {selectionSummary.listingCount} alojamiento
-                {selectionSummary.listingCount === 1 ? "" : "s"}
+                {t(selectionSummary.dayCount === 1 ? "{n} día" : "{n} días", { n: selectionSummary.dayCount })} ·{" "}
+                {t(selectionSummary.listingCount === 1 ? "{n} alojamiento" : "{n} alojamientos", {
+                  n: selectionSummary.listingCount,
+                })}
               </p>
               <p className="mt-2 text-xs text-[#888]">
-                Referencia en calendario:{" "}
+                {t("Referencia en calendario:")}{" "}
                 <span className="font-medium text-[#484848]">{selectionSummary.priceHint}</span>
                 <span className="block text-[10px] text-[#aaa]">
-                  Para cambiar el precio usa el campo de abajo y pulsa «Aplicar cambios».
+                  {t("Para cambiar el precio usa el campo de abajo y pulsa «Aplicar cambios».")}
                 </span>
               </p>
             </div>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">Disponibilidad</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">{t("Disponibilidad")}</p>
               <div className="mt-2 space-y-2">
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-[#484848]">
                   <input
@@ -695,7 +700,7 @@ export function HostCalendarView() {
                     onChange={() => setAvailabilityMode("available")}
                     className="accent-[#0d6868]"
                   />
-                  Disponible (quitar bloqueo)
+                  {t("Disponible (quitar bloqueo)")}
                 </label>
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-[#484848]">
                   <input
@@ -705,17 +710,21 @@ export function HostCalendarView() {
                     onChange={() => setAvailabilityMode("blocked")}
                     className="accent-[#0d6868]"
                   />
-                  No disponible (bloquear)
+                  {t("No disponible (bloquear)")}
                 </label>
               </div>
             </div>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">Precio por noche (MXN)</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">{t("Precio por noche (MXN)")}</p>
               <p className="mt-1 text-[11px] leading-snug text-[#888]">
-                Un solo importe por alojamiento: se aplicará a <strong>todas</strong> las fechas del rango (
-                {selectionSummary.dayCount} día{selectionSummary.dayCount === 1 ? "" : "s"}). Base del anuncio si no
-                cambias el valor.
+                {t("Un solo importe por alojamiento: se aplicará a")} <strong>{t("todas")}</strong>{" "}
+                {t(
+                  selectionSummary.dayCount === 1
+                    ? "las fechas del rango ({n} día). Base del anuncio si no cambias el valor."
+                    : "las fechas del rango ({n} días). Base del anuncio si no cambias el valor.",
+                  { n: selectionSummary.dayCount }
+                )}
               </p>
               <div className="mt-4 space-y-4">
                 {selectionSummary.listings.map((listing) => (
@@ -725,7 +734,7 @@ export function HostCalendarView() {
                       <p className="min-w-0 flex-1 text-xs font-semibold leading-tight text-[#484848]">{listing.title}</p>
                     </div>
                     <label className="mt-3 block text-[11px] font-medium text-[#666]" htmlFor={`bulk-p-${listing.id}`}>
-                      Precio para todo el bloque seleccionado (MXN)
+                      {t("Precio para todo el bloque seleccionado (MXN)")}
                     </label>
                     <input
                       key={`${selectionKey}-${listing.id}-price`}
@@ -733,7 +742,7 @@ export function HostCalendarView() {
                       type="text"
                       inputMode="numeric"
                       autoComplete="off"
-                      placeholder="Ej. 920"
+                      placeholder={t("Ej. 920")}
                       value={bulkPriceByListing[listing.id] ?? ""}
                       onChange={(e) => {
                         const cleaned = e.target.value.replace(/\D/g, "");
@@ -757,7 +766,7 @@ export function HostCalendarView() {
                 className="rounded-full px-4 py-3 text-sm font-semibold text-black shadow transition hover:brightness-95 disabled:opacity-50"
                 style={{ backgroundColor: "#dcb81e" }}
               >
-                {applyBusy ? "Guardando…" : "Aplicar cambios"}
+                {applyBusy ? t("Guardando…") : t("Aplicar cambios")}
               </button>
               <button
                 type="button"
@@ -765,14 +774,14 @@ export function HostCalendarView() {
                 onClick={clearOverridesInSelection}
                 className="rounded-full border border-[#ddd] px-4 py-2.5 text-sm font-semibold text-[#484848] transition hover:bg-[#fafafa] disabled:opacity-50"
               >
-                Quitar precios especiales en selección
+                {t("Quitar precios especiales en selección")}
               </button>
               <button
                 type="button"
                 onClick={() => setSelection(null)}
                 className="text-center text-xs text-[#aaa] underline hover:text-[#484848]"
               >
-                Limpiar selección
+                {t("Limpiar selección")}
               </button>
             </div>
           </div>

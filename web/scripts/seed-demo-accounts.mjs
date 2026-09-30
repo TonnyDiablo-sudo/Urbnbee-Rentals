@@ -104,7 +104,7 @@ const listings = [
       "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=85",
       "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=85",
       "https://images.unsplash.com/photo-1556912172-45b7abe8b7e1?w=1200&q=85",
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=85",
+      "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=1200&q=85",
       "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&q=85",
     ],
     amenities: [
@@ -185,7 +185,7 @@ const listings = [
       "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=85",
       "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&q=85",
       "https://images.unsplash.com/photo-1600607687644-c7171b42498f?w=1200&q=85",
-      "https://images.unsplash.com/photo-1600573472592-401e3a5e5a41?w=1200&q=85",
+      "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=1200&q=85",
       "https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1200&q=85",
     ],
     amenities: [
@@ -224,9 +224,9 @@ const listings = [
     pricePerNight: 2100,
     cleaningFee: 320,
     photos: [
-      "https://images.unsplash.com/photo-1449158743715-0a90ebb615d9?w=1200&q=85",
+      "https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?w=1200&q=85",
       "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=1200&q=85",
-      "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=1200&q=85",
+      "https://images.unsplash.com/photo-1758983065583-9cea714214f9?w=1200&q=85",
       "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&q=85",
     ],
     amenities: [

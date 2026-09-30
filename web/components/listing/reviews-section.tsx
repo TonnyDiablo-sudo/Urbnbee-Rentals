@@ -1,4 +1,6 @@
+"use client";
 import type { Review } from "@/lib/listing-detail-data";
+import { useT } from "@/components/i18n-provider";
 
 function Stars({ n }: { n: number }) {
   return (
@@ -13,10 +15,11 @@ function Stars({ n }: { n: number }) {
 }
 
 export function ReviewsSection({ reviews, ratingAvg }: { reviews: Review[]; ratingAvg?: number }) {
+  const t = useT();
   if (reviews.length === 0) {
     return (
       <div className="rounded border p-8 text-center" style={{ borderColor: "#ebebeb" }}>
-        <p className="text-sm text-[#aaa]">Aún no hay reseñas de estancias en este alojamiento.</p>
+        <p className="text-sm text-[#aaa]">{t("Aún no hay reseñas de estancias en este alojamiento.")}</p>
       </div>
     );
   }
@@ -30,7 +33,7 @@ export function ReviewsSection({ reviews, ratingAvg }: { reviews: Review[]; rati
         <span className="text-4xl font-bold" style={{ color: "#dcb81e" }}>{avg.toFixed(2)}</span>
         <div>
           <Stars n={Math.round(avg)} />
-          <p className="mt-1 text-sm text-[#aaa]">{reviews.length} reseña{reviews.length !== 1 ? "s" : ""}</p>
+          <p className="mt-1 text-sm text-[#aaa]">{reviews.length !== 1 ? t("{n} reseñas", { n: reviews.length }) : t("{n} reseña", { n: reviews.length })}</p>
         </div>
       </div>
 
@@ -46,7 +49,7 @@ export function ReviewsSection({ reviews, ratingAvg }: { reviews: Review[]; rati
                 </div>
                 <Stars n={r.rating} />
                 {r.fromStay && (
-                  <p className="mt-1 text-[11px] font-medium text-[#dcb81e]">Estancia en Cabibee</p>
+                  <p className="mt-1 text-[11px] font-medium text-[#dcb81e]">{t("Estancia en Cabibee")}</p>
                 )}
                 <p className="mt-2 text-sm leading-relaxed text-[#3a3a3a]">{r.comment}</p>
               </div>

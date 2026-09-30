@@ -1,18 +1,24 @@
-export const metadata = { title: "Sin conexión" };
+import { getT } from "@/lib/i18n/server";
 
-export default function AppOfflinePage() {
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("Sin conexión") };
+}
+
+export default async function AppOfflinePage() {
+  const t = await getT();
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-8 py-24 text-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/app-icons/icon-192.png" alt="" className="h-16 w-16 rounded-2xl" />
-      <h1 className="mt-6 text-xl font-bold text-[#222]">Sin conexión</h1>
+      <h1 className="mt-6 text-xl font-bold text-[#222]">{t("Sin conexión")}</h1>
       <p className="mt-2 text-sm leading-relaxed text-[#717171]">
-        Revisa tu internet. Cabibee se actualiza solo en cuanto vuelvas a tener señal.
+        {t("Revisa tu internet. Cabibee se actualiza solo en cuanto vuelvas a tener señal.")}
       </p>
       {/* Recarga completa a propósito: esta página la sirve el service worker sin red. */}
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a href="/" className="mt-6 rounded-xl bg-[#dcb81e] px-6 py-3 text-sm font-semibold text-black">
-        Reintentar
+        {t("Reintentar")}
       </a>
     </div>
   );

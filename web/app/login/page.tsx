@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useT } from "@/components/i18n-provider";
 import { PasswordField } from "@/components/password-field";
 import { SiteHeader } from "@/components/site-header";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,6 +13,7 @@ function safeNext(raw: string | null): string {
 }
 
 export default function LoginPage() {
+  const t = useT();
   const router = useRouter();
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
@@ -58,20 +60,20 @@ export default function LoginPage() {
       <SiteHeader />
       <div className="min-h-screen bg-[#fafafa]" style={{ paddingTop: 72 }}>
       <div className="mx-auto max-w-md px-4 py-16">
-        <h1 className="text-center text-2xl font-semibold text-[#484848]">Iniciar sesión</h1>
+        <h1 className="text-center text-2xl font-semibold text-[#484848]">{t("Iniciar sesión")}</h1>
         <p className="mt-2 text-center text-sm text-[#888]">
-          ¿No tienes cuenta?{" "}
+          {t("¿No tienes cuenta?")}{" "}
           <Link href="/register" className="font-semibold text-[#dcb81e] underline">
-            Regístrate
+            {t("Regístrate")}
           </Link>
         </p>
 
         <form onSubmit={onSubmit} className="mt-10 space-y-4 rounded-xl border border-[#ebebeb] bg-white p-8 shadow-sm">
           {error && (
-            <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+            <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{t(error)}</div>
           )}
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">Correo</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Correo")}</span>
             <input
               type="email"
               required
@@ -82,7 +84,7 @@ export default function LoginPage() {
             />
           </label>
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">Contraseña</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Contraseña")}</span>
             <PasswordField
               autoComplete="current-password"
               required
@@ -96,7 +98,7 @@ export default function LoginPage() {
             className="w-full rounded-full py-3 text-sm font-semibold text-black transition hover:brightness-95 disabled:opacity-50"
             style={{ backgroundColor: "#dcb81e" }}
           >
-            {loading ? "Entrando…" : "Entrar"}
+            {loading ? t("Iniciando sesión…") : t("Iniciar sesión")}
           </button>
         </form>
       </div>

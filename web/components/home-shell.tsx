@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useT } from "@/components/i18n-provider";
 import type { Listing } from "@/lib/mock-data";
 import type { ListingCategory } from "@/lib/mock-data";
 import { CategoryGrid } from "@/components/category-grid";
@@ -15,6 +16,7 @@ import { WhoWeAre } from "@/components/who-we-are";
 type Sections = Record<ListingCategory, Listing[]>;
 
 export function HomeShell({ sections }: { sections: Sections }) {
+  const t = useT();
   const heroSentinelRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -28,17 +30,17 @@ export function HomeShell({ sections }: { sections: Sections }) {
 
         <ScrollReveal>
           <div className="bg-white px-4 pb-4 pt-14 text-center sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-normal text-[#000000]">Escoge tu espacio ideal</h2>
+            <h2 className="text-3xl font-normal text-[#000000]">{t("Escoge tu espacio ideal")}</h2>
             <div className="mx-auto mt-2 h-1" style={{ width: "200px", backgroundColor: "#dcb81e" }} />
           </div>
         </ScrollReveal>
 
         <div className="bg-white pb-14">
-          <ListingSection category="habitaciones" title="Habitaciones" items={sections.habitaciones} />
-          <ListingSection category="casas" title="Casas" items={sections.casas} />
-          <ListingSection category="departamentos" title="Departamentos" items={sections.departamentos} />
-          <ListingSection category="cabanas" title="Cabañas" items={sections.cabanas} />
-          <ListingSection category="vinos" title="Viñedos" items={sections.vinos} />
+          <ListingSection category="habitaciones" title={t("Habitaciones")} items={sections.habitaciones} />
+          <ListingSection category="casas" title={t("Casas")} items={sections.casas} />
+          <ListingSection category="departamentos" title={t("Departamentos")} items={sections.departamentos} />
+          <ListingSection category="cabanas" title={t("Cabañas")} items={sections.cabanas} />
+          <ListingSection category="vinos" title={t("Viñedos")} items={sections.vinos} />
         </div>
       </main>
       <SiteFooter />

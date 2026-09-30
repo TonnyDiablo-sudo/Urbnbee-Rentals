@@ -1,16 +1,21 @@
 import { Suspense } from "react";
+import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 import { AuthGate } from "../_components/auth-gate";
 import { TabHeader } from "../_components/top-bar";
 import { TripsList } from "./trips-list";
 
-export const metadata = { title: "Viajes" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("Viajes") };
+}
 
 export default async function AppTripsPage() {
   const user = await getSessionUser();
+  const t = await getT();
   return (
     <>
-      <TabHeader title="Viajes" />
+      <TabHeader title={t("Viajes")} />
       {user ? (
         <Suspense>
           <TripsList />

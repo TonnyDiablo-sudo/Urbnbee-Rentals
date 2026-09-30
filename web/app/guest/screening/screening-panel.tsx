@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { BookingScreeningPanel } from "@/components/booking-screening-panel";
+import { useT } from "@/components/i18n-provider";
 import type { ScreeningPublicView, ScreeningQuote } from "@/lib/screening-types";
 
 export function GuestScreeningPanel() {
+  const t = useT();
   const searchParams = useSearchParams();
   const [cases, setCases] = useState<ScreeningPublicView[]>([]);
   const [quote, setQuote] = useState<ScreeningQuote | undefined>();
@@ -59,17 +61,16 @@ export function GuestScreeningPanel() {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-2xl font-semibold text-[#484848]">Screening</h1>
+      <h1 className="text-2xl font-semibold text-[#484848]">{t("Screening")}</h1>
       <p className="mt-2 text-sm text-[#888]">
-        Si un anfitrión te lo pide, autorizas y pagas aquí. Cabibee no consulta el buró: cobra la
-        consulta y muestra un resumen. El proveedor real se conecta después.
+        {t("Si un anfitrión te lo pide, autorizas y pagas aquí. Cabibee no consulta el buró: cobra la consulta y muestra un resumen. El proveedor real se conecta después.")}
       </p>
-      {err && <p className="mt-4 text-sm text-red-600">{err}</p>}
+      {err && <p className="mt-4 text-sm text-red-600">{t(err)}</p>}
       <div className="mt-8 space-y-4">
         {cases.map((row) => (
           <div key={row.id} className="rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm">
             <p className="text-xs text-[#aaa]">
-              {row.bookingId ? `Reserva ${row.bookingId}` : "Sin reserva ligada"}
+              {row.bookingId ? t("Reserva {id}", { id: row.bookingId }) : t("Sin reserva ligada")}
             </p>
             <BookingScreeningPanel
               bookingId={row.bookingId ?? row.id}
@@ -82,7 +83,7 @@ export function GuestScreeningPanel() {
           </div>
         ))}
         {cases.length === 0 && !err && (
-          <p className="text-sm text-[#888]">Nadie te ha pedido un screening todavía.</p>
+          <p className="text-sm text-[#888]">{t("Nadie te ha pedido un screening todavía.")}</p>
         )}
       </div>
     </div>

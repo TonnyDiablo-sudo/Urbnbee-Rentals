@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/components/i18n-provider";
 
 type Props = {
   id?: string;
@@ -23,6 +24,7 @@ export function PasswordField({
   placeholder,
   inputClassName = "w-full rounded-lg border border-[#ddd] py-2 pl-3 pr-11 text-sm outline-none focus:border-[#dcb81e]",
 }: Props) {
+  const t = useT();
   const [visible, setVisible] = useState(false);
 
   return (
@@ -41,7 +43,7 @@ export function PasswordField({
       <button
         type="button"
         tabIndex={-1}
-        aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+        aria-label={visible ? t("Ocultar contraseña") : t("Mostrar contraseña")}
         aria-pressed={visible}
         className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-[#888] transition hover:bg-black/[0.04] hover:text-[#484848]"
         onClick={() => setVisible((v) => !v)}

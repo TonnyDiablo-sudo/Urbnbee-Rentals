@@ -14,6 +14,7 @@ import { listingIsBookable } from "@/lib/app-listings";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { getSessionUser } from "@/lib/session";
 import { stripHostContactChannels } from "@/lib/host-contact-policy";
+import { getT } from "@/lib/i18n/server";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -26,6 +27,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
   const listing = getListingDetail(slug);
   if (!listing) notFound();
 
+  const t = await getT();
   const viewer = await getSessionUser();
   const canViewHostContacts = Boolean(viewer);
   const hostForUi = canViewHostContacts ? listing.host : stripHostContactChannels(listing.host);
@@ -67,7 +69,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     className="mt-1 rounded px-3 py-1 text-xs font-semibold text-white shrink-0"
                     style={{ backgroundColor: "#dcb81e" }}
                   >
-                    Miembro verificado
+                    {t("Miembro verificado")}
                   </span>
                 )}
               </div>
@@ -82,9 +84,9 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
               {/* Quick stats */}
               <div className="mt-4 flex flex-wrap gap-4 text-sm text-[#3a3a3a]">
-                <span>👥 {listing.guests} invitados</span>
-                <span>🛏 {listing.bedrooms} recámaras</span>
-                <span>🚿 {listing.bathrooms} baños</span>
+                <span>👥 {t("{n} invitados", { n: listing.guests })}</span>
+                <span>🛏 {t("{n} recámaras", { n: listing.bedrooms })}</span>
+                <span>🚿 {t("{n} baños", { n: listing.bathrooms })}</span>
                 {listing.size && <span>📐 {listing.size}</span>}
               </div>
 
@@ -92,7 +94,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
               {/* === Descripción === */}
               <section id="section-descripcion">
-                <h2 className="mb-1 text-lg font-semibold text-[#484848]">Descripción del anuncio</h2>
+                <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Descripción del anuncio")}</h2>
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <p className="whitespace-pre-line text-sm leading-relaxed text-[#3a3a3a]">
                   {listing.description}
@@ -103,18 +105,18 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
               {/* === Precio === */}
               <section id="section-precio">
-                <h2 className="mb-1 text-lg font-semibold text-[#484848]">Información del Precio</h2>
+                <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Información del Precio")}</h2>
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <div className="rounded border p-5 text-sm" style={{ borderColor: "#ebebeb" }}>
                   <div className="grid gap-2">
-                    <PriceRow label="Precio por noche" value={`$ ${listing.pricePerNight.toLocaleString("es-MX")}`} />
-                    {listing.priceWeekly && <PriceRow label="Precio por noche (7d+)" value={`$ ${listing.priceWeekly}`} />}
-                    {listing.priceMonthly && <PriceRow label="Precio por noche (30d+)" value={`$ ${listing.priceMonthly}`} />}
-                    {listing.cleaningFee && <PriceRow label="Tarifa de limpieza" value={`$ ${listing.cleaningFee} — Tarifa única`} />}
+                    <PriceRow label={t("Precio por noche")} value={`$ ${listing.pricePerNight.toLocaleString("es-MX")}`} />
+                    {listing.priceWeekly && <PriceRow label={t("Precio por noche (7d+)")} value={`$ ${listing.priceWeekly}`} />}
+                    {listing.priceMonthly && <PriceRow label={t("Precio por noche (30d+)")} value={`$ ${listing.priceMonthly}`} />}
+                    {listing.cleaningFee && <PriceRow label={t("Tarifa de limpieza")} value={`$ ${listing.cleaningFee} — ${t("Tarifa única")}`} />}
                     {listing.depositMxn ? (
                       <PriceRow
-                        label="Depósito (fuera de Cabibee)"
-                        value={`$ ${listing.depositMxn.toLocaleString("es-MX")} — se pacta y entrega entre anfitrión y huésped`}
+                        label={t("Depósito (fuera de Cabibee)")}
+                        value={`$ ${listing.depositMxn.toLocaleString("es-MX")} — ${t("se pacta y entrega entre anfitrión y huésped")}`}
                       />
                     ) : null}
                   </div>
@@ -125,25 +127,25 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
               {/* === Detalles === */}
               <section id="section-detalles">
-                <h2 className="mb-1 text-lg font-semibold text-[#484848]">Detalles</h2>
+                <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Detalles")}</h2>
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <div className="rounded border p-5 text-sm" style={{ borderColor: "#ebebeb" }}>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <DetailRow label="Estado" value={listing.verified ? "Miembro verificado" : "Pendiente"} />
-                    <DetailRow label="ID de propiedad" value={String(listing.propertyId)} />
-                    {listing.size && <DetailRow label="Tamaño" value={listing.size} />}
-                    <DetailRow label="Habitaciones" value={String(listing.bedrooms)} />
-                    <DetailRow label="Dormitorios" value={String(listing.bedrooms)} />
-                    <DetailRow label="Baños" value={String(listing.bathrooms)} />
-                    <DetailRow label="Ciudad" value={listing.city} />
-                    <DetailRow label="Zona" value={listing.zone} />
-                    <DetailRow label="Condado" value={listing.county} />
-                    <DetailRow label="País" value={listing.country} />
-                    {listing.extras?.breakfast && <DetailRow label="Desayuno Incluido" value={listing.extras.breakfast} />}
-                    {listing.extras?.lateCheckIn && <DetailRow label="Entrada Tardía" value={listing.extras.lateCheckIn} />}
-                    {listing.extras?.cancellation && <DetailRow label="Cancelación" value={listing.extras.cancellation} />}
-                    {listing.extras?.optionalServices && <DetailRow label="Servicios Opcionales" value={listing.extras.optionalServices} />}
-                    {listing.extras?.outdoorFacilities && <DetailRow label="Instalaciones Exteriores" value={listing.extras.outdoorFacilities} />}
+                    <DetailRow label={t("Estado")} value={listing.verified ? t("Miembro verificado") : t("Pendiente")} />
+                    <DetailRow label={t("ID de propiedad")} value={String(listing.propertyId)} />
+                    {listing.size && <DetailRow label={t("Tamaño")} value={listing.size} />}
+                    <DetailRow label={t("Habitaciones")} value={String(listing.bedrooms)} />
+                    <DetailRow label={t("Dormitorios")} value={String(listing.bedrooms)} />
+                    <DetailRow label={t("Baños")} value={String(listing.bathrooms)} />
+                    <DetailRow label={t("Ciudad")} value={listing.city} />
+                    <DetailRow label={t("Zona")} value={listing.zone} />
+                    <DetailRow label={t("Condado")} value={listing.county} />
+                    <DetailRow label={t("País")} value={listing.country} />
+                    {listing.extras?.breakfast && <DetailRow label={t("Desayuno Incluido")} value={listing.extras.breakfast} />}
+                    {listing.extras?.lateCheckIn && <DetailRow label={t("Entrada Tardía")} value={listing.extras.lateCheckIn} />}
+                    {listing.extras?.cancellation && <DetailRow label={t("Cancelación")} value={listing.extras.cancellation} />}
+                    {listing.extras?.optionalServices && <DetailRow label={t("Servicios Opcionales")} value={listing.extras.optionalServices} />}
+                    {listing.extras?.outdoorFacilities && <DetailRow label={t("Instalaciones Exteriores")} value={listing.extras.outdoorFacilities} />}
                   </div>
                 </div>
               </section>
@@ -152,20 +154,20 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
               {/* === Comodidades === */}
               <section id="section-comodidades">
-                <h2 className="mb-1 text-lg font-semibold text-[#484848]">Características</h2>
+                <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Características")}</h2>
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <AmenitiesGrid amenities={listing.amenities} />
 
                 {/* Terms */}
                 <div className="mt-6">
-                  <h3 className="mb-3 text-sm font-semibold text-[#484848]">Términos y Condiciones</h3>
+                  <h3 className="mb-3 text-sm font-semibold text-[#484848]">{t("Términos y Condiciones")}</h3>
                   <div className="flex flex-wrap gap-4">
                     {ruleIcons.map((r) => (
                       <div key={r.label} className="flex items-center gap-2 text-sm text-[#3a3a3a]">
                         <span>{r.icon}</span>
-                        <span>{r.label}</span>
+                        <span>{t(r.label)}</span>
                         <span style={{ color: r.allowed ? "#22c55e" : r.allowed === false ? "#ef4444" : "#aaa" }}>
-                          {r.allowed === true ? "✓ Permitido" : r.allowed === false ? "✗ No permitido" : "—"}
+                          {r.allowed === true ? t("✓ Permitido") : r.allowed === false ? t("✗ No permitido") : "—"}
                         </span>
                       </div>
                     ))}
@@ -177,7 +179,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
               {/* === Propietario === */}
               <section id="section-propietario">
-                <h2 className="mb-1 text-lg font-semibold text-[#484848]">Propietario</h2>
+                <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Propietario")}</h2>
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <div className="flex flex-col gap-4 sm:flex-row">
                   <img
@@ -209,11 +211,11 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
               {/* === Mapa === */}
               <section id="section-mapa">
-                <h2 className="mb-1 text-lg font-semibold text-[#484848]">Ubicación cercana (No exacta)</h2>
+                <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Ubicación cercana (No exacta)")}</h2>
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <div className="overflow-hidden rounded" style={{ height: "300px", border: "1px solid #ebebeb" }}>
                   <iframe
-                    title="Mapa de ubicación aproximada"
+                    title={t("Mapa de ubicación aproximada")}
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
@@ -222,7 +224,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                   />
                 </div>
                 <p className="mt-2 text-xs text-[#aaa]">
-                  La dirección exacta se proporciona tras confirmar la reserva.
+                  {t("La dirección exacta se proporciona tras confirmar la reserva.")}
                 </p>
               </section>
 
@@ -230,7 +232,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
               {/* === Reseñas === */}
               <section>
-                <h2 className="mb-1 text-lg font-semibold text-[#484848]">Reseñas</h2>
+                <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Reseñas")}</h2>
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <ReviewsSection reviews={listing.reviews} />
               </section>
@@ -244,7 +246,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                   <span className="text-2xl font-bold text-[#484848]">
                     $ {listing.pricePerNight.toLocaleString("es-MX")}
                   </span>
-                  <span className="text-sm text-[#aaa]">por noche aprox.</span>
+                  <span className="text-sm text-[#aaa]">{t("por noche aprox.")}</span>
                 </div>
 
                 <hr className="mb-4 mt-3" style={{ borderColor: "#ebebeb" }} />
@@ -279,14 +281,14 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     className="w-full rounded border py-2.5 text-sm font-medium text-[#484848] transition hover:border-[#dcb81e] hover:text-[#dcb81e]"
                     style={{ borderColor: "#ebebeb" }}
                   >
-                    ♡ Agregar a los favoritos
+                    {t("♡ Agregar a los favoritos")}
                   </button>
                   <button
                     type="button"
                     className="w-full rounded border py-2.5 text-sm font-medium text-[#484848] transition hover:border-[#dcb81e] hover:text-[#dcb81e]"
                     style={{ borderColor: "#ebebeb" }}
                   >
-                    ↗ Compartir
+                    {t("↗ Compartir")}
                   </button>
                 </div>
               </div>

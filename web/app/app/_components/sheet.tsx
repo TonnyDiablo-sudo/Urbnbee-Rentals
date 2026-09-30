@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useT } from "@/components/i18n-provider";
 
 /** Panel que sube desde abajo, a la manera de las hojas de iOS/Android. */
 export function Sheet({
@@ -14,6 +15,7 @@ export function Sheet({
   title: string;
   children: React.ReactNode;
 }) {
+  const t = useT();
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -43,7 +45,7 @@ export function Sheet({
             type="button"
             onClick={onClose}
             className="absolute right-3 flex h-9 w-9 items-center justify-center rounded-full text-xl text-[#555] hover:bg-[#f5f5f5]"
-            aria-label="Cerrar"
+            aria-label={t("Cerrar")}
           >
             ×
           </button>

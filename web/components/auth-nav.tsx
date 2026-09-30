@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useT } from "@/components/i18n-provider";
 
 type SessionUser = {
   id: string;
@@ -12,6 +13,7 @@ type SessionUser = {
 };
 
 export function AuthNav() {
+  const t = useT();
   const router = useRouter();
   const [user, setUser] = useState<SessionUser | null | undefined>(undefined);
   const [upgrading, setUpgrading] = useState(false);
@@ -35,7 +37,7 @@ export function AuthNav() {
       const res = await fetch("/api/auth/upgrade-to-host", { method: "POST", credentials: "include" });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error ?? "No se pudo activar el modo anfitrión");
+        alert(data.error ?? t("No se pudo activar el modo anfitrión"));
         return;
       }
       setUser(data.user);
@@ -69,10 +71,10 @@ export function AuthNav() {
               clipRule="evenodd"
             />
           </svg>
-          Iniciar sesión
+          {t("Iniciar sesión")}
         </Link>
         <Link href="/register" className="hidden text-sm font-medium text-white transition hover:text-[#dcb81e] sm:block">
-          + Registrarse
+          + {t("Registrarse")}
         </Link>
       </div>
     );
@@ -87,26 +89,26 @@ export function AuthNav() {
       <Link
         href="/guest"
         className="hidden text-sm font-medium text-white transition hover:text-[#dcb81e] sm:inline"
-        title="Mis reservas y mensajes"
+        title={t("Mis reservas y mensajes")}
       >
-        Mi cuenta
+        {t("Mi cuenta")}
       </Link>
       {isAdmin && (
         <Link
           href="/admin/overview"
           className="hidden text-sm font-semibold text-[#dcb81e] transition hover:text-white sm:inline"
-          title="Panel de administración del sitio"
+          title={t("Panel de administración del sitio")}
         >
-          Administración
+          {t("Administración")}
         </Link>
       )}
       {isHost && (
         <Link
           href="/host/dashboard"
           className="text-sm font-medium text-white transition hover:text-[#dcb81e]"
-          title="Panel de anfitrión"
+          title={t("Panel de anfitrión")}
         >
-          Panel anfitrión
+          {t("Panel anfitrión")}
         </Link>
       )}
       {isGuest && (
@@ -116,9 +118,9 @@ export function AuthNav() {
           disabled={upgrading}
           className="inline-flex max-w-[min(160px,28vw)] items-center truncate rounded px-2.5 py-1.5 text-xs font-semibold text-black transition hover:brightness-95 disabled:opacity-60 sm:max-w-[180px] sm:px-3 sm:text-sm"
           style={{ backgroundColor: "#dcb81e" }}
-          title="Activa tu cuenta para publicar alojamientos"
+          title={t("Activa tu cuenta para publicar alojamientos")}
         >
-          {upgrading ? "…" : "Ser anfitrión"}
+          {upgrading ? "…" : t("Ser anfitrión")}
         </button>
       )}
       <span className="hidden max-w-[100px] truncate text-xs text-white/80 sm:inline md:max-w-[140px]" title={user.email}>
@@ -129,13 +131,14 @@ export function AuthNav() {
         onClick={() => logout()}
         className="text-sm font-medium text-white transition hover:text-[#dcb81e]"
       >
-        Salir
+        {t("Salir")}
       </button>
     </div>
   );
 }
 
 export function AuthNavMobile({ onNavigate }: { onNavigate?: () => void }) {
+  const t = useT();
   const router = useRouter();
   const [user, setUser] = useState<SessionUser | null | undefined>(undefined);
   const [upgrading, setUpgrading] = useState(false);
@@ -160,7 +163,7 @@ export function AuthNavMobile({ onNavigate }: { onNavigate?: () => void }) {
       const res = await fetch("/api/auth/upgrade-to-host", { method: "POST", credentials: "include" });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error ?? "No se pudo activar el modo anfitrión");
+        alert(data.error ?? t("No se pudo activar el modo anfitrión"));
         return;
       }
       setUser(data.user);
@@ -176,10 +179,10 @@ export function AuthNavMobile({ onNavigate }: { onNavigate?: () => void }) {
     return (
       <>
         <Link href="/login" className="block rounded px-3 py-2 text-left text-sm text-white" onClick={onNavigate}>
-          Iniciar sesión
+          {t("Iniciar sesión")}
         </Link>
         <Link href="/register" className="block rounded px-3 py-2 text-left text-sm text-white" onClick={onNavigate}>
-          Registrarse
+          {t("Registrarse")}
         </Link>
       </>
     );
@@ -192,7 +195,7 @@ export function AuthNavMobile({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       <Link href="/guest" className="block rounded px-3 py-2 text-left text-sm text-white" onClick={onNavigate}>
-        Mi cuenta
+        {t("Mi cuenta")}
       </Link>
       {isAdmin && (
         <Link
@@ -200,12 +203,12 @@ export function AuthNavMobile({ onNavigate }: { onNavigate?: () => void }) {
           className="block rounded px-3 py-2 text-left text-sm font-semibold text-[#dcb81e]"
           onClick={onNavigate}
         >
-          Administración
+          {t("Administración")}
         </Link>
       )}
       {isHost && (
         <Link href="/host/dashboard" className="block rounded px-3 py-2 text-left text-sm text-white" onClick={onNavigate}>
-          Panel anfitrión
+          {t("Panel anfitrión")}
         </Link>
       )}
       {isGuest && (
@@ -216,11 +219,11 @@ export function AuthNavMobile({ onNavigate }: { onNavigate?: () => void }) {
           style={{ backgroundColor: "#dcb81e" }}
           onClick={() => becomeHost()}
         >
-          {upgrading ? "Activando…" : "Ser anfitrión (publicar)"}
+          {upgrading ? t("Activando…") : t("Ser anfitrión (publicar)")}
         </button>
       )}
       <button type="button" className="block w-full rounded px-3 py-2 text-left text-sm text-white" onClick={() => logout()}>
-        Cerrar sesión
+        {t("Cerrar sesión")}
       </button>
     </>
   );

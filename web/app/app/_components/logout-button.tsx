@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useT } from "@/components/i18n-provider";
 import { unsubscribeThisDevice } from "./push";
 
 export function LogoutButton() {
+  const t = useT();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   return (
@@ -20,7 +22,7 @@ export function LogoutButton() {
       }}
       className="mt-4 w-full rounded-xl border border-[#ddd] py-3 text-[15px] font-medium text-[#222] disabled:opacity-60"
     >
-      {busy ? "Saliendo…" : "Cerrar sesión"}
+      {busy ? t("Saliendo…") : t("Cerrar sesión")}
     </button>
   );
 }

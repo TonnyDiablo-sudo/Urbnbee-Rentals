@@ -7,6 +7,7 @@ import {
   SCREENING_PAYER_LABEL,
   SCREENING_STATUS_LABEL,
 } from "@/lib/screening-types";
+import { useT } from "@/components/i18n-provider";
 
 export function BookingScreeningPanel({
   bookingId,
@@ -25,6 +26,7 @@ export function BookingScreeningPanel({
   consentText?: string;
   onChanged: () => void;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
@@ -37,7 +39,7 @@ export function BookingScreeningPanel({
   const priceLabel =
     quote && quote.offered && quote.amount > 0
       ? `$${quote.amount.toLocaleString("es-MX")} ${currency}`
-      : "sin precio en el catálogo";
+      : t("sin precio en el catálogo");
 
   const post = async (url: string, body?: Record<string, unknown>) => {
     setBusy(true);
@@ -70,31 +72,30 @@ export function BookingScreeningPanel({
 
   return (
     <div className="mt-4 rounded-lg border border-[#ebebeb] bg-white p-4 text-sm">
-      <p className="font-semibold text-[#484848]">Screening de crédito</p>
+      <p className="font-semibold text-[#484848]">{t("Screening de crédito")}</p>
       <p className="mt-1 text-xs text-[#888]">
-        Cabibee pide el reporte a un proveedor y cobra su costo más un margen. El expediente no se
-        queda aquí: el anfitrión solo ve un resumen. No somos el buró.
+        {t("Cabibee pide el reporte a un proveedor y cobra su costo más un margen. El expediente no se queda aquí: el anfitrión solo ve un resumen. No somos el buró.")}
       </p>
 
       {screening && (
         <div className="mt-3 space-y-1 text-[#3a3a3a]">
-          <p>{SCREENING_STATUS_LABEL[screening.status]}</p>
-          <p className="text-xs text-[#888]">{SCREENING_PAYER_LABEL[screening.payer]}</p>
+          <p>{t(SCREENING_STATUS_LABEL[screening.status])}</p>
+          <p className="text-xs text-[#888]">{t(SCREENING_PAYER_LABEL[screening.payer])}</p>
           {screening.band && (
             <p>
-              Resultado:{" "}
-              <span className="font-medium">{SCREENING_BAND_LABEL[screening.band]}</span>
+              {t("Resultado:")}{" "}
+              <span className="font-medium">{t(SCREENING_BAND_LABEL[screening.band])}</span>
             </p>
           )}
           {screening.providerNote && (
-            <p className="text-xs text-[#888]">{screening.providerNote}</p>
+            <p className="text-xs text-[#888]">{t(screening.providerNote)}</p>
           )}
         </div>
       )}
 
       {role === "host" && canRequest && !screening && (
         <div className="mt-3 space-y-3">
-          <p className="text-xs text-[#888]">Cargo: {priceLabel} (costo del proveedor + margen de Cabibee).</p>
+          <p className="text-xs text-[#888]">{t("Cargo: {price} (costo del proveedor + margen de Cabibee).", { price: priceLabel })}</p>
           <fieldset className="space-y-2 text-xs text-[#484848]">
             <label className="flex items-start gap-2">
               <input
@@ -104,7 +105,7 @@ export function BookingScreeningPanel({
                 onChange={() => setPayer("host")}
                 className="mt-0.5 accent-[#dcb81e]"
               />
-              <span>Lo pago yo</span>
+              <span>{t("Lo pago yo")}</span>
             </label>
             <label className="flex items-start gap-2">
               <input
@@ -114,7 +115,7 @@ export function BookingScreeningPanel({
                 onChange={() => setPayer("guest")}
                 className="mt-0.5 accent-[#dcb81e]"
               />
-              <span>Se lo cobro al huésped</span>
+              <span>{t("Se lo cobro al huésped")}</span>
             </label>
           </fieldset>
           <button
@@ -123,7 +124,7 @@ export function BookingScreeningPanel({
             className="rounded bg-[#dcb81e] px-4 py-2 text-xs font-semibold text-black disabled:opacity-50"
             onClick={() => void post(`/api/host/bookings/${bookingId}/screening`, { payer })}
           >
-            {busy ? "Pidiendo…" : "Pedir screening"}
+            {busy ? t("Pidiendo…") : t("Pedir screening")}
           </button>
         </div>
       )}
@@ -132,8 +133,8 @@ export function BookingScreeningPanel({
         <div className="mt-3 space-y-3">
           <p className="text-xs text-[#888]">
             {screening.payer === "guest"
-              ? `Si autorizas, el cargo es ${priceLabel}.`
-              : "Si autorizas, el anfitrión paga este screening."}
+              ? t("Si autorizas, el cargo es {price}.", { price: priceLabel })
+              : t("Si autorizas, el anfitrión paga este screening.")}
           </p>
           <label className="flex items-start gap-2 text-xs text-[#484848]">
             <input
@@ -150,48 +151,48 @@ export function BookingScreeningPanel({
             className="rounded bg-[#dcb81e] px-4 py-2 text-xs font-semibold text-black disabled:opacity-50"
             onClick={() => void post(`/api/guest/screening/${screening.id}/consent`)}
           >
-            {busy ? "Guardando…" : "Autorizar screening"}
+            {busy ? t("Guardando…") : t("Autorizar screening")}
           </button>
         </div>
       )}
 
       {role === "guest" && screening?.payer === "host" && screening.consentedAt && !screening.paidAt && (
-        <p className="mt-3 text-xs text-[#888]">Ya autorizaste. Falta que el anfitrión pague.</p>
+        <p className="mt-3 text-xs text-[#888]">{t("Ya autorizaste. Falta que el anfitrión pague.")}</p>
       )}
 
       {role === "guest" && screening?.needsPayGuest && (
         <div className="mt-3">
-          <p className="text-xs text-[#888]">Cargo: {priceLabel}. Es independiente de la membresía.</p>
+          <p className="text-xs text-[#888]">{t("Cargo: {price}. Es independiente de la membresía.", { price: priceLabel })}</p>
           <button
             type="button"
             disabled={busy || !quote?.offered}
             className="mt-2 rounded bg-[#dcb81e] px-4 py-2 text-xs font-semibold text-black disabled:opacity-50"
             onClick={() => void post(`/api/guest/screening/${screening.id}/checkout`)}
           >
-            {busy ? "Abriendo cobro…" : "Pagar screening"}
+            {busy ? t("Abriendo cobro…") : t("Pagar screening")}
           </button>
         </div>
       )}
 
       {role === "host" && screening?.needsPayHost && (
         <div className="mt-3">
-          <p className="text-xs text-[#888]">El huésped ya autorizó. Cargo: {priceLabel}.</p>
+          <p className="text-xs text-[#888]">{t("El huésped ya autorizó. Cargo: {price}.", { price: priceLabel })}</p>
           <button
             type="button"
             disabled={busy || !quote?.offered}
             className="mt-2 rounded bg-[#dcb81e] px-4 py-2 text-xs font-semibold text-black disabled:opacity-50"
             onClick={() => void post(`/api/host/bookings/${bookingId}/screening/checkout`)}
           >
-            {busy ? "Abriendo cobro…" : "Pagar screening"}
+            {busy ? t("Abriendo cobro…") : t("Pagar screening")}
           </button>
         </div>
       )}
 
       {role === "host" && screening?.needsPayGuest && (
-        <p className="mt-3 text-xs text-[#888]">Esperando que el huésped autorice y pague.</p>
+        <p className="mt-3 text-xs text-[#888]">{t("Esperando que el huésped autorice y pague.")}</p>
       )}
 
-      {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
+      {err && <p className="mt-2 text-xs text-red-600">{t(err)}</p>}
     </div>
   );
 }

@@ -1,16 +1,21 @@
 import { Suspense } from "react";
+import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 import { AuthGate } from "../_components/auth-gate";
 import { TopBar } from "../_components/top-bar";
 import { GuestMembership } from "./guest-membership";
 
-export const metadata = { title: "Membresía de huésped" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("Membresía de huésped") };
+}
 
 export default async function AppMembershipPage() {
   const user = await getSessionUser();
+  const t = await getT();
   return (
     <>
-      <TopBar title="Membresía de huésped" back="/perfil" />
+      <TopBar title={t("Membresía de huésped")} back="/perfil" />
       {user ? (
         <Suspense>
           <GuestMembership />

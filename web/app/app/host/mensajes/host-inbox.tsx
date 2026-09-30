@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
+import { numberLocale } from "@/lib/i18n";
 import { threadIsUnread } from "../../_components/seen";
 
 export type HostThread = {
@@ -19,6 +21,8 @@ export function hostThreadHref(t: { listingId: string; guestSessionId: string })
 }
 
 export function HostInbox() {
+  const t = useT();
+  const lang = useLang();
   const [threads, setThreads] = useState<HostThread[] | null>(null);
 
   useEffect(() => {
@@ -32,13 +36,13 @@ export function HostInbox() {
     return () => window.clearInterval(timer);
   }, []);
 
-  if (threads === null) return <p className="px-5 py-6 text-sm text-[#999]">Cargando…</p>;
+  if (threads === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
   if (threads.length === 0) {
     return (
       <div className="px-5 py-8">
-        <p className="text-base font-semibold text-[#222]">Aún no te escriben</p>
+        <p className="text-base font-semibold text-[#222]">{t("Aún no te escriben")}</p>
         <p className="mt-1 text-sm leading-relaxed text-[#717171]">
-          Cuando un huésped te escriba desde tu anuncio en la web o en la app, lo verás aquí.
+          {t("Cuando un huésped te escriba desde tu anuncio en la web o en la app, lo verás aquí.")}
         </p>
       </div>
     );
@@ -46,25 +50,25 @@ export function HostInbox() {
 
   return (
     <ul className="divide-y divide-[#f0f0f0]">
-      {threads.map((t) => {
-        const last = t.messages[t.messages.length - 1];
-        const unread = last?.sender === "guest" && threadIsUnread(`h:${t.listingId}:${t.guestSessionId}`, t.lastAt);
+      {threads.map((th) => {
+        const last = th.messages[th.messages.length - 1];
+        const unread = last?.sender === "guest" && threadIsUnread(`h:${th.listingId}:${th.guestSessionId}`, th.lastAt);
         return (
-          <li key={`${t.listingId}:${t.guestSessionId}`}>
-            <Link href={hostThreadHref(t)} className="flex items-start gap-3 px-5 py-4 active:bg-[#fafafa]">
+          <li key={`${th.listingId}:${th.guestSessionId}`}>
+            <Link href={hostThreadHref(th)} className="flex items-start gap-3 px-5 py-4 active:bg-[#fafafa]">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#111] text-base font-bold text-[#dcb81e]">
-                {t.guestName.trim().charAt(0).toUpperCase() || "?"}
+                {th.guestName.trim().charAt(0).toUpperCase() || "?"}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <p className={`truncate text-[15px] ${unread ? "font-bold" : "font-semibold"} text-[#222]`}>{t.guestName}</p>
+                  <p className={`truncate text-[15px] ${unread ? "font-bold" : "font-semibold"} text-[#222]`}>{th.guestName}</p>
                   <span className="shrink-0 text-xs text-[#999]">
-                    {new Date(t.lastAt).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
+                    {new Date(th.lastAt).toLocaleDateString(numberLocale(lang), { day: "numeric", month: "short" })}
                   </span>
                 </div>
-                <p className="truncate text-xs text-[#999]">{t.listingTitle}</p>
+                <p className="truncate text-xs text-[#999]">{th.listingTitle}</p>
                 <p className={`mt-0.5 line-clamp-2 text-sm ${unread ? "text-[#222]" : "text-[#717171]"}`}>
-                  {last?.sender === "host" ? "Tú: " : ""}
+                  {last?.sender === "host" ? `${t("Tú:")} ` : ""}
                   {last?.body}
                 </p>
               </div>

@@ -1,8 +1,10 @@
 "use client";
 import Image from "next/image";
 import { useState } from "react";
+import { useT } from "@/components/i18n-provider";
 
 export function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
+  const t = useT();
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const open = (i: number) => setLightboxIdx(i);
@@ -34,7 +36,7 @@ export function PhotoGallery({ photos, title }: { photos: string[]; title: strin
           >
             <img
               src={src}
-              alt={`${title} foto ${i + 2}`}
+              alt={`${title} ${t("foto {n}", { n: i + 2 })}`}
               className="h-full w-full object-cover transition duration-300 hover:brightness-90"
             />
           </div>
@@ -49,7 +51,7 @@ export function PhotoGallery({ photos, title }: { photos: string[]; title: strin
           <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M3 12h18M3 17h18" />
           </svg>
-          Ver todas las imágenes
+          {t("Ver todas las imágenes")}
         </button>
       </div>
 
@@ -64,7 +66,7 @@ export function PhotoGallery({ photos, title }: { photos: string[]; title: strin
             type="button"
             onClick={close}
             className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
-            aria-label="Cerrar"
+            aria-label={t("Cerrar")}
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -83,7 +85,7 @@ export function PhotoGallery({ photos, title }: { photos: string[]; title: strin
           >
             <img
               src={photos[lightboxIdx]}
-              alt={`${title} foto ${lightboxIdx + 1}`}
+              alt={`${title} ${t("foto {n}", { n: lightboxIdx + 1 })}`}
               className="mx-auto max-h-[85vh] max-w-full rounded object-contain"
             />
           </div>
@@ -93,7 +95,7 @@ export function PhotoGallery({ photos, title }: { photos: string[]; title: strin
             type="button"
             onClick={(e) => { e.stopPropagation(); prev(); }}
             className="absolute left-3 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full text-white transition hover:text-[#dcb81e]"
-            aria-label="Anterior"
+            aria-label={t("Anterior")}
           >
             <svg className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -103,7 +105,7 @@ export function PhotoGallery({ photos, title }: { photos: string[]; title: strin
             type="button"
             onClick={(e) => { e.stopPropagation(); next(); }}
             className="absolute right-3 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full text-white transition hover:text-[#dcb81e]"
-            aria-label="Siguiente"
+            aria-label={t("Siguiente")}
           >
             <svg className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

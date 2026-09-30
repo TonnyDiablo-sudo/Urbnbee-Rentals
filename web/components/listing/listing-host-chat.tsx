@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useT } from "@/components/i18n-provider";
 
 type ChatRow = {
   id: string;
@@ -19,6 +20,7 @@ export function ListingHostChat({
   listingId: string;
   hostName: string;
 }) {
+  const t = useT();
   const pathname = usePathname();
   const nextEncoded = encodeURIComponent(pathname || "/");
 
@@ -88,18 +90,18 @@ export function ListingHostChat({
         if (res.status === 401 && data.needsLogin) {
           alert(
             typeof data.error === "string"
-              ? data.error
-              : "Necesitas una cuenta para enviar mensajes."
+              ? t(data.error)
+              : t("Necesitas una cuenta para enviar mensajes.")
           );
         } else {
-          alert(data.error ?? "No se pudo enviar.");
+          alert(t(data.error ?? "No se pudo enviar."));
         }
         return;
       }
       setBody("");
       await load();
     } catch {
-      alert("Error de red.");
+      alert(t("Error de red."));
     } finally {
       setLoading(false);
     }
@@ -107,34 +109,33 @@ export function ListingHostChat({
 
   return (
     <section id="section-chat-anfitrion" className="rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-semibold text-[#484848]">Chat con el anfitrión</h2>
+      <h2 className="text-lg font-semibold text-[#484848]">{t("Chat con el anfitrión")}</h2>
       <div className="mt-1 h-[3px] w-10" style={{ backgroundColor: "#dcb81e" }} />
       <p className="mt-3 text-xs leading-relaxed text-[#888]">
-        Escribe a <strong>{hostName}</strong> sobre este alojamiento. Las respuestas las envía el anfitrión (no son
-        automáticas).{" "}
-        <strong>No compartas contraseñas ni datos bancarios.</strong> Cabibee puede revisar mensajes ante reportes de
-        fraude o abuso.
+        {t("Escribe a")} <strong>{hostName}</strong>{" "}
+        {t("sobre este alojamiento. Las respuestas las envía el anfitrión (no son automáticas).")}{" "}
+        <strong>{t("No compartas contraseñas ni datos bancarios.")}</strong>{" "}
+        {t("Cabibee puede revisar mensajes ante reportes de fraude o abuso.")}
       </p>
 
       {!loggedIn && (
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-950">
-          <p className="font-medium">Cuenta gratuita para chatear</p>
+          <p className="font-medium">{t("Cuenta gratuita para chatear")}</p>
           <p className="mt-1 text-amber-900">
-            Para enviar mensajes debes registrarte (sin costo). Así ligamos conversaciones a personas reales y cuidamos a
-            anfitriones y huéspedes. Para reservar y pagar aplicará la verificación de huésped cuando corresponda.
+            {t("Para enviar mensajes debes registrarte (sin costo). Así ligamos conversaciones a personas reales y cuidamos a anfitriones y huéspedes. Para reservar y pagar aplicará la verificación de huésped cuando corresponda.")}
           </p>
           <p className="mt-3 flex flex-wrap gap-2">
             <Link
               href={`/register?next=${nextEncoded}`}
               className="inline-flex rounded-lg bg-black px-4 py-2 text-xs font-semibold text-white hover:bg-[#222]"
             >
-              Registrarse gratis
+              {t("Registrarse gratis")}
             </Link>
             <Link
               href={`/login?next=${nextEncoded}`}
               className="inline-flex rounded-lg border border-amber-300 bg-white px-4 py-2 text-xs font-semibold text-amber-950 hover:bg-amber-100"
             >
-              Iniciar sesión
+              {t("Iniciar sesión")}
             </Link>
           </p>
         </div>
@@ -142,9 +143,9 @@ export function ListingHostChat({
 
       <div className="mt-4 max-h-72 overflow-y-auto rounded-lg border border-[#ebebeb] bg-[#fafafa] p-3">
         {fetching ? (
-          <p className="text-sm text-[#aaa]">Cargando conversación…</p>
+          <p className="text-sm text-[#aaa]">{t("Cargando conversación…")}</p>
         ) : messages.length === 0 ? (
-          <p className="text-sm text-[#888]">Aún no hay mensajes. Saluda al anfitrión abajo.</p>
+          <p className="text-sm text-[#888]">{t("Aún no hay mensajes. Saluda al anfitrión abajo.")}</p>
         ) : (
           <ul className="space-y-3">
             {messages.map((m) => (
@@ -160,7 +161,7 @@ export function ListingHostChat({
                   }`}
                 >
                   <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
-                    {m.sender === "guest" ? "Tú" : m.guestLabel}
+                    {m.sender === "guest" ? t("Tú") : m.guestLabel}
                   </p>
                   <p className="mt-0.5 whitespace-pre-wrap">{m.body}</p>
                 </div>
@@ -173,32 +174,32 @@ export function ListingHostChat({
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 opacity-100">
         <label className={`block text-xs font-semibold text-[#666] ${!loggedIn ? "pointer-events-none opacity-50" : ""}`}>
-          Tu nombre
+          {t("Tu nombre")}
           <input
             value={guestName}
             onChange={(e) => setGuestName(e.target.value)}
             maxLength={80}
             disabled={!loggedIn}
             className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
-            placeholder="Ej. María"
+            placeholder={t("Ej. María")}
           />
         </label>
         <label className={`block text-xs font-semibold text-[#666] ${!loggedIn ? "pointer-events-none opacity-50" : ""}`}>
-          Correo (opcional, para que te respondan fuera de Cabibee)
+          {t("Correo (opcional, para que te respondan fuera de Cabibee)")}
           <input
             type="email"
             value={guestEmail}
             onChange={(e) => setGuestEmail(e.target.value)}
             disabled={!loggedIn}
             className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
-            placeholder="tu@correo.com"
+            placeholder={t("tu@correo.com")}
             autoComplete="email"
           />
         </label>
       </div>
 
       <label className={`mt-3 block text-xs font-semibold text-[#666] ${!loggedIn ? "pointer-events-none opacity-50" : ""}`}>
-        Mensaje
+        {t("Mensaje")}
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -207,7 +208,9 @@ export function ListingHostChat({
           disabled={!loggedIn}
           className="mt-1 w-full resize-y rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
           placeholder={
-            loggedIn ? `Hola ${hostName}, tengo una pregunta sobre…` : "Inicia sesión para escribir al anfitrión…"
+            loggedIn
+              ? t("Hola {name}, tengo una pregunta sobre…", { name: hostName })
+              : t("Inicia sesión para escribir al anfitrión…")
           }
         />
       </label>
@@ -219,11 +222,11 @@ export function ListingHostChat({
         className="mt-4 rounded-full px-6 py-2.5 text-sm font-semibold text-black shadow transition hover:brightness-95 disabled:opacity-50"
         style={{ backgroundColor: "#dcb81e" }}
       >
-        {loading ? "Enviando…" : "Enviar al anfitrión"}
+        {loading ? t("Enviando…") : t("Enviar al anfitrión")}
       </button>
 
       <p className="mt-3 text-[10px] text-[#aaa]">
-        El asistente de Cabibee (ventana flotante) responde preguntas generales; este chat es solo entre tú y el anfitrión.
+        {t("El asistente de Cabibee (ventana flotante) responde preguntas generales; este chat es solo entre tú y el anfitrión.")}
       </p>
     </section>
   );

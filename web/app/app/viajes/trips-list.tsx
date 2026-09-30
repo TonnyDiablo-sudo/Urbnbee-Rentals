@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
 import { GUEST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../_components/booking-status";
 import { WebLink } from "../_components/site-origin";
 
@@ -22,6 +23,8 @@ type Trip = {
 };
 
 export function TripsList() {
+  const t = useT();
+  const lang = useLang();
   const router = useRouter();
   const params = useSearchParams();
   const sessionId = params.get("session_id");
@@ -65,64 +68,64 @@ export function TripsList() {
     })();
   }, [sessionId, load, router]);
 
-  if (trips === null) return <p className="px-5 py-6 text-sm text-[#999]">Cargando…</p>;
+  if (trips === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
 
   return (
     <div className="px-5 pb-6">
-      {notice && <p className="mb-4 rounded-2xl bg-[#e6f6ea] px-4 py-3 text-sm text-[#1e7a3a]">{notice}</p>}
-      {err && <p className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{err}</p>}
+      {notice && <p className="mb-4 rounded-2xl bg-[#e6f6ea] px-4 py-3 text-sm text-[#1e7a3a]">{t(notice)}</p>}
+      {err && <p className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(err)}</p>}
 
       {trips.length === 0 ? (
         <div className="py-8">
-          <p className="text-base font-semibold text-[#222]">Aún no tienes viajes</p>
-          <p className="mt-1 text-sm text-[#717171]">Cuando reserves un alojamiento aparecerá aquí.</p>
+          <p className="text-base font-semibold text-[#222]">{t("Aún no tienes viajes")}</p>
+          <p className="mt-1 text-sm text-[#717171]">{t("Cuando reserves un alojamiento aparecerá aquí.")}</p>
           <Link href="/" className="mt-5 inline-block rounded-xl bg-[#dcb81e] px-5 py-3 text-sm font-semibold text-black">
-            Empieza a buscar
+            {t("Empieza a buscar")}
           </Link>
         </div>
       ) : (
         <ul className="space-y-3">
-          {trips.map((t) => {
-            const st = GUEST_STATUS[t.status] ?? { label: t.status, tone: "off" as const };
-            const inD = t.hostAdjustedCheckIn ?? t.checkIn;
-            const outD = t.hostAdjustedCheckOut ?? t.checkOut;
+          {trips.map((trip) => {
+            const st = GUEST_STATUS[trip.status] ?? { label: trip.status, tone: "off" as const };
+            const inD = trip.hostAdjustedCheckIn ?? trip.checkIn;
+            const outD = trip.hostAdjustedCheckOut ?? trip.checkOut;
             return (
-              <li key={t.id} className="rounded-2xl border border-[#ebebeb] p-4">
+              <li key={trip.id} className="rounded-2xl border border-[#ebebeb] p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 text-[15px] font-semibold text-[#222]">{t.listingTitle}</p>
+                  <p className="min-w-0 text-[15px] font-semibold text-[#222]">{trip.listingTitle}</p>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${TONE_CLS[st.tone]}`}>
-                    {st.label}
+                    {t(st.label)}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-[#555]">
-                  {fmtDay(inD)} – {fmtDay(outD)} · {t.nights} {t.nights === 1 ? "noche" : "noches"}
+                  {fmtDay(inD, lang)} – {fmtDay(outD, lang)} · {trip.nights} {trip.nights === 1 ? t("noche") : t("noches")}
                 </p>
                 <p className="text-sm text-[#555]">
-                  {fmtMxn(t.estimatedTotalMxn + (t.platformFeeMxn ?? 0))} · código {t.token}
+                  {fmtMxn(trip.estimatedTotalMxn + (trip.platformFeeMxn ?? 0))} · {t("código {code}", { code: trip.token })}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {t.status === "AWAITING_PAYMENT" && (
+                  {trip.status === "AWAITING_PAYMENT" && (
                     <WebLink
-                      path={`/contrato/${t.token}?pay=1`}
+                      path={`/contrato/${trip.token}?pay=1`}
                       className="rounded-xl bg-[#dcb81e] px-4 py-2 text-sm font-semibold text-black"
                     >
-                      Firmar y pagar
+                      {t("Firmar y pagar")}
                     </WebLink>
                   )}
-                  {t.status === "AWAITING_DETAILS" && (
+                  {trip.status === "AWAITING_DETAILS" && (
                     <WebLink
-                      path={`/finish/${t.token}`}
+                      path={`/finish/${trip.token}`}
                       className="rounded-xl bg-[#dcb81e] px-4 py-2 text-sm font-semibold text-black"
                     >
-                      Completar datos
+                      {t("Completar datos")}
                     </WebLink>
                   )}
-                  {t.listingSlug && (
+                  {trip.listingSlug && (
                     <Link
-                      href={`/alojamiento/${t.listingSlug}`}
+                      href={`/alojamiento/${trip.listingSlug}`}
                       className="rounded-xl border border-[#ddd] px-4 py-2 text-sm font-medium text-[#222]"
                     >
-                      Ver alojamiento
+                      {t("Ver alojamiento")}
                     </Link>
                   )}
                 </div>
@@ -137,7 +140,7 @@ export function TripsList() {
         icon
         className="mt-6 flex items-center justify-center gap-1.5 text-sm font-medium text-[#717171] underline"
       >
-        Contratos, depósitos y reseñas en la web{" "}
+        {t("Contratos, depósitos y reseñas en la web")}{" "}
       </WebLink>
     </div>
   );

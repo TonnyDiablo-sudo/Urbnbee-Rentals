@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { BookingDepositRecord } from "@/lib/booking-deposit-types";
+import { useT } from "@/components/i18n-provider";
 
 const labels: Record<BookingDepositRecord["status"], string> = {
   declared: "Declarado — se entrega entre ustedes",
@@ -23,6 +24,7 @@ export function BookingDepositPanel({
   role: "guest" | "host";
   onChanged: () => void;
 }) {
+  const t = useT();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -55,23 +57,23 @@ export function BookingDepositPanel({
   return (
     <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50/60 p-4 text-sm">
       <p className="font-semibold text-[#484848]">
-        Depósito ${deposit.amountMxn.toLocaleString("es-MX")} MXN
+        {t("Depósito")} ${deposit.amountMxn.toLocaleString("es-MX")} MXN
       </p>
-      <p className="mt-1 text-xs text-[#888]">{deposit.note}</p>
-      <p className="mt-2 text-[#3a3a3a]">{labels[deposit.status]}</p>
+      <p className="mt-1 text-xs text-[#888]">{t(deposit.note)}</p>
+      <p className="mt-2 text-[#3a3a3a]">{t(labels[deposit.status])}</p>
       {deposit.windowEndsAt && deposit.status === "window_open" && (
         <p className="mt-1 text-xs text-[#888]">
-          Cierra {deposit.windowEndsAt.slice(0, 16).replace("T", " ")} UTC
+          {t("Cierra")} {deposit.windowEndsAt.slice(0, 16).replace("T", " ")} UTC
         </p>
       )}
       {deposit.claim && (
         <p className="mt-2 text-[#3a3a3a]">
-          <span className="font-medium">Reclamo:</span> {deposit.claim.hostNote}
+          <span className="font-medium">{t("Reclamo:")}</span> {deposit.claim.hostNote}
         </p>
       )}
       {deposit.guestReply && (
         <p className="mt-2 text-[#3a3a3a]">
-          <span className="font-medium">Respuesta del huésped:</span> {deposit.guestReply.note}
+          <span className="font-medium">{t("Respuesta del huésped:")}</span> {deposit.guestReply.note}
         </p>
       )}
 
@@ -81,7 +83,7 @@ export function BookingDepositPanel({
             rows={3}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Describe el daño o el motivo, con evidencia que acuerden por su lado."
+            placeholder={t("Describe el daño o el motivo, con evidencia que acuerden por su lado.")}
             className="w-full rounded border bg-white px-3 py-2 text-sm"
             style={{ borderColor: "#ebebeb" }}
           />
@@ -92,7 +94,7 @@ export function BookingDepositPanel({
               className="rounded bg-[#dcb81e] px-4 py-2 text-xs font-semibold text-black disabled:opacity-50"
               onClick={() => void post(`/api/host/bookings/${bookingId}/deposit`, { action: "claim", note })}
             >
-              Reportar problema
+              {t("Reportar problema")}
             </button>
             <button
               type="button"
@@ -101,7 +103,7 @@ export function BookingDepositPanel({
               style={{ borderColor: "#ebebeb" }}
               onClick={() => void post(`/api/host/bookings/${bookingId}/deposit`, { action: "release" })}
             >
-              Sin daños, liberar
+              {t("Sin daños, liberar")}
             </button>
           </div>
         </div>
@@ -115,7 +117,7 @@ export function BookingDepositPanel({
           style={{ borderColor: "#ebebeb" }}
           onClick={() => void post(`/api/host/bookings/${bookingId}/deposit`, { action: "close" })}
         >
-          Cerrar caso (ya lo resolvieron entre ustedes)
+          {t("Cerrar caso (ya lo resolvieron entre ustedes)")}
         </button>
       )}
 
@@ -125,7 +127,7 @@ export function BookingDepositPanel({
             rows={3}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Tu respuesta al reclamo."
+            placeholder={t("Tu respuesta al reclamo.")}
             className="w-full rounded border bg-white px-3 py-2 text-sm"
             style={{ borderColor: "#ebebeb" }}
           />
@@ -135,12 +137,12 @@ export function BookingDepositPanel({
             className="rounded bg-[#dcb81e] px-4 py-2 text-xs font-semibold text-black disabled:opacity-50"
             onClick={() => void post(`/api/guest/bookings/${bookingId}/deposit`, { note })}
           >
-            Responder
+            {t("Responder")}
           </button>
         </div>
       )}
 
-      {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
+      {err && <p className="mt-2 text-xs text-red-600">{t(err)}</p>}
     </div>
   );
 }

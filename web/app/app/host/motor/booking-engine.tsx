@@ -2,6 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
+import { numberLocale } from "@/lib/i18n";
 import { WebLink } from "../../_components/site-origin";
 import {
   PlanPicker,
@@ -27,6 +29,8 @@ type Status = {
 const RETURN = "/host/motor";
 
 export function BookingEngine() {
+  const t = useT();
+  const lang = useLang();
   const params = useSearchParams();
   const justPaid = params.get("subscription") === "success";
   const [data, setData] = useState<Status | null>(null);
@@ -70,7 +74,7 @@ export function BookingEngine() {
     if (e) setErr(e);
   };
 
-  if (!data) return <p className="px-5 py-6 text-sm text-[#999]">{err ?? "Cargando…"}</p>;
+  if (!data) return <p className="px-5 py-6 text-sm text-[#999]">{err ? t(err) : t("Cargando…")}</p>;
 
   const plans = data.catalogPlansByRegion[region];
   const bothRegions = data.catalogPlansByRegion.mx.length > 0 && data.catalogPlansByRegion.us.length > 0;
@@ -79,36 +83,39 @@ export function BookingEngine() {
     <div className="space-y-6 px-5 py-5">
       {justPaid && (
         <p className="rounded-2xl bg-[#e6f6ea] px-4 py-3 text-sm text-[#1e7a3a]">
-          Pago recibido. Puede tardar unos segundos en activarse.
+          {t("Pago recibido. Puede tardar unos segundos en activarse.")}
         </p>
       )}
-      {err && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{err}</p>}
+      {err && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(err)}</p>}
 
       <div className={`rounded-2xl p-5 ${data.acceptsBookings ? "bg-[#111] text-white" : "bg-[#fdf6d8] text-[#5c4a0a]"}`}>
         <p className="text-lg font-bold">
-          {data.acceptsBookings ? "Tus anuncios reciben reservas" : "Tus anuncios sólo reciben mensajes"}
+          {data.acceptsBookings ? t("Tus anuncios reciben reservas") : t("Tus anuncios sólo reciben mensajes")}
         </p>
         <p className={`mt-1 text-sm leading-relaxed ${data.acceptsBookings ? "text-white/75" : ""}`}>
           {data.acceptsBookings
-            ? "Los huéspedes verificados pueden elegir fechas, pagar y firmar contrato en Cabibee."
-            : "Publicar y chatear es gratis. Con la membresía de anfitrión los huéspedes reservan y pagan dentro de Cabibee, con contrato."}
+            ? t("Los huéspedes verificados pueden elegir fechas, pagar y firmar contrato en Cabibee.")
+            : t("Publicar y chatear es gratis. Con la membresía de anfitrión los huéspedes reservan y pagan dentro de Cabibee, con contrato.")}
         </p>
       </div>
 
       <dl className="divide-y divide-[#f0f0f0] rounded-2xl border border-[#ebebeb] text-[15px]">
-        <Row label="Membresía de anfitrión" value={data.membershipActive ? "Activa" : "Sin contratar"} />
+        <Row label={t("Membresía de anfitrión")} value={data.membershipActive ? t("Activa") : t("Sin contratar")} />
         {data.hostCurrentPeriodEnd && data.membershipActive && (
-          <Row label="Vence" value={new Date(data.hostCurrentPeriodEnd).toLocaleDateString("es-MX")} />
+          <Row label={t("Vence")} value={new Date(data.hostCurrentPeriodEnd).toLocaleDateString(numberLocale(lang))} />
         )}
-        <Row label="Identidad" value={data.identityVerified ? "Comprobada" : data.kycStatus === "pending" ? "En revisión" : "Sin comprobar"} />
-        <Row label="Listón «Miembro verificado»" value={data.ribbon ? "Sí" : "No"} />
+        <Row
+          label={t("Identidad")}
+          value={data.identityVerified ? t("Comprobada") : data.kycStatus === "pending" ? t("En revisión") : t("Sin comprobar")}
+        />
+        <Row label={t("Listón «Miembro verificado»")} value={data.ribbon ? t("Sí") : t("No")} />
       </dl>
 
       <p className="text-sm leading-relaxed text-[#666]">
         <WebLink path="/host/settings/pagos" className="font-medium underline">
-          Conecta tu Stripe
+          {t("Conecta tu Stripe")}
         </WebLink>{" "}
-        para cobrar la estancia en tu cuenta. Si no lo haces, se sigue cobrando en Cabibee.
+        {t("para cobrar la estancia en tu cuenta. Si no lo haces, se sigue cobrando en Cabibee.")}
       </p>
 
       {!data.identityVerified && data.identityEnabled && data.stripeConfigured && (
@@ -118,21 +125,21 @@ export function BookingEngine() {
           onClick={() => void verify()}
           className="w-full rounded-xl border border-[#222] py-3.5 text-[15px] font-semibold text-[#222] disabled:opacity-60"
         >
-          {data.kycStatus === "pending" ? "Continuar verificación de identidad" : "Verificar mi identidad"}
+          {data.kycStatus === "pending" ? t("Continuar verificación de identidad") : t("Verificar mi identidad")}
         </button>
       )}
 
       {!data.membershipActive && (
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-[#222]">Planes de anfitrión</h2>
+            <h2 className="text-lg font-semibold text-[#222]">{t("Planes de anfitrión")}</h2>
             {bothRegions && <RegionToggle value={region} onChange={setRegion} />}
           </div>
           {plans.length > 0 ? (
             <PlanPicker plans={plans} busy={busy} onPick={(c) => void buy(c)} demo={!data.stripeConfigured} />
           ) : (
             <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#555]">
-              Todavía no hay planes de anfitrión a la venta. Mientras tanto tus anuncios aceptan reservas sin membresía.
+              {t("Todavía no hay planes de anfitrión a la venta. Mientras tanto tus anuncios aceptan reservas sin membresía.")}
             </p>
           )}
         </section>
@@ -143,7 +150,7 @@ export function BookingEngine() {
         icon
         className="flex items-center justify-center gap-1.5 text-sm font-medium text-[#717171] underline"
       >
-        Detalle de la membresía en la web{" "}
+        {t("Detalle de la membresía en la web")}{" "}
       </WebLink>
     </div>
   );

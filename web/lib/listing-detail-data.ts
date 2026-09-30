@@ -101,7 +101,7 @@ A un viaje en autobús del metro. Wifi, cocina para comer, televisión por cable
       "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=1200&q=85",
       "https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=1200&q=85",
       "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200&q=85",
-      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&q=85",
+      "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=85",
       "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=1200&q=85",
     ],
     amenities: [
@@ -173,8 +173,8 @@ A un viaje en autobús del metro. Wifi, cocina para comer, televisión por cable
     blockedDates: [],
     photos: [
       "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=85",
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=85",
-      "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=1200&q=85",
+      "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=1200&q=85",
+      "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=85",
       "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=1200&q=85",
     ],
     amenities: [

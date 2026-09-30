@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useT } from "@/components/i18n-provider";
 
 const DAYS = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"];
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -64,6 +65,7 @@ type CalendarMonthProps = {
 };
 
 function CalendarMonth({ year, month, checkin, checkout, hover, blocked, today, onSelect, onHover }: CalendarMonthProps) {
+  const t = useT();
   const first = new Date(year, month, 1).getDay();
   const days = new Date(year, month + 1, 0).getDate();
 
@@ -75,11 +77,11 @@ function CalendarMonth({ year, month, checkin, checkout, hover, blocked, today, 
   return (
     <div className="min-w-0">
       <div className="mb-3 text-center text-sm font-semibold text-[#484848]">
-        {MONTHS[month]} {year}
+        {t(MONTHS[month])} {year}
       </div>
       <div className="grid grid-cols-7 gap-0.5 text-center">
         {DAYS.map((d) => (
-          <div key={d} className="py-1 text-xs font-medium text-[#aaa]">{d}</div>
+          <div key={d} className="py-1 text-xs font-medium text-[#aaa]">{t(d)}</div>
         ))}
         {cells.map((d, i) => {
           if (!d) return <div key={i} />;
@@ -93,7 +95,7 @@ function CalendarMonth({ year, month, checkin, checkout, hover, blocked, today, 
 
           let bg = "transparent";
           let color = "#484848";
-          let cursor = disabled ? "default" : "pointer";
+          const cursor = disabled ? "default" : "pointer";
 
           if (disabled) { color = "#ccc"; }
           else if (isStart || isEnd) { bg = "#dcb81e"; color = "#000"; }
@@ -159,6 +161,7 @@ export function AvailabilityCalendar({
   bookingRef,
   appRoutes,
 }: Props) {
+  const t = useT();
   const today = new Date(); today.setHours(0,0,0,0);
   const seedIn = parseIsoLocal(initialCheckIn);
   const seedOut = parseIsoLocal(initialCheckOut);
@@ -246,7 +249,7 @@ export function AvailabilityCalendar({
       : null;
   const total = stay ? stay.total + cleaningFee : 0;
 
-  const fmtDate = (d: Date) => `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()}`;
+  const fmtDate = (d: Date) => `${d.getDate()} ${t(MONTHS[d.getMonth()]).slice(0,3)} ${d.getFullYear()}`;
 
   return (
     <div>
@@ -261,9 +264,9 @@ export function AvailabilityCalendar({
             className="rounded border px-3 py-2"
             style={{ borderColor: "#ebebeb" }}
           >
-            <div className="text-xs font-semibold uppercase tracking-wide text-[#484848]">{f.label}</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-[#484848]">{t(f.label)}</div>
             <div className="mt-0.5 text-sm" style={{ color: f.val ? "#484848" : "#aaa" }}>
-              {f.val ? fmtDate(f.val) : f.placeholder}
+              {f.val ? fmtDate(f.val) : t(f.placeholder)}
             </div>
           </div>
         ))}
@@ -295,11 +298,11 @@ export function AvailabilityCalendar({
       <div className="mt-3 flex flex-wrap gap-4 text-xs text-[#aaa]">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded" style={{ backgroundColor: "#c5e3e7" }} />
-          Fechas reservadas
+          {t("Fechas reservadas")}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded" style={{ backgroundColor: "#dcb81e" }} />
-          Seleccionado
+          {t("Seleccionado")}
         </span>
       </div>
 
@@ -310,7 +313,7 @@ export function AvailabilityCalendar({
           onClick={() => { setCheckin(null); setCheckout(null); }}
           className="mt-2 text-xs text-[#aaa] underline hover:text-[#484848]"
         >
-          Limpiar fechas
+          {t("Limpiar fechas")}
         </button>
       )}
 
@@ -320,33 +323,34 @@ export function AvailabilityCalendar({
           {stay.sameRate ? (
             <div className="flex justify-between text-[#3a3a3a]">
               <span>
-                ${Math.round(stay.total / nights).toLocaleString("es-MX")} × {nights} noches
+                ${Math.round(stay.total / nights).toLocaleString("es-MX")} × {t("{n} noches", { n: nights })}
               </span>
               <span>${stay.total.toLocaleString("es-MX")}</span>
             </div>
           ) : (
             <>
-              <p className="mb-2 text-xs text-[#888]">Precio por noche según fecha (definido por el anfitrión).</p>
+              <p className="mb-2 text-xs text-[#888]">{t("Precio por noche según fecha (definido por el anfitrión).")}</p>
               <div className="flex justify-between text-[#3a3a3a]">
-                <span>{nights} noches</span>
+                <span>{t("{n} noches", { n: nights })}</span>
                 <span>${stay.total.toLocaleString("es-MX")}</span>
               </div>
             </>
           )}
           {cleaningFee > 0 && (
             <div className="flex justify-between text-[#3a3a3a]">
-              <span>Tarifa de limpieza</span>
+              <span>{t("Tarifa de limpieza")}</span>
               <span>${cleaningFee}</span>
             </div>
           )}
           <div className="mt-2 flex justify-between border-t pt-2 font-semibold text-[#484848]" style={{ borderColor: "#ebebeb" }}>
-            <span>Total en Cabibee</span>
+            <span>{t("Total en Cabibee")}</span>
             <span>${total.toLocaleString("es-MX")}</span>
           </div>
           {depositMxn > 0 && (
             <p className="mt-2 text-xs text-[#888]">
-              Depósito pactado: ${depositMxn.toLocaleString("es-MX")} MXN. Se entrega entre ustedes;
-              Cabibee no lo cobra ni lo guarda.
+              {t("Depósito pactado: ${amount} MXN. Se entrega entre ustedes; Cabibee no lo cobra ni lo guarda.", {
+                amount: depositMxn.toLocaleString("es-MX"),
+              })}
             </p>
           )}
         </div>
@@ -354,35 +358,35 @@ export function AvailabilityCalendar({
 
       {listingId && !bookable && (
         <p className="mt-4 rounded border bg-[#f7f7f7] p-3 text-sm leading-relaxed text-[#484848]" style={{ borderColor: "#ebebeb" }}>
-          Este anfitrión todavía no recibe reservas dentro de Cabibee. Puedes escribirle por el chat o usar sus datos de contacto.
+          {t("Este anfitrión todavía no recibe reservas dentro de Cabibee. Puedes escribirle por el chat o usar sus datos de contacto.")}
         </p>
       )}
 
       {listingId && bookable && (
         <div className="mt-4 space-y-3 border-t pt-4 text-left" style={{ borderColor: "#ebebeb" }}>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#484848]">Reserva con cuenta</p>
-          {sessionLoading && <p className="text-sm text-[#888]">Comprobando sesión…</p>}
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#484848]">{t("Reserva con cuenta")}</p>
+          {sessionLoading && <p className="text-sm text-[#888]">{t("Comprobando sesión…")}</p>}
           {!sessionLoading && !sessionUser && (
             <p className="text-sm leading-relaxed text-[#484848]">
               <Link
                 href={loginHref}
                 className="font-semibold text-[#dcb81e] underline"
               >
-                Inicia sesión
+                {t("Inicia sesión")}
               </Link>
-              {" o "}
+              {` ${t("o")} `}
               <Link
                 href={registerHref}
                 className="font-semibold text-[#dcb81e] underline"
               >
-                regístrate
+                {t("regístrate")}
               </Link>
-              {" "}para solicitar la reserva y pagar el total indicado.
+              {" "}{t("para solicitar la reserva y pagar el total indicado.")}
             </p>
           )}
           {!sessionLoading && sessionUser && (
             <p className="text-sm text-[#484848]">
-              Conectado como{" "}
+              {t("Conectado como")}{" "}
               <span className="font-medium">{sessionUser.fullName?.trim() || sessionUser.email}</span>
             </p>
           )}
@@ -391,11 +395,11 @@ export function AvailabilityCalendar({
 
       {bookingErr && (
         <div className="mt-3 text-sm text-red-600" role="alert">
-          <p>{bookingErr}</p>
+          <p>{t(bookingErr)}</p>
           {needsVerificationGate && (
             <p className="mt-2">
               <Link href={membershipHref} className="font-semibold text-[#dcb81e] underline">
-                Ir a membresía
+                {t("Ir a membresía")}
               </Link>
             </p>
           )}
@@ -407,10 +411,10 @@ export function AvailabilityCalendar({
           role="status"
         >
           <p className="font-semibold">
-            {reserveDone.needsDemoPayment ? "Reserva creada — confirma el pago (demo)" : "Pago registrado"}
+            {reserveDone.needsDemoPayment ? t("Reserva creada — confirma el pago (demo)") : t("Pago registrado")}
           </p>
           <p className="mt-1">
-            Código de consulta:{" "}
+            {t("Código de consulta:")}{" "}
             <span className="font-mono text-lg tracking-widest">{reserveDone.token}</span>
           </p>
           {reserveDone.needsDemoPayment ? (
@@ -440,12 +444,11 @@ export function AvailabilityCalendar({
                 }
               }}
             >
-              Confirmar pago (demo)
+              {t("Confirmar pago (demo)")}
             </button>
           ) : (
             <p className="mt-2 text-xs text-green-800">
-              Usa el código en la página de inicio para seguir el estado. Si el anfitrión valida solicitudes, espera su
-              respuesta; si la reserva es automática, ya quedó confirmada según la configuración del anuncio.
+              {t("Usa el código en la página de inicio para seguir el estado. Si el anfitrión valida solicitudes, espera su respuesta; si la reserva es automática, ya quedó confirmada según la configuración del anuncio.")}
             </p>
           )}
         </div>
@@ -521,17 +524,17 @@ export function AvailabilityCalendar({
           ? sessionLoading
             ? "…"
             : !sessionUser
-              ? "Inicia sesión para reservar"
+              ? t("Inicia sesión para reservar")
               : bookingBusy
-                ? "Procesando…"
+                ? t("Procesando…")
                 : reserveDone
-                  ? "Listo"
+                  ? t("Listo")
                   : checkin && checkout
-                    ? "Reservar"
-                    : "Elige fechas primero"
+                    ? t("Reservar")
+                    : t("Elige fechas primero")
           : checkin && checkout
-            ? "Solicitar una reserva"
-            : "Comprobar disponibilidad"}
+            ? t("Solicitar una reserva")
+            : t("Comprobar disponibilidad")}
       </button>
       )}
     </div>

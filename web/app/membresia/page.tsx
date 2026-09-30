@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import { numberLocale, type TFn } from "@/lib/i18n";
+import { getLang, getT } from "@/lib/i18n/server";
 import {
   membershipPublicPlans,
   type MembershipPublicPlan,
@@ -9,37 +11,41 @@ import {
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { verificationRegionFromHeaders } from "@/lib/verification-region";
 
-export const metadata: Metadata = {
-  title: "Membresía de huésped",
-};
-
-function priceLabel(plan: MembershipPublicPlan): string {
-  const currency = plan.currency === "usd" ? "USD" : "MXN";
-  return `$${plan.amount.toLocaleString("es-MX", { maximumFractionDigits: 0 })} ${currency}`;
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("Membresía de huésped"),
+  };
 }
 
-function cadenceLabel(plan: MembershipPublicPlan): string {
-  if (plan.billing.kind === "one_time") return "un solo pago, una reserva";
+function priceLabel(plan: MembershipPublicPlan, locale: string): string {
+  const currency = plan.currency === "usd" ? "USD" : "MXN";
+  return `$${plan.amount.toLocaleString(locale, { maximumFractionDigits: 0 })} ${currency}`;
+}
+
+function cadenceLabel(plan: MembershipPublicPlan, t: TFn, locale: string): string {
+  if (plan.billing.kind === "one_time") return t("un solo pago, una reserva");
   const perMonth = plan.amount / plan.billing.intervalCount;
-  return `cada ${plan.billing.intervalCount} meses · ≈ $${perMonth.toLocaleString("es-MX", {
-    maximumFractionDigits: 0,
-  })} por mes`;
+  return t("cada {n} meses · ≈ ${amount} por mes", {
+    n: plan.billing.intervalCount,
+    amount: perMonth.toLocaleString(locale, { maximumFractionDigits: 0 }),
+  });
 }
 
 export default async function MembresiaPublicPage() {
   const region = verificationRegionFromHeaders(await headers());
   await ensurePublicCatalogFresh();
   const plans = membershipPublicPlans(region, "guest");
+  const t = await getT();
+  const locale = numberLocale(await getLang());
 
   return (
     <>
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-semibold text-[#222]">Membresía de verificación de huésped</h1>
+        <h1 className="text-3xl font-semibold text-[#222]">{t("Membresía de verificación de huésped")}</h1>
         <p className="mt-4 text-sm leading-relaxed text-[#484848]">
-          Cabibee conecta viajeros con anfitriones verificados. Para solicitar reservas dentro de la plataforma necesitas
-          una membresía activa —o un pase por reserva— y completar la verificación de identidad cuando el sitio lo tenga
-          activado (documento oficial + selfie vía Stripe Identity).
+          {t("Cabibee conecta viajeros con anfitriones verificados. Para solicitar reservas dentro de la plataforma necesitas una membresía activa —o un pase por reserva— y completar la verificación de identidad cuando el sitio lo tenga activado (documento oficial + selfie vía Stripe Identity).")}
         </p>
 
         {plans.length > 0 && (
@@ -47,8 +53,8 @@ export default async function MembresiaPublicPage() {
             {plans.map((p) => (
               <div key={p.code} className="rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{p.label}</p>
-                <p className="mt-3 text-2xl font-semibold text-[#222]">{priceLabel(p)}</p>
-                <p className="mt-1 text-xs text-[#888]">{cadenceLabel(p)}</p>
+                <p className="mt-3 text-2xl font-semibold text-[#222]">{priceLabel(p, locale)}</p>
+                <p className="mt-1 text-xs text-[#888]">{cadenceLabel(p, t, locale)}</p>
                 {p.description && (
                   <p className="mt-3 text-sm leading-relaxed text-[#484848]">{p.description}</p>
                 )}
@@ -58,9 +64,9 @@ export default async function MembresiaPublicPage() {
         )}
 
         <ul className="mt-8 list-inside list-disc space-y-2 text-sm text-[#484848]">
-          <li>Un pase para quien viaja una vez, o membresía de 6 y 12 meses para quien viaja seguido.</li>
-          <li>Gestión de pago y cancelación en el portal de facturación de Stripe.</li>
-          <li>La identidad no se guarda en nuestros servidores: la revisa Stripe según su política y regulación.</li>
+          <li>{t("Un pase para quien viaja una vez, o membresía de 6 y 12 meses para quien viaja seguido.")}</li>
+          <li>{t("Gestión de pago y cancelación en el portal de facturación de Stripe.")}</li>
+          <li>{t("La identidad no se guarda en nuestros servidores: la revisa Stripe según su política y regulación.")}</li>
         </ul>
 
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
@@ -68,19 +74,18 @@ export default async function MembresiaPublicPage() {
             href="/register?next=/guest/membresia"
             className="inline-flex items-center justify-center rounded-lg bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#222]"
           >
-            Crear cuenta
+            {t("Crear cuenta")}
           </Link>
           <Link
             href="/login?next=/guest/membresia"
             className="inline-flex items-center justify-center rounded-lg border border-[#ddd] bg-white px-6 py-3 text-sm font-semibold text-[#222] transition hover:bg-[#fafafa]"
           >
-            Ya tengo cuenta — ir a membresía
+            {t("Ya tengo cuenta — ir a membresía")}
           </Link>
         </div>
 
         <p className="mt-10 text-xs text-[#aaa]">
-          ¿Anfitrión? Publica desde «Enviar propiedad». La membresía de esta página es para huéspedes que reservan en
-          Cabibee.
+          {t("¿Anfitrión? Publica desde «Enviar propiedad». La membresía de esta página es para huéspedes que reservan en Cabibee.")}
         </p>
       </main>
     </>

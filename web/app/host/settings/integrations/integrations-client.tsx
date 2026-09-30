@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
+import { numberLocale } from "@/lib/i18n";
 
 type Status = {
   linked: boolean;
@@ -12,6 +14,8 @@ type Status = {
 };
 
 export function IntegrationsClient() {
+  const t = useT();
+  const lang = useLang();
   const [status, setStatus] = useState<Status | null>(null);
   const [code, setCode] = useState<string | null>(null);
   const [codeExpires, setCodeExpires] = useState<string | null>(null);
@@ -78,10 +82,11 @@ export function IntegrationsClient() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-[#484848]">Integraciones</h1>
+        <h1 className="text-2xl font-semibold text-[#484848]">{t("Integraciones")}</h1>
         <p className="mt-2 text-sm leading-relaxed text-[#666]">
-          Conecta urbnbeeai para que tu agente IA use tus anuncios, fechas y reservas. La
-          contraseña se teclea solo en Cabibee.
+          {t(
+            "Conecta urbnbeeai para que tu agente IA use tus anuncios, fechas y reservas. La contraseña se teclea solo en Cabibee."
+          )}
         </p>
       </div>
 
@@ -90,19 +95,19 @@ export function IntegrationsClient() {
 
         {status?.linked ? (
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900">
-            <p className="font-semibold">Cuenta vinculada</p>
+            <p className="font-semibold">{t("Cuenta vinculada")}</p>
             <p className="mt-1">
               Workspace #{status.beeagentCustomerId}
               {status.linkedAt && (
                 <span className="text-emerald-800/80">
                   {" "}
-                  · desde {new Date(status.linkedAt).toLocaleString("es-MX")}
+                  · {t("desde {date}", { date: new Date(status.linkedAt).toLocaleString(numberLocale(lang)) })}
                 </span>
               )}
             </p>
             {status.agentStatus && (
               <p className="mt-2 text-sm">
-                Agente: {status.agentStatus.active ? "activo" : "inactivo"}
+                {t("Agente:")} {status.agentStatus.active ? t("activo") : t("inactivo")}
                 {status.agentStatus.customerAgentId
                   ? ` · ${status.agentStatus.customerAgentId}`
                   : ""}
@@ -114,11 +119,11 @@ export function IntegrationsClient() {
               onClick={() => void disconnect()}
               className="mt-3 text-sm font-semibold text-red-800 underline disabled:opacity-50"
             >
-              Desconectar
+              {t("Desconectar")}
             </button>
           </div>
         ) : (
-          <p className="mt-3 text-sm text-[#666]">Aún no hay vinculación con urbnbeeai.</p>
+          <p className="mt-3 text-sm text-[#666]">{t("Aún no hay vinculación con urbnbeeai.")}</p>
         )}
 
         {!status?.linked && (
@@ -128,15 +133,15 @@ export function IntegrationsClient() {
               className="inline-flex rounded-full px-5 py-2.5 text-sm font-semibold text-black"
               style={{ backgroundColor: "#dcb81e" }}
             >
-              Activar agente IA con urbnbeeai
+              {t("Activar agente IA con urbnbeeai")}
             </a>
             <p className="text-xs text-[#888]">
-              Te manda a urbnbeeai a elegir el agente y te regresa aquí para confirmar.
+              {t("Te manda a urbnbeeai a elegir el agente y te regresa aquí para confirmar.")}
             </p>
             <p className="text-xs text-[#888]">
-              ¿Sin cuenta?{" "}
+              {t("¿Sin cuenta?")}{" "}
               <a href={signupUrl} className="underline" target="_blank" rel="noopener noreferrer">
-                Regístrate en urbnbeeai
+                {t("Regístrate en urbnbeeai")}
               </a>
               .
             </p>
@@ -144,9 +149,9 @@ export function IntegrationsClient() {
         )}
 
         <div className="mt-8 border-t border-[#eee] pt-6">
-          <p className="text-sm font-medium text-[#484848]">Código manual (10 minutos)</p>
+          <p className="text-sm font-medium text-[#484848]">{t("Código manual (10 minutos)")}</p>
           <p className="mt-1 text-xs text-[#888]">
-            Respaldo si no usas el botón. Pégalo en urbnbeeai → Conectar Cabibee.
+            {t("Respaldo si no usas el botón. Pégalo en urbnbeeai → Conectar Cabibee.")}
           </p>
           <button
             type="button"
@@ -154,15 +159,15 @@ export function IntegrationsClient() {
             onClick={() => void generateCode()}
             className="mt-3 rounded-full border border-[#ddd] bg-white px-5 py-2.5 text-sm font-semibold text-[#484848] hover:bg-[#fafafa] disabled:opacity-50"
           >
-            {busy ? "Generando…" : "Generar código"}
+            {busy ? t("Generando…") : t("Generar código")}
           </button>
           {code && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-900/70">Tu código</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-900/70">{t("Tu código")}</p>
               <p className="mt-1 font-mono text-2xl font-bold tracking-wider text-amber-950">{code}</p>
               {codeExpires && (
                 <p className="mt-2 text-xs text-amber-900/80">
-                  Expira: {new Date(codeExpires).toLocaleString("es-MX")}
+                  {t("Expira: {date}", { date: new Date(codeExpires).toLocaleString(numberLocale(lang)) })}
                 </p>
               )}
             </div>
@@ -170,7 +175,7 @@ export function IntegrationsClient() {
         </div>
       </section>
 
-      {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{err}</p>}
+      {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{t(err)}</p>}
     </div>
   );
 }

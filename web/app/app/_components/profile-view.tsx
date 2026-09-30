@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { LangSwitch } from "@/components/lang-switch";
+import { getT } from "@/lib/i18n/server";
 import type { UserRecord } from "@/lib/marketplace-types";
 import { IconChevron, IconExternal, IconSwitch } from "./icons";
 import { LogoutButton } from "./logout-button";
@@ -18,30 +20,31 @@ function ItemText({ item }: { item: Item }) {
 }
 
 /** Perfil (modo huésped) y Menú (modo anfitrión): misma cuenta, distinto contexto. */
-export function ProfileView({ user, mode }: { user: UserRecord | null; mode: "guest" | "host" }) {
+export async function ProfileView({ user, mode }: { user: UserRecord | null; mode: "guest" | "host" }) {
+  const t = await getT();
   const isHost = user?.role === "host" || user?.role === "admin";
 
   const items: Item[] =
     mode === "host"
       ? [
-          { href: "/host/motor", label: "Motor de reservas", hint: "Membresía e identidad de anfitrión" },
-          { href: "/host/anuncios", label: "Mis anuncios" },
-          { href: "/host/calendar", label: "Calendario y precios por fecha", web: true },
-          { href: "/host/requests", label: "Contratos, depósitos y reseñas", web: true },
-          { href: "/host/settings/pagos", label: "Pagos de la estancia (tu Stripe)", web: true },
-          { href: "/host/settings/integrations", label: "BeeAgent e integraciones", web: true },
-          { href: "/host/dashboard", label: "Panel completo de anfitrión", web: true },
+          { href: "/host/motor", label: t("Reservas en línea"), hint: t("Membresía e identidad de anfitrión") },
+          { href: "/host/anuncios", label: t("Mis anuncios") },
+          { href: "/host/calendar", label: t("Calendario y precios por fecha"), web: true },
+          { href: "/host/requests", label: t("Contratos, depósitos y reseñas"), web: true },
+          { href: "/host/settings/pagos", label: t("Pagos de la estancia (tu Stripe)"), web: true },
+          { href: "/host/settings/integrations", label: t("BeeAgent e integraciones"), web: true },
+          { href: "/host/dashboard", label: t("Panel completo de anfitrión"), web: true },
         ]
       : [
-          { href: "/membresia", label: "Membresía de huésped", hint: "Identidad verificada para reservar" },
-          { href: "/viajes", label: "Mis viajes" },
-          ...(user ? [{ href: "/guest/profile", label: "Datos personales y foto", web: true }] : []),
-          { href: "/", label: "Sitio web de Cabibee", web: true },
+          { href: "/membresia", label: t("Membresía de huésped"), hint: t("Identidad verificada para reservar") },
+          { href: "/viajes", label: t("Mis viajes") },
+          ...(user ? [{ href: "/guest/profile", label: t("Datos personales y foto"), web: true }] : []),
+          { href: "/", label: t("Sitio web de Cabibee"), web: true },
         ];
 
   return (
     <>
-      <TabHeader title={mode === "host" ? "Menú" : "Perfil"} />
+      <TabHeader title={mode === "host" ? t("Menú") : t("Perfil")} right={<LangSwitch className="mt-2" />} />
       <div className="px-5 pb-8">
         {user ? (
           <div className="flex items-center gap-4 border-b border-[#ebebeb] pb-5">
@@ -49,27 +52,27 @@ export function ProfileView({ user, mode }: { user: UserRecord | null; mode: "gu
               {(user.fullName || user.email).trim().charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-lg font-semibold text-[#222]">{user.fullName || "Tu cuenta"}</p>
+              <p className="truncate text-lg font-semibold text-[#222]">{user.fullName || t("Tu cuenta")}</p>
               <p className="truncate text-sm text-[#717171]">{user.email}</p>
             </div>
           </div>
         ) : (
           <div className="border-b border-[#ebebeb] pb-6">
             <p className="text-[15px] leading-relaxed text-[#555]">
-              Explora sin cuenta. Crea una gratis cuando quieras ver contactos, chatear o reservar.
+              {t("Explora sin cuenta. Crea una gratis cuando quieras ver contactos, chatear o reservar.")}
             </p>
             <div className="mt-4 flex gap-3">
               <Link
                 href="/cuenta/registro?next=/perfil"
-                className="flex-1 rounded-xl bg-[#dcb81e] py-3 text-center text-[15px] font-semibold text-black"
+                className="flex-1 touch-manipulation rounded-xl bg-[#dcb81e] py-3 text-center text-[15px] font-semibold text-black"
               >
-                Crear cuenta
+                {t("Crear cuenta")}
               </Link>
               <Link
                 href="/cuenta/entrar?next=/perfil"
-                className="flex-1 rounded-xl border border-[#222] py-3 text-center text-[15px] font-semibold text-[#222]"
+                className="flex-1 touch-manipulation rounded-xl border border-[#222] py-3 text-center text-[15px] font-semibold text-[#222]"
               >
-                Iniciar sesión
+                {t("Iniciar sesión")}
               </Link>
             </div>
           </div>
@@ -81,14 +84,18 @@ export function ProfileView({ user, mode }: { user: UserRecord | null; mode: "gu
         >
           <div className="min-w-0 flex-1">
             <p className="text-[15px] font-semibold">
-              {mode === "host" ? "Cambiar a modo huésped" : isHost ? "Cambiar a modo anfitrión" : "Hazte anfitrión"}
+              {mode === "host"
+                ? t("Cambiar a modo huésped")
+                : isHost
+                  ? t("Cambiar a modo anfitrión")
+                  : t("Hazte anfitrión")}
             </p>
             <p className="mt-0.5 text-sm text-white/70">
               {mode === "host"
-                ? "Busca alojamientos y reserva con la misma cuenta."
+                ? t("Busca alojamientos y reserva con la misma cuenta.")
                 : isHost
-                  ? "Tus mensajes, solicitudes y anuncios."
-                  : "Publica tu espacio gratis y recibe mensajes."}
+                  ? t("Tus mensajes, solicitudes y anuncios.")
+                  : t("Publica tu espacio gratis y recibe mensajes.")}
             </p>
           </div>
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#dcb81e] text-black">

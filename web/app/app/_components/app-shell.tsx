@@ -3,8 +3,10 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useT } from "@/components/i18n-provider";
 import { IconChat, IconHome, IconMenu, IconSearch, IconToday, IconTrips, IconUser } from "./icons";
 import { threadIsUnread } from "./seen";
+import { UpdateBanner } from "./update-banner";
 
 export type AppUser = { id: string; fullName: string; email: string; role: "guest" | "host" | "admin" } | null;
 
@@ -20,8 +22,11 @@ const FULLSCREEN = [
 ];
 
 export function AppShell({ user, children }: { user: AppUser; children: React.ReactNode }) {
+  const t = useT();
   const pathname = usePathname() ?? "/";
-  const hostMode = pathname === "/host" || pathname.startsWith("/host/");
+  const isHost = user?.role === "host" || user?.role === "admin";
+  // Sin cuenta de anfitrión, /host es sólo la invitación: se conserva la navegación de huésped.
+  const hostMode = isHost && (pathname === "/host" || pathname.startsWith("/host/"));
   const unread = useUnreadCount(hostMode ? "host" : "guest", user);
 
   useEffect(() => {
@@ -35,22 +40,23 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
 
   const tabs: Tab[] = hostMode
     ? [
-        { href: "/host", label: "Hoy", icon: <IconToday /> },
-        { href: "/host/mensajes", label: "Mensajes", icon: <IconChat />, badge: unread > 0 },
-        { href: "/host/anuncios", label: "Anuncios", icon: <IconHome /> },
-        { href: "/host/menu", label: "Menú", icon: <IconMenu /> },
+        { href: "/host", label: t("Hoy"), icon: <IconToday /> },
+        { href: "/host/mensajes", label: t("Mensajes"), icon: <IconChat />, badge: unread > 0 },
+        { href: "/host/anuncios", label: t("Anuncios"), icon: <IconHome /> },
+        { href: "/host/menu", label: t("Menú"), icon: <IconMenu /> },
       ]
     : [
-        { href: "/", label: "Explorar", icon: <IconSearch /> },
-        { href: "/viajes", label: "Viajes", icon: <IconTrips /> },
-        { href: "/mensajes", label: "Mensajes", icon: <IconChat />, badge: unread > 0 },
-        { href: "/perfil", label: user ? "Perfil" : "Iniciar sesión", icon: <IconUser /> },
+        { href: "/", label: t("Explorar"), icon: <IconSearch /> },
+        { href: "/viajes", label: t("Viajes"), icon: <IconTrips /> },
+        { href: "/mensajes", label: t("Mensajes"), icon: <IconChat />, badge: unread > 0 },
+        { href: "/perfil", label: user ? t("Perfil") : t("Iniciar sesión"), icon: <IconUser /> },
       ];
 
   const fullscreen = FULLSCREEN.some((r) => r.test(pathname));
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#f7f7f7]">
+      <UpdateBanner />
       <div
         className={`mx-auto flex w-full max-w-xl flex-1 flex-col bg-white ${fullscreen ? "" : "pb-[calc(64px+env(safe-area-inset-bottom))]"}`}
       >
@@ -58,23 +64,23 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
       </div>
       {!fullscreen && (
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-[#ebebeb] bg-white/95 backdrop-blur"
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-[#ebebeb] bg-white"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-          aria-label={hostMode ? "Navegación de anfitrión" : "Navegación principal"}
+          aria-label={hostMode ? t("Navegación de anfitrión") : t("Navegación principal")}
         >
           <div className="mx-auto flex h-16 max-w-xl items-stretch justify-around">
-            {tabs.map((t) => {
+            {tabs.map((tab) => {
               const active =
-                t.href === "/" || t.href === "/host"
-                  ? pathname === t.href
-                  : pathname === t.href || pathname.startsWith(`${t.href}/`);
+                tab.href === "/" || tab.href === "/host"
+                  ? pathname === tab.href
+                  : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
               return (
                 <Link
-                  key={t.href}
-                  href={t.href}
+                  key={tab.href}
+                  href={tab.href}
                   className="relative flex flex-1 touch-manipulation flex-col items-center justify-center gap-0.5 text-[11px] font-medium"
                 >
-                  <TabContent tab={t} active={active} />
+                  <TabContent tab={tab} active={active} />
                 </Link>
               );
             })}

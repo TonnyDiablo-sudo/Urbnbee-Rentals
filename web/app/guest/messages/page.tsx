@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
+import { numberLocale } from "@/lib/i18n";
 
 type Thread = {
   listingId: string;
@@ -13,6 +15,8 @@ type Thread = {
 };
 
 export default function GuestMessagesPage() {
+  const t = useT();
+  const locale = numberLocale(useLang());
   const [threads, setThreads] = useState<Thread[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
@@ -37,33 +41,33 @@ export default function GuestMessagesPage() {
 
   return (
     <div className="max-w-4xl">
-      <h1 className="text-2xl font-semibold text-[#484848]">Mensajes con anfitriones</h1>
+      <h1 className="text-2xl font-semibold text-[#484848]">{t("Mensajes con anfitriones")}</h1>
       <p className="mt-2 text-sm text-[#888]">
-        Solo aparecen conversaciones iniciadas <strong>con tu cuenta iniciada</strong> en la página del alojamiento. Si
-        escribiste sin sesión, abre el anuncio de nuevo con sesión para unificar el hilo.
+        {t("Solo aparecen conversaciones iniciadas")} <strong>{t("con tu cuenta iniciada")}</strong>{" "}
+        {t("en la página del alojamiento. Si escribiste sin sesión, abre el anuncio de nuevo con sesión para unificar el hilo.")}
       </p>
-      {err && <p className="mt-4 text-sm text-red-600">{err}</p>}
+      {err && <p className="mt-4 text-sm text-red-600">{t(err)}</p>}
       <ul className="mt-8 space-y-3">
-        {threads.map((t) => (
-          <li key={t.listingId}>
+        {threads.map((th) => (
+          <li key={th.listingId}>
             <Link
-              href={t.listingSlug ? `/listings/${t.listingSlug}#section-chat-anfitrion` : "/alojamientos"}
+              href={th.listingSlug ? `/listings/${th.listingSlug}#section-chat-anfitrion` : "/alojamientos"}
               className="block rounded-xl border border-[#ebebeb] bg-white p-4 shadow-sm transition hover:border-[#dcb81e]"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="font-semibold text-[#484848]">{t.listingTitle}</p>
+                <p className="font-semibold text-[#484848]">{th.listingTitle}</p>
                 <span className="text-xs text-[#aaa]">
-                  {new Date(t.lastAt).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}
+                  {new Date(th.lastAt).toLocaleString(locale, { dateStyle: "short", timeStyle: "short" })}
                 </span>
               </div>
-              <p className="mt-2 line-clamp-2 text-sm text-[#666]">{t.lastPreview || "…"}</p>
-              <p className="mt-2 text-xs text-[#aaa]">{t.messageCount} mensajes</p>
+              <p className="mt-2 line-clamp-2 text-sm text-[#666]">{th.lastPreview || "…"}</p>
+              <p className="mt-2 text-xs text-[#aaa]">{t("{n} mensajes", { n: th.messageCount })}</p>
             </Link>
           </li>
         ))}
       </ul>
       {threads.length === 0 && !err && (
-        <p className="mt-8 text-sm text-[#888]">No hay conversaciones todavía.</p>
+        <p className="mt-8 text-sm text-[#888]">{t("No hay conversaciones todavía.")}</p>
       )}
     </div>
   );

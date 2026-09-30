@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { HostContact } from "@/lib/listing-detail-data";
+import { useT } from "@/components/i18n-provider";
 
 type Props = {
   host: HostContact;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function ContactModal({ host, listingId, listingSlug, canViewContacts }: Props) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [views, setViews] = useState(0);
 
@@ -46,10 +48,10 @@ export function ContactModal({ host, listingId, listingSlug, canViewContacts }: 
         className="w-full rounded py-3 text-center text-sm font-semibold text-black transition hover:brightness-90"
         style={{ backgroundColor: "#dcb81e" }}
       >
-        {canViewContacts ? "Ver datos de contacto del anfitrión" : "Ver datos de contacto — regístrate gratis"}
+        {canViewContacts ? t("Ver datos de contacto del anfitrión") : t("Ver datos de contacto — regístrate gratis")}
       </button>
       {views > 0 && canViewContacts && (
-        <p className="mt-1 text-center text-xs text-[#aaa]">{views} personas consultaron este perfil</p>
+        <p className="mt-1 text-center text-xs text-[#aaa]">{t("{n} personas consultaron este perfil", { n: views })}</p>
       )}
 
       {open && (
@@ -65,7 +67,7 @@ export function ContactModal({ host, listingId, listingSlug, canViewContacts }: 
               type="button"
               onClick={() => setOpen(false)}
               className="absolute right-4 top-4 text-[#aaa] transition hover:text-[#484848]"
-              aria-label="Cerrar"
+              aria-label={t("Cerrar")}
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -81,41 +83,39 @@ export function ContactModal({ host, listingId, listingSlug, canViewContacts }: 
               />
               <div>
                 <h3 className="text-lg font-semibold text-[#484848]">{host.name}</h3>
-                <p className="text-sm text-[#aaa]">Anfitrión en Cabibee</p>
+                <p className="text-sm text-[#aaa]">{t("Anfitrión en Cabibee")}</p>
               </div>
             </div>
 
             {!canViewContacts ? (
               <div className="mt-5 space-y-4 text-sm leading-relaxed text-[#3a3a3a]">
-                <p className="font-medium text-[#484848]">Registro gratuito para ver teléfono, WhatsApp y más</p>
+                <p className="font-medium text-[#484848]">{t("Registro gratuito para ver teléfono, WhatsApp y más")}</p>
                 <p>
-                  Ocultamos los datos de contacto directos a quien solo navega para proteger a los anfitriones del spam y
-                  las estafas, y para que quien escribe sea una persona identificable en la plataforma:{" "}
-                  <strong>es por el bien de todos</strong>.
+                  {t("Ocultamos los datos de contacto directos a quien solo navega para proteger a los anfitriones del spam y las estafas, y para que quien escribe sea una persona identificable en la plataforma:")}{" "}
+                  <strong>{t("es por el bien de todos")}</strong>.
                 </p>
                 <p>
-                  Crear cuenta no cuesta nada. Cuando quieras <strong>reservar</strong>, ahí aplicará la verificación de
-                  huésped (suscripción) y el pago según las reglas del sitio.
+                  {t("Crear cuenta no cuesta nada. Cuando quieras")} <strong>{t("reservar")}</strong>
+                  {t(", ahí aplicará la verificación de huésped (suscripción) y el pago según las reglas del sitio.")}
                 </p>
                 <div className="flex flex-col gap-2 pt-2 sm:flex-row">
                   <Link
                     href={`/register?next=${encodeURIComponent(nextParam)}`}
                     className="rounded-lg bg-black px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#222]"
                   >
-                    Registrarse gratis
+                    {t("Registrarse gratis")}
                   </Link>
                   <Link
                     href={`/login?next=${encodeURIComponent(nextParam)}`}
                     className="rounded-lg border border-[#ddd] px-4 py-3 text-center text-sm font-semibold text-[#484848] transition hover:bg-[#fafafa]"
                   >
-                    Ya tengo cuenta
+                    {t("Ya tengo cuenta")}
                   </Link>
                 </div>
               </div>
             ) : !hasChannels ? (
               <p className="mt-5 text-sm text-[#666]">
-                Este anfitrión aún no ha publicado teléfono, WhatsApp u otros enlaces en Cabibee. Puedes escribirle por el
-                chat de la página una vez iniciada sesión.
+                {t("Este anfitrión aún no ha publicado teléfono, WhatsApp u otros enlaces en Cabibee. Puedes escribirle por el chat de la página una vez iniciada sesión.")}
               </p>
             ) : (
               <div className="mt-5 space-y-3">
@@ -172,7 +172,7 @@ export function ContactModal({ host, listingId, listingSlug, canViewContacts }: 
                     style={{ backgroundColor: "#FF5A5F" }}
                   >
                     <WebIcon />
-                    Otro perfil
+                    {t("Otro perfil")}
                   </a>
                 )}
                 {host.website && (
@@ -184,14 +184,14 @@ export function ContactModal({ host, listingId, listingSlug, canViewContacts }: 
                     style={{ borderColor: "#ebebeb" }}
                   >
                     <WebIcon />
-                    Sitio web
+                    {t("Sitio web")}
                   </a>
                 )}
               </div>
             )}
 
             <p className="mt-4 text-center text-xs text-[#aaa]">
-              Cabibee conecta viajeros con anfitriones verificados
+              {t("Cabibee conecta viajeros con anfitriones verificados")}
             </p>
           </div>
         </div>

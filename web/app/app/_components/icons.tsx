@@ -128,6 +128,14 @@ export function IconSend({ className = "h-5 w-5" }: P) {
   );
 }
 
+export function IconClose({ className = "h-5 w-5" }: P) {
+  return (
+    <svg className={className} {...base} strokeWidth={2.2}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
 export function IconExternal({ className = "h-4 w-4" }: P) {
   return (
     <svg className={className} {...base}>

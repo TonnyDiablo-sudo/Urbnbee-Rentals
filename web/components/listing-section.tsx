@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Listing, ListingCategory } from "@/lib/mock-data";
+import { useT } from "@/components/i18n-provider";
 import { ListingCard } from "@/components/listing-card";
 import { ScrollReveal } from "@/components/scroll-reveal";
 
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export function ListingSection({ category, title, items }: Props) {
+  const t = useT();
   if (!items.length) return null;
 
   return (
@@ -27,7 +29,7 @@ export function ListingSection({ category, title, items }: Props) {
               className="text-sm font-medium transition hover:underline"
               style={{ color: "#dcb81e" }}
             >
-              Ver más
+              {t("Ver más")}
             </Link>
           </div>
         </ScrollReveal>

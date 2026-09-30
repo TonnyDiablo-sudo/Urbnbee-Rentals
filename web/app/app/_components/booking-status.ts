@@ -1,3 +1,5 @@
+import { numberLocale, type Lang } from "@/lib/i18n";
+
 export const GUEST_STATUS: Record<string, { label: string; tone: "wait" | "ok" | "off" }> = {
   AWAITING_PAYMENT: { label: "Falta pagar", tone: "wait" },
   PENDING: { label: "Esperando al anfitrión", tone: "wait" },
@@ -28,10 +30,10 @@ export const TONE_CLS = {
   off: "bg-[#f1f1f1] text-[#717171]",
 };
 
-export function fmtDay(iso: string): string {
+export function fmtDay(iso: string, lang: Lang = "es"): string {
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
-  return new Date(y, m - 1, d).toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+  return new Date(y, m - 1, d).toLocaleDateString(numberLocale(lang), { day: "numeric", month: "short" });
 }
 
 export function fmtMxn(n: number): string {

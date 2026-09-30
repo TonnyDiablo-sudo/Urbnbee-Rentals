@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
 import { HOST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../_components/booking-status";
 import { IconChevron } from "../_components/icons";
 import { PushPrompt } from "../_components/push";
@@ -41,6 +42,7 @@ function todayIso() {
 }
 
 export function HostToday() {
+  const t = useT();
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [published, setPublished] = useState(0);
@@ -61,9 +63,9 @@ export function HostToday() {
     const threads: Thread[] = Array.isArray(i.threads) ? i.threads : [];
     setNewChats(
       threads.filter(
-        (t) =>
-          t.messages[t.messages.length - 1]?.sender === "guest" &&
-          threadIsUnread(`h:${t.listingId}:${t.guestSessionId}`, t.lastAt)
+        (th) =>
+          th.messages[th.messages.length - 1]?.sender === "guest" &&
+          threadIsUnread(`h:${th.listingId}:${th.guestSessionId}`, th.lastAt)
       ).length
     );
   }, []);
@@ -73,7 +75,7 @@ export function HostToday() {
   }, [load]);
 
   const reject = async (b: Booking) => {
-    if (!window.confirm(`¿Rechazar la solicitud de ${b.guestName}? Si ya pagó, se le devuelve el dinero.`)) return;
+    if (!window.confirm(t("¿Rechazar la solicitud de {name}? Si ya pagó, se le devuelve el dinero.", { name: b.guestName }))) return;
     setErr(null);
     const res = await fetch(`/api/host/bookings/${b.id}`, {
       method: "PATCH",
@@ -85,7 +87,7 @@ export function HostToday() {
     await load();
   };
 
-  if (bookings === null) return <p className="px-5 py-6 text-sm text-[#999]">Cargando…</p>;
+  if (bookings === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
 
   const today = todayIso();
   const pending = bookings.filter((b) => b.status === "PENDING" || b.status === "PENDING_HOST");
@@ -95,12 +97,12 @@ export function HostToday() {
 
   return (
     <div className="space-y-6 px-5 pb-8">
-      {err && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{err}</p>}
+      {err && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(err)}</p>}
 
       <div className="grid grid-cols-3 gap-2.5">
-        <Stat label="Por responder" value={pending.length} highlight={pending.length > 0} />
-        <Stat label="Chats nuevos" value={newChats} highlight={newChats > 0} href="/host/mensajes" />
-        <Stat label="Publicados" value={published} href="/host/anuncios" />
+        <Stat label={t("Por responder")} value={pending.length} highlight={pending.length > 0} />
+        <Stat label={t("Chats nuevos")} value={newChats} highlight={newChats > 0} href="/host/mensajes" />
+        <Stat label={t("Publicados")} value={published} href="/host/anuncios" />
       </div>
 
       {status && (
@@ -110,14 +112,14 @@ export function HostToday() {
         >
           <div className="min-w-0 flex-1">
             <p className="text-[15px] font-semibold">
-              {status.acceptsBookings ? "Motor de reservas activo" : "Activa el motor de reservas"}
+              {status.acceptsBookings ? t("Reservas en línea activas") : t("Activa Reservas en línea")}
             </p>
             <p className={`mt-0.5 text-sm ${status.acceptsBookings ? "text-[#717171]" : "text-white/70"}`}>
               {status.acceptsBookings
                 ? status.ribbon
-                  ? "Tus anuncios muestran «Miembro verificado»."
-                  : "Los huéspedes ya pueden reservar y pagar en tus anuncios."
-                : "Hoy los huéspedes sólo te pueden escribir. Con la membresía reservan y pagan en Cabibee."}
+                  ? t("Tus anuncios muestran «Miembro verificado».")
+                  : t("Los huéspedes ya pueden reservar y pagar en tus anuncios.")
+                : t("Hoy los huéspedes sólo te pueden escribir. Con la membresía reservan y pagan en Cabibee.")}
             </p>
           </div>
           <IconChevron className={`h-5 w-5 ${status.acceptsBookings ? "text-[#999]" : "text-[#dcb81e]"}`} />
@@ -126,17 +128,17 @@ export function HostToday() {
 
       {status && status.listingsTotal === 0 && (
         <Link href="/host/anuncios/nuevo" className="block rounded-2xl bg-[#fdf6d8] p-4">
-          <p className="text-[15px] font-semibold text-[#5c4a0a]">Publica tu primer anuncio</p>
-          <p className="mt-0.5 text-sm text-[#7a6414]">Toma unos minutos: fotos, precio y lo básico. Es gratis.</p>
+          <p className="text-[15px] font-semibold text-[#5c4a0a]">{t("Publica tu primer anuncio")}</p>
+          <p className="mt-0.5 text-sm text-[#7a6414]">{t("Toma unos minutos: fotos, precio y lo básico. Es gratis.")}</p>
         </Link>
       )}
 
       <PushPrompt />
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-[#222]">Solicitudes por responder</h2>
+        <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Solicitudes por responder")}</h2>
         {pending.length === 0 ? (
-          <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#717171]">No tienes solicitudes pendientes.</p>
+          <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#717171]">{t("No tienes solicitudes pendientes.")}</p>
         ) : (
           <ul className="space-y-3">
             {pending.map((b) => (
@@ -148,14 +150,14 @@ export function HostToday() {
                     onClick={() => void reject(b)}
                     className="rounded-xl border border-[#ddd] py-2.5 text-sm font-semibold text-[#222]"
                   >
-                    Rechazar
+                    {t("Rechazar")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setReviewing(b)}
                     className="rounded-xl bg-[#dcb81e] py-2.5 text-sm font-semibold text-black"
                   >
-                    Revisar y aceptar
+                    {t("Revisar y aceptar")}
                   </button>
                 </div>
               </li>
@@ -165,9 +167,9 @@ export function HostToday() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-[#222]">Próximas estancias</h2>
+        <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Próximas estancias")}</h2>
         {upcoming.length === 0 ? (
-          <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#717171]">Sin estancias próximas.</p>
+          <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#717171]">{t("Sin estancias próximas.")}</p>
         ) : (
           <ul className="space-y-3">
             {upcoming.map((b) => (
@@ -184,7 +186,7 @@ export function HostToday() {
         icon
         className="flex items-center justify-center gap-1.5 text-sm font-medium text-[#717171] underline"
       >
-        Historial, contratos y depósitos en la web{" "}
+        {t("Historial, contratos y depósitos en la web")}{" "}
       </WebLink>
 
       <AcceptSheet key={reviewing?.id ?? "none"} booking={reviewing} onClose={() => setReviewing(null)} onDone={load} />
@@ -203,6 +205,8 @@ function Stat({ label, value, highlight, href }: { label: string; value: number;
 }
 
 function BookingSummary({ b }: { b: Booking }) {
+  const t = useT();
+  const lang = useLang();
   const st = HOST_STATUS[b.status] ?? { label: b.status, tone: "off" as const };
   return (
     <>
@@ -211,12 +215,12 @@ function BookingSummary({ b }: { b: Booking }) {
           <p className="text-[15px] font-semibold text-[#222]">{b.guestName}</p>
           <p className="truncate text-sm text-[#717171]">{b.effectiveListingTitle ?? b.listingTitle}</p>
         </div>
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${TONE_CLS[st.tone]}`}>{st.label}</span>
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${TONE_CLS[st.tone]}`}>{t(st.label)}</span>
       </div>
       <p className="mt-1.5 text-sm text-[#333]">
-        {fmtDay(b.hostAdjustedCheckIn ?? b.checkIn)} – {fmtDay(b.hostAdjustedCheckOut ?? b.checkOut)} · {b.nights}{" "}
-        {b.nights === 1 ? "noche" : "noches"} · {fmtMxn(b.estimatedTotalMxn)}
-        {b.paidAt ? " · pagado" : ""}
+        {fmtDay(b.hostAdjustedCheckIn ?? b.checkIn, lang)} – {fmtDay(b.hostAdjustedCheckOut ?? b.checkOut, lang)} · {b.nights}{" "}
+        {b.nights === 1 ? t("noche") : t("noches")} · {fmtMxn(b.estimatedTotalMxn)}
+        {b.paidAt ? ` · ${t("pagado")}` : ""}
       </p>
     </>
   );
@@ -231,6 +235,7 @@ function AcceptSheet({
   onClose: () => void;
   onDone: () => Promise<void>;
 }) {
+  const t = useT();
   const [lines, setLines] = useState<string[] | null>(null);
   const [agree, setAgree] = useState(false);
   const [signName, setSignName] = useState("");
@@ -270,22 +275,22 @@ function AcceptSheet({
   };
 
   return (
-    <Sheet open={Boolean(booking)} onClose={onClose} title="Aceptar reserva">
+    <Sheet open={Boolean(booking)} onClose={onClose} title={t("Aceptar reserva")}>
       {booking && (
         <div className="space-y-4">
           <BookingSummary b={booking} />
           <div>
-            <p className="mb-2 text-sm font-semibold text-[#222]">Contrato de la reserva</p>
+            <p className="mb-2 text-sm font-semibold text-[#222]">{t("Contrato de la reserva")}</p>
             <div className="max-h-64 overflow-y-auto rounded-2xl bg-[#f7f7f7] p-4 text-[13px] leading-relaxed text-[#333]">
-              {lines === null ? "Cargando…" : lines.length === 0 ? "No se pudo cargar el contrato." : lines.map((l, i) => <p key={i} className="mb-1.5">{l}</p>)}
+              {lines === null ? t("Cargando…") : lines.length === 0 ? t("No se pudo cargar el contrato.") : lines.map((l, i) => <p key={i} className="mb-1.5">{l}</p>)}
             </div>
           </div>
           <label className="flex items-start gap-3 text-sm text-[#333]">
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-5 w-5 accent-[#dcb81e]" />
-            Leí el contrato y lo acepto como anfitrión.
+            {t("Leí el contrato y lo acepto como anfitrión.")}
           </label>
           <label className="block text-sm font-medium text-[#222]">
-            Firma con tu nombre completo
+            {t("Firma con tu nombre completo")}
             <input
               value={signName}
               onChange={(e) => setSignName(e.target.value)}
@@ -293,16 +298,16 @@ function AcceptSheet({
               className="mt-1 w-full rounded-xl border border-[#ccc] px-3.5 py-3 text-[15px] outline-none focus:border-[#222]"
             />
           </label>
-          {err && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{err}</p>}
+          {err && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(err)}</p>}
           <button
             type="button"
             disabled={busy || !agree || signName.trim().length < 3}
             onClick={() => void accept()}
             className="w-full rounded-xl bg-[#dcb81e] py-3.5 text-[15px] font-semibold text-black disabled:opacity-50"
           >
-            {busy ? "Aceptando…" : "Aceptar y firmar"}
+            {busy ? t("Aceptando…") : t("Aceptar y firmar")}
           </button>
-          <p className="text-xs text-[#999]">¿Quieres mover fechas o cambiar de alojamiento? Hazlo desde la web.</p>
+          <p className="text-xs text-[#999]">{t("¿Quieres mover fechas o cambiar de alojamiento? Hazlo desde la web.")}</p>
         </div>
       )}
     </Sheet>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback } from "react";
+import { useT } from "@/components/i18n-provider";
 import { ChatThread, type ChatMessage } from "../../_components/chat-thread";
 
 export function GuestChat({
@@ -15,6 +16,7 @@ export function GuestChat({
   subtitle: string;
   slug: string;
 }) {
+  const t = useT();
   const load = useCallback(async (): Promise<ChatMessage[]> => {
     const res = await fetch(`/api/listings/${listingId}/messages`, { cache: "no-store" });
     const data = await res.json();
@@ -48,10 +50,10 @@ export function GuestChat({
       seenKey={`g:${listingId}`}
       load={load}
       send={send}
-      emptyText="Saluda al anfitrión y pregúntale lo que necesites. Las respuestas las escribe él, no un robot."
+      emptyText={t("Saluda al anfitrión y pregúntale lo que necesites. Las respuestas las escribe él, no un robot.")}
       headerRight={
         <Link href={`/alojamiento/${slug}`} className="rounded-full px-3 py-1.5 text-sm font-semibold text-[#222] underline">
-          Ver anuncio
+          {t("Ver anuncio")}
         </Link>
       }
     />

@@ -1,7 +1,7 @@
 /* Cabibee PWA service worker.
  * Nunca cachea /api ni páginas con sesión: sólo los estáticos con hash de Next,
  * los íconos y una página de respaldo para cuando no hay red. */
-const VERSION = "cabibee-v3";
+const VERSION = "cabibee-v4";
 const STATIC_CACHE = `${VERSION}-static`;
 const OFFLINE_URL = "/offline";
 /* La app vive en app.cabibee.com. Un worker que quedó registrado en el sitio

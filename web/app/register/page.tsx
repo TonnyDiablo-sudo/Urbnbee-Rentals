@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useT } from "@/components/i18n-provider";
 import { PasswordField } from "@/components/password-field";
 import { SiteHeader } from "@/components/site-header";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,6 +13,7 @@ function safeNext(raw: string | null): string | null {
 }
 
 export default function RegisterPage() {
+  const t = useT();
   const router = useRouter();
   const params = useSearchParams();
   const intent = params.get("intent") === "host" ? "host" : "guest";
@@ -63,21 +65,21 @@ export default function RegisterPage() {
       <SiteHeader />
       <div className="min-h-screen bg-[#fafafa]" style={{ paddingTop: 72 }}>
       <div className="mx-auto max-w-md px-4 py-12">
-        <h1 className="text-center text-2xl font-semibold text-[#484848]">Crear cuenta</h1>
+        <h1 className="text-center text-2xl font-semibold text-[#484848]">{t("Crear cuenta")}</h1>
         <p className="mt-2 text-center text-sm text-[#888]">
-          ¿Ya tienes cuenta?{" "}
+          {t("¿Ya tienes cuenta?")}{" "}
           <Link href="/login" className="font-semibold text-[#dcb81e] underline">
-            Inicia sesión
+            {t("Inicia sesión")}
           </Link>
         </p>
 
         <form onSubmit={onSubmit} className="mt-10 space-y-4 rounded-xl border border-[#ebebeb] bg-white p-8 shadow-sm">
           {error && (
-            <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+            <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{t(error)}</div>
           )}
 
           <fieldset className="space-y-2">
-            <legend className="text-xs font-semibold uppercase tracking-wide text-[#888]">Tipo de cuenta</legend>
+            <legend className="text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Tipo de cuenta")}</legend>
             <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-[#ebebeb] px-3 py-2">
               <input
                 type="radio"
@@ -85,7 +87,7 @@ export default function RegisterPage() {
                 checked={accountType === "guest"}
                 onChange={() => setAccountType("guest")}
               />
-              <span className="text-sm text-[#484848]">Solo quiero reservar</span>
+              <span className="text-sm text-[#484848]">{t("Solo quiero reservar")}</span>
             </label>
             <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-[#ebebeb] px-3 py-2">
               <input
@@ -94,12 +96,12 @@ export default function RegisterPage() {
                 checked={accountType === "host"}
                 onChange={() => setAccountType("host")}
               />
-              <span className="text-sm text-[#484848]">Quiero publicar mi alojamiento</span>
+              <span className="text-sm text-[#484848]">{t("Quiero publicar mi alojamiento")}</span>
             </label>
           </fieldset>
 
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">Nombre completo</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Nombre completo")}</span>
             <input
               required
               className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
@@ -108,7 +110,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">Correo</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Correo")}</span>
             <input
               type="email"
               required
@@ -119,7 +121,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">Teléfono (opcional)</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Teléfono (opcional)")}</span>
             <input
               type="tel"
               className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
@@ -128,7 +130,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">Contraseña (mín. 8 caracteres)</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Contraseña (mín. 8 caracteres)")}</span>
             <PasswordField
               required
               minLength={8}
@@ -144,7 +146,7 @@ export default function RegisterPage() {
             className="w-full rounded-full py-3 text-sm font-semibold text-black transition hover:brightness-95 disabled:opacity-50"
             style={{ backgroundColor: "#dcb81e" }}
           >
-            {loading ? "Creando…" : "Registrarme"}
+            {loading ? t("Creando…") : t("Registrarme")}
           </button>
         </form>
       </div>

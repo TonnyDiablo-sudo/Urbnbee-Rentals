@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useT } from "@/components/i18n-provider";
 
 const slides = [
   {
@@ -28,6 +29,7 @@ const slides = [
  * We attach the ref to a hidden 1px div at the bottom of the hero section.
  */
 export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTMLDivElement | null> }) {
+  const t = useT();
   const [current, setCurrent] = useState(0);
 
   const next = useCallback(() => setCurrent((c) => (c + 1) % slides.length), []);
@@ -64,12 +66,12 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
         <div className="mb-2 text-sm font-semibold tracking-widest" style={{ color: "#dcb81e" }}>
           {slide.n}
         </div>
-        <div className="mb-3 text-sm font-light text-white/70">/por noche aprox.</div>
+        <div className="mb-3 text-sm font-light text-white/70">{t("/por noche aprox.")}</div>
         <h1 className="mb-5 max-w-xl text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
-          {slide.title}
+          {t(slide.title)}
         </h1>
         <p className="max-w-md text-sm font-light leading-relaxed text-white/90 sm:text-base">
-          {slide.body}
+          {t(slide.body)}
         </p>
       </div>
 
@@ -77,7 +79,7 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
       <button
         type="button"
         onClick={prev}
-        aria-label="Anterior"
+        aria-label={t("Anterior")}
         className="absolute left-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full"
         style={{ backgroundColor: "#dcb81e" }}
       >
@@ -88,7 +90,7 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
       <button
         type="button"
         onClick={next}
-        aria-label="Siguiente"
+        aria-label={t("Siguiente")}
         className="absolute right-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full"
         style={{ backgroundColor: "#dcb81e" }}
       >
@@ -104,7 +106,7 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
             key={i}
             type="button"
             onClick={() => setCurrent(i)}
-            aria-label={`Slide ${i + 1}`}
+            aria-label={t("Diapositiva {n}", { n: i + 1 })}
             className="h-2 rounded-full transition-all"
             style={{
               width: i === current ? "24px" : "8px",
@@ -124,7 +126,7 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
               </svg>
               <input
                 type="text"
-                placeholder="Ubicación"
+                placeholder={t("Ubicación")}
                 className="w-full bg-transparent text-sm text-[#3a3a3a] outline-none placeholder:text-[#aaa]"
               />
             </div>
@@ -133,14 +135,14 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
               className="shrink-0 px-10 py-4 text-sm font-semibold text-black transition hover:brightness-90"
               style={{ backgroundColor: "#dcb81e" }}
             >
-              Buscar
+              {t("Buscar")}
             </button>
           </div>
           <button
             type="button"
             className="mt-2 block w-full text-center text-xs text-white/60 transition hover:text-white/90"
           >
-            Más opciones de búsqueda
+            {t("Más opciones de búsqueda")}
           </button>
         </div>
       </div>

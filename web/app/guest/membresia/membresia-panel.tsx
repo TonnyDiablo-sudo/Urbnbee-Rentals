@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useLang, useT } from "@/components/i18n-provider";
+import { numberLocale, type TFn } from "@/lib/i18n";
 import type { VerificationRegion } from "@/lib/verification-types";
 
 type PlansPair = { monthly: boolean; annual: boolean };
@@ -34,18 +36,19 @@ type StatusPayload = {
   hasBillingCustomer: boolean;
 };
 
-function formatAmount(plan: CatalogPlan): string {
+function formatAmount(plan: CatalogPlan, locale: string): string {
   const currency = plan.currency === "usd" ? "USD" : "MXN";
-  return `$${plan.amount.toLocaleString("es-MX", { maximumFractionDigits: 0 })} ${currency}`;
+  return `$${plan.amount.toLocaleString(locale, { maximumFractionDigits: 0 })} ${currency}`;
 }
 
-function billingCaption(plan: CatalogPlan): string {
-  if (plan.billing.kind === "one_time") return "un solo pago, una reserva";
+function billingCaption(plan: CatalogPlan, t: TFn, locale: string): string {
+  if (plan.billing.kind === "one_time") return t("un solo pago, una reserva");
   const meses = plan.billing.intervalCount;
   const perMonth = plan.amount / meses;
-  return `cada ${meses} meses · ≈ $${perMonth.toLocaleString("es-MX", {
-    maximumFractionDigits: 0,
-  })} por mes`;
+  return t("cada {n} meses · ≈ ${amount} por mes", {
+    n: meses,
+    amount: perMonth.toLocaleString(locale, { maximumFractionDigits: 0 }),
+  });
 }
 
 const statusLabel: Record<string, string> = {
@@ -78,6 +81,8 @@ function regionSells(payload: StatusPayload, region: VerificationRegion): boolea
 }
 
 export function MembresiaPanel() {
+  const t = useT();
+  const locale = numberLocale(useLang());
   const searchParams = useSearchParams();
   const justPaid = searchParams.get("subscription") === "success";
   const identityReturn = searchParams.get("identity") != null;
@@ -145,9 +150,9 @@ export function MembresiaPanel() {
         if (typeof parsed.error === "string") {
           setErr(parsed.error);
         } else {
-          const snippet = rawText.trim().slice(0, 240) || "(respuesta vacía)";
+          const snippet = rawText.trim().slice(0, 240) || t("(respuesta vacía)");
           setErr(
-            `No se pudo iniciar (HTTP ${res.status}). Servidor: ${snippet}`
+            t("No se pudo iniciar (HTTP {status}). Servidor: {snippet}", { status: res.status, snippet })
           );
         }
         return;
@@ -234,38 +239,36 @@ export function MembresiaPanel() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-semibold text-[#222]">Membresía de verificación</h1>
+      <h1 className="text-2xl font-semibold text-[#222]">{t("Membresía de verificación")}</h1>
       <p className="mt-2 text-sm leading-relaxed text-[#484848]">
-        Para solicitar reservas a través de Cabibee necesitas una membresía activa, o un pase por reserva, y —cuando esté
-        activado en el sitio— completar la verificación de identidad con documento oficial y selfie (Stripe Identity).
+        {t("Para solicitar reservas a través de Cabibee necesitas una membresía activa, o un pase por reserva, y —cuando esté activado en el sitio— completar la verificación de identidad con documento oficial y selfie (Stripe Identity).")}
       </p>
 
       {justPaid && (
         <p className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
-          Pago recibido. Si el estado no se actualiza en segundos, recarga la página (el webhook puede tardar un poco).
+          {t("Pago recibido. Si el estado no se actualiza en segundos, recarga la página (el webhook puede tardar un poco).")}
         </p>
       )}
 
       {identityReturn && (
         <p className="mt-4 rounded-lg border border-[#ebebeb] bg-white px-4 py-3 text-sm text-[#484848]">
-          Si terminaste el flujo en Stripe, espera unos segundos y pulsa «Actualizar estado». Stripe notificará cuando el
-          resultado esté listo.
+          {t("Si terminaste el flujo en Stripe, espera unos segundos y pulsa «Actualizar estado». Stripe notificará cuando el resultado esté listo.")}
         </p>
       )}
 
       {err && (
         <p className="mt-4 text-sm text-red-600" role="alert">
-          {err}
+          {t(err)}
         </p>
       )}
 
-      {!data && !err && <p className="mt-6 text-sm text-[#888]">Cargando…</p>}
+      {!data && !err && <p className="mt-6 text-sm text-[#888]">{t("Cargando…")}</p>}
 
       {data && (
         <>
           {showRegionToggle && (
             <div className="mt-6 flex flex-wrap items-center gap-2">
-              <span className="text-sm text-[#717171]">Precios:</span>
+              <span className="text-sm text-[#717171]">{t("Precios:")}</span>
               <div className="inline-flex rounded-lg border border-[#ddd] bg-white p-0.5">
                 <button
                   type="button"
@@ -277,7 +280,7 @@ export function MembresiaPanel() {
                       : "text-[#484848] hover:bg-[#f5f5f5]"
                   }`}
                 >
-                  México (MXN)
+                  {t("México (MXN)")}
                 </button>
                 <button
                   type="button"
@@ -289,7 +292,7 @@ export function MembresiaPanel() {
                       : "text-[#484848] hover:bg-[#f5f5f5]"
                   }`}
                 >
-                  USA (USD)
+                  {t("USA (USD)")}
                 </button>
               </div>
             </div>
@@ -297,15 +300,18 @@ export function MembresiaPanel() {
 
           {!showRegionToggle && data.regionalPricing && (
             <p className="mt-4 text-xs text-[#888]">
-              Precios en {selectedRegion === "us" ? "USD (USA)" : "MXN (México)"} según configuración del servidor.
+              {t("Precios en {currency} según configuración del servidor.", {
+                currency: selectedRegion === "us" ? t("USD (USA)") : t("MXN (México)"),
+              })}
             </p>
           )}
 
           {data.bookingPassesRemaining > 0 && (
             <p className="mt-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
-              Tienes {data.bookingPassesRemaining}{" "}
-              {data.bookingPassesRemaining === 1 ? "pase" : "pases"} por reserva sin usar. Cada pase
-              habilita una reserva, y si el anfitrión la rechaza te lo devolvemos.
+              {data.bookingPassesRemaining === 1
+                ? t("Tienes {n} pase por reserva sin usar.", { n: data.bookingPassesRemaining })
+                : t("Tienes {n} pases por reserva sin usar.", { n: data.bookingPassesRemaining })}{" "}
+              {t("Cada pase habilita una reserva, y si el anfitrión la rechaza te lo devolvemos.")}
             </p>
           )}
 
@@ -317,8 +323,8 @@ export function MembresiaPanel() {
                   className="flex flex-col rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm"
                 >
                   <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{p.label}</p>
-                  <p className="mt-3 text-2xl font-semibold text-[#222]">{formatAmount(p)}</p>
-                  <p className="mt-1 text-xs text-[#888]">{billingCaption(p)}</p>
+                  <p className="mt-3 text-2xl font-semibold text-[#222]">{formatAmount(p, locale)}</p>
+                  <p className="mt-1 text-xs text-[#888]">{billingCaption(p, t, locale)}</p>
                   {p.description && (
                     <p className="mt-3 text-sm leading-relaxed text-[#484848]">{p.description}</p>
                   )}
@@ -328,7 +334,7 @@ export function MembresiaPanel() {
                     onClick={() => void startCheckout(p.code)}
                     className="mt-5 w-full rounded-lg bg-black px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#222] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {p.billing.kind === "one_time" ? "Comprar pase" : "Contratar"}
+                    {p.billing.kind === "one_time" ? t("Comprar pase") : t("Contratar")}
                   </button>
                 </div>
               ))}
@@ -338,22 +344,22 @@ export function MembresiaPanel() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {catalogPlans.length === 0 && plans.monthly && (
               <div className="rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">Plan mensual</p>
-                <p className="mt-2 text-sm text-[#484848]">Renovación cada mes. Cancela cuando quieras desde Stripe.</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{t("Plan mensual")}</p>
+                <p className="mt-2 text-sm text-[#484848]">{t("Renovación cada mes. Cancela cuando quieras desde Stripe.")}</p>
                 <button
                   type="button"
                   disabled={busy || !data.configured}
                   onClick={() => void startCheckout("monthly")}
                   className="mt-4 w-full rounded-lg bg-black px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#222] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Suscribirse mensual
+                  {t("Suscribirse mensual")}
                 </button>
               </div>
             )}
             {catalogPlans.length === 0 && plans.annual && (
               <div className="rounded-xl border border-[#dcb81e]/40 bg-amber-50/50 p-5 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wider text-amber-900">Plan anual</p>
-                <p className="mt-2 text-sm text-[#484848]">Un pago al año; suele salir más conveniente que 12 meses sueltos.</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-amber-900">{t("Plan anual")}</p>
+                <p className="mt-2 text-sm text-[#484848]">{t("Un pago al año; suele salir más conveniente que 12 meses sueltos.")}</p>
                 <button
                   type="button"
                   disabled={busy || !data.configured}
@@ -361,7 +367,7 @@ export function MembresiaPanel() {
                   className="mt-4 w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-amber-950 shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
                   style={{ backgroundColor: "#dcb81e" }}
                 >
-                  Suscribirse anual
+                  {t("Suscribirse anual")}
                 </button>
               </div>
             )}
@@ -369,48 +375,51 @@ export function MembresiaPanel() {
 
           {catalogPlans.length === 0 && !plans.monthly && !plans.annual && (
             <p className="mt-6 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              Todavía no hay planes con precio para esta región. El equipo los define en el panel de
-              administración, en «Precios».
+              {t("Todavía no hay planes con precio para esta región. El equipo los define en el panel de administración, en «Precios».")}
             </p>
           )}
 
           <div className="mt-8 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
             {!data.configured && (
               <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                Sin price IDs de membresía: en desarrollo no se bloquean reservas por verificación.
+                {t("Sin price IDs de membresía: en desarrollo no se bloquean reservas por verificación.")}
               </p>
             )}
 
             <dl className="mt-4 grid gap-3 text-sm">
               <div className="flex justify-between gap-4 border-b border-[#f0f0f0] pb-3">
-                <dt className="text-[#717171]">Estado membresía</dt>
+                <dt className="text-[#717171]">{t("Estado membresía")}</dt>
                 <dd className="font-medium text-[#222]">
-                  {statusLabel[data.subscriptionStatus] ?? data.subscriptionStatus}
+                  {statusLabel[data.subscriptionStatus] ? t(statusLabel[data.subscriptionStatus]) : data.subscriptionStatus}
                 </dd>
               </div>
               <div className="flex justify-between gap-4 border-b border-[#f0f0f0] pb-3">
-                <dt className="text-[#717171]">Puede reservar en el sitio</dt>
-                <dd className="font-medium text-[#222]">{data.eligible ? "Sí" : "No"}</dd>
+                <dt className="text-[#717171]">{t("Puede reservar en el sitio")}</dt>
+                <dd className="font-medium text-[#222]">{data.eligible ? t("Sí") : t("No")}</dd>
               </div>
               {data.currentPeriodEnd && (
                 <div className="flex justify-between gap-4 border-b border-[#f0f0f0] pb-3">
-                  <dt className="text-[#717171]">Fin de período actual</dt>
-                  <dd className="font-medium text-[#222]">{new Date(data.currentPeriodEnd).toLocaleString()}</dd>
+                  <dt className="text-[#717171]">{t("Fin de período actual")}</dt>
+                  <dd className="font-medium text-[#222]">{new Date(data.currentPeriodEnd).toLocaleString(locale)}</dd>
                 </div>
               )}
               <div className="flex justify-between gap-4 border-b border-[#f0f0f0] pb-3">
-                <dt className="text-[#717171]">Identidad (KYC)</dt>
+                <dt className="text-[#717171]">{t("Identidad (KYC)")}</dt>
                 <dd className="font-medium text-[#222]">
-                  {data.identityEnabled ? (kycLabel[data.kycStatus] ?? data.kycStatus) : "No exigida (servidor)"}
+                  {data.identityEnabled
+                    ? kycLabel[data.kycStatus]
+                      ? t(kycLabel[data.kycStatus])
+                      : data.kycStatus
+                    : t("No exigida (servidor)")}
                 </dd>
               </div>
             </dl>
 
             {needsIdentity && (
               <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3">
-                <p className="text-sm font-medium text-amber-950">Falta verificar tu identidad</p>
+                <p className="text-sm font-medium text-amber-950">{t("Falta verificar tu identidad")}</p>
                 <p className="mt-1 text-xs text-amber-900/90">
-                  Documento oficial (INE, licencia o pasaporte) y selfie. Lo procesa Stripe Identity.
+                  {t("Documento oficial (INE, licencia o pasaporte) y selfie. Lo procesa Stripe Identity.")}
                 </p>
                 <button
                   type="button"
@@ -418,7 +427,7 @@ export function MembresiaPanel() {
                   onClick={() => void startIdentity()}
                   className="mt-3 rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-[#222] disabled:opacity-50"
                 >
-                  {busy ? "Abriendo…" : "Verificar identidad"}
+                  {busy ? t("Abriendo…") : t("Verificar identidad")}
                 </button>
               </div>
             )}
@@ -430,7 +439,7 @@ export function MembresiaPanel() {
                 onClick={() => void openPortal()}
                 className="rounded-lg border border-[#ddd] bg-white px-5 py-2.5 text-sm font-semibold text-[#222] transition hover:bg-[#fafafa] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Facturación y cancelación (Stripe)
+                {t("Facturación y cancelación (Stripe)")}
               </button>
               <button
                 type="button"
@@ -438,13 +447,12 @@ export function MembresiaPanel() {
                 onClick={() => void load()}
                 className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#717171] underline-offset-2 hover:underline"
               >
-                Actualizar estado
+                {t("Actualizar estado")}
               </button>
             </div>
 
             <p className="mt-6 text-xs leading-relaxed text-[#b0b0b0]">
-              Cargo por reserva: porcentaje configurable en el servidor sobre el total de estancia; se cobra en el mismo
-              Checkout que el alojamiento cuando aceptes y pagues.
+              {t("Cargo por reserva: porcentaje configurable en el servidor sobre el total de estancia; se cobra en el mismo Checkout que el alojamiento cuando aceptes y pagues.")}
             </p>
           </div>
         </>
@@ -452,11 +460,11 @@ export function MembresiaPanel() {
 
       <p className="mt-8 text-sm">
         <Link href="/guest" className="font-medium text-[#dcb81e] underline">
-          ← Volver al resumen
+          {t("← Volver al resumen")}
         </Link>
         {" · "}
         <Link href="/membresia" className="font-medium text-[#dcb81e] underline">
-          Qué incluye la membresía
+          {t("Qué incluye la membresía")}
         </Link>
       </p>
     </div>

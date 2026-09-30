@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useT } from "@/components/i18n-provider";
 import { IconBack } from "./icons";
 
 /** Encabezado de pantalla. Con `back`, muestra la flecha para regresar. */
@@ -15,17 +16,18 @@ export function TopBar({
   right?: React.ReactNode;
 }) {
   const router = useRouter();
+  const t = useT();
   return (
     <header
-      className="sticky top-0 z-30 flex items-center gap-2 border-b border-[#f0f0f0] bg-white/95 px-3 backdrop-blur"
+      className="sticky top-0 z-30 flex items-center gap-2 border-b border-[#f0f0f0] bg-white px-3"
       style={{ paddingTop: "env(safe-area-inset-top)", minHeight: "calc(56px + env(safe-area-inset-top))" }}
     >
       {back ? (
         <button
           type="button"
           onClick={() => (window.history.length > 1 ? router.back() : router.push(back))}
-          className="flex h-10 w-10 items-center justify-center rounded-full text-[#222] hover:bg-[#f5f5f5]"
-          aria-label="Regresar"
+          className="flex h-10 w-10 touch-manipulation items-center justify-center rounded-full text-[#222] hover:bg-[#f5f5f5]"
+          aria-label={t("Regresar")}
         >
           <IconBack />
         </button>

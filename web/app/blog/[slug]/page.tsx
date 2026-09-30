@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getAllPostsSorted, getAllSlugs, getPostBySlug } from "@/lib/blog";
+import { getT } from "@/lib/i18n/server";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -16,7 +17,10 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const post = getPostBySlug(slug);
-  if (!post) return { title: "Artículo" };
+  if (!post) {
+    const t = await getT();
+    return { title: t("Artículo") };
+  }
   return {
     title: post.title,
     description: post.excerpt,
@@ -27,6 +31,7 @@ export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
   const post = getPostBySlug(slug);
   if (!post) notFound();
+  const t = await getT();
 
   const related = getAllPostsSorted()
     .filter((p) => p.slug !== slug)
@@ -44,14 +49,14 @@ export default async function BlogPostPage({ params }: Props) {
                 href="/blog"
                 className="inline-flex items-center gap-1 text-sm font-medium text-[#dcb81e] underline underline-offset-2 hover:text-[#b8931a]"
               >
-                ← Blog Cabibee
+                ← {t("Blog Cabibee")}
               </Link>
-              <p className="mt-8 text-xs font-bold uppercase tracking-wider text-[#aaa]">Cabibee · Alojamientos</p>
+              <p className="mt-8 text-xs font-bold uppercase tracking-wider text-[#aaa]">{t("Cabibee · Alojamientos")}</p>
               <h1 className="mt-3 max-w-3xl text-3xl font-semibold leading-tight tracking-tight text-[#222] sm:text-4xl">
                 {post.title}
               </h1>
               <time className="mt-4 block text-sm text-[#aaa]" dateTime={post.publishedAt}>
-                Publicado el {post.publishedAt}
+                {t("Publicado el {date}", { date: post.publishedAt })}
               </time>
 
               <div className="mt-8 grid gap-8 lg:grid-cols-5 lg:gap-10">
@@ -77,11 +82,11 @@ export default async function BlogPostPage({ params }: Props) {
                 className="mt-12 rounded-2xl bg-white p-6 text-center text-sm text-[#666] shadow-sm"
                 style={{ border: "1px solid #ebebeb" }}
               >
-                ¿Listo para aplicarlo? Explora{" "}
+                {t("¿Listo para aplicarlo? Explora")}{" "}
                 <Link href="/" className="font-semibold text-[#dcb81e] underline">
-                  alojamientos en Cabibee
+                  {t("alojamientos en Cabibee")}
                 </Link>{" "}
-                o entra a tu panel de anfitrión.
+                {t("o entra a tu panel de anfitrión.")}
               </p>
             </div>
 
@@ -89,15 +94,15 @@ export default async function BlogPostPage({ params }: Props) {
             <aside className="lg:col-span-4">
               <div className="sticky top-28 space-y-8">
                 <div className="rounded-2xl border border-[#ebebeb] bg-white p-5 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">En este artículo</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">{t("En este artículo")}</p>
                   <p className="mt-2 text-sm text-[#666] leading-relaxed">
-                    Ideas prácticas de Cabibee: claridad, calendario y buena comunicación.
+                    {t("Ideas prácticas de Cabibee: claridad, calendario y buena comunicación.")}
                   </p>
                 </div>
 
                 {related.length > 0 && (
                   <div className="rounded-2xl border border-[#ebebeb] bg-white p-5 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">Seguir leyendo</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">{t("Seguir leyendo")}</p>
                     <ul className="mt-4 space-y-3">
                       {related.map((r) => (
                         <li key={r.slug}>
@@ -117,7 +122,7 @@ export default async function BlogPostPage({ params }: Props) {
                       href="/blog"
                       className="mt-4 inline-block text-sm font-medium text-[#dcb81e] hover:underline"
                     >
-                      Ver todos los artículos →
+                      {t("Ver todos los artículos →")}
                     </Link>
                   </div>
                 )}

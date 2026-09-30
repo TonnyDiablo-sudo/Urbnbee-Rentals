@@ -1,14 +1,19 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { LangSwitch } from "@/components/lang-switch";
 import { APP_BROWSE_FILTERS, appBrowseListings } from "@/lib/app-listings";
+import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 import { IconSearch } from "./_components/icons";
 import { AppListingCardView } from "./_components/listing-card";
 import { InstallBanner } from "./_components/install-banner";
 import { Brand } from "./_components/top-bar";
 
-export const metadata = { title: "Explorar" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("Explorar") };
+}
 
 type Props = { searchParams: Promise<{ q?: string; tipo?: string; source?: string }> };
 
@@ -22,6 +27,7 @@ export default async function AppExplorePage({ searchParams }: Props) {
     if (mode === "host" && (user?.role === "host" || user?.role === "admin")) redirect("/host");
   }
 
+  const t = await getT();
   const listings = appBrowseListings({ tipo, q });
   const hrefFor = (key: string) => {
     const p = new URLSearchParams();
@@ -37,9 +43,9 @@ export default async function AppExplorePage({ searchParams }: Props) {
         className="sticky top-0 z-30 bg-white px-4 pb-2"
         style={{ paddingTop: "calc(12px + env(safe-area-inset-top))" }}
       >
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <Brand />
-          <span className="text-[11px] font-medium uppercase tracking-widest text-[#999]">Your Booking Bee</span>
+          <LangSwitch />
         </div>
         <form action="/" className="relative">
           {tipo && <input type="hidden" name="tipo" value={tipo} />}
@@ -47,7 +53,7 @@ export default async function AppExplorePage({ searchParams }: Props) {
           <input
             name="q"
             defaultValue={q}
-            placeholder="¿A dónde vas? Ciudad, zona o tipo"
+            placeholder={t("¿A dónde vas? Ciudad, zona o tipo")}
             enterKeyHint="search"
             className="w-full rounded-full border border-[#e5e5e5] bg-white py-3.5 pl-12 pr-4 text-base shadow-[0_3px_12px_rgba(0,0,0,0.08)] outline-none placeholder:text-[#8a8a8a] focus:border-[#222]"
           />
@@ -63,7 +69,7 @@ export default async function AppExplorePage({ searchParams }: Props) {
                   active ? "border-black bg-black text-white" : "border-[#e0e0e0] bg-white text-[#484848]"
                 }`}
               >
-                {f.label}
+                {t(f.label)}
               </Link>
             );
           })}
@@ -75,14 +81,14 @@ export default async function AppExplorePage({ searchParams }: Props) {
       <div className="space-y-7 px-4 pb-6 pt-3">
         {listings.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-base font-semibold text-[#222]">Sin resultados</p>
-            <p className="mt-1 text-sm text-[#717171]">Prueba otra ciudad o quita el filtro.</p>
+            <p className="text-base font-semibold text-[#222]">{t("Sin resultados")}</p>
+            <p className="mt-1 text-sm text-[#717171]">{t("Prueba otra ciudad o quita el filtro.")}</p>
             <Link href="/" className="mt-4 inline-block text-sm font-semibold underline">
-              Ver todo
+              {t("Ver todo")}
             </Link>
           </div>
         ) : (
-          listings.map((l) => <AppListingCardView key={l.id} listing={l} />)
+          listings.map((l, i) => <AppListingCardView key={l.id} listing={l} t={t} priority={i === 0} />)
         )}
       </div>
     </>

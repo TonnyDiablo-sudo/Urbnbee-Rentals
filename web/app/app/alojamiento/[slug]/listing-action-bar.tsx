@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
 import { AvailabilityCalendar } from "@/components/listing/availability-calendar";
+import { numberLocale } from "@/lib/i18n";
 import type { HostContact } from "@/lib/listing-detail-data";
 import { Sheet } from "../../_components/sheet";
 
@@ -23,6 +25,8 @@ type Props = {
 };
 
 export function ListingActionBar(p: Props) {
+  const t = useT();
+  const lang = useLang();
   const [sheet, setSheet] = useState<"book" | "contact" | null>(null);
   const here = `/alojamiento/${p.slug}`;
   const authQ = `next=${encodeURIComponent(here)}`;
@@ -46,16 +50,16 @@ export function ListingActionBar(p: Props) {
         <div className="mx-auto flex max-w-xl items-center gap-3 px-5 py-3">
           <div className="min-w-0 flex-1">
             <p className="text-[15px] text-[#222]">
-              <span className="font-bold">${p.pricePerNight.toLocaleString("es-MX")}</span> MXN noche
+              <span className="font-bold">${p.pricePerNight.toLocaleString(numberLocale(lang))}</span> MXN {t("noche")}
             </p>
             {p.chatAvailable && !p.isOwn && (
               <Link href={chatHref} className="text-sm font-semibold text-[#222] underline">
-                Enviar mensaje
+                {t("Enviar mensaje")}
               </Link>
             )}
           </div>
           {p.isOwn ? (
-            <span className="rounded-xl bg-[#f3f3f3] px-4 py-3 text-sm font-medium text-[#555]">Es tu anuncio</span>
+            <span className="rounded-xl bg-[#f3f3f3] px-4 py-3 text-sm font-medium text-[#555]">{t("Es tu anuncio")}</span>
           ) : (
             <>
               <button
@@ -65,7 +69,7 @@ export function ListingActionBar(p: Props) {
                   p.bookable ? "border border-[#222] text-[#222]" : "bg-[#dcb81e] text-black"
                 }`}
               >
-                Contacto
+                {t("Contacto")}
               </button>
               {p.bookable && (
                 <button
@@ -73,7 +77,7 @@ export function ListingActionBar(p: Props) {
                   onClick={() => setSheet("book")}
                   className="rounded-xl bg-[#dcb81e] px-5 py-3 text-[15px] font-semibold text-black"
                 >
-                  Reservar
+                  {t("Reservar")}
                 </button>
               )}
             </>
@@ -81,7 +85,7 @@ export function ListingActionBar(p: Props) {
         </div>
       </div>
 
-      <Sheet open={sheet === "book"} onClose={() => setSheet(null)} title="Elige tus fechas">
+      <Sheet open={sheet === "book"} onClose={() => setSheet(null)} title={t("Elige tus fechas")}>
         <AvailabilityCalendar
           listingId={p.listingId}
           listingSlug={p.slug}
@@ -100,28 +104,29 @@ export function ListingActionBar(p: Props) {
           }}
         />
         <p className="mt-4 text-xs leading-relaxed text-[#888]">
-          Para reservar necesitas cuenta y la membresía de huésped verificado (o un pase por reserva).
+          {t("Para reservar necesitas cuenta y la membresía de huésped verificado (o un pase por reserva).")}
         </p>
       </Sheet>
 
-      <Sheet open={sheet === "contact"} onClose={() => setSheet(null)} title={`Contacto de ${p.host.name}`}>
+      <Sheet open={sheet === "contact"} onClose={() => setSheet(null)} title={t("Contacto de {name}", { name: p.host.name })}>
         {!p.loggedIn ? (
           <div className="space-y-4 text-[15px] leading-relaxed text-[#333]">
             <p>
-              Para ver teléfono, WhatsApp y correo del anfitrión crea tu cuenta gratis. Así protegemos a los anfitriones
-              del spam y sabemos quién escribe.
+              {t(
+                "Para ver teléfono, WhatsApp y correo del anfitrión crea tu cuenta gratis. Así protegemos a los anfitriones del spam y sabemos quién escribe."
+              )}
             </p>
             <Link
               href={`/cuenta/registro?${authQ}`}
               className="block rounded-xl bg-[#dcb81e] py-3.5 text-center font-semibold text-black"
             >
-              Crear cuenta gratis
+              {t("Crear cuenta gratis")}
             </Link>
             <Link
               href={`/cuenta/entrar?${authQ}`}
               className="block rounded-xl border border-[#222] py-3.5 text-center font-semibold text-[#222]"
             >
-              Ya tengo cuenta
+              {t("Ya tengo cuenta")}
             </Link>
           </div>
         ) : (
@@ -133,25 +138,26 @@ export function ListingActionBar(p: Props) {
 }
 
 function ContactChannels({ host, chatHref }: { host: HostContact; chatHref?: string }) {
+  const t = useT();
   const items = [
     host.whatsapp && { href: `https://wa.me/${host.whatsapp}`, label: `WhatsApp +${host.whatsapp}`, external: true },
-    host.phone && { href: `tel:${host.phone}`, label: `Llamar ${host.phone}`, external: false },
+    host.phone && { href: `tel:${host.phone}`, label: t("Llamar {phone}", { phone: host.phone }), external: false },
     host.email && { href: `mailto:${host.email}`, label: host.email, external: false },
     host.instagram && { href: `https://instagram.com/${host.instagram}`, label: `@${host.instagram}`, external: true },
-    host.website && { href: host.website, label: "Sitio web", external: true },
-    host.airbnbUrl && { href: host.airbnbUrl, label: "Otro perfil", external: true },
+    host.website && { href: host.website, label: t("Sitio web"), external: true },
+    host.airbnbUrl && { href: host.airbnbUrl, label: t("Otro perfil"), external: true },
   ].filter(Boolean) as { href: string; label: string; external: boolean }[];
 
   return (
     <div className="space-y-3">
       {chatHref && (
         <Link href={chatHref} className="block rounded-xl bg-[#111] px-4 py-3.5 text-[15px] font-semibold text-white">
-          💬 Chatear en Cabibee
+          💬 {t("Chatear en Cabibee")}
         </Link>
       )}
       {items.length === 0 ? (
         <p className="text-sm text-[#717171]">
-          Este anfitrión todavía no publica teléfono ni redes. {chatHref ? "Escríbele por el chat." : ""}
+          {t("Este anfitrión todavía no publica teléfono ni redes.")} {chatHref ? t("Escríbele por el chat.") : ""}
         </p>
       ) : (
         items.map((i) => (
@@ -166,7 +172,7 @@ function ContactChannels({ host, chatHref }: { host: HostContact; chatHref?: str
           </a>
         ))
       )}
-      <p className="pt-1 text-xs text-[#999]">Nunca compartas contraseñas ni datos bancarios por chat.</p>
+      <p className="pt-1 text-xs text-[#999]">{t("Nunca compartas contraseñas ni datos bancarios por chat.")}</p>
     </div>
   );
 }

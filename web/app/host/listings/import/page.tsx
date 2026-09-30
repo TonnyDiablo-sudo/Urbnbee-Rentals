@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { ListingImportUsagePanel } from "@/components/host/listing-import-usage-panel";
 import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
+import { useT } from "@/components/i18n-provider";
 
 const MAX_IMAGES = 6;
 const MAX_MB = 5;
@@ -13,6 +14,7 @@ type Preview = { file: File; url: string };
 
 export default function ListingImportPage() {
   const router = useRouter();
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [consent, setConsent] = useState(false);
   const [notes, setNotes] = useState("");
@@ -111,10 +113,11 @@ export default function ListingImportPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 py-4">
       <div>
-        <h1 className="text-2xl font-semibold text-[#484848]">Importar con capturas</h1>
+        <h1 className="text-2xl font-semibold text-[#484848]">{t("Importar con capturas")}</h1>
         <p className="mt-2 text-sm leading-relaxed text-[#666]">
-          Sube capturas de pantalla de <strong>tu</strong> anuncio (título, precio, amenidades, ubicación, etc.).
-          La IA solo configura el borrador con esa información; las fotos las subes tú en el editor.
+          {t("Sube capturas de pantalla de")} <strong>{t("tu")}</strong>{" "}
+          {t("anuncio (título, precio, amenidades, ubicación, etc.).")}{" "}
+          {t("La IA solo configura el borrador con esa información; las fotos las subes tú en el editor.")}
         </p>
       </div>
 
@@ -126,8 +129,9 @@ export default function ListingImportPage() {
           onChange={(e) => setConsent(e.target.checked)}
         />
         <span>
-          Soy el anfitrión o tengo permiso para usar esta información. Las capturas son de mi anuncio.
-          Revisaré los datos generados; la IA puede equivocarse. Subiré mis propias fotos en el editor.
+          {t(
+            "Soy el anfitrión o tengo permiso para usar esta información. Las capturas son de mi anuncio. Revisaré los datos generados; la IA puede equivocarse. Subiré mis propias fotos en el editor."
+          )}
         </span>
       </label>
 
@@ -146,9 +150,9 @@ export default function ListingImportPage() {
           dragOver ? "border-[#dcb81e] bg-amber-50" : "border-[#ddd] bg-white hover:border-[#bbb]"
         }`}
       >
-        <p className="text-sm font-medium text-[#484848]">Arrastra capturas aquí o haz clic</p>
+        <p className="text-sm font-medium text-[#484848]">{t("Arrastra capturas aquí o haz clic")}</p>
         <p className="mt-1 text-xs text-[#888]">
-          Hasta {MAX_IMAGES} imágenes · JPEG, PNG, WebP · máx. {MAX_MB} MB c/u
+          {t("Hasta {max} imágenes · JPEG, PNG, WebP · máx. {mb} MB c/u", { max: MAX_IMAGES, mb: MAX_MB })}
         </p>
         <input
           ref={inputRef}
@@ -177,7 +181,7 @@ export default function ListingImportPage() {
                 }}
                 className="absolute right-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white"
               >
-                Quitar
+                {t("Quitar")}
               </button>
             </li>
           ))}
@@ -185,18 +189,18 @@ export default function ListingImportPage() {
       )}
 
       <div>
-        <label className="text-sm font-medium text-[#484848]">Notas opcionales</label>
+        <label className="text-sm font-medium text-[#484848]">{t("Notas opcionales")}</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           maxLength={4000}
-          placeholder="Ej. el precio en la captura es por semana, no por noche."
+          placeholder={t("Ej. el precio en la captura es por semana, no por noche.")}
           className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm"
         />
       </div>
 
-      {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{err}</p>}
+      {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{t(err)}</p>}
 
       {lastUsage && <ListingImportUsagePanel usage={lastUsage} />}
 
@@ -208,13 +212,13 @@ export default function ListingImportPage() {
           className="rounded-full px-6 py-2.5 text-sm font-semibold text-black disabled:opacity-50"
           style={{ backgroundColor: "#dcb81e" }}
         >
-          {busy ? "Analizando capturas…" : "Analizar y crear borrador"}
+          {busy ? t("Analizando capturas…") : t("Analizar y crear borrador")}
         </button>
         <Link
           href="/host/listings/new"
           className="rounded-full border border-[#ddd] px-5 py-2.5 text-sm font-medium text-[#484848] hover:bg-[#fafafa]"
         >
-          Cancelar
+          {t("Cancelar")}
         </Link>
       </div>
     </div>

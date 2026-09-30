@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
+import { useT } from "@/components/i18n-provider";
 import { PasswordField } from "@/components/password-field";
 import { TopBar } from "../_components/top-bar";
 
@@ -11,13 +12,14 @@ function safeAppNext(raw: string | null): string {
   return raw;
 }
 
-/** 16px como mínimo: con menos, iOS hace zoom al enfocar el campo. */
 const noopSubscribe = () => () => {};
 
+/** 16px como mínimo: con menos, iOS hace zoom al enfocar el campo. */
 const inputCls =
   "mt-1 w-full rounded-xl border border-[#ccc] px-3.5 py-3 text-base outline-none focus:border-[#222]";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
+  const t = useT();
   const router = useRouter();
   const params = useSearchParams();
   const next = safeAppNext(params.get("next"));
@@ -72,20 +74,20 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     <>
       <TopBar title="" back="/perfil" />
       <div className="px-6 pb-10 pt-2">
-        <h1 className="text-[26px] font-bold text-[#222]">{title}</h1>
+        <h1 className="text-[26px] font-bold text-[#222]">{t(title)}</h1>
         <p className="mt-1.5 text-sm leading-relaxed text-[#717171]">
           {mode === "login"
-            ? "Usa la misma cuenta de la página web de Cabibee."
+            ? t("Usa la misma cuenta de la página web de Cabibee.")
             : asHost
-              ? "Gratis. Publica tus alojamientos y recibe mensajes. La misma cuenta te sirve para viajar como huésped."
-              : "Gratis. Con tu cuenta puedes ver contactos, chatear con anfitriones y reservar."}
+              ? t("Gratis. Publica tus alojamientos y recibe mensajes. La misma cuenta te sirve para viajar como huésped.")
+              : t("Gratis. Con tu cuenta puedes ver contactos, chatear con anfitriones y reservar.")}
         </p>
 
         <form method="post" onSubmit={onSubmit} className="mt-7 space-y-4">
-          {error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+          {error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(error)}</div>}
           {mode === "register" && (
             <label className="block text-sm font-medium text-[#222]">
-              Nombre completo
+              {t("Nombre completo")}
               <input
                 required
                 autoComplete="name"
@@ -96,7 +98,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             </label>
           )}
           <label className="block text-sm font-medium text-[#222]">
-            Correo
+            {t("Correo")}
             <input
               type="email"
               required
@@ -109,7 +111,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           </label>
           {mode === "register" && (
             <label className="block text-sm font-medium text-[#222]">
-              Teléfono <span className="font-normal text-[#999]">(opcional)</span>
+              {t("Teléfono")} <span className="font-normal text-[#999]">{t("(opcional)")}</span>
               <input
                 type="tel"
                 autoComplete="tel"
@@ -121,13 +123,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             </label>
           )}
           <label className="block text-sm font-medium text-[#222]">
-            Contraseña
+            {t("Contraseña")}
             <PasswordField
               inputClassName="w-full rounded-xl border border-[#ccc] py-3 pl-3.5 pr-11 text-base outline-none focus:border-[#222]"
               required
               minLength={mode === "register" ? 8 : undefined}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
-              placeholder={mode === "register" ? "Mínimo 8 caracteres" : undefined}
+              placeholder={mode === "register" ? t("Mínimo 8 caracteres") : undefined}
               value={password}
               onChange={setPassword}
             />
@@ -137,17 +139,17 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             disabled={loading || !hydrated}
             className="w-full touch-manipulation rounded-xl bg-[#dcb81e] py-3.5 text-[15px] font-semibold text-black disabled:opacity-60"
           >
-            {loading ? "Un momento…" : mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
+            {loading ? t("Un momento…") : mode === "login" ? t("Iniciar sesión") : t("Crear cuenta")}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-[#717171]">
-          {mode === "login" ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
+          {mode === "login" ? t("¿No tienes cuenta?") : t("¿Ya tienes cuenta?")}{" "}
           <Link
             href={mode === "login" ? `/cuenta/registro?${q}` : `/cuenta/entrar?${q}`}
             className="font-semibold text-[#222] underline"
           >
-            {mode === "login" ? "Regístrate" : "Inicia sesión"}
+            {mode === "login" ? t("Regístrate") : t("Inicia sesión")}
           </Link>
         </p>
       </div>

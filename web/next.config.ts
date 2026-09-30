@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
+/** Identifica cada deploy: la app compara el suyo con el del servidor para avisar que hay versión nueva. */
+const buildId = process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 12) || String(Date.now());
+
 const nextConfig: NextConfig = {
+  env: { NEXT_PUBLIC_BUILD_ID: buildId },
   // En local la app se abre en http://app.localhost:3005 (ver middleware.ts).
   allowedDevOrigins: ["app.localhost"],
   images: {

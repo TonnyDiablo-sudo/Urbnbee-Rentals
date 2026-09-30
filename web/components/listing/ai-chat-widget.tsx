@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { useT } from "@/components/i18n-provider";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -30,6 +31,7 @@ function listingChatSessionId(listingId: string): string {
 }
 
 export function AiChatWidget({ listingId, listingTitle }: { listingId: string; listingTitle: string }) {
+  const t = useT();
   const [open, setOpen]               = useState(false);
   const [bubbleVisible, setBubbleVisible] = useState(true);
   const [bubbleFading,  setBubbleFading]  = useState(false);
@@ -37,7 +39,7 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
   const [imgVisible,    setImgVisible]    = useState(true);
   const [viaBeeagent, setViaBeeagent] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: `¡Hola! Soy el asistente de Cabibee para "${listingTitle}". ¿Tienes alguna pregunta?` },
+    { role: "assistant", content: t("¡Hola! Soy el asistente de Cabibee para \"{title}\". ¿Tienes alguna pregunta?", { title: listingTitle }) },
   ]);
   const [input,   setInput]   = useState("");
   const [loading, setLoading] = useState(false);
@@ -108,9 +110,9 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
       });
       const data = (await res.json()) as { reply?: string; via?: string };
       if (data.via === "beeagent") setViaBeeagent(true);
-      setMessages((m) => [...m, { role: "assistant", content: data.reply ?? "No pude procesar tu pregunta." }]);
+      setMessages((m) => [...m, { role: "assistant", content: data.reply ?? t("No pude procesar tu pregunta.") }]);
     } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "Error al conectar. Intenta más tarde." }]);
+      setMessages((m) => [...m, { role: "assistant", content: t("Error al conectar. Intenta más tarde.") }]);
     } finally {
       setLoading(false);
     }
@@ -172,14 +174,14 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
               className="rounded-2xl bg-white px-5 py-3 text-center shadow-2xl"
               style={{ border: "2.5px solid #dcb81e", minWidth: 190 }}
             >
-              <p className="text-sm font-extrabold text-[#3a3a3a]">¿En qué puedo ayudarte? 🐝</p>
-              <p className="mt-1 text-xs text-[#888]">Asistente de Cabibee</p>
+              <p className="text-sm font-extrabold text-[#3a3a3a]">{t("¿En qué puedo ayudarte? 🐝")}</p>
+              <p className="mt-1 text-xs text-[#888]">{t("Asistente de Cabibee")}</p>
               <button
                 onClick={handleOpen}
                 className="mt-2 rounded-full px-4 py-1 text-xs font-bold text-black transition hover:brightness-90 active:scale-95"
                 style={{ backgroundColor: "#dcb81e" }}
               >
-                ¡Pregúntame! →
+                {t("¡Pregúntame! →")}
               </button>
             </div>
             <span className="absolute -bottom-[11px] left-1/2 -translate-x-1/2 h-0 w-0"
@@ -195,7 +197,7 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
             className="label-bounce rounded-full px-4 py-1.5 text-xs font-extrabold text-black shadow-lg tracking-wide"
             style={{ backgroundColor: "#dcb81e", letterSpacing: "0.04em" }}
           >
-            🐝 Pregúntame
+            {t("🐝 Pregúntame")}
           </div>
         )}
 
@@ -211,7 +213,7 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
           <button
             type="button"
             onClick={handleOpen}
-            aria-label="Abrir el asistente de Cabibee"
+            aria-label={t("Abrir el asistente de Cabibee")}
             className="bee-idle relative focus:outline-none"
             style={{ width: 160, height: 160, background: "none", border: "none", padding: 0, cursor: "pointer" }}
           >
@@ -254,12 +256,12 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
             <div>
               <p className="text-sm font-extrabold text-black">Cabibee</p>
               <p className="text-[11px] text-black/55">
-                {viaBeeagent ? "Agente del anfitrión (BeeAgent)" : "Tu asistente de alojamiento"}
+                {viaBeeagent ? t("Agente del anfitrión (BeeAgent)") : t("Tu asistente de alojamiento")}
               </p>
             </div>
             <div className="ml-auto flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-green-500 shadow" />
-              <span className="text-[11px] font-medium text-black/50">En línea</span>
+              <span className="text-[11px] font-medium text-black/50">{t("En línea")}</span>
             </div>
           </div>
 
@@ -312,7 +314,7 @@ export function AiChatWidget({ listingId, listingTitle }: { listingId: string; l
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Escribe tu pregunta…"
+              placeholder={t("Escribe tu pregunta…")}
               className="flex-1 rounded-full border px-4 py-2 text-sm outline-none transition focus:border-[#dcb81e] focus:ring-2 focus:ring-[#dcb81e]/20"
               style={{ borderColor: "#e0e0e0" }}
               disabled={loading}

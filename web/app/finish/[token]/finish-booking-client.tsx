@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useT } from "@/components/i18n-provider";
 
 type LookupBooking = {
   status: string;
@@ -24,6 +25,7 @@ type LookupBooking = {
 };
 
 export function FinishBookingClient({ token }: { token: string }) {
+  const t = useT();
   const [booking, setBooking] = useState<LookupBooking | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [guestPhone, setGuestPhone] = useState("");
@@ -66,9 +68,9 @@ export function FinishBookingClient({ token }: { token: string }) {
   if (loadErr) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <p className="text-red-600">{loadErr}</p>
+        <p className="text-red-600">{t(loadErr)}</p>
         <Link href="/" className="mt-6 inline-block text-sm text-[#dcb81e] underline">
-          Volver al inicio
+          {t("Volver al inicio")}
         </Link>
       </div>
     );
@@ -77,7 +79,7 @@ export function FinishBookingClient({ token }: { token: string }) {
   if (!booking) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center text-[#888]">
-        Cargando…
+        {t("Cargando…")}
       </div>
     );
   }
@@ -105,27 +107,27 @@ export function FinishBookingClient({ token }: { token: string }) {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">Reserva</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">{t("Reserva")}</p>
       <h1 className="mt-1 text-2xl font-semibold text-[#484848]">{booking.listingTitle}</h1>
       <p className="mt-2 text-sm text-[#888]">
-        Código <span className="font-mono tracking-widest">{booking.token}</span>
+        {t("Código")} <span className="font-mono tracking-widest">{booking.token}</span>
       </p>
 
       <div className="mt-6 rounded border p-4 text-sm" style={{ borderColor: "#ebebeb" }}>
         <div className="flex justify-between gap-4">
-          <span className="text-[#aaa]">Estado</span>
+          <span className="text-[#aaa]">{t("Estado")}</span>
           <span className="font-medium text-[#484848]">
-            {statusLabels[booking.status] ?? booking.status}
+            {statusLabels[booking.status] ? t(statusLabels[booking.status]) : booking.status}
           </span>
         </div>
         <div className="mt-2 flex justify-between gap-4">
-          <span className="text-[#aaa]">Entrada — Salida</span>
+          <span className="text-[#aaa]">{t("Entrada — Salida")}</span>
           <span className="text-[#484848]">
             {booking.checkIn} → {booking.checkOut}
           </span>
         </div>
         <div className="mt-2 flex justify-between gap-4">
-          <span className="text-[#aaa]">Noches / Total estimado</span>
+          <span className="text-[#aaa]">{t("Noches / Total estimado")}</span>
           <span className="text-[#484848]">
             {booking.nights} · ${booking.estimatedTotalMxn.toLocaleString("es-MX")} MXN
           </span>
@@ -135,13 +137,13 @@ export function FinishBookingClient({ token }: { token: string }) {
       {booking.contract?.generated && (
         <div className="mt-6">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-[#484848]">Contrato de la reserva</h2>
+            <h2 className="text-lg font-semibold text-[#484848]">{t("Contrato de la reserva")}</h2>
             <div className="flex gap-3">
               <Link href={`/contrato/${token}`} className="text-sm font-medium text-[#dcb81e] underline">
-                Ver página del contrato
+                {t("Ver página del contrato")}
               </Link>
               <a href={pdfHref} className="text-sm font-medium text-[#dcb81e] underline">
-                Descargar PDF
+                {t("Descargar PDF")}
               </a>
             </div>
           </div>
@@ -149,7 +151,7 @@ export function FinishBookingClient({ token }: { token: string }) {
             {(booking.contract.lines ?? []).join("\n")}
           </pre>
           {booking.contract.accepted && (
-            <p className="mt-2 text-xs text-green-800">Ambas partes ya aceptaron este contrato.</p>
+            <p className="mt-2 text-xs text-green-800">{t("Ambas partes ya aceptaron este contrato.")}</p>
           )}
         </div>
       )}
@@ -206,9 +208,9 @@ export function FinishBookingClient({ token }: { token: string }) {
             }
           }}
         >
-          <h2 className="text-lg font-semibold text-[#484848]">Firma con los datos de tu cuenta</h2>
+          <h2 className="text-lg font-semibold text-[#484848]">{t("Firma con los datos de tu cuenta")}</h2>
           <label className="block">
-            <span className="text-xs text-[#888]">Nombre con el que firmas</span>
+            <span className="text-xs text-[#888]">{t("Nombre con el que firmas")}</span>
             <input
               value={signedName}
               onChange={(e) => setSignedName(e.target.value)}
@@ -217,7 +219,7 @@ export function FinishBookingClient({ token }: { token: string }) {
             />
           </label>
           <label className="block">
-            <span className="text-xs text-[#888]">Teléfono (opcional)</span>
+            <span className="text-xs text-[#888]">{t("Teléfono (opcional)")}</span>
             <input
               type="tel"
               value={guestPhone}
@@ -227,7 +229,7 @@ export function FinishBookingClient({ token }: { token: string }) {
             />
           </label>
           <label className="block">
-            <span className="text-xs text-[#888]">Notas (opcional)</span>
+            <span className="text-xs text-[#888]">{t("Notas (opcional)")}</span>
             <textarea
               value={guestFinishNotes}
               onChange={(e) => setGuestFinishNotes(e.target.value)}
@@ -244,13 +246,12 @@ export function FinishBookingClient({ token }: { token: string }) {
               className="mt-1 accent-[#dcb81e]"
             />
             <span>
-              Acepto el contrato de esta reserva: fechas, montos, reglas y que Cabibee no es
-              parte del hospedaje, solo registra el acuerdo.
+              {t("Acepto el contrato de esta reserva: fechas, montos, reglas y que Cabibee no es parte del hospedaje, solo registra el acuerdo.")}
             </span>
           </label>
           {saveErr && (
             <p className="text-sm text-red-600" role="alert">
-              {saveErr}
+              {t(saveErr)}
             </p>
           )}
           <button
@@ -260,40 +261,40 @@ export function FinishBookingClient({ token }: { token: string }) {
             style={{ backgroundColor: "#dcb81e" }}
           >
             {saving
-              ? "Guardando…"
+              ? t("Guardando…")
               : booking.status === "AWAITING_PAYMENT"
-                ? "Aceptar contrato"
-                : "Aceptar contrato y confirmar"}
+                ? t("Aceptar contrato")
+                : t("Aceptar contrato y confirmar")}
           </button>
         </form>
       )}
 
       {(saved || booking.contract?.accepted) && booking.status !== "AWAITING_PAYMENT" && (
         <div className="mt-8 rounded border border-green-200 bg-green-50 p-4 text-sm text-green-900">
-          Contrato aceptado. Puedes descargar el PDF cuando quieras.
+          {t("Contrato aceptado. Puedes descargar el PDF cuando quieras.")}
         </div>
       )}
 
       {booking.status === "AWAITING_PAYMENT" && booking.contract?.guestAcceptedAt && (
         <div className="mt-8 rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-          <p className="font-medium">Contrato firmado. Falta el pago</p>
+          <p className="font-medium">{t("Contrato firmado. Falta el pago")}</p>
           <Link
             href={`/contrato/${token}?pay=1`}
             className="mt-3 inline-block font-semibold text-amber-900 underline"
           >
-            Ir a pagar
+            {t("Ir a pagar")}
           </Link>
         </div>
       )}
 
       {!canFinish && !saved && (booking.status === "PENDING" || booking.status === "PENDING_HOST") && (
         <p className="mt-8 text-sm text-[#888]">
-          Tu solicitud está pendiente de revisión por el anfitrión.
+          {t("Tu solicitud está pendiente de revisión por el anfitrión.")}
         </p>
       )}
 
       <Link href="/" className="mt-10 inline-block text-sm text-[#dcb81e] underline">
-        ← Inicio
+        {t("← Inicio")}
       </Link>
     </div>
   );

@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
+import { numberLocale, type Lang } from "@/lib/i18n";
 import { IconSend } from "./icons";
 import { markThreadSeen } from "./seen";
 import { TopBar } from "./top-bar";
@@ -9,13 +11,14 @@ export type ChatMessage = { id: string; sender: "guest" | "host"; body: string; 
 
 const POLL_MS = 8_000;
 
-function timeLabel(iso: string): string {
+function timeLabel(iso: string, lang: Lang): string {
   const d = new Date(iso);
   const today = new Date();
   const sameDay = d.toDateString() === today.toDateString();
+  const locale = numberLocale(lang);
   return sameDay
-    ? d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })
-    : d.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+    ? d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString(locale, { day: "numeric", month: "short" });
 }
 
 /** Conversación a pantalla completa. Consulta cada pocos segundos para que las respuestas aparezcan solas. */
@@ -40,6 +43,8 @@ export function ChatThread({
   emptyText: string;
   headerRight?: React.ReactNode;
 }) {
+  const t = useT();
+  const lang = useLang();
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -60,10 +65,10 @@ export function ChatThread({
 
   useEffect(() => {
     void refresh();
-    const t = window.setInterval(() => {
+    const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") void refresh();
     }, POLL_MS);
-    return () => window.clearInterval(t);
+    return () => window.clearInterval(timer);
   }, [refresh]);
 
   useEffect(() => {
@@ -97,7 +102,7 @@ export function ChatThread({
 
       <div className="flex-1 overflow-y-auto bg-[#fafafa] px-4 py-4">
         {messages === null ? (
-          <p className="py-10 text-center text-sm text-[#999]">Cargando…</p>
+          <p className="py-10 text-center text-sm text-[#999]">{t("Cargando…")}</p>
         ) : messages.length === 0 ? (
           <p className="px-6 py-10 text-center text-sm leading-relaxed text-[#717171]">{emptyText}</p>
         ) : (
@@ -113,7 +118,7 @@ export function ChatThread({
                   >
                     <p className="whitespace-pre-wrap break-words">{m.body}</p>
                     <p className={`mt-0.5 text-right text-[10px] ${mine ? "text-black/60" : "text-[#999]"}`}>
-                      {timeLabel(m.createdAt)}
+                      {timeLabel(m.createdAt, lang)}
                     </p>
                   </div>
                 </li>
@@ -129,21 +134,21 @@ export function ChatThread({
         className="border-t border-[#ebebeb] bg-white px-3 pt-2.5"
         style={{ paddingBottom: "calc(10px + env(safe-area-inset-bottom))" }}
       >
-        {err && <p className="mb-2 px-2 text-sm text-red-600">{err}</p>}
+        {err && <p className="mb-2 px-2 text-sm text-red-600">{t(err)}</p>}
         <div className="flex items-end gap-2">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={1}
             maxLength={2000}
-            placeholder="Escribe un mensaje"
+            placeholder={t("Escribe un mensaje")}
             className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl border border-[#ddd] px-4 py-2.5 text-[15px] outline-none focus:border-[#222]"
           />
           <button
             type="submit"
             disabled={busy || !text.trim()}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#111] text-white disabled:opacity-40"
-            aria-label="Enviar"
+            aria-label={t("Enviar")}
           >
             <IconSend />
           </button>

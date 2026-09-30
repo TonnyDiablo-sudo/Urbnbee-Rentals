@@ -146,7 +146,7 @@ export const extraListingDetails: Record<string, ListingDetail> = {
     bathrooms: 2,
     verified: false,
     propertyId: 153,
-    photos: [p("1502672260266-1c1ef2d93688"), p("1613490493576-7fde63acd811"), p("1560448204-e02f11c3d0e2"), p("1583847268964-b28dc8f51f92")],
+    photos: [p("1502672260266-1c1ef2d93688"), p("1484154218962-a197022b5858"), p("1560448204-e02f11c3d0e2"), p("1583847268964-b28dc8f51f92")],
     host: {
       name: "Carlos Herrera",
       bio: "Anfitrión en Midtown. El departamento es de la familia y lo rentamos cuando viajamos. Siempre dejo instrucciones claras y el wifi listo.",
@@ -187,7 +187,7 @@ export const extraListingDetails: Record<string, ListingDetail> = {
     bathrooms: 1,
     verified: true,
     propertyId: 154,
-    photos: [p("1493809842364-78817add7ffb"), p("1540541338287-41700207dee6"), p("1522708323590-d24dbb6b0267"), p("1560448204-e02f11c3d0e2")],
+    photos: [p("1493809842364-78817add7ffb"), p("1560185893-a55cbc8c57e8"), p("1522708323590-d24dbb6b0267"), p("1560448204-e02f11c3d0e2")],
     amenities: [...AMENITIES, "Alberca", "Terraza o balcón"],
     host: {
       name: "Sofía Ramírez",
@@ -229,7 +229,7 @@ export const extraListingDetails: Record<string, ListingDetail> = {
     bathrooms: 2,
     verified: true,
     propertyId: 155,
-    photos: [p("1449158743715-0a90ebb6d2d8"), p("1518780664697-55e3ad937233"), p("1571896349842-33c89424de2d"), p("1504701954957-2010ec3bcec1")],
+    photos: [p("1449158743715-0a90ebb6d2d8"), p("1518780664697-55e3ad937233"), p("1763669632676-961830e89de2"), p("1758983065583-9cea714214f9")],
     amenities: [...AMENITIES, "Chimenea Interior", "Asador", "Estacionamiento Gratuito", "Jardín / Patio"],
     pets: true,
     host: {
@@ -272,7 +272,7 @@ export const extraListingDetails: Record<string, ListingDetail> = {
     bathrooms: 1,
     verified: false,
     propertyId: 156,
-    photos: [p("1518780664697-55e3ad937233"), p("1449158743715-0a90ebb6d2d8"), p("1504701954957-2010ec3bcec1"), p("1571896349842-33c89424de2d")],
+    photos: [p("1518780664697-55e3ad937233"), p("1449158743715-0a90ebb6d2d8"), p("1758983065583-9cea714214f9"), p("1763669632676-961830e89de2")],
     amenities: [...AMENITIES, "Jardín / Patio", "Asador"],
     host: {
       name: "Diego Morales",
@@ -398,7 +398,7 @@ export const extraListingDetails: Record<string, ListingDetail> = {
     bathrooms: 2,
     verified: true,
     propertyId: 159,
-    photos: [p("1499793983690-e29da59ef1c2"), p("1504701954957-2010ec3bcec1"), p("1571896349842-33c89424de2d"), p("1568605114967-8130f3a36994")],
+    photos: [p("1499793983690-e29da59ef1c2"), p("1540541338287-41700207dee6"), p("1595526114035-0d45ed16cfbf"), p("1583847268964-b28dc8f51f92")],
     amenities: [...AMENITIES, "Terraza o balcón", "Jardín / Patio", "Kayak"],
     pets: true,
     host: {

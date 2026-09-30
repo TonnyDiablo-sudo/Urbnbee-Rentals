@@ -13,6 +13,7 @@ import type { ListingCategory } from "@/lib/mock-data";
 import { AMENITY_OPTIONS } from "@/lib/amenity-options";
 import { ListingImportUsagePanel } from "@/components/host/listing-import-usage-panel";
 import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
+import { useT } from "@/components/i18n-provider";
 
 type Tab = "fotos" | "info" | "ubicacion" | "contacto" | "precio" | "comodidades" | "contrato";
 
@@ -36,6 +37,7 @@ const CATEGORY_OPTIONS: { key: ListingCategory; label: string }[] = [
 
 export function ListingEditor({ listingId }: { listingId: string }) {
   const searchParams = useSearchParams();
+  const t = useT();
   const [tab, setTab] = useState<Tab>("fotos");
   const [listing, setListing] = useState<HostListingRecord | null>(null);
   const [profile, setProfile] = useState<HostProfileRecord | null>(null);
@@ -214,7 +216,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
   }
 
   function removePhoto(index: number) {
-    if (!listing || !confirm("¿Eliminar esta foto?")) return;
+    if (!listing || !confirm(t("¿Eliminar esta foto?"))) return;
     const photos = listing.photos.filter((_, i) => i !== index);
     saveListing({ photos });
   }
@@ -222,7 +224,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
   if (loading) {
     return (
       <div className="rounded-xl border border-[#ebebeb] bg-white p-12 text-center text-[#888]">
-        Cargando editor…
+        {t("Cargando editor…")}
       </div>
     );
   }
@@ -230,14 +232,14 @@ export function ListingEditor({ listingId }: { listingId: string }) {
   if (notFound || !listing) {
     return (
       <div className="mx-auto max-w-lg rounded-xl border border-[#ebebeb] bg-white p-10 text-center shadow-sm">
-        <p className="text-[#484848]">Este alojamiento no existe o el enlace es antiguo (por ejemplo, un borrador ya no guardado).</p>
-        <p className="mt-2 text-sm text-[#888]">Abre la lista actualizada y edita el anuncio correcto.</p>
+        <p className="text-[#484848]">{t("Este alojamiento no existe o el enlace es antiguo (por ejemplo, un borrador ya no guardado).")}</p>
+        <p className="mt-2 text-sm text-[#888]">{t("Abre la lista actualizada y edita el anuncio correcto.")}</p>
         <Link
           href="/host/listings"
           className="mt-6 inline-block rounded-full px-6 py-2.5 text-sm font-semibold text-black"
           style={{ backgroundColor: "#dcb81e" }}
         >
-          Ir a mis alojamientos
+          {t("Ir a mis alojamientos")}
         </Link>
       </div>
     );
@@ -252,10 +254,10 @@ export function ListingEditor({ listingId }: { listingId: string }) {
           {importUsage && <ListingImportUsagePanel usage={importUsage} />}
           {importWarnings && importWarnings.length > 0 && (
             <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-              <p className="font-semibold">Borrador generado con IA — revísalo antes de publicar</p>
+              <p className="font-semibold">{t("Borrador generado con IA — revísalo antes de publicar")}</p>
               <ul className="mt-2 list-inside list-disc space-y-1 text-amber-900/90">
                 {importWarnings.map((w) => (
-                  <li key={w}>{w}</li>
+                  <li key={w}>{t(w)}</li>
                 ))}
               </ul>
               <button
@@ -263,7 +265,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 className="mt-2 text-xs font-medium underline"
                 onClick={() => setImportWarnings(null)}
               >
-                Entendido
+                {t("Entendido")}
               </button>
             </div>
           )}
@@ -274,15 +276,15 @@ export function ListingEditor({ listingId }: { listingId: string }) {
           className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-full px-5 py-2 text-sm font-medium text-black shadow-lg"
           style={{ backgroundColor: "#dcb81e" }}
         >
-          {toast}
+          {t(toast)}
         </div>
       )}
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#484848]">Editar alojamiento</h1>
+          <h1 className="text-2xl font-semibold text-[#484848]">{t("Editar alojamiento")}</h1>
           <p className="mt-1 text-sm text-[#888]">
-            Slug público:{" "}
+            {t("Slug público:")}{" "}
             <code className="rounded bg-black/[0.06] px-1.5 py-0.5 text-xs">{listing.slug}</code>
           </p>
         </div>
@@ -294,7 +296,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
               onChange={(e) => saveListing({ published: e.target.checked })}
               className="h-4 w-4 rounded border-[#ccc]"
             />
-            <span className="font-medium text-[#484848]">Publicado en el directorio</span>
+            <span className="font-medium text-[#484848]">{t("Publicado en el directorio")}</span>
           </label>
           {previewUrl && (
             <Link
@@ -302,7 +304,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
               target="_blank"
               className="rounded-full border border-[#dcb81e] px-4 py-2 text-sm font-semibold text-[#484848] transition hover:bg-[#dcb81e]/10"
             >
-              Ver página pública →
+              {t("Ver página pública →")}
             </Link>
           )}
         </div>
@@ -310,16 +312,16 @@ export function ListingEditor({ listingId }: { listingId: string }) {
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-[#ebebeb] pb-2">
-        {TABS.map((t) => (
+        {TABS.map((item) => (
           <button
-            key={t.id}
+            key={item.id}
             type="button"
-            onClick={() => setTab(t.id)}
+            onClick={() => setTab(item.id)}
             className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              tab === t.id ? "bg-black text-white" : "bg-[#f5f5f5] text-[#484848] hover:bg-[#ebebeb]"
+              tab === item.id ? "bg-black text-white" : "bg-[#f5f5f5] text-[#484848] hover:bg-[#ebebeb]"
             }`}
           >
-            {t.label}
+            {t(item.label)}
           </button>
         ))}
       </div>
@@ -328,11 +330,11 @@ export function ListingEditor({ listingId }: { listingId: string }) {
       {tab === "fotos" && (
         <section className="rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
           <p className="mb-4 text-sm text-[#666]">
-            La primera foto es la portada. Arrastra el orden con los botones.
+            {t("La primera foto es la portada. Arrastra el orden con los botones.")}
           </p>
           <label className="mb-6 inline-flex cursor-pointer items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-black shadow transition hover:brightness-95" style={{ backgroundColor: "#dcb81e" }}>
             <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={onUpload} disabled={uploading} />
-            {uploading ? "Subiendo…" : "+ Subir foto"}
+            {uploading ? t("Subiendo…") : t("+ Subir foto")}
           </label>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {listing.photos.map((src, i) => (
@@ -347,18 +349,18 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                     ↓
                   </button>
                   <button type="button" className="rounded bg-red-500 px-2 py-1 text-xs font-medium text-white" onClick={() => removePhoto(i)}>
-                    Quitar
+                    {t("Quitar")}
                   </button>
                 </div>
                 {i === 0 && (
                   <span className="absolute left-2 top-2 rounded bg-[#dcb81e] px-2 py-0.5 text-[10px] font-bold text-black">
-                    Portada
+                    {t("Portada")}
                   </span>
                 )}
               </div>
             ))}
             {listing.photos.length === 0 && (
-              <p className="col-span-full text-sm text-[#aaa]">Aún no hay fotos. Sube al menos una para publicar.</p>
+              <p className="col-span-full text-sm text-[#aaa]">{t("Aún no hay fotos. Sube al menos una para publicar.")}</p>
             )}
           </div>
         </section>
@@ -370,21 +372,21 @@ export function ListingEditor({ listingId }: { listingId: string }) {
           <div className="rounded-xl border border-[#ebebeb] bg-[#fafafa] p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">
-                Fotos del anuncio (vista previa)
+                {t("Fotos del anuncio (vista previa)")}
               </span>
               <button
                 type="button"
                 className="text-sm font-semibold text-[#dcb81e] underline"
                 onClick={() => setTab("fotos")}
               >
-                Gestionar fotos →
+                {t("Gestionar fotos →")}
               </button>
             </div>
             {listing.photos.length === 0 ? (
               <p className="text-sm text-[#888]">
-                Aún no hay fotos.{" "}
+                {t("Aún no hay fotos.")}{" "}
                 <button type="button" className="font-semibold text-[#dcb81e] underline" onClick={() => setTab("fotos")}>
-                  Ir a la pestaña Fotos para subirlas
+                  {t("Ir a la pestaña Fotos para subirlas")}
                 </button>
               </p>
             ) : (
@@ -400,7 +402,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                     <img src={src} alt="" className="h-full w-full object-cover" />
                     {i === 0 && (
                       <span className="absolute left-2 top-2 rounded bg-[#dcb81e] px-2 py-0.5 text-[10px] font-bold text-black shadow">
-                        Portada
+                        {t("Portada")}
                       </span>
                     )}
                   </button>
@@ -439,7 +441,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
               >
                 {CATEGORY_OPTIONS.map((c) => (
                   <option key={c.key} value={c.key}>
-                    {c.label}
+                    {t(c.label)}
                   </option>
                 ))}
               </select>
@@ -450,7 +452,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 value={listing.spaceType}
                 onChange={(e) => setListing({ ...listing, spaceType: e.target.value })}
                 onBlur={() => saveListing({ spaceType: listing.spaceType })}
-                placeholder="Ej. Espacio completo, Habitación privada…"
+                placeholder={t("Ej. Espacio completo, Habitación privada…")}
               />
             </Field>
           </div>
@@ -492,19 +494,19 @@ export function ListingEditor({ listingId }: { listingId: string }) {
               value={listing.size ?? ""}
               onChange={(e) => setListing({ ...listing, size: e.target.value })}
               onBlur={() => saveListing({ size: listing.size || undefined })}
-              placeholder="Ej. 85 m²"
+              placeholder={t("Ej. 85 m²")}
             />
           </Field>
           <button
             type="button"
             className="text-xs font-medium text-[#dcb81e] underline"
             onClick={() => {
-              if (confirm("¿Generar un nuevo enlace (slug) desde el título actual? Los enlaces antiguos dejarán de funcionar.")) {
+              if (confirm(t("¿Generar un nuevo enlace (slug) desde el título actual? Los enlaces antiguos dejarán de funcionar."))) {
                 saveListing({ regenerateSlug: true, title: listing.title });
               }
             }}
           >
-            Regenerar URL amigable desde el título
+            {t("Regenerar URL amigable desde el título")}
           </button>
         </section>
       )}
@@ -560,9 +562,9 @@ export function ListingEditor({ listingId }: { listingId: string }) {
           <div className="overflow-hidden rounded-xl border border-[#ebebeb] bg-[#fafafa]">
             <div className="flex flex-col gap-3 border-b border-[#ebebeb] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#484848]">Mapa de ubicación</p>
+                <p className="text-sm font-semibold text-[#484848]">{t("Mapa de ubicación")}</p>
                 <p className="mt-0.5 max-w-xl text-xs text-[#888]">
-                  Usa el botón para colocar el pin según tu dirección; revisa que coincida con tu lugar y ajusta lat/lng si hace falta.
+                  {t("Usa el botón para colocar el pin según tu dirección; revisa que coincida con tu lugar y ajusta lat/lng si hace falta.")}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -606,7 +608,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                     }
                   }}
                 >
-                  {geocodeLoading ? "Buscando…" : "Centrar mapa según dirección"}
+                  {geocodeLoading ? t("Buscando…") : t("Centrar mapa según dirección")}
                 </button>
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${listing.lat},${listing.lng}`}
@@ -614,14 +616,14 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center rounded-full border border-[#ddd] bg-white px-4 py-2.5 text-sm font-semibold text-[#484848] transition hover:bg-[#f5f5f5]"
                 >
-                  Abrir en Google Maps
+                  {t("Abrir en Google Maps")}
                 </a>
               </div>
             </div>
             <div className="relative aspect-[21/9] min-h-[280px] w-full bg-[#e5e5e5] sm:aspect-auto sm:min-h-[320px]">
               <iframe
                 key={`${listing.lat}-${listing.lng}`}
-                title="Vista previa del mapa"
+                title={t("Vista previa del mapa")}
                 className="absolute inset-0 h-full w-full border-0"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
@@ -653,7 +655,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
             </Field>
           </div>
           <p className="text-xs text-[#888]">
-            El mapa usa Google Maps en vista incrustada (sin API propia). Si mueves lat/lng manualmente, el mapa se actualiza al guardar.
+            {t("El mapa usa Google Maps en vista incrustada (sin API propia). Si mueves lat/lng manualmente, el mapa se actualiza al guardar.")}
           </p>
         </section>
       )}
@@ -662,7 +664,8 @@ export function ListingEditor({ listingId }: { listingId: string }) {
       {tab === "contacto" && profile && (
         <section className="space-y-4 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
           <p className="text-sm text-[#666]">
-            Correo de acceso: <strong>{loginEmail}</strong> (solo para iniciar sesión). Los datos de abajo son los que verán los huéspedes.
+            {t("Correo de acceso:")} <strong>{loginEmail}</strong>{" "}
+            {t("(solo para iniciar sesión). Los datos de abajo son los que verán los huéspedes.")}
           </p>
           <Field label="Nombre público">
             <input
@@ -684,7 +687,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
 
           <div className="rounded-xl border border-[#ebebeb] bg-[#fafafa] p-5">
             <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-[#888]">
-              Foto de perfil (la ven los huéspedes)
+              {t("Foto de perfil (la ven los huéspedes)")}
             </p>
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
               <div className="flex shrink-0 flex-col items-center gap-2">
@@ -696,7 +699,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={profile.avatarUrl}
-                      alt="Tu foto de perfil"
+                      alt={t("Tu foto de perfil")}
                       className="h-full w-full object-cover"
                       onError={() => setAvatarLoadFailed(true)}
                     />
@@ -704,18 +707,18 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                   {(!profile.avatarUrl?.trim() || avatarLoadFailed) && (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-[#e8e8e8] px-2 text-center text-xs font-medium text-[#888]">
                       {!profile.avatarUrl?.trim() ? (
-                        "Sin foto"
+                        t("Sin foto")
                       ) : (
                         <>
-                          <span>No se pudo cargar</span>
-                          <span className="font-normal text-[#aaa]">Revisa la URL</span>
+                          <span>{t("No se pudo cargar")}</span>
+                          <span className="font-normal text-[#aaa]">{t("Revisa la URL")}</span>
                         </>
                       )}
                     </div>
                   )}
                 </div>
                 <span className="max-w-[140px] text-center text-[10px] text-[#aaa]">
-                  Vista previa actual
+                  {t("Vista previa actual")}
                 </span>
               </div>
               <div className="min-w-0 flex-1 space-y-3">
@@ -727,9 +730,9 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                     onChange={onAvatarUpload}
                     disabled={avatarUploading}
                   />
-                  {avatarUploading ? "Subiendo…" : "Subir imagen desde tu equipo"}
+                  {avatarUploading ? t("Subiendo…") : t("Subir imagen desde tu equipo")}
                 </label>
-                <p className="text-xs text-[#888]">JPG, PNG, WebP o GIF · máx. 4 MB</p>
+                <p className="text-xs text-[#888]">{t("JPG, PNG, WebP o GIF · máx. 4 MB")}</p>
                 <Field label="O pega una URL de imagen">
                   <input
                     className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
@@ -741,10 +744,10 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 </Field>
                 {profile.avatarUrl?.trim() ? (
                   <p className="break-all text-xs text-[#666]">
-                    <span className="font-semibold text-[#484848]">URL guardada:</span> {profile.avatarUrl}
+                    <span className="font-semibold text-[#484848]">{t("URL guardada:")}</span> {profile.avatarUrl}
                   </p>
                 ) : (
-                  <p className="text-xs text-[#aaa]">Aún no hay URL de foto.</p>
+                  <p className="text-xs text-[#aaa]">{t("Aún no hay URL de foto.")}</p>
                 )}
               </div>
             </div>
@@ -833,9 +836,9 @@ export function ListingEditor({ listingId }: { listingId: string }) {
             </Field>
           </div>
           <div className="rounded-lg border border-[#ebebeb] bg-[#fafafa] p-4">
-            <p className="mb-3 text-sm font-medium text-[#484848]">Reservas</p>
+            <p className="mb-3 text-sm font-medium text-[#484848]">{t("Reservas")}</p>
             <p className="mb-3 text-xs text-[#888]">
-              El huésped debe tener cuenta e iniciar sesión; siempre paga el total estimado antes de que la reserva avance.
+              {t("El huésped debe tener cuenta e iniciar sesión; siempre paga el total estimado antes de que la reserva avance.")}
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#ddd] bg-white p-3 text-sm">
@@ -846,9 +849,9 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                   onChange={() => saveListing({ bookingApprovalMode: "approval" })}
                 />
                 <span>
-                  <span className="font-medium text-[#484848]">Validar cada solicitud</span>
+                  <span className="font-medium text-[#484848]">{t("Validar cada solicitud")}</span>
                   <span className="mt-1 block text-xs text-[#888]">
-                    Tras el pago la reserva queda pendiente hasta que aceptes o rechaces.
+                    {t("Tras el pago la reserva queda pendiente hasta que aceptes o rechaces.")}
                   </span>
                 </span>
               </label>
@@ -860,9 +863,9 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                   onChange={() => saveListing({ bookingApprovalMode: "instant" })}
                 />
                 <span>
-                  <span className="font-medium text-[#484848]">Aceptación automática</span>
+                  <span className="font-medium text-[#484848]">{t("Aceptación automática")}</span>
                   <span className="mt-1 block text-xs text-[#888]">
-                    Tras el pago la reserva queda confirmada sin paso manual (salvo solapes o bloqueos).
+                    {t("Tras el pago la reserva queda confirmada sin paso manual (salvo solapes o bloqueos).")}
                   </span>
                 </span>
               </label>
@@ -875,7 +878,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
       {tab === "comodidades" && (
         <section className="space-y-6 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
           <div>
-            <p className="mb-3 text-sm font-medium text-[#484848]">Comodidades</p>
+            <p className="mb-3 text-sm font-medium text-[#484848]">{t("Comodidades")}</p>
             <div className="flex flex-wrap gap-2">
               {AMENITY_OPTIONS.map((a) => {
                 const on = listing.amenities.includes(a);
@@ -892,7 +895,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                       on ? "border-[#dcb81e] bg-[#dcb81e]/20 text-black" : "border-[#ddd] bg-white text-[#666] hover:border-[#dcb81e]"
                     }`}
                   >
-                    {a}
+                    {t(a)}
                   </button>
                 );
               })}
@@ -946,6 +949,7 @@ function ContractTab({
   hostName: string;
   onSave: (c: ListingContractSettings) => void;
 }) {
+  const t = useT();
   const [draft, setDraft] = useState<ListingContractSettings>(() =>
     defaultListingContract({
       ...listing.contract,
@@ -962,35 +966,36 @@ function ContractTab({
     if (persist) onSave(next);
   }
 
-  const selected = BOOKING_CONTRACT_TEMPLATES.find((t) => t.id === draft.templateId) ?? BOOKING_CONTRACT_TEMPLATES[0];
+  const selected = BOOKING_CONTRACT_TEMPLATES.find((tpl) => tpl.id === draft.templateId) ?? BOOKING_CONTRACT_TEMPLATES[0];
 
   return (
     <section className="space-y-5 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
       <div>
-        <h2 className="text-lg font-semibold text-[#484848]">Contrato de cada reserva</h2>
+        <h2 className="text-lg font-semibold text-[#484848]">{t("Contrato de cada reserva")}</h2>
         <p className="mt-1 text-sm text-[#888]">
-          Eliges la plantilla y pones tus datos. Al reservar, el huésped entra con el nombre, correo,
-          teléfono y dirección de su cuenta. Ambos firman el mismo documento.
+          {t(
+            "Eliges la plantilla y pones tus datos. Al reservar, el huésped entra con el nombre, correo, teléfono y dirección de su cuenta. Ambos firman el mismo documento."
+          )}
         </p>
       </div>
 
       <div className="grid gap-3">
-        {BOOKING_CONTRACT_TEMPLATES.map((t) => (
+        {BOOKING_CONTRACT_TEMPLATES.map((tpl) => (
           <label
-            key={t.id}
+            key={tpl.id}
             className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
-              draft.templateId === t.id ? "border-[#dcb81e] bg-[#dcb81e]/10" : "border-[#ebebeb] bg-white"
+              draft.templateId === tpl.id ? "border-[#dcb81e] bg-[#dcb81e]/10" : "border-[#ebebeb] bg-white"
             }`}
           >
             <input
               type="radio"
               name="contractTemplate"
-              checked={draft.templateId === t.id}
+              checked={draft.templateId === tpl.id}
               onChange={() =>
                 patch(
                   {
-                    templateId: t.id,
-                    extraClauses: draft.extraClauses || t.defaultExtraClauses,
+                    templateId: tpl.id,
+                    extraClauses: draft.extraClauses || tpl.defaultExtraClauses,
                     cancellationOverride: undefined,
                   },
                   true
@@ -998,8 +1003,8 @@ function ContractTab({
               }
             />
             <span>
-              <span className="font-medium text-[#484848]">{t.title}</span>
-              <span className="mt-1 block text-xs text-[#888]">{t.blurb}</span>
+              <span className="font-medium text-[#484848]">{t(tpl.title)}</span>
+              <span className="mt-1 block text-xs text-[#888]">{t(tpl.blurb)}</span>
             </span>
           </label>
         ))}
@@ -1031,7 +1036,7 @@ function ContractTab({
           onBlur={() => onSave(draft)}
         />
       </Field>
-      <Field label={`Depósito pactado (MXN) · ${selected.depositHint}`}>
+      <Field label={`${t("Depósito pactado (MXN)")} · ${t(selected.depositHint)}`}>
         <input
           type="number"
           min={0}
@@ -1067,8 +1072,9 @@ function ContractTab({
           onChange={(e) => patch({ hostAcknowledged: e.target.checked }, true)}
         />
         <span>
-          Confirmo esta plantilla y mis datos. En reservas de aceptación automática, esto cuenta
-          como mi firma de oferta.
+          {t(
+            "Confirmo esta plantilla y mis datos. En reservas de aceptación automática, esto cuenta como mi firma de oferta."
+          )}
         </span>
       </label>
     </section>
@@ -1076,9 +1082,10 @@ function ContractTab({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const t = useT();
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#888]">{label}</span>
+      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#888]">{t(label)}</span>
       {children}
     </label>
   );
@@ -1093,9 +1100,10 @@ function RuleToggle({
   value: boolean | null;
   onChange: (v: boolean | null) => void;
 }) {
+  const t = useT();
   return (
     <div className="flex items-center justify-between rounded-lg border border-[#ebebeb] px-4 py-3">
-      <span className="text-sm font-medium text-[#484848]">{label}</span>
+      <span className="text-sm font-medium text-[#484848]">{t(label)}</span>
       <select
         className="rounded border border-[#ddd] px-2 py-1 text-sm"
         value={value === null ? "null" : value ? "yes" : "no"}
@@ -1104,9 +1112,9 @@ function RuleToggle({
           onChange(v);
         }}
       >
-        <option value="no">No</option>
-        <option value="yes">Sí</option>
-        <option value="null">Preguntar / no indicado</option>
+        <option value="no">{t("No")}</option>
+        <option value="yes">{t("Sí")}</option>
+        <option value="null">{t("Preguntar / no indicado")}</option>
       </select>
     </div>
   );

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AuthNav, AuthNavMobile } from "@/components/auth-nav";
+import { useT } from "@/components/i18n-provider";
+import { LangSwitch } from "@/components/lang-switch";
 
 const nav = [
   { href: "/", label: "Inicio" },
@@ -21,6 +23,7 @@ type Props = {
 };
 
 export function SiteHeader({ heroSentinelRef }: Props) {
+  const t = useT();
   // When no sentinel is provided (e.g. inner pages), default to solid black.
   const [heroVisible, setHeroVisible] = useState(!!heroSentinelRef);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -61,7 +64,7 @@ export function SiteHeader({ heroSentinelRef }: Props) {
             type="button"
             className="flex items-center justify-center text-white lg:hidden"
             onClick={() => setMobileOpen(true)}
-            aria-label="Abrir menú"
+            aria-label={t("Abrir menú")}
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -80,7 +83,7 @@ export function SiteHeader({ heroSentinelRef }: Props) {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Principal">
+          <nav className="hidden items-center gap-0.5 lg:flex" aria-label={t("Principal")}>
             {nav.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -92,7 +95,7 @@ export function SiteHeader({ heroSentinelRef }: Props) {
                   onMouseEnter={(e) => { e.currentTarget.style.color = "#dcb81e"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = isActive ? "#dcb81e" : "#ffffff"; }}
                 >
-                  {item.label}
+                  {t(item.label)}
                 </Link>
               );
             })}
@@ -100,13 +103,16 @@ export function SiteHeader({ heroSentinelRef }: Props) {
 
           {/* Auth */}
           <div className="flex items-center gap-4 shrink-0">
+            <div className="hidden sm:flex">
+              <LangSwitch dark />
+            </div>
             <AuthNav />
             <Link
               href="/register?intent=host"
               className="rounded px-4 py-2 text-sm font-semibold text-black transition hover:brightness-90"
               style={{ backgroundColor: "#dcb81e" }}
             >
-              Enviar propiedad
+              {t("Enviar propiedad")}
             </Link>
           </div>
         </div>
@@ -117,16 +123,19 @@ export function SiteHeader({ heroSentinelRef }: Props) {
         <div className="fixed inset-0 z-[100] flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <nav className="relative z-10 flex w-72 flex-col gap-1 bg-black p-6 shadow-2xl">
-            <button
-              type="button"
-              className="mb-4 self-end text-white"
-              onClick={() => setMobileOpen(false)}
-              aria-label="Cerrar menú"
-            >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="mb-4 flex items-center justify-between">
+              <LangSwitch dark />
+              <button
+                type="button"
+                className="text-white"
+                onClick={() => setMobileOpen(false)}
+                aria-label={t("Cerrar menú")}
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
             {nav.map((item) => (
               <Link
                 key={item.href}
@@ -134,7 +143,7 @@ export function SiteHeader({ heroSentinelRef }: Props) {
                 className="block rounded px-3 py-3 text-sm font-medium text-white transition hover:text-[#dcb81e]"
                 onClick={() => setMobileOpen(false)}
               >
-                {item.label}
+                {t(item.label)}
               </Link>
             ))}
             <a
@@ -142,7 +151,7 @@ export function SiteHeader({ heroSentinelRef }: Props) {
               className="mt-3 flex items-center justify-between rounded-lg px-3 py-3 text-sm font-semibold text-black"
               style={{ backgroundColor: "#dcb81e" }}
             >
-              Usar la app de Cabibee
+              {t("Usar la app de Cabibee")}
               <span aria-hidden>→</span>
             </a>
             <hr className="my-3 border-white/10" />

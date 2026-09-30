@@ -1,12 +1,17 @@
+import { getT } from "@/lib/i18n/server";
 import { TabHeader } from "../../_components/top-bar";
 import { HostInbox } from "./host-inbox";
 
-export const metadata = { title: "Mensajes" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("Mensajes") };
+}
 
-export default function AppHostMessagesPage() {
+export default async function AppHostMessagesPage() {
+  const t = await getT();
   return (
     <>
-      <TabHeader title="Mensajes" subtitle="Chat web de tus anuncios. Es gratis." />
+      <TabHeader title={t("Mensajes")} subtitle={t("Chat web de tus anuncios. Es gratis.")} />
       <HostInbox />
     </>
   );

@@ -1,20 +1,22 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useT } from "@/components/i18n-provider";
 import { ChatThread, type ChatMessage } from "../../../../_components/chat-thread";
 import type { HostThread } from "../../host-inbox";
 
 export function HostChat({ listingId, guestSessionId }: { listingId: string; guestSessionId: string }) {
+  const t = useT();
   const [meta, setMeta] = useState<{ guestName: string; listingTitle: string; guestEmail?: string } | null>(null);
 
   const load = useCallback(async (): Promise<ChatMessage[]> => {
     const res = await fetch("/api/host/inbox", { cache: "no-store" });
     const data = await res.json();
     const threads: HostThread[] = Array.isArray(data.threads) ? data.threads : [];
-    const t = threads.find((x) => x.listingId === listingId && x.guestSessionId === guestSessionId);
-    if (!t) return [];
-    setMeta({ guestName: t.guestName, listingTitle: t.listingTitle, guestEmail: t.guestEmail });
-    return t.messages;
+    const th = threads.find((x) => x.listingId === listingId && x.guestSessionId === guestSessionId);
+    if (!th) return [];
+    setMeta({ guestName: th.guestName, listingTitle: th.listingTitle, guestEmail: th.guestEmail });
+    return th.messages;
   }, [listingId, guestSessionId]);
 
   const send = useCallback(
@@ -27,24 +29,24 @@ export function HostChat({ listingId, guestSessionId }: { listingId: string; gue
         });
         if (res.ok) return null;
         const j = await res.json().catch(() => ({}));
-        return typeof j.error === "string" ? j.error : "No se pudo enviar.";
+        return t(typeof j.error === "string" ? j.error : "No se pudo enviar.");
       } catch {
-        return "Sin conexión.";
+        return t("Sin conexión.");
       }
     },
-    [listingId, guestSessionId]
+    [listingId, guestSessionId, t]
   );
 
   return (
     <ChatThread
-      title={meta?.guestName ?? "Conversación"}
+      title={meta?.guestName ?? t("Conversación")}
       subtitle={meta ? `${meta.listingTitle}${meta.guestEmail ? ` · ${meta.guestEmail}` : ""}` : undefined}
       back="/host/mensajes"
       me="host"
       seenKey={`h:${listingId}:${guestSessionId}`}
       load={load}
       send={send}
-      emptyText="No encontramos esta conversación."
+      emptyText={t("No encontramos esta conversación.")}
     />
   );
 }

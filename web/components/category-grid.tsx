@@ -1,3 +1,4 @@
+import { useT } from "@/components/i18n-provider";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { countListingsForTipo } from "@/lib/mock-data";
 
@@ -42,7 +43,7 @@ const categories = [
     label: "Tropical",
     count: 3,
     href: "/alojamientos?tipo=tropical",
-    bg: "https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=800&q=80",
+    bg: "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800&q=80",
   },
   {
     label: "Frente al mar",
@@ -54,18 +55,19 @@ const categories = [
     label: "Albercas",
     count: 2,
     href: "/alojamientos?tipo=albercas",
-    bg: "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800&q=80",
+    bg: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
   },
 ];
 
 export function CategoryGrid() {
+  const t = useT();
   return (
     <section className="bg-white py-14 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Heading with gold underline */}
         <ScrollReveal>
           <div className="mb-10 text-center">
-            <h2 className="text-3xl font-normal text-[#000000]">Encuentra tu estilo de viaje</h2>
+            <h2 className="text-3xl font-normal text-[#000000]">{t("Encuentra tu estilo de viaje")}</h2>
             <div className="mx-auto mt-2 h-1" style={{ width: "200px", backgroundColor: "#dcb81e" }} />
           </div>
         </ScrollReveal>
@@ -88,10 +90,10 @@ export function CategoryGrid() {
                 <div className="absolute inset-0 bg-black/40 transition-opacity duration-300 group-hover:bg-black/55" />
                 {/* Text */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
-                  <h4 className="text-xl font-semibold text-white drop-shadow-md">{cat.label}</h4>
+                  <h4 className="text-xl font-semibold text-white drop-shadow-md">{t(cat.label)}</h4>
                   <div className="text-sm font-light text-white/80 drop-shadow-sm">
                     {countListingsForTipo(new URLSearchParams(cat.href.split("?")[1] ?? "").get("tipo") ?? "")}{" "}
-                    Listados
+                    {t("Listados")}
                   </div>
                 </div>
               </a>

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useT } from "@/components/i18n-provider";
 
 const TABS = [
   { id: "descripcion", label: "Descripción" },
@@ -11,6 +12,7 @@ const TABS = [
 ];
 
 export function ListingNav() {
+  const t = useT();
   const [active, setActive] = useState("descripcion");
   const [stuck, setStuck] = useState(false);
 
@@ -53,7 +55,7 @@ export function ListingNav() {
               color: active === tab.id ? "#dcb81e" : "#484848",
             }}
           >
-            {tab.label}
+            {t(tab.label)}
           </button>
         ))}
       </div>

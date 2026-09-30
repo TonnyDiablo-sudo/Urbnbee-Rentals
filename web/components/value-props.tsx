@@ -1,3 +1,4 @@
+import { useT } from "@/components/i18n-provider";
 import { ScrollReveal } from "@/components/scroll-reveal";
 
 const cards = [
@@ -19,6 +20,7 @@ const cards = [
 ];
 
 export function ValueProps() {
+  const t = useT();
   return (
     <section className="bg-white py-14 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -38,7 +40,7 @@ export function ValueProps() {
                     style={{ border: "1px solid #ebebeb" }}
                   >
                     <Icon />
-                    <h3 className="text-center text-xl font-semibold text-[#484848]">{c.title}</h3>
+                    <h3 className="text-center text-xl font-semibold text-[#484848]">{t(c.title)}</h3>
                   </div>
 
                   {/* BACK */}
@@ -46,8 +48,8 @@ export function ValueProps() {
                     className="absolute inset-0 flex flex-col items-center justify-center rounded p-8 [backface-visibility:hidden] [transform:rotateY(180deg)]"
                     style={{ backgroundColor: "#ffffff", border: "1px solid #ebebeb" }}
                   >
-                    <h3 className="mb-3 text-center text-lg font-semibold text-[#484848]">{c.title}</h3>
-                    <p className="text-center text-sm leading-relaxed text-[#3a3a3a]">{c.body}</p>
+                    <h3 className="mb-3 text-center text-lg font-semibold text-[#484848]">{t(c.title)}</h3>
+                    <p className="text-center text-sm leading-relaxed text-[#3a3a3a]">{t(c.body)}</p>
                   </div>
                 </div>
               </div>

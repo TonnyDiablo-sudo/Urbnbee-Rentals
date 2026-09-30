@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useT } from "@/components/i18n-provider";
 
 type Lookup = {
   id: string;
@@ -24,6 +25,7 @@ type Lookup = {
 };
 
 export function ContractViewClient({ token, wantPay }: { token: string; wantPay?: boolean }) {
+  const t = useT();
   const [booking, setBooking] = useState<Lookup | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [signedName, setSignedName] = useState("");
@@ -57,16 +59,16 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
   if (err) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <p className="text-red-600">{err}</p>
+        <p className="text-red-600">{t(err)}</p>
         <Link href="/" className="mt-6 inline-block text-sm text-[#dcb81e] underline">
-          Volver al inicio
+          {t("Volver al inicio")}
         </Link>
       </div>
     );
   }
 
   if (!booking) {
-    return <div className="mx-auto max-w-2xl px-4 py-16 text-center text-[#888]">Cargando…</div>;
+    return <div className="mx-auto max-w-2xl px-4 py-16 text-center text-[#888]">{t("Cargando…")}</div>;
   }
 
   const row = booking;
@@ -121,24 +123,24 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">Contrato</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">{t("Contrato")}</p>
       <h1 className="mt-1 text-2xl font-semibold text-[#484848]">
-        {c?.templateTitle ?? "Contrato de reserva"}
+        {c?.templateTitle ?? t("Contrato de reserva")}
       </h1>
       <p className="mt-2 text-sm text-[#888]">
-        {booking.listingTitle} · código{" "}
+        {booking.listingTitle} · {t("código")}{" "}
         <span className="font-mono tracking-widest">{booking.token}</span>
       </p>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <SignatureCard
-          role="Anfitrión"
+          role={t("Anfitrión")}
           done={Boolean(c?.hostAcceptedAt)}
           name={c?.hostAcceptedName}
           at={c?.hostAcceptedAt}
         />
         <SignatureCard
-          role="Huésped"
+          role={t("Huésped")}
           done={Boolean(c?.guestAcceptedAt)}
           name={c?.guestAcceptedName}
           at={c?.guestAcceptedAt}
@@ -149,7 +151,7 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
         <>
           <div className="mt-6 flex justify-end">
             <a href={pdfHref} className="text-sm font-medium text-[#dcb81e] underline">
-              Descargar PDF
+              {t("Descargar PDF")}
             </a>
           </div>
           <pre
@@ -161,13 +163,13 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
         </>
       ) : (
         <p className="mt-6 text-sm text-[#888]">
-          El contrato aún no está listo. Si acabas de reservar, recarga en un momento.
+          {t("El contrato aún no está listo. Si acabas de reservar, recarga en un momento.")}
         </p>
       )}
 
       {wantPay && needsGuestSign && (
         <p className="mt-6 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
-          Lee y firma el contrato para poder pagar.
+          {t("Lee y firma el contrato para poder pagar.")}
         </p>
       )}
 
@@ -202,12 +204,12 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
             }
           }}
         >
-          <h2 className="text-lg font-semibold text-[#484848]">Firma del huésped</h2>
+          <h2 className="text-lg font-semibold text-[#484848]">{t("Firma del huésped")}</h2>
           <p className="text-sm text-[#888]">
-            Usamos el nombre de tu cuenta. Revísalo y firma para celebrar el contrato.
+            {t("Usamos el nombre de tu cuenta. Revísalo y firma para celebrar el contrato.")}
           </p>
           <label className="block">
-            <span className="text-xs text-[#888]">Nombre con el que firmas</span>
+            <span className="text-xs text-[#888]">{t("Nombre con el que firmas")}</span>
             <input
               value={signedName}
               onChange={(e) => setSignedName(e.target.value)}
@@ -223,18 +225,17 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
               className="mt-1 accent-[#dcb81e]"
             />
             <span>
-              He leído este contrato y lo firmo. Cabibee solo registra el acuerdo; el hospedaje es
-              entre anfitrión y huésped.
+              {t("He leído este contrato y lo firmo. Cabibee solo registra el acuerdo; el hospedaje es entre anfitrión y huésped.")}
             </span>
           </label>
-          {saveErr && <p className="text-sm text-red-600">{saveErr}</p>}
+          {saveErr && <p className="text-sm text-red-600">{t(saveErr)}</p>}
           <button
             type="submit"
             disabled={saving || !accepted || signedName.trim().length < 3}
             className="w-full rounded py-3 text-sm font-semibold text-black disabled:opacity-60"
             style={{ backgroundColor: "#dcb81e" }}
           >
-            {saving ? "Firmando…" : "Firmar contrato"}
+            {saving ? t("Firmando…") : t("Firmar contrato")}
           </button>
         </form>
       )}
@@ -247,13 +248,13 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
 
       {c?.accepted && (
         <p className="mt-6 rounded border border-green-200 bg-green-50 p-3 text-sm text-green-900">
-          Firmado por ambas partes. Puedes descargar el PDF cuando quieras.
+          {t("Firmado por ambas partes. Puedes descargar el PDF cuando quieras.")}
         </p>
       )}
 
       {canPay && (
         <div className="mt-6 space-y-3">
-          {payErr && <p className="text-sm text-red-600">{payErr}</p>}
+          {payErr && <p className="text-sm text-red-600">{t(payErr)}</p>}
           <button
             type="button"
             disabled={paying}
@@ -261,13 +262,13 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
             className="w-full rounded py-3 text-sm font-semibold text-black disabled:opacity-60"
             style={{ backgroundColor: "#dcb81e" }}
           >
-            {paying ? "Abriendo pago…" : "Pagar ahora"}
+            {paying ? t("Abriendo pago…") : t("Pagar ahora")}
           </button>
         </div>
       )}
 
       <Link href={`/finish/${token}`} className="mt-8 inline-block text-sm text-[#dcb81e] underline">
-        Ir a la reserva
+        {t("Ir a la reserva")}
       </Link>
     </div>
   );
@@ -284,17 +285,18 @@ function SignatureCard({
   name?: string;
   at?: string;
 }) {
+  const t = useT();
   return (
     <div className="rounded border p-3 text-sm" style={{ borderColor: "#ebebeb" }}>
       <p className="text-xs uppercase tracking-wide text-[#aaa]">{role}</p>
       {done ? (
         <>
-          <p className="mt-1 font-medium text-green-800">Firmado</p>
+          <p className="mt-1 font-medium text-green-800">{t("Firmado")}</p>
           {name && <p className="text-[#484848]">{name}</p>}
           {at && <p className="text-xs text-[#888]">{at.slice(0, 19).replace("T", " ")} UTC</p>}
         </>
       ) : (
-        <p className="mt-1 font-medium text-amber-800">Pendiente de firma</p>
+        <p className="mt-1 font-medium text-amber-800">{t("Pendiente de firma")}</p>
       )}
     </div>
   );

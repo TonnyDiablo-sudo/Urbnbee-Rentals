@@ -3,8 +3,10 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useT } from "@/components/i18n-provider";
 
 export default function GuestProfilePage() {
+  const t = useT();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState("");
@@ -120,16 +122,16 @@ export default function GuestProfilePage() {
   }
 
   if (loading) {
-    return <p className="text-[#888]">Cargando…</p>;
+    return <p className="text-[#888]">{t("Cargando…")}</p>;
   }
 
   return (
     <div className="max-w-xl">
-      <h1 className="text-2xl font-semibold text-[#484848]">Tu perfil</h1>
-      <p className="mt-2 text-sm text-[#888]">Nombre, teléfono y foto se usan en reservas y mensajes.</p>
+      <h1 className="text-2xl font-semibold text-[#484848]">{t("Tu perfil")}</h1>
+      <p className="mt-2 text-sm text-[#888]">{t("Nombre, teléfono y foto se usan en reservas y mensajes.")}</p>
       {toast && (
         <p className="mt-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800" role="status">
-          {toast}
+          {t(toast)}
         </p>
       )}
 
@@ -148,13 +150,13 @@ export default function GuestProfilePage() {
             )}
           </div>
           <label className="mt-3 cursor-pointer text-xs font-semibold text-[#dcb81e] underline">
-            {uploading ? "Subiendo…" : "Cambiar foto"}
+            {uploading ? t("Subiendo…") : t("Cambiar foto")}
             <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={onAvatar} disabled={uploading} />
           </label>
         </div>
         <div className="min-w-0 flex-1 space-y-4">
           <label className="block text-xs font-semibold uppercase tracking-wide text-[#888]">
-            Nombre completo
+            {t("Nombre completo")}
             <input
               className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm text-[#484848]"
               value={fullName}
@@ -162,11 +164,11 @@ export default function GuestProfilePage() {
             />
           </label>
           <label className="block text-xs font-semibold uppercase tracking-wide text-[#888]">
-            Correo (solo lectura)
+            {t("Correo (solo lectura)")}
             <input className="mt-1 w-full rounded-lg border border-[#ebebeb] bg-[#fafafa] px-3 py-2 text-sm" readOnly value={email} />
           </label>
           <label className="block text-xs font-semibold uppercase tracking-wide text-[#888]">
-            Teléfono
+            {t("Teléfono")}
             <input
               type="tel"
               className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm"
@@ -175,12 +177,12 @@ export default function GuestProfilePage() {
             />
           </label>
           <label className="block text-xs font-semibold uppercase tracking-wide text-[#888]">
-            Dirección (para el contrato)
+            {t("Dirección (para el contrato)")}
             <input
               className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm"
               value={addressLine}
               onChange={(e) => setAddressLine(e.target.value)}
-              placeholder="Calle, número, colonia, ciudad"
+              placeholder={t("Calle, número, colonia, ciudad")}
             />
           </label>
           <button
@@ -188,20 +190,20 @@ export default function GuestProfilePage() {
             onClick={() => void saveAccount()}
             className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white"
           >
-            Guardar datos de cuenta
+            {t("Guardar datos de cuenta")}
           </button>
         </div>
       </div>
 
       <div className="mt-8 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
         <label className="block text-xs font-semibold uppercase tracking-wide text-[#888]">
-          Sobre ti (opcional)
+          {t("Sobre ti (opcional)")}
           <textarea
             className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm"
             rows={4}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder="Unas líneas sobre ti…"
+            placeholder={t("Unas líneas sobre ti…")}
           />
         </label>
         <button
@@ -210,7 +212,7 @@ export default function GuestProfilePage() {
           className="mt-4 rounded-full px-5 py-2 text-sm font-semibold text-black"
           style={{ backgroundColor: "#dcb81e" }}
         >
-          Guardar biografía
+          {t("Guardar biografía")}
         </button>
       </div>
     </div>

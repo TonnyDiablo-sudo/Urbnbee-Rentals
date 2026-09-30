@@ -5,7 +5,9 @@ import { useCallback, useEffect, useState } from "react";
 import { BookingDepositPanel } from "@/components/booking-deposit-panel";
 import { BookingReviewPanel } from "@/components/booking-review-panel";
 import { BookingScreeningPanel } from "@/components/booking-screening-panel";
+import { useLang, useT } from "@/components/i18n-provider";
 import type { BookingDepositRecord } from "@/lib/booking-deposit-types";
+import { numberLocale } from "@/lib/i18n";
 import type { ScreeningPublicView, ScreeningQuote } from "@/lib/screening-types";
 import type { StayReviewRecord } from "@/lib/stay-review-types";
 
@@ -46,6 +48,8 @@ const labels: Record<string, string> = {
 };
 
 export default function GuestBookingsPage() {
+  const t = useT();
+  const locale = numberLocale(useLang());
   const [rows, setRows] = useState<Row[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [consentText, setConsentText] = useState("");
@@ -74,9 +78,9 @@ export default function GuestBookingsPage() {
 
   return (
     <div className="max-w-4xl">
-      <h1 className="text-2xl font-semibold text-[#484848]">Mis reservas</h1>
-      <p className="mt-2 text-sm text-[#888]">Historial y estado de cada solicitud.</p>
-      {err && <p className="mt-4 text-sm text-red-600">{err}</p>}
+      <h1 className="text-2xl font-semibold text-[#484848]">{t("Mis reservas")}</h1>
+      <p className="mt-2 text-sm text-[#888]">{t("Historial y estado de cada solicitud.")}</p>
+      {err && <p className="mt-4 text-sm text-red-600">{t(err)}</p>}
       <div className="mt-8 space-y-4">
         {rows.map((b) => (
           <div
@@ -87,34 +91,36 @@ export default function GuestBookingsPage() {
               <div>
                 <p className="font-semibold text-[#484848]">{b.listingTitle}</p>
                 <p className="mt-1 text-sm text-[#3a3a3a]">
-                  {b.checkIn} → {b.checkOut} · {b.nights} noches
+                  {b.checkIn} → {b.checkOut} · {t("{n} noches", { n: b.nights })}
                 </p>
                 <p className="mt-2 text-sm">
-                  Total estimado:{" "}
-                  <span className="font-medium">${b.estimatedTotalMxn.toLocaleString("es-MX")} MXN</span>
+                  {t("Total estimado:")}{" "}
+                  <span className="font-medium">${b.estimatedTotalMxn.toLocaleString(locale)} MXN</span>
                   {b.paidAt && !b.refundedAt && (
                     <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-900">
-                      Pagado
+                      {t("Pagado")}
                     </span>
                   )}
                   {b.refundedAt && (
                     <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-900">
-                      Reembolsado
+                      {t("Reembolsado")}
                     </span>
                   )}
                 </p>
                 {b.refundedAt && (
                   <p className="mt-2 text-sm text-[#3a3a3a]">
-                    Te devolvimos{" "}
+                    {t("Te devolvimos")}{" "}
                     <span className="font-medium">
-                      ${(b.refundAmountMxn ?? 0).toLocaleString("es-MX")} MXN
+                      ${(b.refundAmountMxn ?? 0).toLocaleString(locale)} MXN
                     </span>{" "}
-                    el {b.refundedAt.slice(0, 10)}. Tu banco puede tardar de 5 a 10 días en reflejarlo.
+                    {t("el {date}. Tu banco puede tardar de 5 a 10 días en reflejarlo.", {
+                      date: b.refundedAt.slice(0, 10),
+                    })}
                   </p>
                 )}
               </div>
               <span className="rounded-full bg-[#f5f5f5] px-3 py-1 text-xs font-semibold text-[#484848]">
-                {labels[b.status] ?? b.status}
+                {labels[b.status] ? t(labels[b.status]) : b.status}
               </span>
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
@@ -123,7 +129,7 @@ export default function GuestBookingsPage() {
                   href={`/listings/${b.listingSlug}`}
                   className="text-sm font-medium text-[#dcb81e] underline"
                 >
-                  Ver anuncio
+                  {t("Ver anuncio")}
                 </Link>
               )}
               {(b.status === "AWAITING_PAYMENT" ||
@@ -134,24 +140,24 @@ export default function GuestBookingsPage() {
                   href={b.status === "AWAITING_PAYMENT" ? `/contrato/${b.token}?pay=1` : `/contrato/${b.token}`}
                   className="text-sm font-medium text-[#dcb81e] underline"
                 >
-                  Firmar contrato
+                  {t("Firmar contrato")}
                 </Link>
               )}
               {b.contract && (
                 <>
                   <Link href={`/contrato/${b.token}`} className="text-sm font-medium text-[#dcb81e] underline">
-                    Ver contrato
+                    {t("Ver contrato")}
                   </Link>
                   <a
                     href={`/api/bookings/contract?token=${encodeURIComponent(b.token)}&format=pdf`}
                     className="text-sm font-medium text-[#dcb81e] underline"
                   >
-                    Descargar PDF
+                    {t("Descargar PDF")}
                   </a>
                 </>
               )}
               <Link href={`/finish/${b.token}`} className="text-sm font-medium text-[#888] underline">
-                Ver reserva
+                {t("Ver reserva")}
               </Link>
             </div>
             <BookingScreeningPanel
@@ -179,7 +185,7 @@ export default function GuestBookingsPage() {
           </div>
         ))}
         {rows.length === 0 && !err && (
-          <p className="text-sm text-[#888]">No hay reservas con esta cuenta todavía.</p>
+          <p className="text-sm text-[#888]">{t("No hay reservas con esta cuenta todavía.")}</p>
         )}
       </div>
     </div>

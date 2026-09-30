@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useT } from "@/components/i18n-provider";
 
 export type PushState =
   | "loading"
@@ -135,21 +136,22 @@ const HINT: Record<PushState, string> = {
 
 /** Renglón para Perfil / Menú. */
 export function PushToggle() {
+  const t = useT();
   const { state, busy, error, enable, disable } = usePush();
   if (state === "loading") return null;
   const actionable = state === "on" || state === "off";
   return (
     <li className="flex items-center gap-3 py-4">
       <div className="min-w-0 flex-1">
-        <p className="text-[15px] text-[#222]">Notificaciones</p>
-        <p className="text-xs text-[#888]">{error ?? HINT[state]}</p>
+        <p className="text-[15px] text-[#222]">{t("Notificaciones")}</p>
+        <p className="text-xs text-[#888]">{t(error ?? HINT[state])}</p>
       </div>
       {actionable && (
         <button
           type="button"
           role="switch"
           aria-checked={state === "on"}
-          aria-label="Notificaciones"
+          aria-label={t("Notificaciones")}
           disabled={busy}
           onClick={() => void (state === "on" ? disable() : enable())}
           className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 ${
@@ -169,6 +171,7 @@ export function PushToggle() {
 
 /** Tarjeta para "Hoy" del anfitrión: sólo aparece si puede activarlos y no la ha descartado. */
 export function PushPrompt() {
+  const t = useT();
   const { state, busy, error, enable } = usePush();
   const [dismissed, setDismissed] = useState(false);
 
@@ -176,11 +179,11 @@ export function PushPrompt() {
   if (state !== "off" || dismissed || localStorage.getItem(DISMISS_KEY) === "1") return null;
   return (
     <div className="rounded-2xl border border-[#f1e4a6] bg-[#fffbea] p-4">
-      <p className="text-[15px] font-semibold text-[#222]">Entérate al momento</p>
+      <p className="text-[15px] font-semibold text-[#222]">{t("Entérate al momento")}</p>
       <p className="mt-1 text-sm text-[#555]">
-        Te avisamos cuando un huésped te escriba o te llegue una solicitud, aunque tengas la app cerrada.
+        {t("Te avisamos cuando un huésped te escriba o te llegue una solicitud, aunque tengas la app cerrada.")}
       </p>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-red-600">{t(error)}</p>}
       <div className="mt-3 flex gap-2">
         <button
           type="button"
@@ -188,7 +191,7 @@ export function PushPrompt() {
           onClick={() => void enable()}
           className="rounded-xl bg-[#111] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
         >
-          {busy ? "Activando…" : "Activar avisos"}
+          {busy ? t("Activando…") : t("Activar avisos")}
         </button>
         <button
           type="button"
@@ -198,7 +201,7 @@ export function PushPrompt() {
           }}
           className="rounded-xl px-4 py-2.5 text-sm font-medium text-[#717171]"
         >
-          Ahora no
+          {t("Ahora no")}
         </button>
       </div>
     </div>

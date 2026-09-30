@@ -2,6 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
+import { numberLocale } from "@/lib/i18n";
 import { IconShield } from "../_components/icons";
 import { WebLink } from "../_components/site-origin";
 import {
@@ -45,6 +47,8 @@ const KYC_LABEL: Record<string, string> = {
 const RETURN = "/membresia";
 
 export function GuestMembership() {
+  const t = useT();
+  const lang = useLang();
   const params = useSearchParams();
   const justPaid = params.get("subscription") === "success";
   const [data, setData] = useState<Status | null>(null);
@@ -88,7 +92,7 @@ export function GuestMembership() {
     if (e) setErr(e);
   };
 
-  if (!data) return <p className="px-5 py-6 text-sm text-[#999]">{err ?? "Cargando…"}</p>;
+  if (!data) return <p className="px-5 py-6 text-sm text-[#999]">{t(err ?? "Cargando…")}</p>;
 
   const subActive = data.subscriptionStatus === "active" || data.subscriptionStatus === "trialing";
   const plans = data.catalogPlansByRegion[region];
@@ -100,32 +104,32 @@ export function GuestMembership() {
     <div className="space-y-6 px-5 py-5">
       {justPaid && (
         <p className="rounded-2xl bg-[#e6f6ea] px-4 py-3 text-sm text-[#1e7a3a]">
-          Pago recibido. Puede tardar unos segundos en reflejarse.
+          {t("Pago recibido. Puede tardar unos segundos en reflejarse.")}
         </p>
       )}
-      {err && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{err}</p>}
+      {err && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(err)}</p>}
 
       <div className={`rounded-2xl p-5 ${data.eligible ? "bg-[#111] text-white" : "bg-[#fdf6d8] text-[#5c4a0a]"}`}>
         <IconShield className="h-7 w-7" />
         <p className="mt-3 text-lg font-bold">
-          {data.eligible ? "Ya puedes reservar" : "Todavía no puedes reservar"}
+          {data.eligible ? t("Ya puedes reservar") : t("Todavía no puedes reservar")}
         </p>
         <p className={`mt-1 text-sm ${data.eligible ? "text-white/75" : ""}`}>
           {data.eligible
-            ? "Tu cuenta cumple con lo que piden los anfitriones de Cabibee."
+            ? t("Tu cuenta cumple con lo que piden los anfitriones de Cabibee.")
             : !subActive && data.bookingPassesRemaining === 0
-              ? "Elige una membresía o un pase por reserva."
-              : "Falta comprobar tu identidad con documento y selfie."}
+              ? t("Elige una membresía o un pase por reserva.")
+              : t("Falta comprobar tu identidad con documento y selfie.")}
         </p>
       </div>
 
       <dl className="divide-y divide-[#f0f0f0] rounded-2xl border border-[#ebebeb] text-[15px]">
-        <Row label="Membresía" value={SUB_LABEL[data.subscriptionStatus] ?? data.subscriptionStatus} />
+        <Row label={t("Membresía")} value={SUB_LABEL[data.subscriptionStatus] ? t(SUB_LABEL[data.subscriptionStatus]) : data.subscriptionStatus} />
         {data.currentPeriodEnd && subActive && (
-          <Row label="Vigente hasta" value={new Date(data.currentPeriodEnd).toLocaleDateString("es-MX")} />
+          <Row label={t("Vigente hasta")} value={new Date(data.currentPeriodEnd).toLocaleDateString(numberLocale(lang))} />
         )}
-        <Row label="Pases por reserva" value={String(data.bookingPassesRemaining)} />
-        {data.identityEnabled && <Row label="Identidad" value={KYC_LABEL[data.kycStatus] ?? data.kycStatus} />}
+        <Row label={t("Pases por reserva")} value={String(data.bookingPassesRemaining)} />
+        {data.identityEnabled && <Row label={t("Identidad")} value={KYC_LABEL[data.kycStatus] ? t(KYC_LABEL[data.kycStatus]) : data.kycStatus} />}
       </dl>
 
       {needsIdentity && (subActive || data.bookingPassesRemaining > 0) && (
@@ -135,14 +139,14 @@ export function GuestMembership() {
           onClick={() => void verify()}
           className="w-full rounded-xl bg-[#dcb81e] py-3.5 text-[15px] font-semibold text-black disabled:opacity-60"
         >
-          {data.kycStatus === "pending" ? "Continuar verificación de identidad" : "Verificar mi identidad"}
+          {data.kycStatus === "pending" ? t("Continuar verificación de identidad") : t("Verificar mi identidad")}
         </button>
       )}
 
       {!subActive && (
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-[#222]">Planes</h2>
+            <h2 className="text-lg font-semibold text-[#222]">{t("Planes")}</h2>
             {bothRegions && <RegionToggle value={region} onChange={setRegion} />}
           </div>
           {plans.length > 0 ? (
@@ -151,18 +155,18 @@ export function GuestMembership() {
             <div className="space-y-3">
               {legacy.monthly && (
                 <button type="button" disabled={busy} onClick={() => void buy("monthly")} className="w-full rounded-xl bg-[#111] py-3.5 text-sm font-semibold text-white">
-                  Membresía mensual
+                  {t("Membresía mensual")}
                 </button>
               )}
               {legacy.annual && (
                 <button type="button" disabled={busy} onClick={() => void buy("annual")} className="w-full rounded-xl border border-[#222] py-3.5 text-sm font-semibold">
-                  Membresía anual
+                  {t("Membresía anual")}
                 </button>
               )}
             </div>
           ) : (
             <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#555]">
-              Por ahora no hay planes a la venta en esta región.
+              {t("Por ahora no hay planes a la venta en esta región.")}
             </p>
           )}
         </section>
@@ -173,7 +177,7 @@ export function GuestMembership() {
         icon
         className="flex items-center justify-center gap-1.5 text-sm font-medium text-[#717171] underline"
       >
-        Facturación y cancelación en la web{" "}
+        {t("Facturación y cancelación en la web")}{" "}
       </WebLink>
     </div>
   );

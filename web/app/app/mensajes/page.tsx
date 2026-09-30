@@ -1,15 +1,20 @@
+import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 import { AuthGate } from "../_components/auth-gate";
 import { TabHeader } from "../_components/top-bar";
 import { GuestThreadList } from "./thread-list";
 
-export const metadata = { title: "Mensajes" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("Mensajes") };
+}
 
 export default async function AppGuestMessagesPage() {
   const user = await getSessionUser();
+  const t = await getT();
   return (
     <>
-      <TabHeader title="Mensajes" />
+      <TabHeader title={t("Mensajes")} />
       {user ? (
         <GuestThreadList />
       ) : (

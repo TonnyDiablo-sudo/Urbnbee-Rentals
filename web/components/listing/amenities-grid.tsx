@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useT } from "@/components/i18n-provider";
 
 const ICONS: Record<string, string> = {
   "Aire Acondicionado": "❄️", "Agua caliente": "🚿", "Internet Inalámbrico": "📶",
@@ -16,6 +17,7 @@ const ICONS: Record<string, string> = {
 };
 
 export function AmenitiesGrid({ amenities }: { amenities: string[] }) {
+  const t = useT();
   const [showAll, setShowAll] = useState(false);
   const LIMIT = 12;
   const visible = showAll ? amenities : amenities.slice(0, LIMIT);
@@ -26,7 +28,7 @@ export function AmenitiesGrid({ amenities }: { amenities: string[] }) {
         {visible.map((a) => (
           <div key={a} className="flex items-center gap-2 text-sm text-[#3a3a3a]">
             <span className="text-base">{ICONS[a] ?? "•"}</span>
-            <span>{a}</span>
+            <span>{t(a)}</span>
           </div>
         ))}
       </div>
@@ -38,8 +40,8 @@ export function AmenitiesGrid({ amenities }: { amenities: string[] }) {
           style={{ borderColor: "#ebebeb" }}
         >
           {showAll
-            ? "Mostrar menos"
-            : `Ver todas las ${amenities.length} comodidades`}
+            ? t("Mostrar menos")
+            : t("Ver todas las {n} comodidades", { n: amenities.length })}
         </button>
       )}
     </div>
