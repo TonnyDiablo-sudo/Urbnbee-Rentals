@@ -308,6 +308,26 @@ Eventos: `booking.requested`, `booking.contract_signed`, `booking.paid`, `bookin
 
 Reglas: `event_id` único (urbnbeeai deduplica por él); reintentos con espera creciente hasta 24 h; cola persistente en MySQL (no en memoria, porque un redeploy la perdería); solo se envían para hosts con vínculo activo.
 
+**El receptor ya está en producción (2026-09-29). Puedes arrancar C10.** Lo que contesta:
+
+| Respuesta | Qué significa | Qué hace Cabibee |
+|---|---|---|
+| `200 { ok: true }` | Procesado. | Marca entregado. |
+| `200 { ok: true, duplicate: true }` | Ese `event_id` ya llegó. | Marca entregado. |
+| `200 { ok: true, ignored: "<motivo>" }` | Válido pero no aplica. Motivos: `host_not_linked`, `unknown_event`, `missing_customer_or_host`, `missing_booking_id`, `missing_entitlements`. | Marca entregado; **no** reintentes. Si ves `host_not_linked` seguido, revisa el vínculo de ese host. |
+| `400` | Falta `event_id` o `event`, o el JSON no es válido. | No reintentes: corrige el emisor. |
+| `401 invalid_signature` | La firma no cuadra. | Revisa el secreto; no reintentes en bucle. |
+| `503` | urbnbeeai no tiene el secreto configurado. | Reintenta con espera. |
+| `500` | Falló al procesar. | Reintenta con espera. |
+
+Detalles que importan de tu lado:
+- **`occurred_at` es obligatorio en la práctica.** urbnbeeai ordena por esa hora: un evento más viejo que el último que recibió de esa reserva no cambia nada ni avisa. Usa la hora en que ocurrió el cambio, no la del envío.
+- **Firma:** HMAC-SHA256 del cuerpo crudo exacto que mandas, en hex, con el prefijo `sha256=`. El secreto es `URBNBEE_PARTNER_WEBHOOK_SECRET`, o `URBNBEE_PARTNER_API_SECRET` si no hay otro, igual que tu `getPartnerWebhookSecret()`.
+- **`data.status = "PENDING_HOST"`** en `booking.requested` hace que el aviso le pida al anfitrión aprobar en Cabibee.
+- **`host.entitlements_changed`** manda `data.entitlements` como arreglo, por ejemplo `[{ "sku": "cabibee_anfitrion_6", "status": "active", "current_period_end": "…" }]`, usando los SKUs de §3.
+- **`conversation_key`:** urbnbeeai no usa el que mandas. Lo busca por `ref` en su propia tabla de ligas. Puedes seguir mandándolo; no hace daño.
+- Máximo 64 KB por cuerpo.
+
 ### 9.5 Chat del listing → agente del anfitrión (fase posterior)
 
 Hoy `components/listing/ai-chat-widget.tsx` → `POST /api/listings/[id]/chat` usa OpenAI propio. Cuando el host tenga `agent-status.active = true`, el widget debe mandar los mensajes al agente del anfitrión en urbnbeeai. El endpoint público de urbnbeeai todavía no existe; se define en una nota posterior. **No lo empieces todavía.**
@@ -350,4 +370,6 @@ C2 se puede hacer en cualquier momento y es chica: conviene sacarla pronto.
 | 2026-09-29 | urbnbeeai U2 | urbnbeeai etiqueta `metadata.app="urbnbee"` e ignora lo tuyo en su webhook (también tus objetos viejos con `metadata.userId`). | Deploy SUCCESS |
 | 2026-09-29 | urbnbeeai U1 | La tool se llama Cabibee y apunta a `https://cabibee.com`. Manda `X-Beeagent-Customer-Id` en **cada** llamada a `/v1`. Ya no acepta host ID a mano. Muestra el 409 `host_exists_confirm_required` como "usa un código". | Deploy SUCCESS |
 | 2026-09-29 | urbnbeeai U5+U6 | Catálogo con tus 5 planes + motor, en MXN y USD, y la API de §7 en producción. | 31 casos contra la base de prod; deploy SUCCESS |
+| 2026-09-29 | urbnbeeai U8 | Receptor de webhooks de §9.4 en producción. **C10 desbloqueado.** | 27 casos contra la base de prod con un agente de prueba |
+| 2026-09-29 | Cabibee C9 | **Pendiente de push.** El founder dice que C9 (API v2) quedó hecho y probado en local, pero no está en `main`. Súbelo y anota aquí las rutas exactas con un ejemplo de respuesta de cada una: con eso el agente de urbnbeeai programa las tools del bot (U7). | — |
 | | | | |
