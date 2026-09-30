@@ -146,7 +146,7 @@ export const extraListingDetails: Record<string, ListingDetail> = {
     bathrooms: 2,
     verified: false,
     propertyId: 153,
-    photos: [p("1502672260266-1c1ef2d93688"), p("1484154218962-a197022b5858"), p("1560448204-e02f11c3d0e2"), p("1583847268964-b28dc8f51f92")],
+    photos: [p("1484154218962-a197022b5858"), p("1502672260266-1c1ef2d93688"), p("1560448204-e02f11c3d0e2"), p("1583847268964-b28dc8f51f92")],
     host: {
       name: "Carlos Herrera",
       bio: "Anfitrión en Midtown. El departamento es de la familia y lo rentamos cuando viajamos. Siempre dejo instrucciones claras y el wifi listo.",
@@ -229,7 +229,7 @@ export const extraListingDetails: Record<string, ListingDetail> = {
     bathrooms: 2,
     verified: true,
     propertyId: 155,
-    photos: [p("1449158743715-0a90ebb6d2d8"), p("1518780664697-55e3ad937233"), p("1763669632676-961830e89de2"), p("1758983065583-9cea714214f9")],
+    photos: [p("1763669632676-961830e89de2"), p("1449158743715-0a90ebb6d2d8"), p("1518780664697-55e3ad937233"), p("1758983065583-9cea714214f9")],
     amenities: [...AMENITIES, "Chimenea Interior", "Asador", "Estacionamiento Gratuito", "Jardín / Patio"],
     pets: true,
     host: {

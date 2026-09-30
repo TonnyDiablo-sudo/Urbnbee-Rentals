@@ -126,7 +126,7 @@ export const demoListings: Record<ListingCategory, Listing[]> = {
       slug: "apartamento-terraza-penn-station",
       title: "Apartamento con Bonita Terraza – Penn Station",
       imageSrc:
-        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80",
+        "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&q=80",
       pricePerNight: 3000,
       currency: "$",
       rating: 5,
@@ -161,7 +161,7 @@ export const demoListings: Record<ListingCategory, Listing[]> = {
       slug: "cabana-summerlin",
       title: "Cabaña Summerlin – Vacaciones Perfectas",
       imageSrc:
-        "https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?w=800&q=80",
+        "https://images.unsplash.com/photo-1763669632676-961830e89de2?w=800&q=80",
       pricePerNight: 2500,
       currency: "$",
       rating: 4.5,
