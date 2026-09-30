@@ -369,6 +369,7 @@ C2 se puede hacer en cualquier momento y es chica: conviene sacarla pronto.
 
 | Fecha | Fase | Qué quedó / qué cambió | Cómo se probó |
 |---|---|---|---|
+| 2026-09-29 | QA | Pase de cortesía (sin cobro) a `qa-guest-urbnbeeai@cabibee.com` (`usr_b2f325101ff4b5b5161d2dfd`): 1 pase. Admin puede regalar más en `/admin/users/:id`. No borro rechazos: el bot tiene que ver `REJECTED`. | Volume `/data/json/guest-verification.json`. |
 | 2026-09-29 | C10 | Cola saliente HMAC a urbnbeeai. Eventos de reserva, unlink y entitlements Cabibee. Sin C11. | `tsc --noEmit`. Casos de firma/clasificación 200/400/401/503. |
 | 2026-09-29 | C1–C9 | Código de C1–C9 a `main`/Railway (antes solo local). Arranque aplica `002`–`004` + `json-to-mysql`. Sin C10/C11. | `tsc --noEmit`. Push `main` → autodeploy Urbnbee Rentals. |
 | 2026-09-29 | urbnbeeai U2 | urbnbeeai etiqueta `metadata.app="urbnbee"` e ignora lo tuyo en su webhook (también tus objetos viejos con `metadata.userId`). | Deploy SUCCESS |

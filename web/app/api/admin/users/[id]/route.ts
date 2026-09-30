@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { findUserById, setUserRole } from "@/lib/marketplace-store";
 import type { UserRole } from "@/lib/marketplace-types";
+import { getVerification, grantComplimentaryBookingPass } from "@/lib/verification-store";
 
 const VALID_ROLES: UserRole[] = ["guest", "host", "admin"];
 
@@ -20,7 +21,15 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const body = (await request.json()) as { role?: string };
+  const body = (await request.json()) as { role?: string; grantPass?: boolean };
+  if (body.grantPass) {
+    grantComplimentaryBookingPass(id, "admin");
+    const v = getVerification(id);
+    return NextResponse.json({
+      ok: true,
+      bookingPassesRemaining: v?.bookingPassesRemaining ?? 0,
+    });
+  }
   if (body.role) {
     if (!VALID_ROLES.includes(body.role as UserRole)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });

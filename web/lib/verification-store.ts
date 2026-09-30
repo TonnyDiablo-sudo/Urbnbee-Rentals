@@ -231,6 +231,12 @@ export function isGuestEligibleToBook(userId: string): boolean {
  * Acredita un pase comprado. Idempotente por sesión de Checkout, porque el mismo
  * pago llega dos veces: por el regreso del huésped y por el webhook.
  */
+/** Pase de cortesía (admin / prueba). No pasa por Stripe. */
+export function grantComplimentaryBookingPass(userId: string, note = "admin"): boolean {
+  const key = `comp_${note}_${Date.now()}`;
+  return grantBookingPass(userId, key);
+}
+
 export function grantBookingPass(userId: string, checkoutSessionId: string): boolean {
   const v = getVerification(userId);
   const already = v?.grantedPassSessionIds ?? [];

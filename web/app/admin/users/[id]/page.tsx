@@ -33,6 +33,8 @@ export default function AdminUserDetailPage() {
   const [roleMsg, setRoleMsg] = useState("");
   const [badgeBusy, setBadgeBusy] = useState(false);
   const [badgeMsg, setBadgeMsg] = useState("");
+  const [passBusy, setPassBusy] = useState(false);
+  const [passMsg, setPassMsg] = useState("");
 
   useEffect(() => {
     Promise.all([fetch("/api/admin/users"), fetch("/api/admin/bookings")]).then(
@@ -224,6 +226,38 @@ export default function AdminUserDetailPage() {
         <p className="text-xs text-gray-400 mt-2">
           Registro: {new Date(user.createdAt).toLocaleString("es-MX")}
         </p>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8">
+        <h2 className="text-sm font-semibold text-gray-700 mb-2">Pase por reserva (cortesía)</h2>
+        <p className="text-sm text-gray-600 mb-3">
+          Pases sin usar: <strong>{user.bookingPassesRemaining}</strong>
+        </p>
+        <button
+          onClick={async () => {
+            setPassBusy(true);
+            setPassMsg("");
+            const res = await fetch(`/api/admin/users/${id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ grantPass: true }),
+            });
+            const j = await res.json().catch(() => ({}));
+            setPassBusy(false);
+            if (res.ok) {
+              const n = Number(j.bookingPassesRemaining ?? 0);
+              setUser((prev) => (prev ? { ...prev, bookingPassesRemaining: n } : prev));
+              setPassMsg(`Pase acreditado. Quedan ${n}.`);
+            } else {
+              setPassMsg((j as { error?: string }).error ?? "No se pudo acreditar.");
+            }
+          }}
+          disabled={passBusy}
+          className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-40"
+        >
+          {passBusy ? "Acreditando…" : "Regalar 1 pase (sin cobro)"}
+        </button>
+        {passMsg && <p className="text-sm text-gray-600 mt-2">{passMsg}</p>}
       </div>
 
       {(user.role === "host" || user.role === "admin" || user.listingsCount > 0) && (
