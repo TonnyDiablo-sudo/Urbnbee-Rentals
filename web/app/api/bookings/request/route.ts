@@ -15,6 +15,7 @@ import {
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { getSessionUser } from "@/lib/session";
 import { stayPlatformFeeMxn } from "@/lib/platform-fees";
+import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import {
   consumeBookingPass,
   hostAcceptsBookings,
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  await ensurePublicCatalogFresh();
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json(

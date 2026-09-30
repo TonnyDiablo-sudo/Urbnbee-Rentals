@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
-import { listMembershipPlans, membershipPlanOfferedIn } from "@/lib/membership-plans-store";
+import { getCatalogSyncMeta, listMembershipPlans, membershipPlanOfferedIn } from "@/lib/membership-plans-store";
 import { MEMBERSHIP_PLAN_AUDIENCE, MEMBERSHIP_PLAN_BILLING } from "@/lib/membership-plans-types";
 import { ensureAllMembershipProducts } from "@/lib/stripe-membership-products";
 import { getScreeningPrice } from "@/lib/screening-store";
 import { getStripe } from "@/lib/stripe-server";
+import { catalogAdminExtra, ensureAdminCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { verificationSubscriptionConfigured } from "@/lib/verification-store";
 
 export const dynamic = "force-dynamic";
@@ -16,19 +17,28 @@ async function requireAdmin() {
 }
 
 export async function GET() {
-  if (!(await requireAdmin())) {
+  const user = await requireAdmin();
+  if (!user) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const catalog = await ensureAdminCatalogFresh(user.email);
+
   const plans = listMembershipPlans().map((p) => {
     const billing = MEMBERSHIP_PLAN_BILLING[p.code];
+    const extra = catalogAdminExtra(p.code);
     return {
       code: p.code,
+      sku: `cabibee_${p.code}`,
       audience: MEMBERSHIP_PLAN_AUDIENCE[p.code],
       label: p.label,
       description: p.description,
       amountMxn: p.amountMxn,
       amountUsd: p.amountUsd,
+      floorPrice: extra?.floorPrice ?? null,
+      sellerSellable: extra?.sellerSellable ?? false,
+      priceIsProvisional: extra?.priceIsProvisional ?? false,
+      updatedFrom: extra?.updatedFrom ?? null,
       active: p.active,
       stripeProductId: p.stripeProductId ?? null,
       billing:
@@ -37,7 +47,7 @@ export async function GET() {
           : { kind: "subscription" as const, intervalCount: billing.intervalCount },
       offeredMx: membershipPlanOfferedIn(p, "mx"),
       offeredUs: membershipPlanOfferedIn(p, "us"),
-      updatedAt: p.updatedAt,
+      updatedAt: extra?.updatedAt ?? p.updatedAt,
     };
   });
 
@@ -45,10 +55,12 @@ export async function GET() {
     plans,
     stripeConfigured: Boolean(getStripe()),
     legacyEnvPricesActive: verificationSubscriptionConfigured(),
+    catalogConfigured: catalog.configured,
+    catalogLive: catalog.live,
+    catalogMeta: getCatalogSyncMeta(),
     note:
-      "El monto vive acá, no en Stripe. En Stripe sólo está el Producto (el nombre), " +
-      "y el cobro manda el monto del momento: por eso mover un precio no obliga a " +
-      "crear ni archivar nada allá.",
+      "Los montos viven en el catálogo de urbnbeeai. Aquí se editan y se cachean. " +
+      "En Stripe sólo está el Producto (el nombre). El piso no sale en páginas públicas.",
     missingProducts: plans.filter((p) => !p.stripeProductId).map((p) => p.code),
     screening: getScreeningPrice(),
   });

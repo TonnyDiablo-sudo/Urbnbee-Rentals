@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { membershipPublicPlans } from "@/lib/membership-plans-store";
+import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { verificationRegionFromRequest } from "@/lib/verification-region";
 import {
   getVerification,
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
+  await ensurePublicCatalogFresh();
   const configured = verificationSubscriptionConfigured();
   const rec = getVerification(user.id);
   const eligible = isGuestEligibleToBook(user.id);

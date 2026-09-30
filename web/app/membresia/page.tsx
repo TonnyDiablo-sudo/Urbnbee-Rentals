@@ -6,6 +6,7 @@ import {
   membershipPublicPlans,
   type MembershipPublicPlan,
 } from "@/lib/membership-plans-store";
+import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { verificationRegionFromHeaders } from "@/lib/verification-region";
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ function cadenceLabel(plan: MembershipPublicPlan): string {
 
 export default async function MembresiaPublicPage() {
   const region = verificationRegionFromHeaders(await headers());
+  await ensurePublicCatalogFresh();
   const plans = membershipPublicPlans(region, "guest");
 
   return (

@@ -6,11 +6,16 @@ type Billing = { kind: "one_time" } | { kind: "subscription"; intervalCount: num
 
 type PlanRow = {
   code: string;
+  sku?: string;
   audience: "guest" | "host";
   label: string;
   description: string;
   amountMxn: number;
   amountUsd: number;
+  floorPrice?: number | null;
+  sellerSellable?: boolean;
+  priceIsProvisional?: boolean;
+  updatedFrom?: string | null;
   active: boolean;
   stripeProductId: string | null;
   billing: Billing;
@@ -35,6 +40,8 @@ type Payload = {
   plans: PlanRow[];
   stripeConfigured: boolean;
   legacyEnvPricesActive: boolean;
+  catalogConfigured?: boolean;
+  catalogLive?: boolean;
   note: string;
   missingProducts: string[];
   screening?: ScreeningRow;
@@ -103,15 +110,34 @@ export default function AdminPricingPage() {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Precios de membresía</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Precios</h1>
         <p className="mt-1 max-w-3xl text-sm text-gray-500">
-          El monto se guarda aquí y viaja en cada cobro. En Stripe sólo vive el Producto, es
-          decir el nombre que sale en el recibo. Por eso cambiar un precio es editar un número:
-          no hay que crear ni archivar nada en Stripe.
+          Los montos viven en el catálogo de urbnbeeai. Aquí los editas; Cabibee guarda un caché
+          y el Producto de Stripe (el nombre del recibo). El piso es solo para vendedores: no
+          aparece en el sitio ni en APIs públicas.
         </p>
       </div>
 
       {err && <p className="mb-4 text-sm text-red-600">{err}</p>}
+
+      {data && data.catalogConfigured === false && (
+        <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">
+          Falta <code>CABIBEE_TO_URBNBEEAI_API_SECRET</code> (el mismo valor en Cabibee y en
+          urbnbeeai). Mientras tanto los precios se guardan solo aquí.
+        </div>
+      )}
+
+      {data && data.catalogConfigured && data.catalogLive === false && (
+        <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">
+          urbnbeeai no respondió. Estás viendo el último caché bueno.
+        </div>
+      )}
+
+      {data && data.catalogConfigured && data.catalogLive && (
+        <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm text-emerald-900">
+          Catálogo de urbnbeeai conectado. Guardar escribe allá; el cobro usa ese monto.
+        </div>
+      )}
 
       {data && !data.stripeConfigured && (
         <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">
@@ -163,7 +189,7 @@ export default function AdminPricingPage() {
               ))}
           </div>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">
-            Anfitrión — listón «Miembro verificado»
+            Anfitrión — listón y motor de reservas
           </h2>
           <div className="mb-8 space-y-4">
             {data.plans
@@ -193,6 +219,7 @@ function PlanCard({ plan, onSaved }: { plan: PlanRow; onSaved: () => void }) {
   const [description, setDescription] = useState(plan.description);
   const [mxn, setMxn] = useState(String(plan.amountMxn || ""));
   const [usd, setUsd] = useState(String(plan.amountUsd || ""));
+  const [floor, setFloor] = useState(plan.floorPrice == null || plan.floorPrice === 0 ? "" : String(plan.floorPrice));
   const [active, setActive] = useState(plan.active);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -205,7 +232,14 @@ function PlanCard({ plan, onSaved }: { plan: PlanRow; onSaved: () => void }) {
       const res = await fetch(`/api/admin/pricing/${plan.code}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label, description, amountMxn: mxn, amountUsd: usd, active }),
+        body: JSON.stringify({
+          label,
+          description,
+          amountMxn: mxn,
+          amountUsd: usd,
+          floorPrice: floor,
+          active,
+        }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -235,7 +269,7 @@ function PlanCard({ plan, onSaved }: { plan: PlanRow; onSaved: () => void }) {
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-mono text-xs text-gray-400">{plan.code}</p>
+          <p className="font-mono text-xs text-gray-400">{plan.sku ?? plan.code}</p>
           <p className="mt-0.5 text-sm font-semibold text-gray-900">{billingLabel(plan.billing)}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -309,6 +343,18 @@ function PlanCard({ plan, onSaved }: { plan: PlanRow; onSaved: () => void }) {
               {monthlyEquivalent(usdNum, plan.billing)} USD
             </span>
           )}
+        </label>
+        <label className="block sm:col-span-2">
+          <span className="text-xs font-medium text-gray-500">
+            Piso para vendedores (USD, no se muestra al público)
+          </span>
+          <input
+            value={floor}
+            onChange={(e) => setFloor(e.target.value)}
+            inputMode="decimal"
+            placeholder="vacío = sin piso"
+            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          />
         </label>
       </div>
 

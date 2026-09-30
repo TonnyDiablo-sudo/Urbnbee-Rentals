@@ -18,6 +18,8 @@ import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 const DATA_FILE = join(getDataDir(), "membership-plans.json");
 const rows = new Map<MembershipPlanCode, MembershipPlanRecord>();
 let cachedMtimeMs = 0;
+let catalogSyncedAt: string | undefined;
+let catalogPushedAt: string | undefined;
 
 /**
  * Los planes nacen en cero y apagados: mientras nadie escriba un precio, el sitio
@@ -67,6 +69,15 @@ const SEEDS: Record<MembershipPlanCode, Omit<MembershipPlanRecord, "updatedAt">>
     amountUsd: 0,
     active: false,
   },
+  booking_engine: {
+    code: "booking_engine",
+    label: "Cabibee: motor de reservas",
+    description:
+      "Cobro de la estancia al Stripe del anfitrión, firma de contrato y bloqueo de fechas. Incluye la verificación del anfitrión.",
+    amountMxn: 0,
+    amountUsd: 0,
+    active: false,
+  },
 };
 
 function nowIso() {
@@ -85,6 +96,8 @@ function persist() {
     const snapshot: MembershipPlansSnapshot = {
       version: 1,
       plans: MEMBERSHIP_PLAN_CODES.map((c) => rows.get(c)!).filter(Boolean),
+      catalogSyncedAt,
+      catalogPushedAt,
     };
     writeFileSync(DATA_FILE, JSON.stringify(snapshot, null, 2), "utf8");
     if (existsSync(DATA_FILE)) cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
@@ -105,6 +118,8 @@ function reloadFromDisk() {
         // no sabe cobrar, y ofrecerlo dejaría al huésped en un checkout imposible.
         if (p?.code && MEMBERSHIP_PLAN_CODES.includes(p.code)) rows.set(p.code, p);
       }
+      catalogSyncedAt = data.catalogSyncedAt;
+      catalogPushedAt = data.catalogPushedAt;
       cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
     }
   } catch (e) {
@@ -260,4 +275,45 @@ export function updateMembershipPlan(
   rows.set(code, next);
   persist();
   return next;
+}
+
+export function applyCatalogPublicFields(
+  code: MembershipPlanCode,
+  fields: Pick<MembershipPlanRecord, "label" | "description" | "amountMxn" | "amountUsd" | "active">
+): MembershipPlanRecord | undefined {
+  syncIfStale();
+  const prev = rows.get(code);
+  if (!prev) return undefined;
+  const same =
+    prev.label === fields.label &&
+    prev.description === fields.description &&
+    prev.amountMxn === fields.amountMxn &&
+    prev.amountUsd === fields.amountUsd &&
+    prev.active === fields.active;
+  if (same) return prev;
+  const next: MembershipPlanRecord = {
+    ...prev,
+    ...fields,
+    code: prev.code,
+    stripeProductId: prev.stripeProductId,
+    updatedAt: nowIso(),
+  };
+  rows.set(code, next);
+  persist();
+  return next;
+}
+
+export function getCatalogSyncMeta() {
+  syncIfStale();
+  return { catalogSyncedAt, catalogPushedAt };
+}
+
+export function markCatalogSynced() {
+  catalogSyncedAt = nowIso();
+  persist();
+}
+
+export function markCatalogPushed() {
+  catalogPushedAt = nowIso();
+  persist();
 }

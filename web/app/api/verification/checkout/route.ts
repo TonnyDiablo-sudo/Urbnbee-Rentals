@@ -9,6 +9,7 @@ import {
   membershipPlanCodeFromInput,
 } from "@/lib/membership-checkout";
 import { getMembershipPlan, membershipPlanAmount } from "@/lib/membership-plans-store";
+import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { MEMBERSHIP_PLAN_AUDIENCE, type MembershipPlanCode } from "@/lib/membership-plans-types";
 import { simulateCatalogMembership } from "@/lib/membership-simulate";
 import { getVerification, resolveVerificationPriceId, type VerificationBillingPlan } from "@/lib/verification-store";
@@ -135,6 +136,7 @@ export async function POST(req: NextRequest) {
 
     const catalogCode = membershipPlanCodeFromInput(body.plan);
     if (catalogCode) {
+      await ensurePublicCatalogFresh();
       const audience = MEMBERSHIP_PLAN_AUDIENCE[catalogCode];
       if (audience === "host" && user.role !== "host" && user.role !== "admin") {
         return NextResponse.json(

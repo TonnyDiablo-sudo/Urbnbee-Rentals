@@ -4,6 +4,7 @@ import { entitlementsPublicView } from "@/lib/host-entitlements";
 import { hostVerificationSummary } from "@/lib/host-verification";
 import { listListingsForHost } from "@/lib/marketplace-store";
 import { membershipPublicPlans } from "@/lib/membership-plans-store";
+import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { getSessionUser } from "@/lib/session";
 import { getStripe } from "@/lib/stripe-server";
 import { verificationRegionFromRequest } from "@/lib/verification-region";
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
+  await ensurePublicCatalogFresh();
   const summary = hostVerificationSummary(user.id);
   const listings = listListingsForHost(user.id);
   const billingRegion = verificationRegionFromRequest(req);

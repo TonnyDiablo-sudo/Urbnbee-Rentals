@@ -21,7 +21,8 @@ export type MembershipPlanCode =
   | "meses_6"
   | "meses_12"
   | "anfitrion_6"
-  | "anfitrion_12";
+  | "anfitrion_12"
+  | "booking_engine";
 
 export const MEMBERSHIP_PLAN_CODES: MembershipPlanCode[] = [
   "pase_reserva",
@@ -29,6 +30,7 @@ export const MEMBERSHIP_PLAN_CODES: MembershipPlanCode[] = [
   "meses_12",
   "anfitrion_6",
   "anfitrion_12",
+  "booking_engine",
 ];
 
 /** A quién le vende cada plan. Determina qué desbloquea el pago. */
@@ -40,6 +42,7 @@ export const MEMBERSHIP_PLAN_AUDIENCE: Record<MembershipPlanCode, MembershipAudi
   meses_12: "guest",
   anfitrion_6: "host",
   anfitrion_12: "host",
+  booking_engine: "host",
 };
 
 /**
@@ -57,6 +60,7 @@ export const MEMBERSHIP_PLAN_BILLING: Record<MembershipPlanCode, MembershipPlanB
   meses_12: { kind: "subscription", intervalCount: 12 },
   anfitrion_6: { kind: "subscription", intervalCount: 6 },
   anfitrion_12: { kind: "subscription", intervalCount: 12 },
+  booking_engine: { kind: "subscription", intervalCount: 1 },
 };
 
 export type MembershipPlanRecord = {
@@ -78,4 +82,8 @@ export type MembershipPlanRecord = {
 export type MembershipPlansSnapshot = {
   version: 1;
   plans: MembershipPlanRecord[];
+  /** Última vez que el caché se alineó con el catálogo de urbnbeeai. */
+  catalogSyncedAt?: string;
+  /** Primera subida de precios locales a urbnbeeai. */
+  catalogPushedAt?: string;
 };

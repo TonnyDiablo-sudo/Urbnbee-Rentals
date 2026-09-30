@@ -369,7 +369,7 @@ C2 se puede hacer en cualquier momento y es chica: conviene sacarla pronto.
 
 | Fecha | Fase | Qué quedó / qué cambió | Cómo se probó |
 |---|---|---|---|
-| 2026-09-29 | QA | Pago host: `verify-session` lee la sesión en el Stripe que cobró (anfitrión o Cabibee). `/viajes` en cabibee.com redirige a confirmar. Quote/request sin cargo de plataforma si el host cobra en su Stripe (misma regla que Checkout; Q1 sigue abierto). Reserva existente no pide membresía otra vez (`usedMembershipPass` / ya existe). Cerré `bkg_90c494ed5dcedf50a67d` con la sesión ya cobrada; no reembolsé ni volví a cobrar. | `tsc`. `verify-session` en prod → CONFIRMED/paid + C10. `/viajes?session_id=` → confirm. |
+| 2026-09-30 | C7 | Precios desde `pricing_catalog` de urbnbeeai. `/admin/precios` → `/admin/pricing`: GET/PATCH al catálogo (Bearer + `X-Cabibee-Admin-Email`). JSON solo caché + `stripeProductId`. Caché 5 min, último valor si falla. Piso solo en admin. Checkout sigue con `price_data` del catálogo. Incluye `booking_engine`. Sin C11. Q1–Q3 abiertas. | `tsc --noEmit`. GET público 200 (6 SKUs). GET admin 200 (con `floor_price`). Parse: plan público sin piso. |
 | 2026-09-29 | C10 | Cola saliente HMAC a urbnbeeai. Eventos de reserva, unlink y entitlements Cabibee. Sin C11. | `tsc --noEmit`. Casos de firma/clasificación 200/400/401/503. |
 | 2026-09-29 | C1–C9 | Código de C1–C9 a `main`/Railway (antes solo local). Arranque aplica `002`–`004` + `json-to-mysql`. Sin C10/C11. | `tsc --noEmit`. Push `main` → autodeploy Urbnbee Rentals. |
 | 2026-09-29 | urbnbeeai U2 | urbnbeeai etiqueta `metadata.app="urbnbee"` e ignora lo tuyo en su webhook (también tus objetos viejos con `metadata.userId`). | Deploy SUCCESS |

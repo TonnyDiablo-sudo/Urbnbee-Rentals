@@ -7,6 +7,8 @@ import {
 } from "@/lib/membership-plans-store";
 import { ensureMembershipProduct } from "@/lib/stripe-membership-products";
 import { getStripe } from "@/lib/stripe-server";
+import { urbnbeeaiCatalogConfigured } from "@/lib/urbnbeeai-catalog-client";
+import { catalogAdminExtra, savePlanToCatalog } from "@/lib/urbnbeeai-catalog-sync";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +80,33 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ code: str
   // en la página como una opción que no lleva a ningún lado.
   if (active && mxn <= 0 && usd <= 0) {
     return bad("Para encender el plan ponle precio en México, en Estados Unidos, o en ambos.");
+  }
+
+  let floorPrice: number | null = catalogAdminExtra(code)?.floorPrice ?? null;
+  if (body.floorPrice !== undefined) {
+    if (body.floorPrice === null || String(body.floorPrice).trim() === "") {
+      floorPrice = null;
+    } else {
+      const n = Number(body.floorPrice);
+      if (!Number.isFinite(n) || n < 0 || n > MAX_AMOUNT) {
+        return bad(`floorPrice debe ser un número entre 0 y ${MAX_AMOUNT}, o ir vacío.`);
+      }
+      floorPrice = Math.round(n * 100) / 100;
+      if (usd > 0 && floorPrice > usd) {
+        return bad("El piso no puede ser mayor que el precio público en USD.");
+      }
+    }
+  }
+
+  if (urbnbeeaiCatalogConfigured()) {
+    const saved = await savePlanToCatalog(
+      code,
+      { label, description, amountMxn: mxn, amountUsd: usd, active, floorPrice },
+      user.email
+    );
+    if (!saved.ok) {
+      return NextResponse.json({ error: saved.error }, { status: saved.status });
+    }
   }
 
   const next = updateMembershipPlan(code, { label, description, amountMxn: mxn, amountUsd: usd, active });
