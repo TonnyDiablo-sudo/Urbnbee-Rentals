@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Urbnbee">
+  <rect width="128" height="128" rx="24" fill="#111111"/>
+  <text
+    x="64"
+    y="78"
+    text-anchor="middle"
+    font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    font-size="34"
+    font-weight="800"
+    letter-spacing="0.06em"
+  >
+    <tspan fill="#ffffff">URBN</tspan>
+  </text>
+  <text
+    x="64"
+    y="104"
+    text-anchor="middle"
+    font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    font-size="22"
+    font-weight="800"
+    letter-spacing="0.1em"
+    fill="#dcb81e"
+  >
+    BEE
+  </text>
+</svg>

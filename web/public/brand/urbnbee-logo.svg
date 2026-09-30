@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 72" width="360" height="72" role="img" aria-label="Urbnbee">
+  <rect width="360" height="72" rx="14" fill="#000000"/>
+  <text
+    x="24"
+    y="46"
+    font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    font-size="36"
+    font-weight="700"
+    letter-spacing="0.12em"
+  >
+    <tspan fill="#ffffff">URBN</tspan><tspan fill="#dcb81e">BEE</tspan>
+  </text>
+  <text
+    x="26"
+    y="62"
+    font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    font-size="9"
+    font-weight="300"
+    letter-spacing="0.35em"
+    fill="rgba(255,255,255,0.65)"
+  >
+    YOUR BOOKING BEE
+  </text>
+</svg>
