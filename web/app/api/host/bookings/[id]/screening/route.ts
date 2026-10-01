@@ -6,12 +6,14 @@ import {
   parseScreeningPayer,
   requestScreeningForBooking,
   screeningHostView,
+  screeningQuote,
 } from "@/lib/screening-service";
+import { verificationRegionFromRequest } from "@/lib/verification-region";
 import { getScreeningByBooking } from "@/lib/screening-store";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
   if (!user || (user.role !== "host" && user.role !== "admin")) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
@@ -25,6 +27,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   return NextResponse.json({
     screening: row ? screeningHostView(row) : null,
     canRequest: canRequestScreening(booking),
+    quote: screeningQuote(verificationRegionFromRequest(req)),
   });
 }
 

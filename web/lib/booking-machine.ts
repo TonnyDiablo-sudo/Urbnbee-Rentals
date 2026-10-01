@@ -166,6 +166,7 @@ export function acceptBookingByHost(
       | "taxMxn"
       | "taxLines"
       | "taxIncluded"
+      | "chargeTax"
     >
   >
 ): BookingRecord | undefined {

@@ -168,7 +168,7 @@ export function notifyGuestBookingDecision(booking: BookingRecord, accepted: boo
     body: !accepted
       ? "{listing}: el anfitrión no pudo recibirte en esas fechas."
       : balanceDueMxn > 0
-        ? "{listing}: el anfitrión ajustó las fechas. Paga la diferencia de ${amount} y firma el contrato."
+        ? "{listing}: el anfitrión ajustó la reserva (fechas o impuestos). Paga la diferencia de ${amount} y firma el contrato."
         : "{listing}: completa tus datos para cerrar la reserva.",
     vars: { listing, amount: balanceDueMxn.toLocaleString("es-MX") },
     url: "/viajes",
@@ -205,7 +205,7 @@ export function notifyHostDifferencePaid(booking: BookingRecord, amountMxn: numb
   notifyUser(booking.hostId, {
     kind: "payment",
     title: "Diferencia pagada",
-    body: "{name} pagó ${amount} por el cambio de fechas en {listing}.",
+    body: "{name} pagó ${amount} por el ajuste de la reserva en {listing}.",
     vars: { name: booking.guestName, amount: amountMxn.toLocaleString("es-MX"), listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId) },
     url: "/host/calendario",
   });
@@ -216,9 +216,44 @@ export function notifyGuestDifferenceRefunded(booking: BookingRecord, amountMxn:
   notifyUser(booking.guestUserId, {
     kind: "payment",
     title: "Te devolvimos la diferencia",
-    body: "{listing}: las nuevas fechas cuestan menos; reembolsamos ${amount}.",
+    body: "{listing}: el nuevo total es menor; reembolsamos ${amount}.",
     vars: { listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId), amount: amountMxn.toLocaleString("es-MX") },
     url: "/viajes",
+  });
+}
+
+/** El anfitrión pidió revisar el historial crediticio: el huésped autoriza (y paga si se lo cobran). */
+export function notifyGuestScreeningRequested(booking: BookingRecord, guestPays: boolean): void {
+  if (!booking.guestUserId) return;
+  notifyUser(booking.guestUserId, {
+    kind: "request",
+    title: "Tu anfitrión pide revisar tu historial crediticio",
+    body: guestPays
+      ? "{listing}: autoriza y paga la consulta para que el anfitrión pueda continuar con tu reserva."
+      : "{listing}: autoriza la consulta para continuar. La paga el anfitrión.",
+    vars: { listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId) },
+    url: "/viajes",
+    tag: `s:${booking.id}`,
+  });
+}
+
+export function notifyHostScreeningConsented(p: { hostId: string; guestName: string; hostPays: boolean }): void {
+  notifyUser(p.hostId, {
+    kind: "request",
+    title: "{name} autorizó la revisión crediticia",
+    body: p.hostPays ? "Paga la consulta para ver el resultado." : "Falta que el huésped pague la consulta.",
+    vars: { name: p.guestName },
+    url: "/host",
+  });
+}
+
+export function notifyHostScreeningReady(p: { hostId: string; guestName: string }): void {
+  notifyUser(p.hostId, {
+    kind: "payment",
+    title: "Resultado de crédito listo",
+    body: "Ya puedes ver el resumen de {name} en la solicitud.",
+    vars: { name: p.guestName },
+    url: "/host",
   });
 }
 

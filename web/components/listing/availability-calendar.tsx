@@ -2,8 +2,20 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
-import { quoteStay, stayLengthError, type ListingPricing } from "@/lib/listing-pricing";
+import {
+  quoteStay,
+  stayLengthError,
+  type ListingPricing,
+  type StayDiscountKind,
+} from "@/lib/listing-pricing";
 import { computeStayTax, taxLineLabel, type HostTaxSettings } from "@/lib/stay-tax";
+
+const DISCOUNT_LABEL: Record<StayDiscountKind, string> = {
+  monthly: "Descuento mensual ({n}%)",
+  weekly: "Descuento semanal ({n}%)",
+  early_bird: "Reserva anticipada ({n}%)",
+  last_minute: "Descuento de última hora ({n}%)",
+};
 
 const DAYS = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"];
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -111,6 +123,8 @@ type Props = {
   pricing?: ListingPricing;
   depositMxn?: number;
   tax?: HostTaxSettings;
+  /** false: el anfitrión aprueba cada solicitud y confirma el total final. */
+  instantBook?: boolean;
   /** Si se pasa, el flujo exige usuario registrado y pago antes de confirmar. */
   listingId?: string;
   /** Si es false, el anuncio queda en directorio: chat/contacto, sin «Reserva con cuenta». */
@@ -138,6 +152,7 @@ export function AvailabilityCalendar({
   pricing,
   depositMxn = 0,
   tax,
+  instantBook = true,
   listingId,
   bookable = true,
   listingSlug = "",
@@ -323,9 +338,15 @@ export function AvailabilityCalendar({
               </div>
             </>
           )}
-          {stay.discountMxn > 0 && (
+          {stay.seasonalDiscountMxn > 0 && (
             <div className="flex justify-between text-[#1e7a3a]">
-              <span>{t(nights >= 28 ? "Descuento mensual ({n}%)" : "Descuento semanal ({n}%)", { n: stay.discountPct })}</span>
+              <span>{t("Promoción de temporada")}</span>
+              <span>−${stay.seasonalDiscountMxn.toLocaleString("es-MX")}</span>
+            </div>
+          )}
+          {stay.discountMxn > 0 && stay.discountKind && (
+            <div className="flex justify-between text-[#1e7a3a]">
+              <span>{t(DISCOUNT_LABEL[stay.discountKind], { n: stay.discountPct })}</span>
               <span>−${stay.discountMxn.toLocaleString("es-MX")}</span>
             </div>
           )}
@@ -351,6 +372,20 @@ export function AvailabilityCalendar({
               {t("Incluye {taxes}", {
                 taxes: taxes.lines.map((l) => `${taxLineLabel(l)} $${l.amountMxn.toLocaleString("es-MX")}`).join(" · "),
               })}
+            </p>
+          )}
+          {listingId && bookable && (
+            <p className="mt-1 text-xs text-[#888]">
+              {taxes.taxMxn > 0
+                ? t(taxes.included ? "Los impuestos ya vienen en el precio." : "Este anfitrión cobra impuestos en esta reserva.")
+                : t("Este anfitrión no cobra impuestos (IVA) en esta reserva.")}
+            </p>
+          )}
+          {listingId && bookable && !instantBook && (
+            <p className="mt-2 rounded bg-[#fdf6d8] px-3 py-2 text-xs leading-relaxed text-[#6b5510]">
+              {t(
+                "El anfitrión aprueba tu solicitud y confirma el total final (fechas e impuestos). Si cambia, te avisamos antes de cobrar o devolver la diferencia. Puedes platicarlo por el chat."
+              )}
             </p>
           )}
           {depositMxn > 0 && (

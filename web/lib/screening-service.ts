@@ -1,6 +1,12 @@
 import "server-only";
 import type Stripe from "stripe";
 import type { BookingRecord } from "@/lib/booking-types";
+import { getBookingById } from "@/lib/bookings-store";
+import {
+  notifyGuestScreeningRequested,
+  notifyHostScreeningConsented,
+  notifyHostScreeningReady,
+} from "@/lib/push";
 import {
   findReusableGuestScreening,
   getScreeningByBooking,
@@ -89,7 +95,7 @@ export function requestScreeningForBooking(
     });
   }
 
-  return insertScreening({
+  const row = insertScreening({
     guestUserId: booking.guestUserId,
     bookingId: booking.id,
     hostId: booking.hostId,
@@ -97,6 +103,12 @@ export function requestScreeningForBooking(
     status: "requested",
     provider: "pending",
   });
+  notifyGuestScreeningRequested(booking, payer === "guest");
+  return row;
+}
+
+function guestNameFor(row: ScreeningRecord): string {
+  return (row.bookingId && getBookingById(row.bookingId)?.guestName) || "El huésped";
 }
 
 export function guestConsentScreening(
@@ -107,12 +119,20 @@ export function guestConsentScreening(
   const row = getScreeningById(id);
   if (!row || row.guestUserId !== guestUserId) return undefined;
   if (row.consentedAt) return row;
-  return patchScreening(id, {
+  const next = patchScreening(id, {
     status: row.status === "requested" ? "consented" : row.status,
     consentVersion: SCREENING_CONSENT_VERSION,
     consentedAt: new Date().toISOString(),
     consentedIp: ip,
   });
+  if (next?.hostId) {
+    notifyHostScreeningConsented({
+      hostId: next.hostId,
+      guestName: guestNameFor(next),
+      hostPays: screeningPayerOf(next) === "host",
+    });
+  }
+  return next;
 }
 
 export function completeScreeningAfterPayment(
@@ -131,6 +151,9 @@ export function completeScreeningAfterPayment(
   if (!row) return undefined;
   const quote = screeningQuote(opts.currency === "usd" ? "us" : "mx");
   const band: ScreeningBand = opts.simulated ? "revisar" : "pendiente_proveedor";
+  if (row.hostId && row.status !== "completed") {
+    notifyHostScreeningReady({ hostId: row.hostId, guestName: guestNameFor(row) });
+  }
   return patchScreening(id, {
     status: "completed",
     paidAt: row.paidAt ?? new Date().toISOString(),

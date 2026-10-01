@@ -32,6 +32,14 @@ type Trip = {
   myReview?: { rating: number; comment: string } | null;
   balanceDueMxn?: number;
   paidStayMxn?: number;
+  taxMxn?: number;
+  taxIncluded?: boolean;
+  screening?: {
+    status: string;
+    payer: "host" | "guest";
+    needsConsent: boolean;
+    needsPayGuest: boolean;
+  } | null;
 };
 
 const CLOSED = new Set(["CANCELLED", "EXPIRED", "REJECTED"]);
@@ -152,6 +160,29 @@ export function TripsList() {
                 <p className="text-sm text-[#555]">
                   {fmtMxn(trip.estimatedTotalMxn + (trip.platformFeeMxn ?? 0))} · {t("código {code}", { code: trip.token })}
                 </p>
+                <p className="text-xs text-[#888]">
+                  {(trip.taxMxn ?? 0) > 0
+                    ? t(trip.taxIncluded ? "Incluye {amount} de impuestos." : "Con {amount} de impuestos.", {
+                        amount: fmtMxn(trip.taxMxn ?? 0),
+                      })
+                    : t("Sin impuestos.")}
+                </p>
+                {trip.screening && (trip.screening.needsConsent || trip.screening.needsPayGuest) && !sec.past && (
+                  <div className="mt-3 rounded-xl bg-[#fdf6d8] px-3 py-3 text-sm text-[#5c4a0a]">
+                    <p className="font-semibold">{t("Tu anfitrión pide revisar tu historial crediticio")}</p>
+                    <p className="mt-0.5">
+                      {trip.screening.payer === "guest"
+                        ? t("Autoriza y paga la consulta para que pueda continuar con tu reserva.")
+                        : t("Autoriza la consulta para continuar. La paga el anfitrión.")}
+                    </p>
+                    <WebLink
+                      path="/guest/screening"
+                      className="mt-2 inline-block rounded-lg bg-[#222] px-3 py-2 text-sm font-semibold text-white"
+                    >
+                      {trip.screening.needsConsent ? t("Revisar y autorizar") : t("Pagar consulta")}
+                    </WebLink>
+                  </div>
+                )}
                 {(trip.balanceDueMxn ?? 0) > 0 && (
                   <div className="mt-3">
                     <PayDifference

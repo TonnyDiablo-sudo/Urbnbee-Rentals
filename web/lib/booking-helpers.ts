@@ -42,12 +42,13 @@ export function nightsBlockedByListing(
   return false;
 }
 
-/** Costo de las noches ya con fin de semana, precios por fecha y descuento por duración (sin limpieza). */
+/** Costo de las noches ya con fin de semana, precios por fecha, promociones y descuentos (sin limpieza). */
 export function sumStayMxn(
   listing: HostListingRecord,
   checkIn: string,
-  checkOut: string
+  checkOut: string,
+  opts: { today?: string } = {}
 ): { nights: number; staySubtotal: number } {
-  const q = quoteStay(listing, checkIn, checkOut);
+  const q = quoteStay(listing, checkIn, checkOut, opts);
   return { nights: q.nights, staySubtotal: q.staySubtotal };
 }

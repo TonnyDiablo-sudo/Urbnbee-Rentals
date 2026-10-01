@@ -19,11 +19,15 @@ export function AppListingCardView({ listing: l, t, priority = false }: { listin
           decoding="async"
         />
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-          {l.verified && (
+          {l.identityVerified ? (
+            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1e7a3a] shadow">
+              {t("✓ Identidad verificada")}
+            </span>
+          ) : l.verified ? (
             <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-[#222] shadow">
               {t("✓ Miembro verificado")}
             </span>
-          )}
+          ) : null}
           {l.bookable && (
             <span className="rounded-full bg-[#dcb81e] px-2.5 py-1 text-[11px] font-semibold text-black shadow">
               {t("Reserva en Cabibee")}

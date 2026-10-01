@@ -101,6 +101,9 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   if (body.bookingApprovalMode === "instant" || body.bookingApprovalMode === "approval") {
     patch.bookingApprovalMode = body.bookingApprovalMode;
   }
+  if (typeof body.chargeTax === "boolean") {
+    patch.chargeTax = body.chargeTax;
+  }
   if (body.contract !== undefined) {
     patch.contract = sanitizeListingContract(body.contract, listing.contract);
   }

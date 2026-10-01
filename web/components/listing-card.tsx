@@ -38,7 +38,12 @@ export function ListingCard({ listing }: Props) {
         </div>
         {/* Badges */}
         <div className="absolute right-2 top-2 flex flex-col gap-1">
-          {listing.verified && (
+          {listing.identityVerified && (
+            <span className="rounded bg-[#1e7a3a] px-2 py-0.5 text-xs font-semibold text-white">
+              {t("✓ Identidad verificada")}
+            </span>
+          )}
+          {listing.verified && !listing.identityVerified && (
             <span
               className="rounded px-2 py-0.5 text-xs font-semibold text-white"
               style={{ backgroundColor: "#dcb81e" }}

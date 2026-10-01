@@ -265,14 +265,21 @@ function PendingActions({
     paidTotalMxn?: number;
     blocked?: boolean;
     overlapping?: boolean;
+    taxAvailable?: boolean;
+    chargeTax?: boolean;
+    taxMxn?: number;
+    taxIncluded?: boolean;
     error?: string;
   }>({});
   const [signName, setSignName] = useState("");
   const [acceptContract, setAcceptContract] = useState(false);
+  const [chargeTax, setChargeTax] = useState<boolean | null>(null);
+  const taxOn = chargeTax ?? Boolean(preview.chargeTax);
 
   useEffect(() => {
     let cancelled = false;
     const q = new URLSearchParams({ checkIn: adjIn, checkOut: adjOut, listingId: adjListingId });
+    if (chargeTax !== null) q.set("tax", chargeTax ? "1" : "0");
     const timer = setTimeout(async () => {
       const res = await fetch(`/api/host/bookings/${booking.id}?${q}`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
@@ -286,7 +293,7 @@ function PendingActions({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [booking.id, adjIn, adjOut, adjListingId]);
+  }, [booking.id, adjIn, adjOut, adjListingId, chargeTax]);
 
   const listingOptions: HostListing[] =
     publishedListings.length > 0
@@ -397,6 +404,31 @@ function PendingActions({
           </select>
         </label>
       </div>
+      {preview.taxAvailable && (
+        <label className="mt-3 flex items-start gap-2 text-sm text-[#484848]">
+          <input
+            type="checkbox"
+            checked={taxOn}
+            onChange={(e) => setChargeTax(e.target.checked)}
+            className="mt-1 accent-[#dcb81e]"
+          />
+          <span>
+            <span className="font-semibold">{t("Cobrar impuestos en esta reserva")}</span>
+            <span className="block text-xs text-[#888]">
+              {taxOn
+                ? preview.taxMxn
+                  ? t(preview.taxIncluded ? "Incluye {amount} de impuestos." : "Se suman {amount} de impuestos.", {
+                      amount: `$${preview.taxMxn.toLocaleString("es-MX")}`,
+                    })
+                  : t("Se agregan al total y al contrato.")
+                : t("El huésped no paga impuestos en esta reserva.")}
+              {preview.estimatedTotalMxn != null
+                ? ` ${t("Total: {total}", { total: `$${preview.estimatedTotalMxn.toLocaleString("es-MX")}` })}`
+                : ""}
+            </span>
+          </span>
+        </label>
+      )}
       <div className="mt-4 flex flex-wrap gap-3">
         <button
           type="button"
@@ -413,6 +445,7 @@ function PendingActions({
               if (adjIn !== booking.checkIn) body.hostAdjustedCheckIn = adjIn;
               if (adjOut !== booking.checkOut) body.hostAdjustedCheckOut = adjOut;
               if (adjListingId !== booking.listingId) body.hostAdjustedListingId = adjListingId;
+              if (preview.taxAvailable) body.chargeTax = taxOn;
               const res = await fetch(`/api/host/bookings/${booking.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },

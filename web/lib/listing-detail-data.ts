@@ -53,13 +53,18 @@ export type ListingDetail = {
   depositMxn?: number;
   /** Impuestos del anfitrión que se aplican al total. */
   tax?: HostTaxSettings;
+  /** false: el anfitrión aprueba cada solicitud. */
+  instantBook?: boolean;
   category: string;
   spaceType: string;
   guests: number;
   bedrooms: number;
   bathrooms: number;
   size?: string;
+  /** Listón «Miembro verificado»: identidad comprobada y membresía vigente. */
   verified: boolean;
+  /** El anfitrión comprobó su identidad con Cabibee. */
+  identityVerified?: boolean;
   propertyId: number;
   // Dates that are already booked (YYYY-MM-DD)
   blockedDates: string[];

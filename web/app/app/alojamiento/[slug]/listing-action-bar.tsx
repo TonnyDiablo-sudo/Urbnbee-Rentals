@@ -17,6 +17,7 @@ type Props = {
   cleaningFee?: number;
   depositMxn?: number;
   tax?: HostTaxSettings;
+  instantBook: boolean;
   blockedDates: string[];
   nightlyPriceOverrides?: Record<string, number>;
   pricing?: ListingPricing;
@@ -106,6 +107,7 @@ export function ListingActionBar(p: Props) {
           cleaningFee={p.cleaningFee}
           depositMxn={p.depositMxn}
           tax={p.tax}
+          instantBook={p.instantBook}
           blockedDates={p.blockedDates}
           nightlyPriceOverrides={p.nightlyPriceOverrides}
           pricing={p.pricing}

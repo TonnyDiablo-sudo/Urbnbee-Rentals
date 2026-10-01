@@ -267,6 +267,10 @@ type ContractPreview = {
   guestMustResign?: boolean;
   blocked?: boolean;
   overlapping?: boolean;
+  taxAvailable?: boolean;
+  chargeTax?: boolean;
+  taxMxn?: number;
+  taxIncluded?: boolean;
   error?: string;
 };
 
@@ -291,11 +295,13 @@ function AcceptSheet({
   const [adjOut, setAdjOut] = useState(booking?.checkOut ?? "");
   const [adjListing, setAdjListing] = useState(booking?.listingId ?? "");
   const [preview, setPreview] = useState<ContractPreview>({});
+  const [chargeTax, setChargeTax] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!booking || !adjIn || !adjOut || !adjListing) return;
     let cancelled = false;
     const q = new URLSearchParams({ checkIn: adjIn, checkOut: adjOut, listingId: adjListing });
+    if (chargeTax !== null) q.set("tax", chargeTax ? "1" : "0");
     const timer = setTimeout(() => {
       fetch(`/api/host/bookings/${booking.id}?${q}`, { cache: "no-store" })
         .then(async (r) => {
@@ -312,9 +318,10 @@ function AcceptSheet({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [booking, adjIn, adjOut, adjListing]);
+  }, [booking, adjIn, adjOut, adjListing, chargeTax]);
 
   const invalid = Boolean(preview.error || preview.blocked || preview.overlapping);
+  const taxOn = chargeTax ?? Boolean(preview.chargeTax);
 
   const accept = async () => {
     if (!booking) return;
@@ -325,6 +332,7 @@ function AcceptSheet({
       if (adjIn !== booking.checkIn) body.hostAdjustedCheckIn = adjIn;
       if (adjOut !== booking.checkOut) body.hostAdjustedCheckOut = adjOut;
       if (adjListing !== booking.listingId) body.hostAdjustedListingId = adjListing;
+      if (preview.taxAvailable) body.chargeTax = taxOn;
       const res = await fetch(`/api/host/bookings/${booking.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -404,6 +412,31 @@ function AcceptSheet({
             >
               {t("Cambiar fechas o alojamiento")}
             </button>
+          )}
+          {preview.taxAvailable && (
+            <label className="flex items-start gap-3 rounded-2xl border border-[#ebebeb] p-4 text-sm text-[#333]">
+              <input
+                type="checkbox"
+                checked={taxOn}
+                onChange={(e) => setChargeTax(e.target.checked)}
+                className="mt-0.5 h-5 w-5 accent-[#dcb81e]"
+              />
+              <span>
+                <span className="block text-[15px] font-semibold text-[#222]">{t("Cobrar impuestos en esta reserva")}</span>
+                <span className="mt-0.5 block text-[#717171]">
+                  {taxOn
+                    ? preview.taxMxn
+                      ? t(preview.taxIncluded ? "Incluye {amount} de impuestos." : "Se suman {amount} de impuestos.", {
+                          amount: fmtMxn(preview.taxMxn),
+                        })
+                      : t("Se agregan al total y al contrato.")
+                    : t("El huésped no paga impuestos en esta reserva.")}
+                  {preview.estimatedTotalMxn != null && !invalid
+                    ? ` ${t("Total: {total}", { total: fmtMxn(preview.estimatedTotalMxn) })}`
+                    : ""}
+                </span>
+              </span>
+            </label>
           )}
           {preview.error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(preview.error)}</p>}
           {(preview.blocked || preview.overlapping) && (

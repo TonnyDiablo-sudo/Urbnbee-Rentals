@@ -79,6 +79,11 @@ export type HostListingRecord = {
    * approval: tras pagar, queda pendiente hasta que el anfitrión acepte o rechace.
    */
   bookingApprovalMode: "instant" | "approval";
+  /**
+   * false: este anuncio no cobra los impuestos del anfitrión. Con reserva por
+   * aprobación es solo el valor inicial: el anfitrión decide al aceptar.
+   */
+  chargeTax?: boolean;
   /** Plantilla y datos que el anfitrión usa para celebrar el contrato de cada reserva. */
   contract?: ListingContractSettings;
   createdAt: string;

@@ -25,6 +25,7 @@ function hostToListingCard(categoryLabel: string, record: HostListingRecord): Li
     bedrooms: d.bedrooms,
     bathrooms: d.bathrooms,
     verified: d.verified,
+    identityVerified: d.identityVerified,
   };
 }
 

@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { SCREENING_BAND_LABEL, SCREENING_PAYER_LABEL, SCREENING_STATUS_LABEL } from "@/lib/screening-types";
 import { HOST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../../_components/booking-status";
 import { Sheet } from "../../_components/sheet";
+import { WebLink } from "../../_components/site-origin";
 import { hostChatHref, isPending, stayOf, type HostBooking } from "./host-data";
 
 /** Detalle de una reserva: quién viene, cuándo, cuánto y cómo escribirle. */
@@ -59,6 +62,8 @@ export function ReservationSheet({
           {booking.guestPhone && <Row label={t("Teléfono")} value={booking.guestPhone} />}
         </dl>
 
+        {booking.guestUserId && !CLOSED_STATUSES.has(booking.status) && <ScreeningBox bookingId={booking.id} />}
+
         <div className="grid gap-2">
           {isPending(booking.status) && onReview && (
             <button
@@ -77,6 +82,125 @@ export function ReservationSheet({
         </div>
       </div>
     </Sheet>
+  );
+}
+
+const CLOSED_STATUSES = new Set(["REJECTED", "CANCELLED", "EXPIRED", "COMPLETED"]);
+
+type ScreeningState = {
+  screening: {
+    status: string;
+    payer: "host" | "guest";
+    band?: string;
+    providerNote?: string;
+    needsConsent: boolean;
+    needsPayGuest: boolean;
+    needsPayHost: boolean;
+  } | null;
+  canRequest: boolean;
+  quote?: { offered: boolean; amount: number; currency: "mxn" | "usd" };
+};
+
+/** Revisión crediticia del huésped: el anfitrión la pide y decide quién la paga. */
+function ScreeningBox({ bookingId }: { bookingId: string }) {
+  const t = useT();
+  const [data, setData] = useState<ScreeningState | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const url = `/api/host/bookings/${encodeURIComponent(bookingId)}/screening`;
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(url, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => !cancelled && setData(j))
+      .catch(() => !cancelled && setData(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (!data) return null;
+  const s = data.screening;
+  const price =
+    data.quote?.offered && data.quote.amount > 0
+      ? `$${data.quote.amount.toLocaleString("es-MX")} ${data.quote.currency.toUpperCase()}`
+      : null;
+
+  const request = async (payer: "host" | "guest") => {
+    setBusy(true);
+    setErr(null);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payer }),
+    }).catch(() => null);
+    const j = res ? await res.json().catch(() => ({})) : {};
+    setBusy(false);
+    if (!res?.ok) {
+      setErr(typeof j.error === "string" ? j.error : "No se pudo pedir la revisión.");
+      return;
+    }
+    setData((d) => (d ? { ...d, screening: j.screening, canRequest: false } : d));
+  };
+
+  return (
+    <div className="rounded-2xl border border-[#ebebeb] p-4">
+      <p className="text-[15px] font-semibold text-[#222]">{t("Historial crediticio")}</p>
+      {!s ? (
+        data.canRequest && price ? (
+          <>
+            <p className="mt-1 text-sm text-[#717171]">
+              {t("Pide una revisión de crédito ({price}). El huésped tiene que autorizarla; tú decides quién la paga.", { price })}
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void request("host")}
+                className="rounded-xl border border-[#222] py-2.5 text-sm font-semibold text-[#222] disabled:opacity-50"
+              >
+                {t("La pago yo")}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void request("guest")}
+                className="rounded-xl bg-[#222] py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {t("Que la pague el huésped")}
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-[#717171]">{t("La revisión de crédito no está disponible por ahora.")}</p>
+        )
+      ) : (
+        <>
+          <p className="mt-1 text-sm text-[#333]">
+            {s.status === "completed" && s.band
+              ? t("Resultado: {band}", { band: t(SCREENING_BAND_LABEL[s.band as keyof typeof SCREENING_BAND_LABEL] ?? s.band) })
+              : s.needsConsent
+                ? t("Esperando a que el huésped la autorice. Ya le avisamos.")
+                : s.needsPayGuest
+                  ? t("El huésped autorizó; falta que pague la consulta.")
+                  : s.needsPayHost
+                    ? t("El huésped autorizó. Paga la consulta para ver el resultado.")
+                    : t(SCREENING_STATUS_LABEL[s.status as keyof typeof SCREENING_STATUS_LABEL] ?? s.status)}
+          </p>
+          <p className="mt-0.5 text-xs text-[#888]">{t(SCREENING_PAYER_LABEL[s.payer])}</p>
+          {s.needsPayHost && (
+            <WebLink
+              path="/host/requests"
+              className="mt-3 inline-block rounded-xl bg-[#dcb81e] px-4 py-2.5 text-sm font-semibold text-black"
+            >
+              {t("Pagar consulta")}
+            </WebLink>
+          )}
+        </>
+      )}
+      {err && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{t(err)}</p>}
+    </div>
   );
 }
 

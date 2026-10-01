@@ -19,6 +19,8 @@ export type Listing = {
   bedrooms: number;
   bathrooms: number;
   verified?: boolean;
+  /** El anfitrión comprobó su identidad con Cabibee. */
+  identityVerified?: boolean;
   featured?: boolean;
   /** Filtros de la cuadrícula: vistas, tropical, mar, albercas. */
   tags?: string[];

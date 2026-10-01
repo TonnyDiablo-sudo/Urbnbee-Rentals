@@ -5,7 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { memo, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
-import { nightPrice, type ListingPricing } from "@/lib/listing-pricing";
+import {
+  DEFAULT_EARLY_BIRD_DAYS,
+  DEFAULT_LAST_MINUTE_DAYS,
+  MAX_SEASONAL_PROMOS,
+  nightPrice,
+  type ListingPricing,
+} from "@/lib/listing-pricing";
 import { sizedImage } from "@/lib/image-url";
 import { Sheet } from "../../_components/sheet";
 import {
@@ -505,9 +511,18 @@ export function PriceSettings({
     cleaning: String(listing.cleaningFee || ""),
     weekly: p.weeklyDiscountPct ? String(p.weeklyDiscountPct) : "",
     monthly: p.monthlyDiscountPct ? String(p.monthlyDiscountPct) : "",
+    earlyPct: p.earlyBirdPct ? String(p.earlyBirdPct) : "",
+    earlyDays: String(p.earlyBirdDays ?? DEFAULT_EARLY_BIRD_DAYS),
+    lastPct: p.lastMinutePct ? String(p.lastMinutePct) : "",
+    lastDays: String(p.lastMinuteDays ?? DEFAULT_LAST_MINUTE_DAYS),
     minNights: p.minNights ? String(p.minNights) : "",
     maxNights: p.maxNights ? String(p.maxNights) : "",
   });
+  const [promos, setPromos] = useState<{ from: string; to: string; pct: string; label: string }[]>(() =>
+    (p.seasonal ?? []).map((s) => ({ from: s.from, to: s.to, pct: String(s.pct), label: s.label ?? "" }))
+  );
+  const setPromo = (i: number, k: "from" | "to" | "pct" | "label", v: string) =>
+    setPromos((list) => list.map((s, j) => (j === i ? { ...s, [k]: v } : s)));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }));
@@ -516,6 +531,11 @@ export function PriceSettings({
     const base = Number(f.base);
     if (!Number.isFinite(base) || base <= 0) {
       setErr("Escribe un precio base mayor a cero.");
+      return;
+    }
+    const filled = promos.filter((s) => s.from || s.to || s.pct);
+    if (filled.some((s) => !s.from || !s.to || !(Number(s.pct) > 0))) {
+      setErr("Cada promoción de temporada necesita fecha de inicio, fecha de fin y porcentaje.");
       return;
     }
     setBusy(true);
@@ -527,6 +547,11 @@ export function PriceSettings({
         weekendPrice: f.weekend,
         weeklyDiscountPct: f.weekly,
         monthlyDiscountPct: f.monthly,
+        earlyBirdPct: f.earlyPct,
+        earlyBirdDays: f.earlyDays,
+        lastMinutePct: f.lastPct,
+        lastMinuteDays: f.lastDays,
+        seasonal: filled.map((s) => ({ from: s.from, to: s.to, pct: s.pct, label: s.label })),
         minNights: f.minNights,
         maxNights: f.maxNights,
       },
@@ -559,6 +584,87 @@ export function PriceSettings({
         <h3 className="pt-2 text-base font-semibold text-[#222]">{t("Descuentos")}</h3>
         {field("weekly", "Descuento semanal", "Para estancias de 7 noches o más.", "%")}
         {field("monthly", "Descuento mensual", "Para estancias de 28 noches o más.", "%")}
+        <div className="grid grid-cols-2 gap-3">
+          {field("earlyPct", "Reserva anticipada", undefined, "%")}
+          {field("earlyDays", "Días de anticipación")}
+        </div>
+        <p className="-mt-3 text-xs text-[#717171]">
+          {t("Para quien reserva con al menos {n} días antes de llegar.", { n: Number(f.earlyDays) || DEFAULT_EARLY_BIRD_DAYS })}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {field("lastPct", "Última hora", undefined, "%")}
+          {field("lastDays", "Días antes de llegar")}
+        </div>
+        <p className="-mt-3 text-xs text-[#717171]">
+          {t("Para quien llega dentro de {n} días o menos. Llena huecos de tu calendario.", {
+            n: Number(f.lastDays) || 0,
+          })}
+        </p>
+        <p className="text-xs text-[#717171]">
+          {t("No se acumulan: si aplican varios, el huésped recibe el mayor.")}
+        </p>
+
+        <h3 className="pt-2 text-base font-semibold text-[#222]">{t("Promociones de temporada")}</h3>
+        <p className="-mt-3 text-xs text-[#717171]">
+          {t("Descuento para las noches dentro de un rango de fechas (temporada baja, ofertas). Se suma antes del descuento de estancia.")}
+        </p>
+        {promos.map((s, i) => (
+          <div key={i} className="space-y-2 rounded-2xl border border-[#e5e5e5] p-3">
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block text-xs font-semibold text-[#222]">
+                {t("Desde")}
+                <input type="date" value={s.from} onChange={(e) => setPromo(i, "from", e.target.value)} className={inputCls} />
+              </label>
+              <label className="block text-xs font-semibold text-[#222]">
+                {t("Hasta")}
+                <input type="date" value={s.to} onChange={(e) => setPromo(i, "to", e.target.value)} className={inputCls} />
+              </label>
+            </div>
+            <div className="grid grid-cols-[1fr_96px] gap-2">
+              <label className="block text-xs font-semibold text-[#222]">
+                {t("Nombre (opcional)")}
+                <input
+                  value={s.label}
+                  maxLength={40}
+                  placeholder={t("Temporada baja")}
+                  onChange={(e) => setPromo(i, "label", e.target.value)}
+                  className={inputCls}
+                />
+              </label>
+              <label className="block text-xs font-semibold text-[#222]">
+                {t("Descuento")}
+                <div className="relative">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={90}
+                    value={s.pct}
+                    onChange={(e) => setPromo(i, "pct", e.target.value)}
+                    className={inputCls}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 mt-0.5 -translate-y-1/2 text-[#717171]">%</span>
+                </div>
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPromos((list) => list.filter((_, j) => j !== i))}
+              className="text-sm font-medium text-[#c13515] underline"
+            >
+              {t("Quitar promoción")}
+            </button>
+          </div>
+        ))}
+        {promos.length < MAX_SEASONAL_PROMOS && (
+          <button
+            type="button"
+            onClick={() => setPromos((list) => [...list, { from: "", to: "", pct: "", label: "" }])}
+            className="w-full rounded-xl border border-dashed border-[#999] py-3 text-sm font-semibold text-[#222]"
+          >
+            + {t("Agregar promoción de temporada")}
+          </button>
+        )}
 
         <h3 className="pt-2 text-base font-semibold text-[#222]">{t("Duración de la estancia")}</h3>
         <div className="grid grid-cols-2 gap-3">

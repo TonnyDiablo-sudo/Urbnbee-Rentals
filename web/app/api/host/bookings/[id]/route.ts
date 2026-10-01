@@ -19,7 +19,13 @@ import { getListingById } from "@/lib/marketplace-store";
 import { notifyGuestBookingDecision } from "@/lib/push";
 import { countNights, nightsBlockedByListing } from "@/lib/booking-helpers";
 import { paidStayOf, reconcileBookingTotal } from "@/lib/booking-adjustments";
-import { bookingTaxFields, quoteBookingMxn } from "@/lib/booking-quote";
+import {
+  bookingChargesTax,
+  bookingQuoteDay,
+  bookingTaxFields,
+  quoteBookingMxn,
+  retaxBookingMxn,
+} from "@/lib/booking-quote";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
 
 type PatchBody = {
@@ -29,6 +35,8 @@ type PatchBody = {
   hostAdjustedListingId?: string;
   acceptContract?: boolean;
   signName?: string;
+  /** Si se cobran los impuestos del anfitrión en esta reserva. */
+  chargeTax?: boolean;
 };
 
 function requestIp(req: NextRequest): string | undefined {
@@ -58,7 +66,8 @@ export async function GET(
   const pIn = q.get("checkIn")?.trim() || "";
   const pOut = q.get("checkOut")?.trim() || "";
   const pListing = q.get("listingId")?.trim() || "";
-  if (pIn || pOut || pListing) {
+  const pTax = q.get("tax")?.trim() || "";
+  if (pIn || pOut || pListing || pTax) {
     const effIn = pIn || (booking.hostAdjustedCheckIn ?? booking.checkIn);
     const effOut = pOut || (booking.hostAdjustedCheckOut ?? booking.checkOut);
     const listing = getListingById(pListing || (booking.hostAdjustedListingId ?? booking.listingId));
@@ -69,9 +78,13 @@ export async function GET(
     if (nights < 1) {
       return NextResponse.json({ error: "Las fechas deben dejar al menos una noche." }, { status: 400 });
     }
-    const quote = quoteBookingMxn(listing, effIn, effOut);
-    const unchanged =
-      listing.id === booking.listingId && effIn === booking.checkIn && effOut === booking.checkOut;
+    const currentTax = bookingChargesTax(booking);
+    const chargeTax = pTax === "1" ? true : pTax === "0" ? false : currentTax;
+    const sameStay = listing.id === booking.listingId && effIn === booking.checkIn && effOut === booking.checkOut;
+    const quote = sameStay
+      ? retaxBookingMxn(booking, listing, chargeTax)
+      : quoteBookingMxn(listing, effIn, effOut, { today: bookingQuoteDay(booking), chargeTax });
+    const unchanged = sameStay && (!quote.taxAvailable || chargeTax === currentTax);
     const estimatedTotalMxn = unchanged ? booking.estimatedTotalMxn : quote.totalMxn;
     const preview = previewContractLines(booking, {
       checkIn: effIn,
@@ -93,6 +106,8 @@ export async function GET(
       paidTotalMxn: booking.paidAt ? paidStayOf(booking) : undefined,
       taxMxn: unchanged ? (booking.taxMxn ?? 0) : quote.taxMxn,
       taxIncluded: unchanged ? Boolean(booking.taxIncluded) : quote.taxIncluded,
+      taxAvailable: quote.taxAvailable,
+      chargeTax: quote.taxAvailable && chargeTax,
       platformFeeDeltaMxn:
         booking.paidAt && booking.chargedVia !== "host" && (booking.platformFeeMxn ?? 0) > 0
           ? platformBookingFeeMxn(estimatedTotalMxn) - (booking.platformFeeMxn ?? 0)
@@ -267,15 +282,21 @@ export async function PATCH(
     );
   }
 
-  const quote = quoteBookingMxn(listing, effIn, effOut);
-  const estimatedTotalMxn = quote.totalMxn;
+  const currentTax = bookingChargesTax(booking);
+  const chargeTax = typeof body.chargeTax === "boolean" ? body.chargeTax : currentTax;
   const datesChanged =
     effListingId !== booking.listingId || effIn !== booking.checkIn || effOut !== booking.checkOut;
+  const quote = datesChanged
+    ? quoteBookingMxn(listing, effIn, effOut, { today: bookingQuoteDay(booking), chargeTax })
+    : retaxBookingMxn(booking, listing, chargeTax);
+  const estimatedTotalMxn = quote.totalMxn;
+  const taxChanged = quote.taxAvailable && chargeTax !== currentTax;
   // Sin cambios se respeta el precio con el que pagó el huésped, aunque el anfitrión haya
   // movido tarifas o impuestos después.
-  const pricing = datesChanged
-    ? { estimatedTotalMxn, ...bookingTaxFields(quote) }
-    : { estimatedTotalMxn: booking.estimatedTotalMxn };
+  const pricing =
+    datesChanged || taxChanged
+      ? { estimatedTotalMxn, ...bookingTaxFields(quote), chargeTax: quote.taxAvailable ? chargeTax : undefined }
+      : { estimatedTotalMxn: booking.estimatedTotalMxn, chargeTax: quote.taxAvailable ? currentTax : undefined };
 
   const hostAdjustedListingId =
     effListingId !== booking.listingId ? effListingId : undefined;

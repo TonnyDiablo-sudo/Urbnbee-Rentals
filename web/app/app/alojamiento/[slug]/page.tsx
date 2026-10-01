@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AmenitiesGrid } from "@/components/listing/amenities-grid";
 import { ReviewsSection } from "@/components/listing/reviews-section";
 import { listingIsBookable } from "@/lib/app-listings";
+import { discountRows } from "@/lib/listing-pricing";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { stripHostContactChannels } from "@/lib/host-contact-policy";
 import { getT } from "@/lib/i18n/server";
@@ -65,11 +66,17 @@ export default async function AppListingPage({ params }: Props) {
           {listing.size ? ` · ${listing.size}` : ""}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {listing.verified ? (
+          {listing.identityVerified && (
+            <span className="rounded-full bg-[#e7f5ec] px-3 py-1 text-xs font-semibold text-[#1e7a3a]">
+              {t("✓ Identidad verificada")}
+            </span>
+          )}
+          {listing.verified && (
             <span className="rounded-full bg-[#fdf6d8] px-3 py-1 text-xs font-semibold text-[#8a6d0f]">
               {t("✓ Miembro verificado")}
             </span>
-          ) : (
+          )}
+          {!listing.verified && !listing.identityVerified && (
             <span className="rounded-full bg-[#f3f3f3] px-3 py-1 text-xs font-medium text-[#717171]">
               {t("Anfitrión no verificado")}
             </span>
@@ -83,13 +90,23 @@ export default async function AppListingPage({ params }: Props) {
 
         <Section>
           <div className="flex items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={listing.host.avatarUrl}
-              alt=""
-              className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-[#dcb81e]"
-              loading="lazy"
-            />
+            <div className="relative shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={listing.host.avatarUrl}
+                alt=""
+                className="h-14 w-14 rounded-full object-cover ring-2 ring-[#dcb81e]"
+                loading="lazy"
+              />
+              {listing.identityVerified && (
+                <span
+                  className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#1e7a3a] text-xs font-bold text-white"
+                  aria-label={t("Identidad verificada")}
+                >
+                  ✓
+                </span>
+              )}
+            </div>
             <div className="min-w-0">
               <p className="text-base font-semibold text-[#222]">
                 {t("Anfitrión: {name}", { name: listing.host.name })}
@@ -97,6 +114,15 @@ export default async function AppListingPage({ params }: Props) {
               <p className="line-clamp-2 text-sm text-[#717171]">{listing.host.bio}</p>
             </div>
           </div>
+          {listing.identityVerified ? (
+            <p className="mt-3 rounded-xl bg-[#e7f5ec] px-3 py-2 text-sm leading-relaxed text-[#1e5a32]">
+              🛡️ {t("Perfil verificado: Cabibee comprobó la identidad de este anfitrión con su identificación oficial.")}
+            </p>
+          ) : hostListing ? (
+            <p className="mt-3 rounded-xl bg-[#f7f7f7] px-3 py-2 text-sm leading-relaxed text-[#717171]">
+              {t("Este anfitrión todavía no verifica su identidad en Cabibee.")}
+            </p>
+          ) : null}
           {(listing.host.work || listing.host.livesIn || listing.host.languages?.length) && (
             <ul className="mt-3 space-y-1 text-sm text-[#333]">
               {listing.host.work && <li>💼 {t("Trabaja como: {work}", { work: listing.host.work })}</li>}
@@ -165,16 +191,29 @@ export default async function AppListingPage({ params }: Props) {
           <dl className="space-y-1.5 text-[15px] text-[#333]">
             <Row label={t("Por noche")} value={mxn(listing.pricePerNight)} />
             {pricing?.weekendPrice ? <Row label={t("Viernes y sábado")} value={mxn(pricing.weekendPrice)} /> : null}
-            {pricing?.weeklyDiscountPct ? (
-              <Row label={t("Descuento por semana (7+ noches)")} value={`${pricing.weeklyDiscountPct}%`} />
-            ) : null}
-            {pricing?.monthlyDiscountPct ? (
-              <Row label={t("Descuento por mes (28+ noches)")} value={`${pricing.monthlyDiscountPct}%`} />
-            ) : null}
+            {discountRows(pricing).map((r) => (
+              <Row key={r.key + JSON.stringify(r.vars ?? {})} label={t(r.key, r.vars)} value={`−${r.pct}%`} accent />
+            ))}
             {pricing?.minNights ? <Row label={t("Estancia mínima")} value={t("{n} noches", { n: pricing.minNights })} /> : null}
             {listing.cleaningFee ? <Row label={t("Limpieza (una vez)")} value={mxn(listing.cleaningFee)} /> : null}
             {listing.depositMxn ? <Row label={t("Depósito (entre ustedes)")} value={mxn(listing.depositMxn)} /> : null}
+            {bookable && (
+              <Row
+                label={t("Impuestos")}
+                value={
+                  listing.tax
+                    ? listing.tax.lines.map((l) => `${l.name} ${l.ratePct}%`).join(" + ") +
+                      (listing.tax.mode === "included" ? ` (${t("incluidos")})` : "")
+                    : t("No cobra")
+                }
+              />
+            )}
           </dl>
+          {bookable && listing.instantBook === false && (
+            <p className="mt-3 text-xs leading-relaxed text-[#888]">
+              {t("El anfitrión aprueba cada solicitud y confirma el total final (fechas e impuestos) antes de que se te cobre cualquier diferencia.")}
+            </p>
+          )}
         </Section>
 
         <Section title={t("Ubicación aproximada")}>
@@ -194,6 +233,7 @@ export default async function AppListingPage({ params }: Props) {
         cleaningFee={listing.cleaningFee}
         depositMxn={listing.depositMxn}
         tax={listing.tax}
+        instantBook={listing.instantBook !== false}
         blockedDates={listing.blockedDates}
         nightlyPriceOverrides={listing.nightlyPriceOverrides}
         pricing={listing.pricing}
@@ -216,11 +256,11 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-[#717171]">{label}</dt>
-      <dd className="font-medium">{value}</dd>
+      <dd className={`shrink-0 font-medium ${accent ? "text-[#1e7a3a]" : ""}`}>{value}</dd>
     </div>
   );
 }

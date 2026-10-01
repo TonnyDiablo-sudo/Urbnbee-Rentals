@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { AMENITY_OPTIONS } from "@/lib/amenity-options";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
 import { getContractTemplate } from "@/lib/booking-contract-templates";
 import { sizedImage } from "@/lib/image-url";
+import { taxActive, type HostTaxSettings } from "@/lib/stay-tax";
 import type { ListingCategory } from "@/lib/mock-data";
 import { IconChevron, IconClose, IconExternal, IconPlus } from "../../../_components/icons";
 import { WebLink } from "../../../_components/site-origin";
@@ -29,6 +30,7 @@ type PanelId =
   | "location"
   | "rules"
   | "booking"
+  | "taxes"
   | "times"
   | "checkin"
   | "directions"
@@ -38,11 +40,71 @@ type PanelId =
 
 const money = (n: number) => `$${Math.round(n).toLocaleString("es-MX")}`;
 
+const TAX_URL = "/api/host/tax";
+
+/** Si este anuncio cobra los impuestos que el anfitrión configuró en «Impuestos (IVA)». */
+function TaxPanel({ chargeTax, onChange, approval }: { chargeTax: boolean; onChange: (v: boolean) => void; approval: boolean }) {
+  const t = useT();
+  const { data } = useCached<{ tax: HostTaxSettings | null }>(TAX_URL);
+  if (!data) return <p className="text-sm text-[#999]">{t("Cargando…")}</p>;
+  const tax = data.tax ?? undefined;
+  if (!taxActive(tax)) {
+    return (
+      <div className="space-y-4">
+        <p className="text-[15px] leading-relaxed text-[#333]">
+          {t("Todavía no configuras impuestos. Primero elige tu país y los impuestos que cobras (IVA, hospedaje…).")}
+        </p>
+        <Link href="/host/impuestos" className="block rounded-xl bg-[#dcb81e] py-3.5 text-center font-semibold text-black">
+          {t("Configurar impuestos")}
+        </Link>
+      </div>
+    );
+  }
+  const summary = tax.lines.map((l) => `${l.name} ${l.ratePct}%`).join(" + ");
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[#717171]">
+        {t("Tus impuestos: {taxes} ({mode}).", {
+          taxes: summary,
+          mode: t(tax.mode === "included" ? "ya incluidos en el precio" : "se suman al precio"),
+        })}
+      </p>
+      {(
+        [
+          [true, "Cobrar impuestos en este anuncio", "El huésped ve el desglose antes de pagar y se agrega a su contrato."],
+          [false, "No cobrar impuestos", "El huésped ve que este anuncio no cobra impuestos."],
+        ] as const
+      ).map(([v, label, hint]) => (
+        <button
+          key={String(v)}
+          type="button"
+          onClick={() => onChange(v)}
+          className={`w-full rounded-2xl border p-4 text-left ${chargeTax === v ? "border-[#222] ring-1 ring-[#222]" : "border-[#ddd]"}`}
+        >
+          <span className="block text-[15px] font-semibold text-[#222]">{t(label)}</span>
+          <span className="mt-0.5 block text-sm text-[#717171]">{t(hint)}</span>
+        </button>
+      ))}
+      <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm leading-relaxed text-[#484848]">
+        {approval
+          ? t("Como tú apruebas cada solicitud, esto es lo que se propone al huésped. Al aceptar puedes cambiarlo para esa reserva; si el total cambia, Cabibee le cobra o le devuelve la diferencia.")
+          : t("Con reservación inmediata se aplica tal cual al pagar, así que decide aquí.")}
+      </p>
+      <Link href="/host/impuestos" className="block text-sm font-semibold text-[#222] underline">
+        {t("Cambiar país o porcentajes")}
+      </Link>
+    </div>
+  );
+}
+
 /** Un anuncio a la manera de Airbnb: «Tu espacio» y «Guía de llegada», cada sección se edita por separado. */
 export function ListingHub({ listingId }: { listingId: string }) {
   const t = useT();
   const router = useRouter();
   const detail = useCached<{ listing?: HostListing }>(HOST_URLS.listing(listingId));
+  const taxData = useCached<{ tax: HostTaxSettings | null }>(TAX_URL).data;
+  const taxOn = taxActive(taxData?.tax ?? undefined);
+  const taxSummary = taxOn ? taxData!.tax!.lines.map((l) => `${l.name} ${l.ratePct}%`).join(" + ") : "";
   const fromList = peekCached<{ listings?: HostListing[] }>(HOST_URLS.listings)?.listings?.find((l) => l.id === listingId);
   const listing = detail.data?.listing ?? fromList ?? null;
   const missing = detail.error && !listing;
@@ -59,11 +121,11 @@ export function ListingHub({ listingId }: { listingId: string }) {
     return () => window.clearTimeout(id);
   }, [toast]);
 
-  const saved = useCallback((l: HostListing, msg = "Cambios guardados.") => {
+  const saved = (l: HostListing, msg = "Cambios guardados.") => {
     putListing(l);
     setPanel(null);
     setToast(msg);
-  }, []);
+  };
 
   if (missing) {
     return (
@@ -190,6 +252,12 @@ export function ListingHub({ listingId }: { listingId: string }) {
               t("{price} por noche", { price: money(listing.pricePerNight) }),
               p.weekendPrice ? t("fin de semana {price}", { price: money(p.weekendPrice) }) : null,
               p.weeklyDiscountPct ? t("{n}% semanal", { n: p.weeklyDiscountPct }) : null,
+              p.monthlyDiscountPct ? t("{n}% mensual", { n: p.monthlyDiscountPct }) : null,
+              p.earlyBirdPct ? t("{n}% anticipada", { n: p.earlyBirdPct }) : null,
+              p.lastMinutePct ? t("{n}% última hora", { n: p.lastMinutePct }) : null,
+              p.seasonal?.length
+                ? t(p.seasonal.length === 1 ? "1 promoción" : "{n} promociones", { n: p.seasonal.length })
+                : null,
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -228,6 +296,19 @@ export function ListingHub({ listingId }: { listingId: string }) {
             label={t("Cómo se reserva")}
             value={listing.bookingApprovalMode === "instant" ? t("Reservación inmediata") : t("Tú apruebas cada solicitud")}
             onClick={() => setPanel("booking")}
+          />
+          <Row
+            label={t("Impuestos")}
+            value={
+              !taxOn
+                ? t("No configurados")
+                : listing.chargeTax === false
+                  ? t("No se cobran en este anuncio")
+                  : listing.bookingApprovalMode === "instant"
+                    ? t("Se cobran {taxes}", { taxes: taxSummary })
+                    : t("Se cobran {taxes} · decides al aceptar", { taxes: taxSummary })
+            }
+            onClick={() => setPanel("taxes")}
           />
           <Row
             label={t("Contrato")}
@@ -353,6 +434,7 @@ const PANEL_TITLE: Record<PanelId, string> = {
   location: "Ubicación",
   rules: "Reglas de la casa",
   booking: "Cómo se reserva",
+  taxes: "Impuestos",
   times: "Llegada y salida",
   checkin: "Cómo entrar",
   directions: "Cómo llegar",
@@ -392,6 +474,7 @@ function PanelBody({
     addressLine: listing.addressLine,
     rules: { ...listing.rules },
     bookingApprovalMode: listing.bookingApprovalMode,
+    chargeTax: listing.chargeTax !== false,
     arrival: { ...(listing.arrivalGuide ?? {}) } as ArrivalGuide,
   }));
   const [busy, setBusy] = useState(false);
@@ -426,6 +509,8 @@ function PanelBody({
         return { rules: draft.rules, arrivalGuide: draft.arrival };
       case "booking":
         return { bookingApprovalMode: draft.bookingApprovalMode };
+      case "taxes":
+        return { chargeTax: draft.chargeTax };
       default:
         return { arrivalGuide: draft.arrival };
     }
@@ -616,6 +701,14 @@ function PanelBody({
                 </button>
               ))}
             </div>
+          )}
+
+          {id === "taxes" && (
+            <TaxPanel
+              chargeTax={draft.chargeTax}
+              onChange={(v) => set("chargeTax", v)}
+              approval={listing.bookingApprovalMode !== "instant"}
+            />
           )}
 
           {id === "times" && (

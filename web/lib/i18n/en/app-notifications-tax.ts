@@ -20,19 +20,19 @@ export const appNotificationsTax: Record<string, string> = {
   "¡Tu reserva fue aceptada!": "Your booking was accepted!",
   "Tu solicitud no fue aceptada": "Your request wasn't accepted",
   "{listing}: el anfitrión no pudo recibirte en esas fechas.": "{listing}: the host couldn't host you on those dates.",
-  "{listing}: el anfitrión ajustó las fechas. Paga la diferencia de ${amount} y firma el contrato.":
-    "{listing}: the host adjusted the dates. Pay the ${amount} difference and sign the contract.",
+  "{listing}: el anfitrión ajustó la reserva (fechas o impuestos). Paga la diferencia de ${amount} y firma el contrato.":
+    "{listing}: the host adjusted the booking (dates or taxes). Pay the ${amount} difference and sign the contract.",
   "{listing}: completa tus datos para cerrar la reserva.": "{listing}: complete your details to finalize the booking.",
   "Reserva confirmada": "Booking confirmed",
   "{name} firmó el contrato de {listing} ({checkIn} → {checkOut}).":
     "{name} signed the contract for {listing} ({checkIn} → {checkOut}).",
   "{listing}: {checkIn} → {checkOut}. ¡Buen viaje!": "{listing}: {checkIn} → {checkOut}. Have a great trip!",
   "Diferencia pagada": "Difference paid",
-  "{name} pagó ${amount} por el cambio de fechas en {listing}.":
-    "{name} paid ${amount} for the date change at {listing}.",
+  "{name} pagó ${amount} por el ajuste de la reserva en {listing}.":
+    "{name} paid ${amount} for the booking adjustment at {listing}.",
   "Te devolvimos la diferencia": "We refunded the difference",
-  "{listing}: las nuevas fechas cuestan menos; reembolsamos ${amount}.":
-    "{listing}: the new dates cost less; we refunded ${amount}.",
+  "{listing}: el nuevo total es menor; reembolsamos ${amount}.":
+    "{listing}: the new total is lower; we refunded ${amount}.",
   "Nueva reseña · {stars}": "New review · {stars}",
   "{name} calificó {listing}.": "{name} rated {listing}.",
   "tu alojamiento": "your place",

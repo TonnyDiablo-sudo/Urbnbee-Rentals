@@ -17,9 +17,23 @@ export type AppListingCard = {
   guests: number;
   bedrooms: number;
   verified: boolean;
+  identityVerified: boolean;
   /** Se puede reservar dentro de Cabibee (anuncio real con motor de reservas activo). */
   bookable: boolean;
+  /** Ubicación aproximada para el mapa; null si el anuncio no tiene coordenadas. */
+  lat: number | null;
+  lng: number | null;
 };
+
+/** Coordenadas útiles para el mapa (descarta 0,0 y valores fuera de rango). */
+export function mapCoords(lat: unknown, lng: unknown): { lat: number; lng: number } | null {
+  const a = Number(lat);
+  const b = Number(lng);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  if (Math.abs(a) < 0.01 && Math.abs(b) < 0.01) return null;
+  if (Math.abs(a) > 90 || Math.abs(b) > 180) return null;
+  return { lat: a, lng: b };
+}
 
 export const APP_BROWSE_FILTERS: { key: string; label: string }[] = [
   { key: "", label: "Todos" },
@@ -41,13 +55,19 @@ function normalize(s: string): string {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-export function appBrowseListings(opts: { tipo?: string; q?: string }): AppListingCard[] {
+export function appBrowseListings(opts: { tipo?: string; q?: string; verifiedOnly?: boolean }): AppListingCard[] {
+  const all = browseCards(opts);
+  return opts.verifiedOnly ? all.filter((c) => c.identityVerified) : all;
+}
+
+function browseCards(opts: { tipo?: string; q?: string }): AppListingCard[] {
   const seen = new Set<string>();
   const cards: AppListingCard[] = [];
   for (const l of getBrowseListings(opts.tipo || undefined)) {
     if (seen.has(l.id)) continue;
     seen.add(l.id);
     const detail = getListingDetail(l.slug);
+    const coords = mapCoords(detail?.lat, detail?.lng);
     cards.push({
       id: l.id,
       slug: l.slug,
@@ -61,7 +81,10 @@ export function appBrowseListings(opts: { tipo?: string; q?: string }): AppListi
       guests: l.guests,
       bedrooms: l.bedrooms,
       verified: Boolean(l.verified),
+      identityVerified: Boolean(detail?.identityVerified ?? l.identityVerified),
       bookable: listingIsBookable(l.id),
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
     });
   }
 

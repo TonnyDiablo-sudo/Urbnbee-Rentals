@@ -19,3 +19,32 @@ body {
   background: var(--urb-bg);
   color: var(--urb-text);
 }
+
+/* Pines de precio del mapa de búsqueda (Leaflet divIcon). */
+.cb-map-pin-wrap {
+  background: none;
+  border: 0;
+}
+.cb-map-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  border-radius: 9999px;
+  background: #fff;
+  color: #222;
+  font: 700 13px/1 var(--font-roboto), ui-sans-serif, system-ui, sans-serif;
+  padding: 7px 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.cb-map-pin:hover {
+  transform: translate(-50%, -50%) scale(1.06);
+}
+.cb-map-pin--active {
+  background: #222;
+  color: #fff;
+  transform: translate(-50%, -50%) scale(1.08);
+}

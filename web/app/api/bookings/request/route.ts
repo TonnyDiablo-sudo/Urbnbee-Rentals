@@ -152,6 +152,7 @@ export async function POST(req: NextRequest) {
     platformFeeMxn,
     cleaningFeeMxn: cleaning,
     ...bookingTaxFields(quote),
+    chargeTax: quote.taxAvailable ? quote.chargesTax : undefined,
     status: "AWAITING_PAYMENT",
     usedMembershipPass: usedMembershipPass || undefined,
     beeagentRef: link && link.listingId === listingId ? link.ref : undefined,

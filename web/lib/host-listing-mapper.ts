@@ -4,7 +4,7 @@ import type { ListingDetail } from "@/lib/listing-detail-data";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import { listingReviewsForPublic } from "@/lib/stay-reviews";
 import { taxActive } from "@/lib/stay-tax";
-import { hostShowsVerifiedRibbon } from "@/lib/verification-store";
+import { hostShowsVerifiedRibbon, isHostIdentityVerified } from "@/lib/verification-store";
 
 const PLACEHOLDER =
   "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80";
@@ -69,7 +69,8 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
     checkOutTime: record.arrivalGuide?.checkOutTime,
     cleaningFee: record.cleaningFee,
     depositMxn: record.contract?.depositMxn || undefined,
-    tax: taxActive(profile?.tax) ? profile.tax : undefined,
+    tax: taxActive(profile?.tax) && record.chargeTax !== false ? profile.tax : undefined,
+    instantBook: record.bookingApprovalMode !== "approval",
     category: categoryLabel(record.categoryKey),
     spaceType: record.spaceType,
     guests: record.guests,
@@ -77,6 +78,7 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
     bathrooms: record.bathrooms,
     size: record.size,
     verified: hostShowsVerifiedRibbon(record.hostId),
+    identityVerified: isHostIdentityVerified(record.hostId),
     propertyId: hashPropertyId(record.id),
     blockedDates: [...record.blockedDates],
     photos,

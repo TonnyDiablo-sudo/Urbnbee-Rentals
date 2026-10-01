@@ -88,6 +88,8 @@ export type BookingRecord = {
   taxLines?: BookingTaxLine[];
   /** true: el precio ya los incluía; false: se sumaron encima. */
   taxIncluded?: boolean;
+  /** Lo que decidió el anfitrión al aceptar; sin esto vale lo del anuncio. */
+  chargeTax?: boolean;
   /** Parte de `estimatedTotalMxn` ya cobrada. Sin esto y con `paidAt`, se cobró completo. */
   paidStayMxn?: number;
   /** Cobros o devoluciones extra por cambio de fechas. */

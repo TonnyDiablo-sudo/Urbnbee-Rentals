@@ -11,6 +11,7 @@ import { ReviewsSection } from "@/components/listing/reviews-section";
 import { AiChatWidget } from "@/components/listing/ai-chat-widget";
 import { ListingHostChat } from "@/components/listing/listing-host-chat";
 import { listingIsBookable } from "@/lib/app-listings";
+import { discountRows } from "@/lib/listing-pricing";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { getSessionUser } from "@/lib/session";
 import { stripHostContactChannels } from "@/lib/host-contact-policy";
@@ -64,6 +65,11 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                 <h1 className="text-2xl font-bold text-[#484848] sm:text-3xl leading-tight">
                   {listing.title}
                 </h1>
+                {listing.identityVerified && (
+                  <span className="mt-1 shrink-0 rounded bg-[#1e7a3a] px-3 py-1 text-xs font-semibold text-white">
+                    {t("✓ Identidad verificada")}
+                  </span>
+                )}
                 {listing.verified && (
                   <span
                     className="mt-1 rounded px-3 py-1 text-xs font-semibold text-white shrink-0"
@@ -113,6 +119,20 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     {listing.priceWeekly && <PriceRow label={t("Precio por noche (7d+)")} value={`$ ${listing.priceWeekly}`} />}
                     {listing.priceMonthly && <PriceRow label={t("Precio por noche (30d+)")} value={`$ ${listing.priceMonthly}`} />}
                     {listing.cleaningFee && <PriceRow label={t("Tarifa de limpieza")} value={`$ ${listing.cleaningFee} — ${t("Tarifa única")}`} />}
+                    {discountRows(listing.pricing).map((r) => (
+                      <PriceRow key={r.key + JSON.stringify(r.vars ?? {})} label={t(r.key, r.vars)} value={`−${r.pct}%`} />
+                    ))}
+                    {bookable && (
+                      <PriceRow
+                        label={t("Impuestos")}
+                        value={
+                          listing.tax
+                            ? listing.tax.lines.map((l) => `${l.name} ${l.ratePct}%`).join(" + ") +
+                              (listing.tax.mode === "included" ? ` (${t("incluidos")})` : "")
+                            : t("No cobra")
+                        }
+                      />
+                    )}
                     {listing.depositMxn ? (
                       <PriceRow
                         label={t("Depósito (fuera de Cabibee)")}
@@ -131,7 +151,16 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <div className="rounded border p-5 text-sm" style={{ borderColor: "#ebebeb" }}>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <DetailRow label={t("Estado")} value={listing.verified ? t("Miembro verificado") : t("Pendiente")} />
+                    <DetailRow
+                      label={t("Estado")}
+                      value={
+                        listing.verified
+                          ? t("Miembro verificado")
+                          : listing.identityVerified
+                            ? t("Identidad verificada")
+                            : t("Pendiente")
+                      }
+                    />
                     <DetailRow label={t("ID de propiedad")} value={String(listing.propertyId)} />
                     {listing.size && <DetailRow label={t("Tamaño")} value={listing.size} />}
                     <DetailRow label={t("Habitaciones")} value={String(listing.bedrooms)} />
@@ -190,6 +219,11 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                   />
                   <div className="flex-1">
                     <h3 className="text-base font-semibold text-[#484848]">{listing.host.name}</h3>
+                    {listing.identityVerified && (
+                      <p className="mt-1 text-sm font-medium text-[#1e7a3a]">
+                        🛡️ {t("Perfil verificado: Cabibee comprobó la identidad de este anfitrión con su identificación oficial.")}
+                      </p>
+                    )}
                     <p className="mt-2 text-sm leading-relaxed text-[#3a3a3a]">{listing.host.bio}</p>
                   </div>
                 </div>
@@ -263,6 +297,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                   cleaningFee={listing.cleaningFee}
                   depositMxn={listing.depositMxn}
                   tax={listing.tax}
+                  instantBook={listing.instantBook !== false}
                   blockedDates={listing.blockedDates}
                   nightlyPriceOverrides={listing.nightlyPriceOverrides}
                   pricing={listing.pricing}
