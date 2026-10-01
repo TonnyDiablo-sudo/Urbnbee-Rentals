@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { revalidate, useCached } from "../_components/cached-fetch";
 import { useLang, useT } from "@/components/i18n-provider";
-import { HOST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../_components/booking-status";
+import { TONE_CLS, fmtDay, fmtMxn, hostStatusOf } from "../_components/booking-status";
 import { IconChevron } from "../_components/icons";
 import { PushPrompt } from "../_components/push";
 import { threadIsUnread } from "../_components/seen";
@@ -15,6 +15,7 @@ import {
   addDays,
   isConfirmed,
   isPending,
+  proofAwaitingHost,
   stayOf,
   todayIso,
   useHostBookings,
@@ -84,7 +85,7 @@ export function HostToday() {
 
   const today = todayIso();
   const soon = addDays(today, 3);
-  const pending = bookings.filter((b) => isPending(b.status));
+  const pending = bookings.filter((b) => isPending(b.status) || proofAwaitingHost(b));
   const confirmed = bookings
     .filter((b) => isConfirmed(b.status))
     .sort((a, b) => stayOf(a).checkIn.localeCompare(stayOf(b).checkIn));
@@ -149,6 +150,15 @@ export function HostToday() {
                 <button type="button" onClick={() => setOpened(b)} className="block w-full text-left">
                   <BookingSummary b={b} />
                 </button>
+                {proofAwaitingHost(b) ? (
+                  <button
+                    type="button"
+                    onClick={() => setOpened(b)}
+                    className="mt-3 w-full rounded-xl bg-[#dcb81e] py-2.5 text-sm font-semibold text-black"
+                  >
+                    {t("Revisar comprobante")}
+                  </button>
+                ) : (
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -165,6 +175,7 @@ export function HostToday() {
                     {t("Revisar y aceptar")}
                   </button>
                 </div>
+                )}
               </li>
             ))}
           </ul>
@@ -240,7 +251,7 @@ function Stat({ label, value, highlight, href }: { label: string; value: number;
 function BookingSummary({ b }: { b: Booking }) {
   const t = useT();
   const lang = useLang();
-  const st = HOST_STATUS[b.status] ?? { label: b.status, tone: "off" as const };
+  const st = hostStatusOf(b);
   return (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -254,6 +265,7 @@ function BookingSummary({ b }: { b: Booking }) {
         {fmtDay(b.hostAdjustedCheckIn ?? b.checkIn, lang)} – {fmtDay(b.hostAdjustedCheckOut ?? b.checkOut, lang)} · {b.nights}{" "}
         {b.nights === 1 ? t("noche") : t("noches")} · {fmtMxn(b.estimatedTotalMxn)}
         {b.paidAt ? ` · ${t("pagado")}` : ""}
+        {b.payProof && !b.paidAt ? ` · ${t("Subió el comprobante")}` : ""}
       </p>
     </>
   );

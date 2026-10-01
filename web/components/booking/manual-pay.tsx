@@ -310,7 +310,11 @@ export function HostManualPay({
       <p className="text-[15px] font-semibold text-[#222]">{t("Cobro de la reserva")}</p>
       {view.payInstruction && (
         <div className="mt-2 rounded-xl bg-[#fafafa] px-3 py-2 text-sm text-[#333]">
-          <p className="font-medium">{t("Ya le enviaste estos datos. Cuando suba el comprobante, revísalo y confirma.")}</p>
+          <p className="font-medium">
+            {view.payProof
+              ? t("El huésped ya subió el comprobante. Revísalo y aprueba el pago.")
+              : t("Ya le enviaste estos datos. Cuando suba el comprobante, revísalo y confirma.")}
+          </p>
           <ul className="mt-1 space-y-0.5">
             {view.payInstruction.lines.map((line) => (
               <li key={line}>{line}</li>

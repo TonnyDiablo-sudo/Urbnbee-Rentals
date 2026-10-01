@@ -19,6 +19,11 @@ export const appPay: Record<string, string> = {
   "Ya le enviaste estos datos. Cuando suba el comprobante, revísalo y confirma.":
     "You already sent these details. When they upload the receipt, review it and confirm.",
   "Esperando a que el huésped suba su comprobante de pago.": "Waiting for the guest to upload their payment receipt.",
+  "Pendiente de aprobar": "Pending approval",
+  "Subió el comprobante": "Uploaded the receipt",
+  "Revisar comprobante": "Review receipt",
+  "El huésped ya subió el comprobante. Revísalo y aprueba el pago.":
+    "The guest already uploaded the receipt. Review it and approve the payment.",
   "El huésped todavía no sube el comprobante de pago.": "The guest hasn't uploaded the payment receipt yet.",
   "El anfitrión todavía no te envió datos para pagar.": "Your host hasn't sent payment details yet.",
   "Archivo requerido.": "A file is required.",

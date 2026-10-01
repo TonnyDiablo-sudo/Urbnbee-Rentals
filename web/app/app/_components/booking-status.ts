@@ -2,8 +2,8 @@ import { numberLocale, type Lang } from "@/lib/i18n";
 
 export const GUEST_STATUS: Record<string, { label: string; tone: "wait" | "ok" | "off" }> = {
   AWAITING_PAYMENT: { label: "Falta pagar", tone: "wait" },
-  PENDING: { label: "Esperando al anfitrión", tone: "wait" },
-  PENDING_HOST: { label: "Esperando al anfitrión", tone: "wait" },
+  PENDING: { label: "Pendiente de aprobar", tone: "wait" },
+  PENDING_HOST: { label: "Pendiente de aprobar", tone: "wait" },
   AWAITING_DETAILS: { label: "Completa tus datos", tone: "wait" },
   CONFIRMED: { label: "Confirmada", tone: "ok" },
   COMPLETED: { label: "Completada", tone: "off" },
@@ -14,8 +14,8 @@ export const GUEST_STATUS: Record<string, { label: string; tone: "wait" | "ok" |
 
 export const HOST_STATUS: Record<string, { label: string; tone: "wait" | "ok" | "off" }> = {
   AWAITING_PAYMENT: { label: "Huésped aún no paga", tone: "off" },
-  PENDING: { label: "Por responder", tone: "wait" },
-  PENDING_HOST: { label: "Por responder", tone: "wait" },
+  PENDING: { label: "Pendiente de aprobar", tone: "wait" },
+  PENDING_HOST: { label: "Pendiente de aprobar", tone: "wait" },
   AWAITING_DETAILS: { label: "Esperando datos del huésped", tone: "wait" },
   CONFIRMED: { label: "Confirmada", tone: "ok" },
   COMPLETED: { label: "Completada", tone: "off" },
@@ -23,6 +23,28 @@ export const HOST_STATUS: Record<string, { label: string; tone: "wait" | "ok" | 
   CANCELLED: { label: "Cancelada", tone: "off" },
   EXPIRED: { label: "Expirada (sin pago)", tone: "off" },
 };
+
+type StatusBooking = {
+  status: string;
+  paidAt?: string | null;
+  payProof?: unknown;
+  payConfirmation?: { by?: string } | null;
+};
+
+/** Comprobante manual ya subido, o estancia pagada que el anfitrión todavía no aprueba. */
+export function guestStatusOf(b: StatusBooking) {
+  if (b.payProof && !b.paidAt && b.payConfirmation?.by !== "host") {
+    return { label: "Pendiente de aprobar", tone: "wait" as const };
+  }
+  return GUEST_STATUS[b.status] ?? { label: b.status, tone: "off" as const };
+}
+
+export function hostStatusOf(b: StatusBooking) {
+  if (b.payProof && !b.paidAt && b.payConfirmation?.by !== "host") {
+    return { label: "Pendiente de aprobar", tone: "wait" as const };
+  }
+  return HOST_STATUS[b.status] ?? { label: b.status, tone: "off" as const };
+}
 
 export const TONE_CLS = {
   wait: "bg-[#fdf6d8] text-[#8a6d0f]",

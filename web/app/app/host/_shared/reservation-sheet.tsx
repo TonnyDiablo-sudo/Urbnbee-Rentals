@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { SCREENING_BAND_LABEL, SCREENING_PAYER_LABEL, SCREENING_STATUS_LABEL } from "@/lib/screening-types";
 import { revalidate } from "../../_components/cached-fetch";
-import { HOST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../../_components/booking-status";
+import { TONE_CLS, fmtDay, fmtMxn, hostStatusOf } from "../../_components/booking-status";
 import { Sheet } from "../../_components/sheet";
 import { WebLink } from "../../_components/site-origin";
 import { HostManualPay } from "@/components/booking/manual-pay";
@@ -26,7 +26,7 @@ export function ReservationSheet({
   const lang = useLang();
   if (!booking) return null;
   const stay = stayOf(booking);
-  const st = HOST_STATUS[booking.status] ?? { label: booking.status, tone: "off" as const };
+  const st = hostStatusOf(booking);
   const chat = hostChatHref(booking);
   const payout = booking.estimatedTotalMxn;
 

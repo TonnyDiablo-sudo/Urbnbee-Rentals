@@ -43,8 +43,8 @@ type Row = {
 
 const labels: Record<string, string> = {
   AWAITING_PAYMENT: "Esperando pago",
-  PENDING: "Pendiente anfitrión",
-  PENDING_HOST: "Pendiente anfitrión",
+  PENDING: "Pendiente de aprobar",
+  PENDING_HOST: "Pendiente de aprobar",
   AWAITING_DETAILS: "Acepta el contrato",
   CONFIRMED: "Confirmada",
   REJECTED: "Rechazada",
@@ -126,7 +126,11 @@ export default function GuestBookingsPage() {
                 )}
               </div>
               <span className="rounded-full bg-[#f5f5f5] px-3 py-1 text-xs font-semibold text-[#484848]">
-                {labels[b.status] ? t(labels[b.status]) : b.status}
+                {t(
+                  b.payProof && !b.paidAt && b.payConfirmation?.by !== "host"
+                    ? "Pendiente de aprobar"
+                    : labels[b.status] ?? b.status
+                )}
               </span>
             </div>
             <div className="mt-4 flex flex-wrap gap-3">

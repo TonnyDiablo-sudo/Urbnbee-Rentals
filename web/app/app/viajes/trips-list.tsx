@@ -8,7 +8,7 @@ import { PayDifference } from "@/components/booking/pay-difference";
 import { useLang, useT } from "@/components/i18n-provider";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
 import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
-import { GUEST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../_components/booking-status";
+import { TONE_CLS, fmtDay, fmtMxn, guestStatusOf } from "../_components/booking-status";
 import { Sheet } from "../_components/sheet";
 import { WebLink } from "../_components/site-origin";
 
@@ -143,7 +143,7 @@ export function TripsList() {
         <h2 className="mb-3 text-[17px] font-semibold text-[#222]">{t(sec.title)}</h2>
         <ul className="space-y-3">
           {sec.items.map((trip) => {
-            const st = GUEST_STATUS[trip.status] ?? { label: trip.status, tone: "off" as const };
+            const st = guestStatusOf(trip);
             const inD = trip.hostAdjustedCheckIn ?? trip.checkIn;
             const outD = trip.hostAdjustedCheckOut ?? trip.checkOut;
             return (

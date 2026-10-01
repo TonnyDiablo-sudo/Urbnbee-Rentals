@@ -54,8 +54,8 @@ type BookingRow = {
 
 const statusLabel: Record<string, string> = {
   AWAITING_PAYMENT: "Esperando pago del huésped",
-  PENDING: "Pendiente de tu respuesta",
-  PENDING_HOST: "Pendiente de tu respuesta",
+  PENDING: "Pendiente de aprobar",
+  PENDING_HOST: "Pendiente de aprobar",
   AWAITING_DETAILS: "Esperando datos huésped",
   CONFIRMED: "Confirmada",
   REJECTED: "Rechazada",
@@ -207,7 +207,11 @@ export function HostRequestsClient() {
                     color: "#484848",
                   }}
                 >
-                  {t(statusLabel[b.status] ?? b.status)}
+                  {t(
+                    b.payProof && !b.paidAt && b.payConfirmation?.by !== "host"
+                      ? "Pendiente de aprobar"
+                      : (statusLabel[b.status] ?? b.status)
+                  )}
                 </span>
               </div>
 
