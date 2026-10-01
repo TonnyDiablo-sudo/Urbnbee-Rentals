@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { contractPlainLines, ensureBookingContract } from "@/lib/booking-contract";
+import { bookingBalanceDueMxn, paidStayOf } from "@/lib/booking-adjustments";
 import { applyBookingLifecycle } from "@/lib/booking-deposit";
 import { findBookingByToken } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
@@ -39,6 +40,8 @@ export async function GET(req: NextRequest) {
       listingSlug: effListing?.slug ?? listing?.slug,
       bookingApprovalMode: effListing?.bookingApprovalMode ?? listing?.bookingApprovalMode ?? "approval",
       paidAt: booking.paidAt,
+      balanceDueMxn: bookingBalanceDueMxn(booking),
+      paidStayMxn: booking.paidAt ? paidStayOf(booking) : 0,
       contract: booking.contract
         ? {
             generated: true,

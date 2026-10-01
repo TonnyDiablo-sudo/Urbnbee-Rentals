@@ -8,6 +8,7 @@ import { getSessionUser } from "@/lib/session";
 import { IconSearch } from "./_components/icons";
 import { AppListingCardView } from "./_components/listing-card";
 import { InstallBanner } from "./_components/install-banner";
+import { NotificationBell } from "./_components/notifications";
 import { Brand } from "./_components/top-bar";
 
 export async function generateMetadata() {
@@ -45,7 +46,10 @@ export default async function AppExplorePage({ searchParams }: Props) {
       >
         <div className="mb-3 flex items-center justify-between gap-3">
           <Brand />
-          <LangSwitch />
+          <div className="flex items-center gap-1">
+            <LangSwitch />
+            <NotificationBell />
+          </div>
         </div>
         <form action="/" className="relative">
           {tipo && <input type="hidden" name="tipo" value={tipo} />}

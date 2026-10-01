@@ -32,6 +32,8 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
           { href: "/host/motor", label: t("Reservas en línea"), hint: t("Membresía e identidad de anfitrión") },
           { href: "/host/anuncios", label: t("Mis anuncios") },
           { href: "/host/contratos", label: t("Contratos"), hint: t("Machotes, tus datos y cláusulas por anuncio") },
+          { href: "/host/impuestos", label: t("Impuestos (IVA)"), hint: t("Cobra IVA u otros impuestos según tu país") },
+          { href: "/notificaciones", label: t("Notificaciones") },
           { href: "/host/calendar", label: t("Calendario y precios por fecha"), web: true },
           { href: "/host/requests", label: t("Depósitos y reseñas de huéspedes"), web: true },
           { href: "/host/settings/pagos", label: t("Pagos de la estancia (tu Stripe)"), web: true },
@@ -41,7 +43,12 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
       : [
           { href: "/membresia", label: t("Membresía de huésped"), hint: t("Identidad verificada para reservar") },
           { href: "/viajes", label: t("Mis viajes") },
-          ...(user ? [{ href: "/perfil/editar", label: t("Datos personales y foto") }] : []),
+          ...(user
+            ? [
+                { href: "/notificaciones", label: t("Notificaciones") },
+                { href: "/perfil/editar", label: t("Datos personales y foto") },
+              ]
+            : []),
           { href: "/", label: t("Sitio web de Cabibee"), web: true },
         ];
 

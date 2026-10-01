@@ -17,11 +17,10 @@ import {
 } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
 import { notifyGuestBookingDecision } from "@/lib/push";
-import {
-  countNights,
-  nightsBlockedByListing,
-  sumStayMxn,
-} from "@/lib/booking-helpers";
+import { countNights, nightsBlockedByListing } from "@/lib/booking-helpers";
+import { paidStayOf, reconcileBookingTotal } from "@/lib/booking-adjustments";
+import { bookingTaxFields, quoteBookingMxn } from "@/lib/booking-quote";
+import { platformBookingFeeMxn } from "@/lib/platform-fees";
 
 type PatchBody = {
   action?: string;
@@ -70,14 +69,17 @@ export async function GET(
     if (nights < 1) {
       return NextResponse.json({ error: "Las fechas deben dejar al menos una noche." }, { status: 400 });
     }
-    const { staySubtotal } = sumStayMxn(listing, effIn, effOut);
-    const estimatedTotalMxn = Math.round(staySubtotal + (listing.cleaningFee ?? 0));
+    const quote = quoteBookingMxn(listing, effIn, effOut);
+    const unchanged =
+      listing.id === booking.listingId && effIn === booking.checkIn && effOut === booking.checkOut;
+    const estimatedTotalMxn = unchanged ? booking.estimatedTotalMxn : quote.totalMxn;
     const preview = previewContractLines(booking, {
       checkIn: effIn,
       checkOut: effOut,
       listingId: listing.id,
       nights,
       estimatedTotalMxn,
+      ...(unchanged ? {} : bookingTaxFields(quote)),
     });
     if (!preview) {
       return NextResponse.json({ error: "No se pudo armar el contrato." }, { status: 409 });
@@ -88,7 +90,13 @@ export async function GET(
       accepted: false,
       nights,
       estimatedTotalMxn,
-      paidTotalMxn: booking.paidAt ? booking.estimatedTotalMxn : undefined,
+      paidTotalMxn: booking.paidAt ? paidStayOf(booking) : undefined,
+      taxMxn: unchanged ? (booking.taxMxn ?? 0) : quote.taxMxn,
+      taxIncluded: unchanged ? Boolean(booking.taxIncluded) : quote.taxIncluded,
+      platformFeeDeltaMxn:
+        booking.paidAt && booking.chargedVia !== "host" && (booking.platformFeeMxn ?? 0) > 0
+          ? platformBookingFeeMxn(estimatedTotalMxn) - (booking.platformFeeMxn ?? 0)
+          : 0,
       blocked: nightsBlockedByListing(listing, effIn, effOut),
       overlapping: hasOverlappingActiveBooking(listing.id, effIn, effOut, booking.id),
       ...preview,
@@ -259,9 +267,15 @@ export async function PATCH(
     );
   }
 
-  const { staySubtotal } = sumStayMxn(listing, effIn, effOut);
-  const cleaning = listing.cleaningFee ?? 0;
-  const estimatedTotalMxn = Math.round(staySubtotal + cleaning);
+  const quote = quoteBookingMxn(listing, effIn, effOut);
+  const estimatedTotalMxn = quote.totalMxn;
+  const datesChanged =
+    effListingId !== booking.listingId || effIn !== booking.checkIn || effOut !== booking.checkOut;
+  // Sin cambios se respeta el precio con el que pagó el huésped, aunque el anfitrión haya
+  // movido tarifas o impuestos después.
+  const pricing = datesChanged
+    ? { estimatedTotalMxn, ...bookingTaxFields(quote) }
+    : { estimatedTotalMxn: booking.estimatedTotalMxn };
 
   const hostAdjustedListingId =
     effListingId !== booking.listingId ? effListingId : undefined;
@@ -286,7 +300,7 @@ export async function PATCH(
     ...booking,
     status: "AWAITING_DETAILS" as const,
     nights,
-    estimatedTotalMxn,
+    ...pricing,
     hostAdjustedListingId,
     hostAdjustedCheckIn,
     hostAdjustedCheckOut,
@@ -307,11 +321,15 @@ export async function PATCH(
 
   const next = acceptBookingByHost(id, {
     nights,
-    estimatedTotalMxn,
+    ...pricing,
+    paidStayMxn: booking.paidAt ? paidStayOf(booking) : undefined,
     hostAdjustedListingId,
     hostAdjustedCheckIn,
     hostAdjustedCheckOut,
   });
+
+  // Si subió el total queda un cobro pendiente; si bajó, se devuelve la diferencia.
+  const money = next ? await reconcileBookingTotal(next.id) : { booking: next, dueMxn: 0, refundedMxn: 0 };
 
   const withContract = next
     ? syncContractWithBooking(next.id, {
@@ -319,9 +337,14 @@ export async function PATCH(
         userId: user.id,
         ip: requestIp(req),
         signName,
-      }) ?? next
+      }) ?? money.booking ?? next
     : next;
-  if (withContract) notifyGuestBookingDecision(withContract, true);
+  if (withContract) notifyGuestBookingDecision(withContract, true, money.dueMxn);
 
-  return NextResponse.json({ ok: true, booking: withContract });
+  return NextResponse.json({
+    ok: true,
+    booking: withContract,
+    balanceDueMxn: money.dueMxn,
+    refundedMxn: money.refundedMxn,
+  });
 }

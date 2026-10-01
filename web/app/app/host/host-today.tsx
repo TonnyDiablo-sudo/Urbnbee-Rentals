@@ -424,10 +424,16 @@ function AcceptSheet({
                 preview.estimatedTotalMxn != null &&
                 preview.estimatedTotalMxn !== preview.paidTotalMxn && (
                   <p className="mt-1">
-                    {t("El huésped pagó {paid}; el nuevo total es {total}. Acuerden la diferencia por el chat.", {
-                      paid: fmtMxn(preview.paidTotalMxn),
-                      total: fmtMxn(preview.estimatedTotalMxn),
-                    })}
+                    {t(
+                      preview.estimatedTotalMxn > preview.paidTotalMxn
+                        ? "El huésped pagó {paid}; el nuevo total es {total}. Al aceptar le cobramos la diferencia ({diff}) y la reserva se confirma cuando la pague."
+                        : "El huésped pagó {paid}; el nuevo total es {total}. Al aceptar le devolvemos la diferencia ({diff}) automáticamente.",
+                      {
+                        paid: fmtMxn(preview.paidTotalMxn),
+                        total: fmtMxn(preview.estimatedTotalMxn),
+                        diff: fmtMxn(Math.abs(preview.estimatedTotalMxn - preview.paidTotalMxn)),
+                      }
+                    )}
                   </p>
                 )}
             </div>

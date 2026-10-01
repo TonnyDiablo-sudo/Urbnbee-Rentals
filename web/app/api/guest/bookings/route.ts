@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { bookingBalanceDueMxn, paidStayOf } from "@/lib/booking-adjustments";
 import { applyBookingLifecycle } from "@/lib/booking-deposit";
 import { listBookingsForGuest } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
@@ -34,6 +35,8 @@ export async function GET(req: NextRequest) {
         confirmed && stayListing
           ? { ...(stayListing.arrivalGuide ?? {}), address: [stayListing.addressLine, stayListing.zone, stayListing.city].filter(Boolean).join(", ") }
           : undefined,
+      balanceDueMxn: bookingBalanceDueMxn(b),
+      paidStayMxn: b.paidAt ? paidStayOf(b) : 0,
       canReview: stayReviewEligible(b) && !reviews.guestToListing,
       myReview: reviews.guestToListing,
       hostReviewOfMe: reviews.hostToGuest,

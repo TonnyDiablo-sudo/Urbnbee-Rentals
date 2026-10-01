@@ -3,6 +3,7 @@ import type { ListingContractSettings } from "@/lib/booking-contract-templates";
 import type { ListingPricing } from "@/lib/listing-pricing";
 import type { ListingCategory } from "@/lib/mock-data";
 import type { ListingDetail } from "@/lib/listing-detail-data";
+import type { HostTaxSettings } from "@/lib/stay-tax";
 
 export type UserRole = "guest" | "host" | "admin";
 
@@ -36,6 +37,8 @@ export type HostProfileRecord = {
   livesIn?: string;
   languages?: string[];
   interests?: string[];
+  /** IVA / impuestos que el anfitrión cobra al huésped. */
+  tax?: HostTaxSettings;
 };
 
 export type HostListingRecord = {

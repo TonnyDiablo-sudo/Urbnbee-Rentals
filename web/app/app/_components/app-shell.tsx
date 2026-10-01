@@ -7,6 +7,7 @@ import { useT } from "@/components/i18n-provider";
 import { IconCalendar, IconChat, IconHome, IconMenu, IconSearch, IconToday, IconTrips, IconUser } from "./icons";
 import { prefetchHostData } from "../host/_shared/host-data";
 import { GUEST_THREADS_URL, prefetchCached, setCacheOwner } from "./cached-fetch";
+import { useNotificationsSync } from "./notifications";
 import { threadIsUnread } from "./seen";
 import { UpdateBanner } from "./update-banner";
 
@@ -21,7 +22,11 @@ const FULLSCREEN = [
   /^\/host\/mensajes\/.+/,
   /^\/host\/anuncios\/.+/,
   /^\/cuenta\//,
+  /^\/notificaciones/,
 ];
+
+/** Pantallas compartidas por ambos modos: abrirlas no cambia el modo guardado. */
+const NEUTRAL = [/^\/notificaciones/];
 
 export function AppShell({ user, children }: { user: AppUser; children: React.ReactNode }) {
   const t = useT();
@@ -31,6 +36,7 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
   const hostMode = isHost && (pathname === "/host" || pathname.startsWith("/host/"));
   setCacheOwner(user?.id ?? null);
   const unread = useUnreadCount(hostMode ? "host" : "guest", user);
+  useNotificationsSync(Boolean(user));
 
   useEffect(() => {
     if (user) prefetchCached([GUEST_THREADS_URL]);
@@ -46,9 +52,11 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
     return () => window.clearTimeout(id);
   }, [isHost, hostMode]);
 
+  const neutral = NEUTRAL.some((r) => r.test(pathname));
   useEffect(() => {
+    if (neutral) return;
     document.cookie = `cabibee_mode=${hostMode ? "host" : "guest"}; path=/; max-age=31536000; samesite=lax`;
-  }, [hostMode]);
+  }, [hostMode, neutral]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;

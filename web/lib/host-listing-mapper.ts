@@ -3,6 +3,7 @@ import type { HostListingRecord } from "@/lib/marketplace-types";
 import type { ListingDetail } from "@/lib/listing-detail-data";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import { listingReviewsForPublic } from "@/lib/stay-reviews";
+import { taxActive } from "@/lib/stay-tax";
 import { hostShowsVerifiedRibbon } from "@/lib/verification-store";
 
 const PLACEHOLDER =
@@ -68,6 +69,7 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
     checkOutTime: record.arrivalGuide?.checkOutTime,
     cleaningFee: record.cleaningFee,
     depositMxn: record.contract?.depositMxn || undefined,
+    tax: taxActive(profile?.tax) ? profile.tax : undefined,
     category: categoryLabel(record.categoryKey),
     spaceType: record.spaceType,
     guests: record.guests,

@@ -12,6 +12,7 @@ import { mysqlApplyBookingOccupancy } from "@/lib/booking-nights";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
 import { scheduleMysql } from "@/lib/mysql-sync";
+import { notifyBookingConfirmed } from "@/lib/push";
 
 /** Sin pagar en 48 h → EXPIRED y se sueltan las noches. */
 export const UNPAID_EXPIRE_MS = 48 * 60 * 60 * 1000;
@@ -161,6 +162,10 @@ export function acceptBookingByHost(
       | "hostAdjustedListingId"
       | "hostAdjustedCheckIn"
       | "hostAdjustedCheckOut"
+      | "paidStayMxn"
+      | "taxMxn"
+      | "taxLines"
+      | "taxIncluded"
     >
   >
 ): BookingRecord | undefined {
@@ -201,12 +206,19 @@ export function confirmBookingAfterGuestContract(bookingId: string): BookingReco
     return patchBookingRecord(bookingId, { contractStatus }) ?? prev;
   }
   if (prev.status !== "AWAITING_DETAILS") return prev;
-  return transitionBooking(bookingId, "CONFIRMED", {
+  // Con fechas cambiadas que subieron el total, se confirma hasta pagar la diferencia.
+  const owesDifference = prev.adjustments?.some((a) => a.kind === "charge" && a.status === "pending");
+  if (owesDifference) {
+    return patchBookingRecord(bookingId, { contractStatus }) ?? prev;
+  }
+  const next = transitionBooking(bookingId, "CONFIRMED", {
     actor: "guest",
     reason: "guest_signed_contract",
     contractStatus,
     paymentStatus: paymentStatusOf(prev),
   });
+  if (next) notifyBookingConfirmed(next);
+  return next;
 }
 
 export function expireUnpaidIfDue(booking: BookingRecord, now = Date.now()): BookingRecord {

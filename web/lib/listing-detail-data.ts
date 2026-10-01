@@ -1,4 +1,5 @@
 import type { ListingPricing } from "@/lib/listing-pricing";
+import type { HostTaxSettings } from "@/lib/stay-tax";
 
 export type HostContact = {
   name: string;
@@ -50,6 +51,8 @@ export type ListingDetail = {
   cleaningFee?: number;
   /** Depósito pactado. Se entrega entre las partes; Cabibee no lo retiene. */
   depositMxn?: number;
+  /** Impuestos del anfitrión que se aplican al total. */
+  tax?: HostTaxSettings;
   category: string;
   spaceType: string;
   guests: number;

@@ -1,6 +1,7 @@
 import "server-only";
 import { listingIsPartnerBookable, PARTNER_CURRENCY } from "@/lib/beeagent-listing-public";
-import { countNights, nightsBlockedByListing, sumStayMxn } from "@/lib/booking-helpers";
+import { countNights, nightsBlockedByListing } from "@/lib/booking-helpers";
+import { quoteBookingMxn } from "@/lib/booking-quote";
 import { hasOverlappingActiveBooking } from "@/lib/bookings-store";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import { stayPlatformFeeMxn } from "@/lib/platform-fees";
@@ -26,9 +27,10 @@ export function quoteListingStay(
     errors.push("unavailable");
   }
 
-  const { staySubtotal } = nights >= 1 ? sumStayMxn(listing, checkIn, checkOut) : { staySubtotal: 0 };
+  const q = nights >= 1 ? quoteBookingMxn(listing, checkIn, checkOut) : null;
+  const staySubtotal = q?.staySubtotal ?? 0;
   const cleaning = listing.cleaningFee ?? 0;
-  const stayTotal = Math.round(staySubtotal + cleaning);
+  const stayTotal = q?.totalMxn ?? Math.round(cleaning);
   const platformFee = stayPlatformFeeMxn(listing.hostId, stayTotal);
   const total = stayTotal + platformFee;
 
@@ -39,6 +41,9 @@ export function quoteListingStay(
     breakdown: [
       { label: "Estancia", amount: staySubtotal },
       { label: "Limpieza", amount: cleaning },
+      ...(q && q.taxAddedMxn > 0
+        ? q.taxLines.map((l) => ({ label: `${l.name} (${l.ratePct}%)`, amount: l.amountMxn }))
+        : []),
       ...(platformFee > 0
         ? [{ label: "Cargo de servicio Cabibee", amount: platformFee }]
         : []),

@@ -20,6 +20,7 @@ import { confirmBookingAfterGuestContract } from "@/lib/booking-machine";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { findUserById, getHostProfile, getListingById } from "@/lib/marketplace-store";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
+import { computeStayTax } from "@/lib/stay-tax";
 
 function nowIso() {
   return new Date().toISOString();
@@ -71,7 +72,15 @@ export function buildContractSnapshot(
 
   const checkIn = booking.hostAdjustedCheckIn ?? booking.checkIn;
   const checkOut = booking.hostAdjustedCheckOut ?? booking.checkOut;
-  const fee = booking.platformFeeMxn ?? platformBookingFeeMxn(booking.estimatedTotalMxn);
+  // Si cambió el total después de pagar, el cargo de plataforma se recalcula igual que el cobro o
+  // la devolución de la diferencia.
+  const paidStay = booking.paidAt ? (booking.paidStayMxn ?? booking.estimatedTotalMxn) : booking.estimatedTotalMxn;
+  const fee =
+    booking.chargedVia !== "host" && (booking.platformFeeMxn ?? 0) > 0 && paidStay !== booking.estimatedTotalMxn
+      ? platformBookingFeeMxn(booking.estimatedTotalMxn)
+      : (booking.platformFeeMxn ?? platformBookingFeeMxn(booking.estimatedTotalMxn));
+  const taxMxn = booking.taxMxn ?? 0;
+  const taxAdded = booking.taxIncluded ? 0 : taxMxn;
   const propertyAddress =
     settings.propertyAddress ||
     [listing.addressLine, listing.zone, listing.city, listing.country].filter(Boolean).join(", ") ||
@@ -98,10 +107,18 @@ export function buildContractSnapshot(
     checkIn,
     checkOut,
     nights: booking.nights,
-    stayMxn: Math.max(0, booking.estimatedTotalMxn - (listing.cleaningFee ?? 0)),
+    stayMxn: Math.max(0, booking.estimatedTotalMxn - taxAdded - (listing.cleaningFee ?? 0)),
     cleaningMxn: listing.cleaningFee ?? booking.cleaningFeeMxn ?? 0,
     platformFeeMxn: fee,
     totalMxn: booking.estimatedTotalMxn + fee,
+    ...(taxMxn > 0
+      ? {
+          taxMxn,
+          taxLines: booking.taxLines,
+          taxIncluded: Boolean(booking.taxIncluded),
+          hostTaxId: hostProfile?.tax?.taxId,
+        }
+      : {}),
     depositMxn: settings.depositMxn,
     depositNote: contractDepositNote(),
     extraClauses: settings.extraClauses || template.defaultExtraClauses,
@@ -193,7 +210,7 @@ export function ensureBookingContract(
   return saved ? attachDepositIfNeeded(saved) : saved;
 }
 
-const MONEY_FIELDS = new Set<keyof BookingContractSnapshot>(["stayMxn", "cleaningMxn", "totalMxn", "depositMxn"]);
+const MONEY_FIELDS = new Set<keyof BookingContractSnapshot>(["stayMxn", "cleaningMxn", "taxMxn", "totalMxn", "depositMxn"]);
 const TERM_LABELS: [keyof BookingContractSnapshot, string][] = [
   ["listingId", "alojamiento"],
   ["checkIn", "entrada"],
@@ -201,6 +218,7 @@ const TERM_LABELS: [keyof BookingContractSnapshot, string][] = [
   ["nights", "noches"],
   ["stayMxn", "monto de la estancia"],
   ["cleaningMxn", "limpieza"],
+  ["taxMxn", "impuestos"],
   ["totalMxn", "total"],
   ["depositMxn", "depósito"],
 ];
@@ -209,8 +227,8 @@ const TERM_LABELS: [keyof BookingContractSnapshot, string][] = [
 export function changedContractTerms(prev: BookingContractSnapshot, next: BookingContractSnapshot): string[] {
   const out: string[] = [];
   for (const [key, label] of TERM_LABELS) {
-    const a = prev[key];
-    const b = next[key];
+    const a = MONEY_FIELDS.has(key) ? Number(prev[key] ?? 0) : prev[key];
+    const b = MONEY_FIELDS.has(key) ? Number(next[key] ?? 0) : next[key];
     if (a === b) continue;
     if (MONEY_FIELDS.has(key)) {
       out.push(`${label}: $${Number(a).toLocaleString("es-MX")} → $${Number(b).toLocaleString("es-MX")}`);
@@ -293,10 +311,19 @@ export function syncContractWithBooking(
 /** Texto del contrato como quedaría con otras fechas o alojamiento (vista previa, no guarda nada). */
 export function previewContractLines(
   booking: BookingRecord,
-  proposal: { checkIn?: string; checkOut?: string; listingId?: string; nights?: number; estimatedTotalMxn?: number }
+  proposal: {
+    checkIn?: string;
+    checkOut?: string;
+    listingId?: string;
+    nights?: number;
+    estimatedTotalMxn?: number;
+  } & Partial<Pick<BookingRecord, "taxMxn" | "taxLines" | "taxIncluded">>
 ): { lines: string[]; changes: string[]; guestMustResign: boolean } | null {
   const draft: BookingRecord = {
     ...booking,
+    ...("taxMxn" in proposal
+      ? { taxMxn: proposal.taxMxn, taxLines: proposal.taxLines, taxIncluded: proposal.taxIncluded }
+      : {}),
     hostAdjustedCheckIn: proposal.checkIn && proposal.checkIn !== booking.checkIn ? proposal.checkIn : undefined,
     hostAdjustedCheckOut: proposal.checkOut && proposal.checkOut !== booking.checkOut ? proposal.checkOut : undefined,
     hostAdjustedListingId: proposal.listingId && proposal.listingId !== booking.listingId ? proposal.listingId : undefined,
@@ -330,7 +357,9 @@ export function sampleContractLines(listingId: string, settings: ListingContract
   if (!listing) return null;
   const day = (offset: number) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
   const nights = 3;
-  const total = listing.pricePerNight * nights + (listing.cleaningFee ?? 0);
+  const subtotal = listing.pricePerNight * nights + (listing.cleaningFee ?? 0);
+  const tax = computeStayTax(getHostProfile(listing.hostId)?.tax, subtotal);
+  const total = subtotal + tax.addedMxn;
   const at = nowIso();
   const sample = {
     id: "preview",
@@ -343,6 +372,7 @@ export function sampleContractLines(listingId: string, settings: ListingContract
     checkOut: day(14 + nights),
     nights,
     estimatedTotalMxn: total,
+    ...(tax.taxMxn > 0 ? { taxMxn: tax.taxMxn, taxLines: tax.lines, taxIncluded: tax.included } : {}),
     status: "PENDING",
     token: "000000",
     createdAt: at,
@@ -466,6 +496,14 @@ export function contractPlainLines(c: BookingContractRecord): string[] {
     "MONTOS",
     `Estancia: ${money(s.stayMxn)}`,
     `Limpieza: ${money(s.cleaningMxn)}`,
+    ...(s.taxMxn && s.taxMxn > 0
+      ? [
+          ...(s.taxLines ?? []).map(
+            (l) => `${s.taxIncluded ? "Incluye " : ""}${l.name} (${l.ratePct}%): ${money(l.amountMxn)}`
+          ),
+          ...(s.hostTaxId ? [`Registro fiscal del anfitrión: ${s.hostTaxId}`] : []),
+        ]
+      : []),
     `Cargo de servicio Cabibee: ${money(s.platformFeeMxn)}`,
     `Total cobrado en Cabibee: ${money(s.totalMxn)}`,
     `Depósito (fuera de Cabibee): ${s.depositMxn > 0 ? money(s.depositMxn) : "no declarado"}`,

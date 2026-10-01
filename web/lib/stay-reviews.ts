@@ -3,6 +3,7 @@ import { stayHasEnded } from "@/lib/booking-deposit";
 import type { BookingRecord } from "@/lib/booking-types";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import type { Review } from "@/lib/listing-detail-data";
+import { notifyHostNewReview } from "@/lib/push";
 import {
   findStayReview,
   insertStayReview,
@@ -71,6 +72,14 @@ export function createStayReview(opts: {
     rating: stars,
     comment: text,
   });
+  if (kind === "guest_to_listing") {
+    notifyHostNewReview({
+      hostId: booking.hostId,
+      listingId,
+      guestName: findUserById(authorUserId)?.fullName?.trim() || booking.guestName,
+      rating: stars,
+    });
+  }
   return { review };
 }
 

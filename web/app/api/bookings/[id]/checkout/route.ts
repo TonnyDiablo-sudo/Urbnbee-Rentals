@@ -71,9 +71,12 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   const title = listing?.title ?? "Reserva Cabibee";
   const platformFeeMxn =
     chargedVia === "host" ? 0 : stayPlatformFeeMxn(booking.hostId, booking.estimatedTotalMxn);
-  const stayCents = Math.max(1, Math.round(booking.estimatedTotalMxn * 100));
+  const addedTaxMxn = booking.taxIncluded ? 0 : (booking.taxMxn ?? 0);
+  const taxCents = Math.max(0, Math.round(addedTaxMxn * 100));
+  const stayCents = Math.max(1, Math.round(booking.estimatedTotalMxn * 100) - taxCents);
   const feeCents = chargedVia === "host" ? 0 : Math.max(0, Math.round(platformFeeMxn * 100));
-  const totalCents = stayCents + feeCents;
+  const totalCents = stayCents + taxCents + feeCents;
+  const taxName = (booking.taxLines ?? []).map((l) => `${l.name} ${l.ratePct}%`).join(" + ") || "Impuestos";
   if (totalCents < 50) {
     return NextResponse.json({ error: "Importe de reserva demasiado bajo." }, { status: 400 });
   }
@@ -93,6 +96,18 @@ export async function POST(req: NextRequest, ctx: Ctx) {
             },
           },
         },
+        ...(taxCents > 0
+          ? [
+              {
+                quantity: 1,
+                price_data: {
+                  currency: "mxn" as const,
+                  unit_amount: taxCents,
+                  product_data: { name: taxName.slice(0, 100), description: "Impuestos del anfitrión" },
+                },
+              },
+            ]
+          : []),
         ...(feeCents > 0
           ? [
               {

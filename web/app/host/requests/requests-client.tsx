@@ -320,10 +320,16 @@ function PendingActions({
           )}
           {preview.paidTotalMxn != null && preview.estimatedTotalMxn != null && preview.estimatedTotalMxn !== preview.paidTotalMxn && (
             <p className="mt-1">
-              {t("El huésped pagó {paid}; el nuevo total es {total}. Acuerden la diferencia por el chat.", {
-                paid: `$${preview.paidTotalMxn.toLocaleString("es-MX")}`,
-                total: `$${preview.estimatedTotalMxn.toLocaleString("es-MX")}`,
-              })}
+              {t(
+                preview.estimatedTotalMxn > preview.paidTotalMxn
+                  ? "El huésped pagó {paid}; el nuevo total es {total}. Al aceptar le cobramos la diferencia ({diff}) y la reserva se confirma cuando la pague."
+                  : "El huésped pagó {paid}; el nuevo total es {total}. Al aceptar le devolvemos la diferencia ({diff}) automáticamente.",
+                {
+                  paid: `$${preview.paidTotalMxn.toLocaleString("es-MX")}`,
+                  total: `$${preview.estimatedTotalMxn.toLocaleString("es-MX")}`,
+                  diff: `$${Math.abs(preview.estimatedTotalMxn - preview.paidTotalMxn).toLocaleString("es-MX")}`,
+                }
+              )}
             </p>
           )}
         </div>

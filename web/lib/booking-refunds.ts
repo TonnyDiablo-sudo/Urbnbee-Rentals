@@ -22,7 +22,7 @@ export type BookingRefundResult =
 
 function totalPaidMxn(booking: BookingRecord): number {
   const fee = booking.platformFeeMxn ?? platformBookingFeeMxn(booking.estimatedTotalMxn);
-  return booking.estimatedTotalMxn + fee;
+  return (booking.paidStayMxn ?? booking.estimatedTotalMxn) + fee;
 }
 
 /** El cobro se guarda como sesión de Checkout; el PaymentIntent se resuelve la primera vez. */

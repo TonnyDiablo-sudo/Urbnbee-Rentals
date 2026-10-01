@@ -2,6 +2,7 @@ import "server-only";
 import webpush from "web-push";
 import type { BookingRecord } from "@/lib/booking-types";
 import { getListingById } from "@/lib/marketplace-store";
+import { addNotification, type NotificationKind } from "@/lib/notifications-store";
 import { removeSubscription, subscriptionsForUser } from "@/lib/push-store";
 
 export type PushPayload = {
@@ -67,6 +68,48 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   );
 }
 
+type NotifyInput = {
+  kind: NotificationKind;
+  /** Texto en español con `{placeholders}`; la app lo traduce con `vars`. */
+  title: string;
+  body: string;
+  vars?: Record<string, string | number>;
+  /** El cuerpo es texto del usuario (un mensaje de chat): no se traduce. */
+  rawBody?: boolean;
+  url: string;
+  tag?: string;
+};
+
+function fill(text: string, vars?: Record<string, string | number>): string {
+  if (!vars) return text;
+  return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
+}
+
+/** Guarda el aviso en el centro de notificaciones y además lo manda como push. */
+export function notifyUser(userId: string, n: NotifyInput): void {
+  if (!userId) return;
+  try {
+    addNotification({
+      userId,
+      kind: n.kind,
+      title: n.title,
+      body: n.body,
+      vars: n.vars,
+      rawBody: n.rawBody || undefined,
+      url: n.url,
+      groupKey: n.tag,
+    });
+  } catch (e) {
+    console.warn("[notifications] add failed:", e);
+  }
+  void sendPushToUser(userId, {
+    title: fill(n.title, n.vars),
+    body: n.rawBody ? n.body : fill(n.body, n.vars),
+    url: n.url,
+    tag: n.tag,
+  });
+}
+
 function listingTitle(listingId: string): string {
   return getListingById(listingId)?.title?.trim() || "tu alojamiento";
 }
@@ -78,21 +121,27 @@ export function notifyHostNewMessage(p: {
   guestName: string;
   body: string;
 }): void {
-  void sendPushToUser(p.hostId, {
-    title: `${p.guestName} · ${listingTitle(p.listingId)}`,
+  notifyUser(p.hostId, {
+    kind: "message",
+    title: "{name} · {listing}",
+    vars: { name: p.guestName, listing: listingTitle(p.listingId) },
     body: p.body,
+    rawBody: true,
     url: `/host/mensajes/${encodeURIComponent(p.listingId)}/${encodeURIComponent(p.guestSessionId)}`,
     tag: `h:${p.listingId}:${p.guestSessionId}`,
   });
 }
 
-/** Sólo los huéspedes con cuenta tienen sesión `gu_<userId>`; los hilos anónimos viejos no reciben push. */
+/** Sólo los huéspedes con cuenta tienen sesión `gu_<userId>`; los hilos anónimos viejos no reciben aviso. */
 export function notifyGuestHostReply(p: { listingId: string; guestSessionId: string; body: string }): void {
   const m = /^gu_(.+)$/.exec(p.guestSessionId);
   if (!m) return;
-  void sendPushToUser(m[1], {
-    title: `Respuesta del anfitrión · ${listingTitle(p.listingId)}`,
+  notifyUser(m[1], {
+    kind: "message",
+    title: "Respuesta del anfitrión · {listing}",
+    vars: { listing: listingTitle(p.listingId) },
     body: p.body,
+    rawBody: true,
     url: `/mensajes/${encodeURIComponent(p.listingId)}`,
     tag: `g:${p.listingId}`,
   });
@@ -100,22 +149,85 @@ export function notifyGuestHostReply(p: { listingId: string; guestSessionId: str
 
 export function notifyHostBookingPaid(booking: BookingRecord): void {
   const instant = booking.status === "AWAITING_DETAILS" || booking.status === "CONFIRMED";
-  void sendPushToUser(booking.hostId, {
+  notifyUser(booking.hostId, {
+    kind: instant ? "booking" : "request",
     title: instant ? "Nueva reserva confirmada" : "Nueva solicitud de reserva",
-    body: `${booking.guestName} · ${listingTitle(booking.listingId)} · ${booking.nights} noche${booking.nights === 1 ? "" : "s"}`,
-    url: "/host",
+    body: booking.nights === 1 ? "{name} · {listing} · 1 noche" : "{name} · {listing} · {nights} noches",
+    vars: { name: booking.guestName, listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId), nights: booking.nights },
+    url: instant ? "/host/calendario" : "/host",
     tag: `b:${booking.id}`,
   });
 }
 
-export function notifyGuestBookingDecision(booking: BookingRecord, accepted: boolean): void {
+export function notifyGuestBookingDecision(booking: BookingRecord, accepted: boolean, balanceDueMxn = 0): void {
   if (!booking.guestUserId) return;
-  void sendPushToUser(booking.guestUserId, {
+  const listing = listingTitle(booking.hostAdjustedListingId ?? booking.listingId);
+  notifyUser(booking.guestUserId, {
+    kind: accepted ? "booking" : "request",
     title: accepted ? "¡Tu reserva fue aceptada!" : "Tu solicitud no fue aceptada",
-    body: accepted
-      ? `${listingTitle(booking.listingId)}: completa tus datos para cerrar la reserva.`
-      : `${listingTitle(booking.listingId)}: el anfitrión no pudo recibirte en esas fechas.`,
+    body: !accepted
+      ? "{listing}: el anfitrión no pudo recibirte en esas fechas."
+      : balanceDueMxn > 0
+        ? "{listing}: el anfitrión ajustó las fechas. Paga la diferencia de ${amount} y firma el contrato."
+        : "{listing}: completa tus datos para cerrar la reserva.",
+    vars: { listing, amount: balanceDueMxn.toLocaleString("es-MX") },
     url: "/viajes",
     tag: `b:${booking.id}`,
+  });
+}
+
+/** Ambos firmaron (y no queda saldo): la reserva quedó cerrada. */
+export function notifyBookingConfirmed(booking: BookingRecord): void {
+  const listing = listingTitle(booking.hostAdjustedListingId ?? booking.listingId);
+  const checkIn = booking.hostAdjustedCheckIn ?? booking.checkIn;
+  const checkOut = booking.hostAdjustedCheckOut ?? booking.checkOut;
+  notifyUser(booking.hostId, {
+    kind: "booking",
+    title: "Reserva confirmada",
+    body: "{name} firmó el contrato de {listing} ({checkIn} → {checkOut}).",
+    vars: { name: booking.guestName, listing, checkIn, checkOut },
+    url: "/host/calendario",
+    tag: `b:${booking.id}`,
+  });
+  if (booking.guestUserId) {
+    notifyUser(booking.guestUserId, {
+      kind: "booking",
+      title: "Reserva confirmada",
+      body: "{listing}: {checkIn} → {checkOut}. ¡Buen viaje!",
+      vars: { listing, checkIn, checkOut },
+      url: "/viajes",
+      tag: `b:${booking.id}`,
+    });
+  }
+}
+
+export function notifyHostDifferencePaid(booking: BookingRecord, amountMxn: number): void {
+  notifyUser(booking.hostId, {
+    kind: "payment",
+    title: "Diferencia pagada",
+    body: "{name} pagó ${amount} por el cambio de fechas en {listing}.",
+    vars: { name: booking.guestName, amount: amountMxn.toLocaleString("es-MX"), listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId) },
+    url: "/host/calendario",
+  });
+}
+
+export function notifyGuestDifferenceRefunded(booking: BookingRecord, amountMxn: number): void {
+  if (!booking.guestUserId) return;
+  notifyUser(booking.guestUserId, {
+    kind: "payment",
+    title: "Te devolvimos la diferencia",
+    body: "{listing}: las nuevas fechas cuestan menos; reembolsamos ${amount}.",
+    vars: { listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId), amount: amountMxn.toLocaleString("es-MX") },
+    url: "/viajes",
+  });
+}
+
+export function notifyHostNewReview(p: { hostId: string; listingId: string; guestName: string; rating: number }): void {
+  notifyUser(p.hostId, {
+    kind: "review",
+    title: "Nueva reseña · {stars}",
+    body: "{name} calificó {listing}.",
+    vars: { stars: "★".repeat(Math.max(1, Math.min(5, Math.round(p.rating)))), name: p.guestName, listing: listingTitle(p.listingId) },
+    url: `/host/anuncios/${encodeURIComponent(p.listingId)}`,
   });
 }

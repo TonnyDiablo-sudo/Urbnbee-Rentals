@@ -1,6 +1,7 @@
 import "server-only";
 import type Stripe from "stripe";
 import type { BookingRecord } from "@/lib/booking-types";
+import { settleAdjustmentCheckoutSession } from "@/lib/booking-adjustments";
 import { attachContractIfInstant } from "@/lib/booking-contract";
 import { markBookingPaid, paymentStatusOf } from "@/lib/booking-machine";
 import { getBookingById } from "@/lib/bookings-store";
@@ -23,6 +24,10 @@ export function settleBookingCheckoutSession(
     // `kind` sólo lo llevan los cobros de membresía: son pago único igual que la
     // estancia, así que sin esta guarda un pase se leería como reserva fantasma.
     return { ok: false, status: 400, error: "Esta sesión no corresponde al pago de una reserva." };
+  }
+  if (session.metadata?.bookingAdjustmentId) {
+    const r = settleAdjustmentCheckoutSession(session);
+    return r.ok ? { ok: true, kind: "completed", booking: r.booking } : r;
   }
   if (session.payment_status !== "paid") {
     return { ok: false, status: 409, error: "El pago no está completado." };

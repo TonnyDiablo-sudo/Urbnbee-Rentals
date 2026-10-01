@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { PayDifference } from "@/components/booking/pay-difference";
 import { useT } from "@/components/i18n-provider";
 
 type LookupBooking = {
+  id: string;
   status: string;
+  balanceDueMxn?: number;
+  paidStayMxn?: number;
   token: string;
   checkIn: string;
   checkOut: string;
@@ -35,6 +39,7 @@ export function FinishBookingClient({ token }: { token: string }) {
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (token.length !== 6) {
@@ -63,7 +68,7 @@ export function FinishBookingClient({ token }: { token: string }) {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, reloadKey]);
 
   if (loadErr) {
     return (
@@ -133,6 +138,19 @@ export function FinishBookingClient({ token }: { token: string }) {
           </span>
         </div>
       </div>
+
+      {(booking.balanceDueMxn ?? 0) > 0 && (
+        <div className="mt-6">
+          <PayDifference
+            bookingId={booking.id}
+            amountMxn={booking.balanceDueMxn ?? 0}
+            paidMxn={booking.paidStayMxn}
+            token={token}
+            returnPath={`/finish/${token}`}
+            onPaid={() => setReloadKey((k) => k + 1)}
+          />
+        </div>
+      )}
 
       {booking.contract?.generated && (
         <div className="mt-6">

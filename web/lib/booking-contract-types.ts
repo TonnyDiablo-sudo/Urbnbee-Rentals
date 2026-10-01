@@ -37,6 +37,11 @@ export type BookingContractSnapshot = {
   cleaningMxn: number;
   platformFeeMxn: number;
   totalMxn: number;
+  /** Impuestos del anfitrión (IVA, hospedaje…). Faltan en contratos anteriores a esta función. */
+  taxMxn?: number;
+  taxLines?: { name: string; ratePct: number; amountMxn: number }[];
+  taxIncluded?: boolean;
+  hostTaxId?: string;
   /** 0 si el anfitrión no declaró depósito. Cabibee no lo retiene. */
   depositMxn: number;
   depositNote: string;

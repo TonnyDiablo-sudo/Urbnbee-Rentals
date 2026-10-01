@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { PayDifference } from "@/components/booking/pay-difference";
 import { useLang, useT } from "@/components/i18n-provider";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
 import { GUEST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../_components/booking-status";
@@ -29,6 +30,8 @@ type Trip = {
   arrival?: ArrivalGuide & { address?: string };
   canReview?: boolean;
   myReview?: { rating: number; comment: string } | null;
+  balanceDueMxn?: number;
+  paidStayMxn?: number;
 };
 
 const CLOSED = new Set(["CANCELLED", "EXPIRED", "REJECTED"]);
@@ -149,6 +152,21 @@ export function TripsList() {
                 <p className="text-sm text-[#555]">
                   {fmtMxn(trip.estimatedTotalMxn + (trip.platformFeeMxn ?? 0))} · {t("código {code}", { code: trip.token })}
                 </p>
+                {(trip.balanceDueMxn ?? 0) > 0 && (
+                  <div className="mt-3">
+                    <PayDifference
+                      compact
+                      bookingId={trip.id}
+                      amountMxn={trip.balanceDueMxn ?? 0}
+                      paidMxn={trip.paidStayMxn}
+                      returnPath="/viajes"
+                      onPaid={() => {
+                        setNotice("Diferencia pagada. Gracias.");
+                        void load();
+                      }}
+                    />
+                  </div>
+                )}
                 {trip.myReview && (
                   <div className="mt-3 rounded-xl bg-[#f7f7f7] px-3 py-2.5">
                     <p className="text-[13px] font-semibold text-[#222]">

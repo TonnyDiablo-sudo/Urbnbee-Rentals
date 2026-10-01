@@ -83,4 +83,31 @@ export type BookingRecord = {
   contract?: BookingContractRecord;
   /** Depósito pactado. Cabibee solo documenta; no retiene el dinero. */
   deposit?: BookingDepositRecord;
+  /** Impuestos del anfitrión ya contenidos en `estimatedTotalMxn`. */
+  taxMxn?: number;
+  taxLines?: BookingTaxLine[];
+  /** true: el precio ya los incluía; false: se sumaron encima. */
+  taxIncluded?: boolean;
+  /** Parte de `estimatedTotalMxn` ya cobrada. Sin esto y con `paidAt`, se cobró completo. */
+  paidStayMxn?: number;
+  /** Cobros o devoluciones extra por cambio de fechas. */
+  adjustments?: BookingAdjustment[];
+};
+
+export type BookingTaxLine = { name: string; ratePct: number; amountMxn: number };
+
+export type BookingAdjustment = {
+  id: string;
+  kind: "charge" | "refund";
+  /** Diferencia de la estancia (sin cargo de plataforma). */
+  amountMxn: number;
+  /** Cargo de plataforma sobre la diferencia (se suma al cobro o se devuelve). */
+  feeMxn: number;
+  status: "pending" | "paid" | "refunded" | "void" | "failed";
+  reason: "dates_changed";
+  createdAt: string;
+  settledAt?: string;
+  stripeCheckoutSessionId?: string;
+  stripePaymentIntentId?: string;
+  stripeRefundId?: string;
 };

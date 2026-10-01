@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { quoteStay, stayLengthError, type ListingPricing } from "@/lib/listing-pricing";
+import { computeStayTax, taxLineLabel, type HostTaxSettings } from "@/lib/stay-tax";
 
 const DAYS = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"];
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -109,6 +110,7 @@ type Props = {
   nightlyPriceOverrides?: Record<string, number>;
   pricing?: ListingPricing;
   depositMxn?: number;
+  tax?: HostTaxSettings;
   /** Si se pasa, el flujo exige usuario registrado y pago antes de confirmar. */
   listingId?: string;
   /** Si es false, el anuncio queda en directorio: chat/contacto, sin «Reserva con cuenta». */
@@ -135,6 +137,7 @@ export function AvailabilityCalendar({
   nightlyPriceOverrides,
   pricing,
   depositMxn = 0,
+  tax,
   listingId,
   bookable = true,
   listingSlug = "",
@@ -228,7 +231,9 @@ export function AvailabilityCalendar({
   const priceInput = { pricePerNight, nightlyPriceOverrides, pricing };
   const stay =
     nights > 0 && checkin && checkout ? quoteStay(priceInput, localISO(checkin), localISO(checkout)) : null;
-  const total = stay ? stay.staySubtotal + cleaningFee : 0;
+  const subtotal = stay ? Math.round(stay.staySubtotal + cleaningFee) : 0;
+  const taxes = computeStayTax(tax, subtotal);
+  const total = subtotal + taxes.addedMxn;
   const lengthErr = nights > 0 ? stayLengthError(priceInput, nights) : null;
 
   const fmtDate = (d: Date) => `${d.getDate()} ${t(MONTHS[d.getMonth()]).slice(0,3)} ${d.getFullYear()}`;
@@ -330,10 +335,24 @@ export function AvailabilityCalendar({
               <span>${cleaningFee}</span>
             </div>
           )}
+          {!taxes.included &&
+            taxes.lines.map((l) => (
+              <div key={l.name} className="flex justify-between text-[#3a3a3a]">
+                <span>{taxLineLabel(l)}</span>
+                <span>${l.amountMxn.toLocaleString("es-MX")}</span>
+              </div>
+            ))}
           <div className="mt-2 flex justify-between border-t pt-2 font-semibold text-[#484848]" style={{ borderColor: "#ebebeb" }}>
             <span>{t("Total en Cabibee")}</span>
             <span>${total.toLocaleString("es-MX")}</span>
           </div>
+          {taxes.included && taxes.taxMxn > 0 && (
+            <p className="mt-1 text-xs text-[#888]">
+              {t("Incluye {taxes}", {
+                taxes: taxes.lines.map((l) => `${taxLineLabel(l)} $${l.amountMxn.toLocaleString("es-MX")}`).join(" · "),
+              })}
+            </p>
+          )}
           {depositMxn > 0 && (
             <p className="mt-2 text-xs text-[#888]">
               {t("Depósito pactado: ${amount} MXN. Se entrega entre ustedes; Cabibee no lo cobra ni lo guarda.", {

@@ -262,6 +262,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                   pricePerNight={listing.pricePerNight}
                   cleaningFee={listing.cleaningFee}
                   depositMxn={listing.depositMxn}
+                  tax={listing.tax}
                   blockedDates={listing.blockedDates}
                   nightlyPriceOverrides={listing.nightlyPriceOverrides}
                   pricing={listing.pricing}

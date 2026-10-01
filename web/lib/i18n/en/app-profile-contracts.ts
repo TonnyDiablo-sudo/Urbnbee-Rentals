@@ -137,8 +137,10 @@ export const appProfileContracts: Record<string, string> = {
   "El contrato se actualizará": "The contract will be updated",
   "El huésped ya había firmado: su firma queda archivada y tendrá que firmar la versión nueva antes de que se confirme.":
     "The guest had already signed: their signature is archived and they'll need to sign the new version before it's confirmed.",
-  "El huésped pagó {paid}; el nuevo total es {total}. Acuerden la diferencia por el chat.":
-    "The guest paid {paid}; the new total is {total}. Settle the difference over chat.",
+  "El huésped pagó {paid}; el nuevo total es {total}. Al aceptar le cobramos la diferencia ({diff}) y la reserva se confirma cuando la pague.":
+    "The guest paid {paid}; the new total is {total}. When you accept we'll charge them the difference ({diff}) and the booking is confirmed once they pay it.",
+  "El huésped pagó {paid}; el nuevo total es {total}. Al aceptar le devolvemos la diferencia ({diff}) automáticamente.":
+    "The guest paid {paid}; the new total is {total}. When you accept we'll refund the difference ({diff}) automatically.",
 
   // Ficha
   "Enviar mensaje a {name}": "Message {name}",

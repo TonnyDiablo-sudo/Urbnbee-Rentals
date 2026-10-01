@@ -7,6 +7,7 @@ import { AvailabilityCalendar } from "@/components/listing/availability-calendar
 import { numberLocale } from "@/lib/i18n";
 import type { HostContact } from "@/lib/listing-detail-data";
 import type { ListingPricing } from "@/lib/listing-pricing";
+import type { HostTaxSettings } from "@/lib/stay-tax";
 import { Sheet } from "../../_components/sheet";
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
   pricePerNight: number;
   cleaningFee?: number;
   depositMxn?: number;
+  tax?: HostTaxSettings;
   blockedDates: string[];
   nightlyPriceOverrides?: Record<string, number>;
   pricing?: ListingPricing;
@@ -103,6 +105,7 @@ export function ListingActionBar(p: Props) {
           pricePerNight={p.pricePerNight}
           cleaningFee={p.cleaningFee}
           depositMxn={p.depositMxn}
+          tax={p.tax}
           blockedDates={p.blockedDates}
           nightlyPriceOverrides={p.nightlyPriceOverrides}
           pricing={p.pricing}

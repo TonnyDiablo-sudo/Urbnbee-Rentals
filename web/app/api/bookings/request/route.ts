@@ -7,11 +7,8 @@ import {
   hasOverlappingActiveBooking,
   insertBookingLocked,
 } from "@/lib/bookings-store";
-import {
-  countNights,
-  nightsBlockedByListing,
-  sumStayMxn,
-} from "@/lib/booking-helpers";
+import { countNights, nightsBlockedByListing } from "@/lib/booking-helpers";
+import { bookingTaxFields, quoteBookingMxn } from "@/lib/booking-quote";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { stayLengthError } from "@/lib/listing-pricing";
 import { getSessionUser } from "@/lib/session";
@@ -126,9 +123,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { staySubtotal } = sumStayMxn(listing, checkIn, checkOut);
-  const cleaning = listing.cleaningFee ?? 0;
-  const estimatedTotalMxn = Math.round(staySubtotal + cleaning);
+  const quote = quoteBookingMxn(listing, checkIn, checkOut);
+  const cleaning = quote.cleaningMxn;
+  const estimatedTotalMxn = quote.totalMxn;
   const platformFeeMxn = stayPlatformFeeMxn(listing.hostId, estimatedTotalMxn);
 
   // El pase se descuenta antes de crear la reserva: si se descontara después, dos
@@ -154,6 +151,7 @@ export async function POST(req: NextRequest) {
     estimatedTotalMxn,
     platformFeeMxn,
     cleaningFeeMxn: cleaning,
+    ...bookingTaxFields(quote),
     status: "AWAITING_PAYMENT",
     usedMembershipPass: usedMembershipPass || undefined,
     beeagentRef: link && link.listingId === listingId ? link.ref : undefined,
