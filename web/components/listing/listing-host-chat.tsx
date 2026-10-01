@@ -174,17 +174,6 @@ export function ListingHostChat({
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 opacity-100">
         <label className={`block text-xs font-semibold text-[#666] ${!loggedIn ? "pointer-events-none opacity-50" : ""}`}>
-          {t("Tu nombre")}
-          <input
-            value={guestName}
-            onChange={(e) => setGuestName(e.target.value)}
-            maxLength={80}
-            disabled={!loggedIn}
-            className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
-            placeholder={t("Ej. María")}
-          />
-        </label>
-        <label className={`block text-xs font-semibold text-[#666] ${!loggedIn ? "pointer-events-none opacity-50" : ""}`}>
           {t("Correo (opcional, para que te respondan fuera de Cabibee)")}
           <input
             type="email"
@@ -218,7 +207,7 @@ export function ListingHostChat({
       <button
         type="button"
         onClick={send}
-        disabled={loading || !loggedIn || !guestName.trim() || !body.trim()}
+        disabled={loading || !loggedIn || !body.trim()}
         className="mt-4 rounded-full px-6 py-2.5 text-sm font-semibold text-black shadow transition hover:brightness-95 disabled:opacity-50"
         style={{ backgroundColor: "#dcb81e" }}
       >

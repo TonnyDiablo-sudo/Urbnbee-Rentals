@@ -17,6 +17,7 @@ import {
   upsertUserRow,
 } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
+import { getVerification } from "@/lib/verification-store";
 
 /** In-memory store (replace with MySQL per SYSTEM_ARCHITECTURE_AND_ROADMAP). */
 const usersById = new Map<string, UserRecord>();
@@ -335,16 +336,55 @@ export function deleteListing(listingId: string, hostId: string): boolean {
   return true;
 }
 
+function identityLocksName(userId: string): boolean {
+  const v = getVerification(userId);
+  return v?.kycStatus === "verified" || Boolean(v?.hostVerifiedAt);
+}
+
 export function updateUser(
   userId: string,
-  patch: Partial<Pick<UserRecord, "fullName" | "phone" | "addressLine">>
+  patch: Partial<Pick<UserRecord, "fullName" | "phone" | "addressLine" | "alias" | "showAlias" | "legalNameLocked">>,
+  opts?: { forceLegalName?: boolean }
 ): UserRecord | undefined {
+  syncStoreFromDiskIfStale();
   const u = usersById.get(userId);
   if (!u) return undefined;
-  const next: UserRecord = { ...u, ...patch };
+  const locked = Boolean(u.legalNameLocked) || identityLocksName(userId);
+  const nextPatch = { ...patch };
+  if (
+    nextPatch.fullName !== undefined &&
+    locked &&
+    !opts?.forceLegalName &&
+    nextPatch.fullName.trim() !== u.fullName
+  ) {
+    delete nextPatch.fullName;
+  }
+  if (nextPatch.alias !== undefined) {
+    const alias = nextPatch.alias.trim();
+    nextPatch.alias = alias.length ? alias.slice(0, 40) : undefined;
+  }
+  const next: UserRecord = { ...u, ...nextPatch };
+  if (next.showAlias && !next.alias?.trim()) next.showAlias = false;
   usersById.set(userId, next);
   persistToDisk();
   return next;
+}
+
+/** Quita la cuenta, su perfil y sus anuncios. Las reservas las anonimiza quien llama. */
+export function eraseUserRecord(userId: string): boolean {
+  syncStoreFromDiskIfStale();
+  const u = usersById.get(userId);
+  if (!u || u.role === "admin") return false;
+  usersById.delete(userId);
+  usersByEmail.delete(u.email.toLowerCase());
+  hostProfiles.delete(userId);
+  for (const [id, listing] of [...listingsById]) {
+    if (listing.hostId !== userId) continue;
+    listingsById.delete(id);
+    slugToListingId.delete(listing.slug);
+  }
+  persistToDisk();
+  return true;
 }
 
 export function setUserRole(userId: string, role: UserRole): UserRecord | undefined {

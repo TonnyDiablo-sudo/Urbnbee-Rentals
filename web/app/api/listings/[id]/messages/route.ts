@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getListingById } from "@/lib/marketplace-store";
+import { nameForViewer, publicNameOf, shareABooking } from "@/lib/display-name";
+import { findUserById, getListingById } from "@/lib/marketplace-store";
 import {
   appendMessage,
   guestSessionIdForUser,
@@ -44,15 +45,20 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
   const authSid = sessionUser ? guestSessionIdForUser(sessionUser.id) : null;
   const cookieSid = map[listingId];
   const ids = [...new Set([authSid, cookieSid].filter(Boolean) as string[])];
+  const listing = getListingById(listingId);
+  const guestId = sessionUser?.id;
+  const reveal = Boolean(listing && guestId && shareABooking(listing.hostId, guestId));
+  const hostLabel = listing ? nameForViewer(listing.hostId, reveal) || "Anfitrión" : "Anfitrión";
   const messages = listThreadMerged(listingId, ids);
   return NextResponse.json({
-    messages: messages.map((m) => ({
-      id: m.id,
-      sender: m.sender,
-      body: m.body,
-      createdAt: m.createdAt,
-      guestLabel: m.sender === "guest" ? m.guestName : "Anfitrión",
-    })),
+    messages: messages.map((m) => {
+      let guestLabel = m.guestName;
+      if (m.sender === "host") guestLabel = hostLabel;
+      else if (m.guestSessionId.startsWith("gu_")) {
+        guestLabel = nameForViewer(m.guestSessionId.slice(3), reveal) || m.guestName;
+      }
+      return { id: m.id, sender: m.sender, body: m.body, createdAt: m.createdAt, guestLabel };
+    }),
   });
 }
 
@@ -84,13 +90,13 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
 
   const body = await req.json().catch(() => ({}));
-  let guestName = sanitizeGuestName(body.guestName);
   const guestEmail = sanitizeOptionalEmail(body.guestEmail);
   const text = sanitizeBodyText(body.body);
-
-  if (!guestName.length) {
-    guestName = sanitizeGuestName(sessionUser.fullName || sessionUser.email || "Huésped");
-  }
+  const reveal = shareABooking(listing.hostId, sessionUser.id);
+  const account = findUserById(sessionUser.id);
+  const guestName = sanitizeGuestName(
+    (reveal ? account?.fullName : account && publicNameOf(account)) || sessionUser.fullName || "Huésped"
+  );
 
   if (!text.length) {
     return NextResponse.json({ error: "Escribe un mensaje." }, { status: 400 });

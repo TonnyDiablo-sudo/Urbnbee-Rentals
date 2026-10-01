@@ -75,6 +75,15 @@ export function removeSubscription(endpoint: string, userId?: string): void {
   persist();
 }
 
+export function removeSubscriptionsForUser(userId: string): void {
+  syncIfStale();
+  const next = rows.filter((s) => s.userId !== userId);
+  if (next.length === rows.length) return;
+  rows.length = 0;
+  rows.push(...next);
+  persist();
+}
+
 export function subscriptionsForUser(userId: string): PushSubscriptionRecord[] {
   syncIfStale();
   return rows.filter((s) => s.userId === userId);

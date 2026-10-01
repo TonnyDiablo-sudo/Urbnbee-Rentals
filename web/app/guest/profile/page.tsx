@@ -10,6 +10,7 @@ export default function GuestProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState("");
+  const [nameLocked, setNameLocked] = useState(false);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [addressLine, setAddressLine] = useState("");
@@ -40,6 +41,7 @@ export default function GuestProfilePage() {
         }
         if (!cancelled) {
           setFullName(data.user?.fullName ?? "");
+          setNameLocked(Boolean(data.user?.nameLocked));
           setEmail(data.user?.email ?? "");
           setPhone(data.user?.phone ?? "");
           setAddressLine(data.user?.addressLine ?? "");
@@ -158,10 +160,16 @@ export default function GuestProfilePage() {
           <label className="block text-xs font-semibold uppercase tracking-wide text-[#888]">
             {t("Nombre completo")}
             <input
-              className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm text-[#484848]"
+              className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm text-[#484848] disabled:bg-[#fafafa]"
               value={fullName}
+              disabled={nameLocked}
               onChange={(e) => setFullName(e.target.value)}
             />
+            {nameLocked && (
+              <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-[#888]">
+                {t("Tu identidad ya está verificada. El nombre real queda fijo, aunque canceles la membresía.")}
+              </span>
+            )}
           </label>
           <label className="block text-xs font-semibold uppercase tracking-wide text-[#888]">
             {t("Correo (solo lectura)")}

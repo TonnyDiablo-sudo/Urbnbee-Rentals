@@ -75,6 +75,17 @@ export function upsertHostEntitlement(row: HostEntitlementRecord): HostEntitleme
   return next;
 }
 
+export function deleteHostEntitlements(hostId: string): void {
+  syncIfStale();
+  let changed = false;
+  for (const [key, row] of rows) {
+    if (row.hostId !== hostId) continue;
+    rows.delete(key);
+    changed = true;
+  }
+  if (changed) persist();
+}
+
 export function listAllHostEntitlements(): HostEntitlementRecord[] {
   syncIfStale();
   return [...rows.values()];

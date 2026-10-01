@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 import { settleBookingCheckoutSession } from "@/lib/booking-payment-settle";
 import { applyHostEntitlement, HOST_SKU_BOOKING_ENGINE } from "@/lib/host-entitlements";
 import type { HostEntitlementStatus } from "@/lib/host-entitlement-types";
+import { lockLegalName } from "@/lib/display-name";
 import { grantHostVerification, syncHostBadgeToListings } from "@/lib/host-verification";
 import { MEMBERSHIP_PASS_KIND } from "@/lib/membership-checkout";
 import { settleScreeningCheckoutSession } from "@/lib/screening-service";
@@ -112,14 +113,34 @@ async function syncFromSubscription(sub: Stripe.Subscription, explicitUserId?: s
   });
 }
 
-function syncIdentityFromSession(session: Stripe.Identity.VerificationSession) {
+function legalNameFromIdentity(session: Stripe.Identity.VerificationSession): string | undefined {
+  const out = session.verified_outputs;
+  const name = [out?.first_name, out?.last_name]
+    .filter((part): part is string => typeof part === "string" && part.trim().length > 0)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return name.length >= 2 ? name : undefined;
+}
+
+async function syncIdentityFromSession(session: Stripe.Identity.VerificationSession) {
   const userId = typeof session.metadata?.userId === "string" ? session.metadata.userId : undefined;
   if (!userId) {
     console.warn("[stripe webhook] identity session sin userId en metadata", session.id);
     return;
   }
   switch (session.status) {
-    case "verified":
+    case "verified": {
+      let legal = legalNameFromIdentity(session);
+      if (!legal) {
+        try {
+          const full = await getStripe()?.identity.verificationSessions.retrieve(session.id);
+          if (full) legal = legalNameFromIdentity(full);
+        } catch (e) {
+          console.warn("[stripe webhook] no se pudo leer el nombre del documento", session.id, e);
+        }
+      }
+      lockLegalName(userId, legal);
       upsertVerification(userId, { kycStatus: "verified", kycProviderSessionId: session.id });
       // Si la verificación la inició un anfitrión, su insignia aparece ahora en sus
       // anuncios. Una identidad no aprobada nunca concede la insignia, y quitarla es
@@ -131,6 +152,7 @@ function syncIdentityFromSession(session: Stripe.Identity.VerificationSession) {
         });
       }
       break;
+    }
     case "canceled":
       upsertVerification(userId, { kycStatus: "failed", kycProviderSessionId: session.id });
       break;
@@ -179,7 +201,7 @@ export async function POST(req: NextRequest) {
   try {
     if (event.type.startsWith("identity.verification_session.")) {
       const session = event.data.object as Stripe.Identity.VerificationSession;
-      syncIdentityFromSession(session);
+      await syncIdentityFromSession(session);
     } else {
       switch (event.type) {
         case "checkout.session.async_payment_succeeded":

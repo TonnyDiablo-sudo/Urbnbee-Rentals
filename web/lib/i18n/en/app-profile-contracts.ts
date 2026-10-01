@@ -27,6 +27,25 @@ export const appProfileContracts: Record<string, string> = {
     "A clear photo of your face helps hosts and guests trust you.",
   "Sobre ti": "About you",
   Nombre: "Name",
+  Alias: "Alias",
+  "Ej. Ana en Roma": "E.g. Ana in Roma",
+  "Mostrar el alias en anuncios y en el chat": "Show the alias on listings and in chat",
+  "En una reserva, el contrato y el chat con esa persona se usa tu nombre real y completo.":
+    "Once you have a booking, the contract and the chat with that person use your real full name.",
+  "Tu identidad ya está verificada. El nombre real queda fijo, aunque canceles la membresía.":
+    "Your identity is verified. Your real name stays, even if you cancel membership.",
+  "Tu identidad ya está verificada. El nombre real ya no se puede cambiar.":
+    "Your identity is verified. Your real name can no longer be changed.",
+  "Borrar cuenta": "Delete account",
+  "Se eliminan tu perfil, tus anuncios y tus datos. Las reservas quedan sin tu nombre ni tu contacto, y las que aún no terminan se cancelan.":
+    "Your profile, listings and personal details are removed. Bookings stay without your name or contact, and ones that have not finished are cancelled.",
+  "Escribe tu correo para confirmar": "Type your email to confirm",
+  "Escribe tu correo tal como aparece en la cuenta.": "Type your email exactly as it appears on the account.",
+  "Borrando…": "Deleting…",
+  "El alias se elige en Editar perfil.": "Choose the alias in Edit profile.",
+  "Borrar mi cuenta para siempre": "Delete my account forever",
+  "No se pudo borrar la cuenta.": "Couldn't delete the account.",
+  "Una cuenta de administración no se puede borrar aquí.": "An admin account can't be deleted here.",
   "A qué te dedicas": "What you do",
   "Ej. Diseñadora, estudiante, chef": "E.g. Designer, student, chef",
   "Dónde vives": "Where you live",

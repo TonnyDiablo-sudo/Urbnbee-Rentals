@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { groupThreads } from "@/lib/host-inbox-store";
+import { nameForViewer, shareABooking } from "@/lib/display-name";
 import { getListingById } from "@/lib/marketplace-store";
 
 export async function GET() {
@@ -35,11 +36,15 @@ export async function GET() {
     const listing = getListingById(listingId);
     const firstGuest = msgs.find((m) => m.sender === "guest");
     const last = msgs[msgs.length - 1];
+    const guestUserId = guestSessionId.startsWith("gu_") ? guestSessionId.slice(3) : "";
+    const reveal = Boolean(guestUserId && shareABooking(user.id, guestUserId));
+    const guestName =
+      (guestUserId && nameForViewer(guestUserId, reveal)) || firstGuest?.guestName || "?";
     threads.push({
       listingId,
       listingTitle: listing?.title ?? listingId,
       guestSessionId,
-      guestName: firstGuest?.guestName ?? "?",
+      guestName,
       guestEmail: firstGuest?.guestEmail,
       lastAt: last?.createdAt ?? "",
       messages: msgs.map((m) => ({
@@ -47,7 +52,7 @@ export async function GET() {
         sender: m.sender,
         body: m.body,
         createdAt: m.createdAt,
-        guestName: m.sender === "guest" ? m.guestName : "",
+        guestName: m.sender === "guest" ? guestName : "",
       })),
     });
   }

@@ -8,6 +8,9 @@ import { TopBar } from "../../_components/top-bar";
 
 export type ProfileDraft = {
   fullName: string;
+  alias: string;
+  showAlias: boolean;
+  nameLocked: boolean;
   email: string;
   phone: string;
   addressLine: string;
@@ -45,6 +48,8 @@ export function ProfileEditor({ initial, back }: { initial: ProfileDraft; back: 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [eraseEmail, setEraseEmail] = useState("");
+  const [erasing, setErasing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const dirty = JSON.stringify(d) !== JSON.stringify(saved);
 
@@ -82,7 +87,9 @@ export function ProfileEditor({ initial, back }: { initial: ProfileDraft; back: 
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        fullName: d.fullName,
+        ...(d.nameLocked ? {} : { fullName: d.fullName }),
+        alias: d.alias,
+        showAlias: d.showAlias,
         phone: d.phone,
         addressLine: d.addressLine,
         bio: d.bio,
@@ -98,9 +105,38 @@ export function ProfileEditor({ initial, back }: { initial: ProfileDraft; back: 
       setMsg({ ok: false, text: typeof j.error === "string" ? j.error : "No se pudo guardar." });
       return;
     }
-    setSaved(d);
+    const next = {
+      ...d,
+      fullName: typeof j.user?.fullName === "string" ? j.user.fullName : d.fullName,
+      alias: typeof j.user?.alias === "string" ? j.user.alias : d.alias,
+      showAlias: typeof j.user?.showAlias === "boolean" ? j.user.showAlias : d.showAlias,
+      nameLocked: typeof j.user?.nameLocked === "boolean" ? j.user.nameLocked : d.nameLocked,
+    };
+    setD(next);
+    setSaved(next);
     setMsg({ ok: true, text: "Perfil guardado." });
     router.refresh();
+  }
+
+  async function eraseAccount() {
+    if (eraseEmail.trim().toLowerCase() !== d.email.trim().toLowerCase()) {
+      setMsg({ ok: false, text: "Escribe tu correo tal como aparece en la cuenta." });
+      return;
+    }
+    setErasing(true);
+    setMsg(null);
+    const res = await fetch("/api/account/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmEmail: eraseEmail.trim() }),
+    }).catch(() => null);
+    const j = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok) {
+      setErasing(false);
+      setMsg({ ok: false, text: typeof j.error === "string" ? j.error : "No se pudo borrar la cuenta." });
+      return;
+    }
+    window.location.href = "/";
   }
 
   const initialLetter = (d.fullName || d.email).trim().charAt(0).toUpperCase();
@@ -154,7 +190,38 @@ export function ProfileEditor({ initial, back }: { initial: ProfileDraft; back: 
 
       <div className="space-y-7 px-5 pt-6">
         <Group title={t("Sobre ti")}>
-          <Field label={t("Nombre")} value={d.fullName} onChange={(v) => set("fullName", v)} autoComplete="name" />
+          <Field
+            label={t("Nombre")}
+            value={d.fullName}
+            onChange={(v) => set("fullName", v)}
+            autoComplete="name"
+            disabled={d.nameLocked}
+          />
+          {d.nameLocked && (
+            <p className="text-xs text-[#717171]">
+              {t("Tu identidad ya está verificada. El nombre real queda fijo, aunque canceles la membresía.")}
+            </p>
+          )}
+          <Field
+            label={t("Alias")}
+            value={d.alias}
+            onChange={(v) => set("alias", v)}
+            placeholder={t("Ej. Ana en Roma")}
+          />
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={d.showAlias}
+              onChange={(e) => set("showAlias", e.target.checked)}
+            />
+            <span className="text-sm text-[#222]">
+              {t("Mostrar el alias en anuncios y en el chat")}
+              <span className="mt-0.5 block text-xs font-normal text-[#717171]">
+                {t("En una reserva, el contrato y el chat con esa persona se usa tu nombre real y completo.")}
+              </span>
+            </span>
+          </label>
           <Field label={t("A qué te dedicas")} value={d.work} onChange={(v) => set("work", v)} placeholder={t("Ej. Diseñadora, estudiante, chef")} />
           <Field label={t("Dónde vives")} value={d.livesIn} onChange={(v) => set("livesIn", v)} placeholder={t("Ej. Guadalajara, Jalisco")} />
           <label className="block">
@@ -189,6 +256,28 @@ export function ProfileEditor({ initial, back }: { initial: ProfileDraft; back: 
             autoComplete="street-address"
             placeholder={t("Calle, número, colonia, ciudad")}
           />
+        </Group>
+
+        <Group
+          title={t("Borrar cuenta")}
+          hint={t("Se eliminan tu perfil, tus anuncios y tus datos. Las reservas quedan sin tu nombre ni tu contacto, y las que aún no terminan se cancelan.")}
+        >
+          <Field
+            label={t("Escribe tu correo para confirmar")}
+            value={eraseEmail}
+            onChange={setEraseEmail}
+            type="email"
+            autoComplete="off"
+            placeholder={d.email}
+          />
+          <button
+            type="button"
+            disabled={erasing || !eraseEmail.trim()}
+            onClick={() => void eraseAccount()}
+            className="w-full rounded-xl border border-red-700 py-3 text-sm font-semibold text-red-700 disabled:opacity-40"
+          >
+            {erasing ? t("Borrando…") : t("Borrar mi cuenta para siempre")}
+          </button>
         </Group>
       </div>
 

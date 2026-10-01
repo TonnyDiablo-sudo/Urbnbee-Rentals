@@ -1,6 +1,7 @@
 import "server-only";
 import { stayHasEnded } from "@/lib/booking-deposit";
 import type { BookingRecord } from "@/lib/booking-types";
+import { publicNameOf } from "@/lib/display-name";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import type { Review } from "@/lib/listing-detail-data";
 import { notifyHostNewReview } from "@/lib/push";
@@ -89,7 +90,7 @@ export function listingReviewsForPublic(listingId: string): Review[] {
     const profile = getHostProfile(r.authorUserId);
     return {
       id: r.id,
-      author: author?.fullName?.trim() || "Huésped",
+      author: (author && publicNameOf(author)) || "Huésped",
       avatarUrl:
         profile?.avatarUrl ||
         "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&q=80",

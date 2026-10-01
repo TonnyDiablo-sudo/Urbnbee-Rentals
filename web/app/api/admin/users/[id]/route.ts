@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import { lockLegalName } from "@/lib/display-name";
 import { findUserById, setUserRole } from "@/lib/marketplace-store";
 import type { UserRole } from "@/lib/marketplace-types";
 import {
@@ -32,6 +33,7 @@ export async function PATCH(
   };
   if (body.verifyGuestIdentity) {
     const v = markGuestIdentityVerified(id);
+    lockLegalName(id);
     return NextResponse.json({ ok: true, kycStatus: v.kycStatus });
   }
   if (body.grantPass) {

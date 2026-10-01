@@ -1,3 +1,4 @@
+import { nameForViewer, shareABooking } from "@/lib/display-name";
 import { groupThreads } from "@/lib/host-inbox-store";
 import { getT } from "@/lib/i18n/server";
 import { getListingById } from "@/lib/marketplace-store";
@@ -21,8 +22,12 @@ export default async function AppHostThreadPage({ params }: Props) {
   if (user && (user.role === "host" || user.role === "admin")) {
     const msgs = groupThreads(user.id).get(`${listingId}:${guestSessionId}`) ?? [];
     const firstGuest = msgs.find((m) => m.sender === "guest");
+    const guestUserId = guestSessionId.startsWith("gu_") ? guestSessionId.slice(3) : "";
     initial = {
-      guestName: firstGuest?.guestName ?? "",
+      guestName:
+        (guestUserId && nameForViewer(guestUserId, shareABooking(user.id, guestUserId))) ||
+        firstGuest?.guestName ||
+        "",
       guestEmail: firstGuest?.guestEmail,
       listingTitle: getListingById(listingId)?.title ?? listingId,
       messages: msgs.map((m) => ({ id: m.id, sender: m.sender, body: m.body, createdAt: m.createdAt })),

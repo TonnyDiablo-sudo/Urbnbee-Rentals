@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { resolveListingDetail } from "@/lib/get-listing-detail";
 import { guestSessionIdForUser, listAllThreadsForGuest, listThreadMerged } from "@/lib/host-inbox-store";
 import { getT } from "@/lib/i18n/server";
-import { findUserById, getListingById } from "@/lib/marketplace-store";
+import { nameForViewer, shareABooking } from "@/lib/display-name";
+import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 import { AuthGate } from "../../_components/auth-gate";
 import type { ChatMessage } from "../../_components/chat-thread";
@@ -42,7 +43,8 @@ export default async function AppGuestThreadPage({ params }: Props) {
     const thread = user ? listAllThreadsForGuest(user.id).find((th) => th.listingId === listingId) : undefined;
     if (!thread || !user) notFound();
     const hostId = thread.messages[0]?.hostId;
-    const hostName = (hostId && findUserById(hostId)?.fullName) || t("Anfitrión");
+    const hostName =
+      (hostId && nameForViewer(hostId, Boolean(user && shareABooking(hostId, user.id)))) || t("Anfitrión");
     return (
       <GuestChat
         listingId={listingId}
@@ -55,7 +57,10 @@ export default async function AppGuestThreadPage({ params }: Props) {
   }
 
   const detail = resolveListingDetail(listingId);
-  const hostName = detail?.host.name ?? t("Anfitrión");
+  const hostName =
+    (user && nameForViewer(record.hostId, shareABooking(record.hostId, user.id))) ||
+    detail?.host.name ||
+    t("Anfitrión");
 
   if (!user) {
     return (

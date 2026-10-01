@@ -1,5 +1,6 @@
 import "server-only";
 import { applyHostEntitlement, HOST_SKU_BOOKING_ENGINE } from "@/lib/host-entitlements";
+import { lockLegalName } from "@/lib/display-name";
 import { setHostListingsVerified } from "@/lib/marketplace-store";
 import {
   getVerification,
@@ -53,6 +54,7 @@ export function grantHostVerification(
   source: "identity" | "admin"
 ): { identityVerified: true; listingsUpdated: number } {
   setHostVerification(userId, { verified: true, source });
+  lockLegalName(userId);
   return { identityVerified: true, listingsUpdated: syncHostBadgeToListings(userId) };
 }
 

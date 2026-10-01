@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isLegalNameLocked } from "@/lib/display-name";
 import { findUserById, getHostProfile, updateUser, upsertHostProfile } from "@/lib/marketplace-store";
 import type { HostProfileRecord } from "@/lib/marketplace-types";
 import { PROFILE_INTERESTS, PROFILE_LANGUAGES, PROFILE_MAX_CHIPS } from "@/lib/profile-options";
@@ -11,6 +12,9 @@ function payload(userId: string, email: string) {
   return {
     user: {
       fullName: u?.fullName ?? "",
+      alias: u?.alias ?? "",
+      showAlias: Boolean(u?.showAlias),
+      nameLocked: isLegalNameLocked(userId),
       email,
       phone: u?.phone ?? "",
       addressLine: u?.addressLine ?? "",
@@ -53,8 +57,23 @@ export async function PATCH(req: NextRequest) {
   if (fullName !== undefined && fullName.length < 2) {
     return NextResponse.json({ error: "Escribe tu nombre." }, { status: 400 });
   }
+  const current = findUserById(user.id);
+  if (
+    fullName !== undefined &&
+    current &&
+    fullName !== current.fullName &&
+    isLegalNameLocked(user.id)
+  ) {
+    return NextResponse.json(
+      { error: "Tu identidad ya está verificada. El nombre real ya no se puede cambiar." },
+      { status: 409 }
+    );
+  }
+  const alias = text(body.alias, 40);
   const account: Parameters<typeof updateUser>[1] = {};
   if (fullName !== undefined) account.fullName = fullName;
+  if (alias !== undefined) account.alias = alias;
+  if (typeof body.showAlias === "boolean") account.showAlias = body.showAlias;
   const phone = text(body.phone, 30);
   if (phone !== undefined) account.phone = phone.replace(/[^\d+\s-]/g, "");
   const addressLine = text(body.addressLine, 240);

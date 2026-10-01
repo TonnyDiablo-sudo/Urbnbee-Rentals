@@ -12,6 +12,12 @@ export type UserRecord = {
   email: string;
   passwordHash: string;
   fullName: string;
+  /** Nombre público en anuncios y chat. En reservas y contratos se usa fullName. */
+  alias?: string;
+  /** Si es true y hay alias, anuncios y chat muestran el alias. */
+  showAlias?: boolean;
+  /** La identidad ya se comprobó: fullName no se vuelve a editar, aunque cancele la membresía. */
+  legalNameLocked?: boolean;
   phone?: string;
   /** Dirección para el contrato (cuenta). */
   addressLine?: string;

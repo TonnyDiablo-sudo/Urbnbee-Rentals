@@ -238,6 +238,12 @@ export function markGuestIdentityVerified(userId: string): GuestVerificationReco
   return upsertVerification(userId, { kycStatus: "verified" });
 }
 
+export function deleteVerification(userId: string): void {
+  syncIfStale();
+  if (!rows.delete(userId)) return;
+  persist();
+}
+
 /**
  * Acredita un pase comprado. Idempotente por sesión de Checkout, porque el mismo
  * pago llega dos veces: por el regreso del huésped y por el webhook.

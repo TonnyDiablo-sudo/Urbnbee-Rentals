@@ -84,6 +84,16 @@ export function listThread(listingId: string, guestSessionId: string): HostInbox
 }
 
 /** Sesión estable para huésped registrado (misma conversación en todos los dispositivos si usa cuenta). */
+export function deleteMessagesForAccount(userId: string): void {
+  syncIfStale();
+  const sid = `gu_${userId}`;
+  const next = rows.filter((m) => m.hostId !== userId && m.guestSessionId !== sid);
+  if (next.length === rows.length) return;
+  rows.length = 0;
+  rows.push(...next);
+  persist();
+}
+
 export function guestSessionIdForUser(userId: string): string {
   return `gu_${userId}`;
 }

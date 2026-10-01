@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isLegalNameLocked } from "@/lib/display-name";
 import { findUserById, getHostProfile, upsertHostProfile } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 
@@ -17,6 +18,7 @@ export async function GET() {
       email: user.email,
       phone: u?.phone,
       addressLine: u?.addressLine,
+      nameLocked: isLegalNameLocked(user.id),
     },
   });
 }

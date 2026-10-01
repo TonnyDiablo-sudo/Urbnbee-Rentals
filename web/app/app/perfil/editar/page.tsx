@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { isLegalNameLocked } from "@/lib/display-name";
 import { getT } from "@/lib/i18n/server";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
@@ -19,6 +20,9 @@ export default async function AppEditProfilePage({ searchParams }: Props) {
   const p = getHostProfile(session.id);
   const initial: ProfileDraft = {
     fullName: u?.fullName ?? session.fullName ?? "",
+    alias: u?.alias ?? "",
+    showAlias: Boolean(u?.showAlias && u?.alias),
+    nameLocked: isLegalNameLocked(session.id),
     email: session.email,
     phone: u?.phone ?? "",
     addressLine: u?.addressLine ?? "",

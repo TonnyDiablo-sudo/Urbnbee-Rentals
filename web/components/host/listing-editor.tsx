@@ -43,6 +43,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
   const [profile, setProfile] = useState<HostProfileRecord | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
   const [fullName, setFullName] = useState("");
+  const [nameLocked, setNameLocked] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [geocodeLoading, setGeocodeLoading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -90,6 +91,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
       if (pr.profile) setProfile(pr.profile);
       if (pr.user?.email) setLoginEmail(pr.user.email);
       if (pr.user?.fullName) setFullName(pr.user.fullName);
+      setNameLocked(Boolean(pr.user?.nameLocked));
     } finally {
       setLoading(false);
     }
@@ -669,12 +671,21 @@ export function ListingEditor({ listingId }: { listingId: string }) {
           </p>
           <Field label="Nombre público">
             <input
-              className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+              className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e] disabled:bg-[#f7f7f7]"
               value={fullName}
+              disabled={nameLocked}
               onChange={(e) => setFullName(e.target.value)}
-              onBlur={(e) => saveAccount({ fullName: e.target.value })}
+              onBlur={(e) => {
+                if (!nameLocked) saveAccount({ fullName: e.target.value });
+              }}
             />
           </Field>
+          {nameLocked && (
+            <p className="text-xs text-[#717171]">
+              {t("Tu identidad ya está verificada. El nombre real queda fijo, aunque canceles la membresía.")}{" "}
+              {t("El alias se elige en Editar perfil.")}
+            </p>
+          )}
           <Field label="Bio / sobre ti">
             <textarea
               rows={4}

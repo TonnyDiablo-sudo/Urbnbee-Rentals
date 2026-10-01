@@ -1,6 +1,7 @@
 import "server-only";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import type { ListingDetail } from "@/lib/listing-detail-data";
+import { publicNameOf } from "@/lib/display-name";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import { listingReviewsForPublic } from "@/lib/stay-reviews";
 import { taxActive } from "@/lib/stay-tax";
@@ -31,7 +32,7 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
   const profile = getHostProfile(record.hostId);
   const photos = record.photos.length ? record.photos : [PLACEHOLDER];
 
-  const hostName = user?.fullName ?? "Anfitrión";
+  const hostName = (user && publicNameOf(user)) || "Anfitrión";
   const host: ListingDetail["host"] = {
     name: hostName,
     bio: profile?.bio?.trim() || `${hostName} es anfitrión en Cabibee.`,

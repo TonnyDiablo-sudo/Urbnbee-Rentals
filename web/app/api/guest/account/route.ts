@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateUser } from "@/lib/marketplace-store";
+import { isLegalNameLocked } from "@/lib/display-name";
+import { findUserById, updateUser } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 
 export async function PATCH(req: NextRequest) {
@@ -11,6 +12,14 @@ export async function PATCH(req: NextRequest) {
   const fullName = body.fullName !== undefined ? String(body.fullName).trim() : undefined;
   const phone = body.phone !== undefined ? String(body.phone).trim() : undefined;
   const addressLine = body.addressLine !== undefined ? String(body.addressLine).trim().slice(0, 240) : undefined;
+
+  const current = findUserById(user.id);
+  if (fullName !== undefined && current && fullName !== current.fullName && isLegalNameLocked(user.id)) {
+    return NextResponse.json(
+      { error: "Tu identidad ya está verificada. El nombre real ya no se puede cambiar." },
+      { status: 409 }
+    );
+  }
 
   const next = updateUser(user.id, {
     ...(fullName !== undefined ? { fullName } : {}),

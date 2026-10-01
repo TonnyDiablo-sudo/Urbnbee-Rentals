@@ -75,6 +75,12 @@ function syncIfStale() {
 
 reloadFromDisk();
 
+export function deleteHostPayoutMethods(hostId: string): void {
+  syncIfStale();
+  if (!rows.delete(hostId)) return;
+  persist();
+}
+
 export function getHostPayoutMethods(hostId: string): HostPayoutMethods | undefined {
   syncIfStale();
   return rows.get(hostId);
