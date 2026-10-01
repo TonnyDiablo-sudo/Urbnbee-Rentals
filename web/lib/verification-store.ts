@@ -319,12 +319,34 @@ export function hostAcceptsBookings(hostId: string): boolean {
   return false;
 }
 
+/** Margen para que llegue el webhook de renovación antes de dar el período por vencido. */
+const RENEWAL_GRACE_MS = 2 * 24 * 60 * 60 * 1000;
+
+function periodOver(end?: string): boolean {
+  if (!end) return false;
+  const t = Date.parse(end);
+  return Number.isFinite(t) && t + RENEWAL_GRACE_MS < Date.now();
+}
+
+/**
+ * Membresía pagada al corriente: sin la gracia de `past_due` y sin confiar en un
+ * «active» cuyo período ya terminó (p. ej. si se perdió el webhook de cancelación).
+ */
+export function isHostMembershipPaidUp(userId: string): boolean {
+  backfillEngineFromLegacyMembership(userId);
+  const engine = getHostEntitlement(userId, HOST_SKU_BOOKING_ENGINE);
+  if (engine) return engine.status === "active" && !periodOver(engine.currentPeriodEnd);
+  const v = getVerification(userId);
+  const s = v?.hostSubscriptionStatus;
+  return (s === "active" || s === "trialing") && !periodOver(v?.hostCurrentPeriodEnd);
+}
+
 /**
  * El listón «Miembro verificado» pide las dos cosas: identidad comprobada y
- * membresía de anfitrión vigente. Una sola no basta: si no, el sello se daría gratis.
+ * membresía de anfitrión pagada. Sin membresía no hay listón, pase lo que pase.
  */
 export function hostShowsVerifiedRibbon(userId: string): boolean {
-  return isHostIdentityVerified(userId) && isHostMembershipActive(userId);
+  return isHostIdentityVerified(userId) && isHostMembershipPaidUp(userId);
 }
 
 /** @deprecated Usa hostShowsVerifiedRibbon o isHostIdentityVerified. */
