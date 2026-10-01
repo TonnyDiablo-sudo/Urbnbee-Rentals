@@ -89,9 +89,19 @@ export const appHostTools: Record<string, string> = {
   "Se permiten fiestas y eventos": "Parties and events allowed",
   "Llegada desde": "Check-in after",
   "Salida antes de": "Checkout before",
-  "El huésped paga y tú aceptas o rechazas. Si rechazas, se le devuelve el dinero.":
-    "The guest pays and you accept or decline. If you decline, they get a refund.",
-  "Si las fechas están libres, la reserva queda confirmada al pagar.": "If the dates are free, the booking is confirmed on payment.",
+  "Cuando aceptas, el huésped recibe el contrato, cómo pagarte y, si lo pediste, la liga del historial crediticio.":
+    "When you accept, the guest gets the contract, how to pay you, and the credit-check link if you asked for one.",
+  "Si paga con Stripe y el pago se confirma, la reserva queda aceptada sola. Tú no apruebas nada.":
+    "If they pay with Stripe and the payment is confirmed, the booking is accepted on its own. You don't approve anything.",
+  "Reservación inmediata · pide historial": "Instant Book · credit check",
+  "Tú apruebas · pide historial": "You approve · credit check",
+  "Pedir historial crediticio": "Require a credit check",
+  "Para seguir con la reserva hace falta una consulta de crédito. El huésped recibe la liga para autorizar y, si le toca, pagar. Igual si la reserva es inmediata.":
+    "A credit check is required to continue. The guest gets a link to authorize it and pay if it's their turn. The same applies to Instant Book.",
+  "Lo paga el huésped": "Guest pays",
+  "Lo pagas tú": "You pay",
+  "Ver la imagen del pago": "See the payment image",
+  Volver: "Back",
   "Ej.: Caja de llaves junto a la puerta, código 1234. O: te recibo en persona.":
     "E.g.: Lockbox by the door, code 1234. Or: I’ll meet you in person.",
   "Cómo llegar, dónde estacionarse, qué timbre tocar…": "How to get there, where to park, which buzzer to ring…",

@@ -75,10 +75,14 @@ export type HostListingRecord = {
   verified: boolean;
   published: boolean;
   /**
-   * instant: tras pagar, la reserva queda confirmada sin paso del anfitrión.
-   * approval: tras pagar, queda pendiente hasta que el anfitrión acepte o rechace.
+   * instant: si Stripe confirma el pago, la reserva queda aceptada sin paso del anfitrión.
+   * approval: el anfitrión acepta a mano y entonces el huésped recibe contrato, pago y, si aplica, el crédito.
    */
   bookingApprovalMode: "instant" | "approval";
+  /** Si hace falta una consulta de crédito para seguir con la reserva. */
+  requireCreditCheck?: boolean;
+  /** Quién paga esa consulta. Por defecto el huésped. */
+  creditCheckPayer?: "host" | "guest";
   /**
    * false: este anuncio no cobra los impuestos del anfitrión. Con reserva por
    * aprobación es solo el valor inicial: el anfitrión decide al aceptar.

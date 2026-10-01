@@ -851,7 +851,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 <span>
                   <span className="font-medium text-[#484848]">{t("Validar cada solicitud")}</span>
                   <span className="mt-1 block text-xs text-[#888]">
-                    {t("Tras el pago la reserva queda pendiente hasta que aceptes o rechaces.")}
+                    {t("Cuando aceptas, el huésped recibe el contrato, cómo pagarte y, si lo pediste, la liga del historial crediticio.")}
                   </span>
                 </span>
               </label>
@@ -865,10 +865,47 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 <span>
                   <span className="font-medium text-[#484848]">{t("Aceptación automática")}</span>
                   <span className="mt-1 block text-xs text-[#888]">
-                    {t("Tras el pago la reserva queda confirmada sin paso manual (salvo solapes o bloqueos).")}
+                    {t("Si paga con Stripe y el pago se confirma, la reserva queda aceptada sola. Tú no apruebas nada.")}
                   </span>
                 </span>
               </label>
+            </div>
+            <div className="mt-4 rounded-lg border border-[#ddd] bg-white p-3">
+              <label className="flex cursor-pointer items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={listing.requireCreditCheck === true}
+                  onChange={(e) => saveListing({ requireCreditCheck: e.target.checked })}
+                />
+                <span>
+                  <span className="font-medium text-[#484848]">{t("Pedir historial crediticio")}</span>
+                  <span className="mt-1 block text-xs text-[#888]">
+                    {t("Para seguir con la reserva hace falta una consulta de crédito. El huésped recibe la liga para autorizar y, si le toca, pagar. Igual si la reserva es inmediata.")}
+                  </span>
+                </span>
+              </label>
+              {listing.requireCreditCheck && (
+                <div className="mt-3 flex gap-3 text-sm">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="creditPayer"
+                      checked={(listing.creditCheckPayer ?? "guest") === "guest"}
+                      onChange={() => saveListing({ creditCheckPayer: "guest" })}
+                    />
+                    {t("Lo paga el huésped")}
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="creditPayer"
+                      checked={listing.creditCheckPayer === "host"}
+                      onChange={() => saveListing({ creditCheckPayer: "host" })}
+                    />
+                    {t("Lo pagas tú")}
+                  </label>
+                </div>
+              )}
             </div>
           </div>
         </section>

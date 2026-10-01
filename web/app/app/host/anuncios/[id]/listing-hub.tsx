@@ -294,7 +294,15 @@ export function ListingHub({ listingId }: { listingId: string }) {
           />
           <Row
             label={t("Cómo se reserva")}
-            value={listing.bookingApprovalMode === "instant" ? t("Reservación inmediata") : t("Tú apruebas cada solicitud")}
+            value={
+              listing.bookingApprovalMode === "instant"
+                ? listing.requireCreditCheck
+                  ? t("Reservación inmediata · pide historial")
+                  : t("Reservación inmediata")
+                : listing.requireCreditCheck
+                  ? t("Tú apruebas · pide historial")
+                  : t("Tú apruebas cada solicitud")
+            }
             onClick={() => setPanel("booking")}
           />
           <Row
@@ -474,6 +482,8 @@ function PanelBody({
     addressLine: listing.addressLine,
     rules: { ...listing.rules },
     bookingApprovalMode: listing.bookingApprovalMode,
+    requireCreditCheck: listing.requireCreditCheck === true,
+    creditCheckPayer: listing.creditCheckPayer === "host" ? "host" : "guest",
     chargeTax: listing.chargeTax !== false,
     arrival: { ...(listing.arrivalGuide ?? {}) } as ArrivalGuide,
   }));
@@ -508,7 +518,11 @@ function PanelBody({
       case "rules":
         return { rules: draft.rules, arrivalGuide: draft.arrival };
       case "booking":
-        return { bookingApprovalMode: draft.bookingApprovalMode };
+        return {
+          bookingApprovalMode: draft.bookingApprovalMode,
+          requireCreditCheck: draft.requireCreditCheck,
+          creditCheckPayer: draft.creditCheckPayer,
+        };
       case "taxes":
         return { chargeTax: draft.chargeTax };
       default:
@@ -686,8 +700,8 @@ function PanelBody({
             <div className="space-y-2">
               {(
                 [
-                  ["approval", "Tú apruebas cada solicitud", "El huésped paga y tú aceptas o rechazas. Si rechazas, se le devuelve el dinero."],
-                  ["instant", "Reservación inmediata", "Si las fechas están libres, la reserva queda confirmada al pagar."],
+                  ["approval", "Tú apruebas cada solicitud", "Cuando aceptas, el huésped recibe el contrato, cómo pagarte y, si lo pediste, la liga del historial crediticio."],
+                  ["instant", "Reservación inmediata", "Si paga con Stripe y el pago se confirma, la reserva queda aceptada sola. Tú no apruebas nada."],
                 ] as const
               ).map(([v, label, hint]) => (
                 <button
@@ -700,6 +714,40 @@ function PanelBody({
                   <span className="mt-0.5 block text-sm text-[#717171]">{t(hint)}</span>
                 </button>
               ))}
+              <div className="mt-4 rounded-2xl border border-[#ebebeb] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[15px] font-semibold text-[#222]">{t("Pedir historial crediticio")}</span>
+                  <button
+                    type="button"
+                    onClick={() => set("requireCreditCheck", !draft.requireCreditCheck)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold ${draft.requireCreditCheck ? "bg-[#222] text-white" : "bg-[#f2f2f2] text-[#222]"}`}
+                  >
+                    {draft.requireCreditCheck ? t("Sí") : t("No")}
+                  </button>
+                </div>
+                <p className="mt-2 text-sm text-[#717171]">
+                  {t("Para seguir con la reserva hace falta una consulta de crédito. El huésped recibe la liga para autorizar y, si le toca, pagar. Igual si la reserva es inmediata.")}
+                </p>
+                {draft.requireCreditCheck && (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        ["guest", "Lo paga el huésped"],
+                        ["host", "Lo pagas tú"],
+                      ] as const
+                    ).map(([payer, label]) => (
+                      <button
+                        key={payer}
+                        type="button"
+                        onClick={() => set("creditCheckPayer", payer)}
+                        className={`rounded-xl border px-3 py-2.5 text-sm font-semibold ${draft.creditCheckPayer === payer ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#222]"}`}
+                      >
+                        {t(label)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

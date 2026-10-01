@@ -101,6 +101,12 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   if (body.bookingApprovalMode === "instant" || body.bookingApprovalMode === "approval") {
     patch.bookingApprovalMode = body.bookingApprovalMode;
   }
+  if (typeof body.requireCreditCheck === "boolean") {
+    patch.requireCreditCheck = body.requireCreditCheck;
+  }
+  if (body.creditCheckPayer === "host" || body.creditCheckPayer === "guest") {
+    patch.creditCheckPayer = body.creditCheckPayer;
+  }
   if (typeof body.chargeTax === "boolean") {
     patch.chargeTax = body.chargeTax;
   }

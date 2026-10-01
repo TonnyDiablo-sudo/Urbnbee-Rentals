@@ -2,7 +2,7 @@ import "server-only";
 import type Stripe from "stripe";
 import type { BookingRecord } from "@/lib/booking-types";
 import { settleAdjustmentCheckoutSession } from "@/lib/booking-adjustments";
-import { attachContractIfInstant } from "@/lib/booking-contract";
+import { onBookingPaid } from "@/lib/booking-acceptance";
 import { markBookingPaid, paymentStatusOf } from "@/lib/booking-machine";
 import { getBookingById } from "@/lib/bookings-store";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
@@ -73,7 +73,7 @@ export function settleBookingCheckoutSession(
     return { ok: false, status: 409, error: "No se pudo actualizar la reserva." };
   }
 
-  const settled = attachContractIfInstant(next);
+  const settled = onBookingPaid(next);
   notifyHostBookingPaid(settled);
   return { ok: true, kind: "completed", booking: settled };
 }

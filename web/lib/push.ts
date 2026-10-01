@@ -207,7 +207,7 @@ export function notifyGuestBookingDecision(booking: BookingRecord, accepted: boo
       ? "{listing}: el anfitrión no pudo recibirte en esas fechas."
       : balanceDueMxn > 0
         ? "{listing}: el anfitrión ajustó la reserva (fechas o impuestos). Paga la diferencia de ${amount} y firma el contrato."
-        : "{listing}: completa tus datos para cerrar la reserva.",
+        : "{listing}: ya está el contrato. Si falta pagar o autorizar el historial crediticio, la liga está en tu viaje.",
     vars: { listing, amount: balanceDueMxn.toLocaleString("es-MX") },
     url: "/viajes",
     tag: `b:${booking.id}`,

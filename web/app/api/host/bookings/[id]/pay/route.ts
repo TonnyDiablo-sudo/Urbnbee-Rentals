@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ManualPayMethod, PayConfirmation } from "@/lib/booking-types";
 import { getHostPayoutMethods, instructionFor } from "@/lib/host-payout-methods";
+import { onBookingPaid } from "@/lib/booking-acceptance";
 import { markBookingPaid, paymentStatusOf } from "@/lib/booking-machine";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { notifyGuestPayInstructions, notifyGuestPaymentConfirmed } from "@/lib/push";
@@ -70,8 +71,9 @@ export async function POST(
       by: "host",
       method: booking.payInstruction.method,
     };
-    const next = markBookingPaid(booking.id, { actor: "host", payConfirmation });
-    if (!next) return NextResponse.json({ error: "No se pudo confirmar el pago." }, { status: 409 });
+    const paidBooking = markBookingPaid(booking.id, { actor: "host", payConfirmation });
+    if (!paidBooking) return NextResponse.json({ error: "No se pudo confirmar el pago." }, { status: 409 });
+    const next = onBookingPaid(paidBooking);
     notifyGuestPaymentConfirmed(next);
     return NextResponse.json({
       payInstruction: next.payInstruction ?? null,

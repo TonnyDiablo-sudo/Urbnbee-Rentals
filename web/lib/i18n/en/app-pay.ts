@@ -22,6 +22,8 @@ export const appPay: Record<string, string> = {
   "Pendiente de aprobar": "Pending approval",
   "Subió el comprobante": "Uploaded the receipt",
   "Revisar comprobante": "Review receipt",
+  "Ver la imagen del pago": "See the payment image",
+  Volver: "Back",
   "El huésped ya subió el comprobante. Revísalo y aprueba el pago.":
     "The guest already uploaded the receipt. Review it and approve the payment.",
   "El huésped todavía no sube el comprobante de pago.": "The guest hasn't uploaded the payment receipt yet.",

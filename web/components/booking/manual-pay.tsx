@@ -30,15 +30,66 @@ function when(iso: string, lang: string) {
 
 function PayProofView({ bookingId, proof }: { bookingId: string; proof: PayProof }) {
   const t = useT();
+  const [open, setOpen] = useState(false);
   const href = `/api/bookings/${encodeURIComponent(bookingId)}/pay-proof?v=${encodeURIComponent(proof.uploadedAt)}`;
-  if (proof.mime === "application/pdf") {
-    return (
-      <a href={href} target="_blank" rel="noopener" className="mt-2 inline-block text-sm font-semibold underline">
-        {t("Ver comprobante")}
-      </a>
-    );
-  }
-  return <img src={href} alt={t("Comprobante de pago")} className="mt-2 max-h-48 rounded-lg border border-[#ddd] bg-white" />;
+  const pdf = proof.mime === "application/pdf";
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-3 w-full overflow-hidden rounded-2xl border border-[#222] bg-white text-left"
+      >
+        {pdf ? null : (
+          <img src={href} alt="" className="h-44 w-full bg-[#f6f4ef] object-cover object-top" />
+        )}
+        <span className="flex flex-col items-center bg-[#dcb81e] px-4 py-4 text-black">
+          <span className="text-base font-semibold">{t("Revisar comprobante")}</span>
+          <span className="mt-0.5 text-sm font-medium">{t("Ver la imagen del pago")}</span>
+        </span>
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-[80] flex flex-col bg-[#161616]">
+          <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-full bg-white px-5 py-2.5 text-base font-semibold text-black"
+            >
+              {t("Volver")}
+            </button>
+            <p className="text-sm font-medium text-white">{t("Comprobante de pago")}</p>
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto p-4">
+            {pdf ? (
+              <iframe title={t("Comprobante de pago")} src={href} className="h-[80vh] w-full rounded-2xl bg-white" />
+            ) : (
+              <img
+                src={href}
+                alt={t("Comprobante de pago")}
+                className="mx-auto w-full max-w-md rounded-2xl bg-white shadow-2xl"
+              />
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 export function GuestPayNote({

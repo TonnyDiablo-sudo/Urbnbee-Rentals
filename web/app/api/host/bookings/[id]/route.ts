@@ -9,6 +9,7 @@ import {
   syncContractWithBooking,
 } from "@/lib/booking-contract";
 import { HOST_ENGINE_OFF_ERROR, hostAcceptsBookings, restoreBookingPass } from "@/lib/verification-store";
+import { deliverAfterHostAccept } from "@/lib/booking-acceptance";
 import { acceptBookingByHost, isPendingHostApproval, rejectBookingByHost } from "@/lib/booking-machine";
 import { mysqlApplyBookingOccupancy } from "@/lib/booking-nights";
 import {
@@ -370,11 +371,12 @@ export async function PATCH(
         signName,
       }) ?? money.booking ?? next
     : next;
-  if (withContract) notifyGuestBookingDecision(withContract, true, money.dueMxn);
+  const delivered = withContract ? deliverAfterHostAccept(withContract) : withContract;
+  if (delivered) notifyGuestBookingDecision(delivered, true, money.dueMxn);
 
   return NextResponse.json({
     ok: true,
-    booking: withContract,
+    booking: delivered,
     balanceDueMxn: money.dueMxn,
     refundedMxn: money.refundedMxn,
   });

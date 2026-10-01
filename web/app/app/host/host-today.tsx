@@ -154,9 +154,10 @@ export function HostToday() {
                   <button
                     type="button"
                     onClick={() => setOpened(b)}
-                    className="mt-3 w-full rounded-xl bg-[#dcb81e] py-2.5 text-sm font-semibold text-black"
+                    className="mt-3 flex w-full flex-col items-center rounded-2xl bg-[#dcb81e] px-4 py-4 text-black"
                   >
-                    {t("Revisar comprobante")}
+                    <span className="text-base font-semibold">{t("Revisar comprobante")}</span>
+                    <span className="mt-0.5 text-sm font-medium">{t("Ver la imagen del pago")}</span>
                   </button>
                 ) : (
                 <div className="mt-3 grid grid-cols-2 gap-2">

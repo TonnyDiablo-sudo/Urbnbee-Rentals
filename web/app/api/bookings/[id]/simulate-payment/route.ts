@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { attachContractIfInstant } from "@/lib/booking-contract";
+import { onBookingPaid } from "@/lib/booking-acceptance";
 import { markBookingPaid } from "@/lib/booking-machine";
 import { getBookingById } from "@/lib/bookings-store";
 import { getSessionUser } from "@/lib/session";
@@ -42,7 +42,7 @@ export async function POST(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "No se pudo completar el pago." }, { status: 409 });
   }
 
-  const settled = attachContractIfInstant(next);
+  const settled = onBookingPaid(next);
   notifyHostBookingPaid(settled);
   return NextResponse.json({ ok: true, booking: settled });
 }

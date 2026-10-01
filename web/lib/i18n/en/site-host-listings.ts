@@ -204,11 +204,11 @@ export const siteHostListings: Record<string, string> = {
   "El huésped debe tener cuenta e iniciar sesión; siempre paga el total estimado antes de que la reserva avance.":
     "Guests must have an account and be logged in; they always pay the estimated total before the booking moves forward.",
   "Validar cada solicitud": "Review each request",
-  "Tras el pago la reserva queda pendiente hasta que aceptes o rechaces.":
-    "After payment, the booking stays pending until you accept or decline it.",
+  "Cuando aceptas, el huésped recibe el contrato, cómo pagarte y, si lo pediste, la liga del historial crediticio.":
+    "When you accept, the guest gets the contract, how to pay you, and the credit-check link if you asked for one.",
   "Aceptación automática": "Instant Book",
-  "Tras el pago la reserva queda confirmada sin paso manual (salvo solapes o bloqueos).":
-    "After payment, the booking is confirmed with no manual step (unless there are overlaps or blocked dates).",
+  "Si paga con Stripe y el pago se confirma, la reserva queda aceptada sola. Tú no apruebas nada.":
+    "If they pay with Stripe and the payment is confirmed, the booking is accepted on its own. You don't approve anything.",
 
   // Editor: comodidades y reglas
   Comodidades: "Amenities",
