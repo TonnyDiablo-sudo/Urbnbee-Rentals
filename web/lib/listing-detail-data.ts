@@ -111,7 +111,7 @@ A un viaje en autobús del metro. Wifi, cocina para comer, televisión por cable
     bedrooms: 1,
     bathrooms: 1,
     size: "250 m²",
-    verified: false,
+    verified: true,
     propertyId: 149,
     blockedDates: [],
     photos: [

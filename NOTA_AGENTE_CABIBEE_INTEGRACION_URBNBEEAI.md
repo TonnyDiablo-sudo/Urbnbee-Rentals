@@ -118,8 +118,8 @@ Los SKU de anfitrión se cobran con el catálogo local (`anfitrion_6` / `anfitri
 **C6 (2026-09-29):** Cabibee guarda los derechos en `urb_host_sku_entitlements` + `host-entitlements.json` (`lib/host-entitlements.ts`).
 
 - Filas por `(host_id, sku)`: `status` (`active`, `past_due`, `cancelled`), `source` (`cabibee_direct`, `urbnbeeai_seller`, `derived`), `stripe_subscription_id`, `current_period_end`.
-- Membresía de anfitrión (Stripe o admin) escribe `cabibee_booking_engine` y deriva `cabibee_host_verification` (no se cobra aparte). `past_due` sigue abriendo el motor.
-- Sin motor: el listing sigue publicado (chat / contacto); no muestra «Reserva con cuenta» ni acepta `POST /api/bookings/request`. Mientras el catálogo no tenga plan de anfitrión con precio, el candado queda abierto (el founder aún no cobra el motor).
+- Membresía de anfitrión (Stripe o admin) escribe `cabibee_booking_engine` y deriva `cabibee_host_verification` (no se cobra aparte). El motor y el listón «Miembro verificado» piden estado `active` y período sin vencer. `past_due`, cancelada o período vencido los apagan.
+- Sin motor: el anuncio sigue publicado (chat / contacto) y las reservas ya hechas siguen visibles. No entran solicitudes nuevas (`POST /api/bookings/request` responde `hostNotBookable`) y el anfitrión no puede aceptar, firmar ni cobrar depósito. Rechazar (para devolver el pago) y soltar un depósito sí se puede.
 - Checkout de anfitrión lleva `metadata.sku=cabibee_booking_engine`. `POST /v1/hosts/{hostId}/entitlements` = C9. `host.entitlements_changed` = C10. No los empiezo aquí.
 - `urb_host_entitlements` (plan_tier de 001) no se usa.
 

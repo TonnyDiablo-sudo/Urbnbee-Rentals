@@ -8,7 +8,7 @@ import {
   previewContractLines,
   syncContractWithBooking,
 } from "@/lib/booking-contract";
-import { restoreBookingPass } from "@/lib/verification-store";
+import { HOST_ENGINE_OFF_ERROR, hostAcceptsBookings, restoreBookingPass } from "@/lib/verification-store";
 import { acceptBookingByHost, isPendingHostApproval, rejectBookingByHost } from "@/lib/booking-machine";
 import { mysqlApplyBookingOccupancy } from "@/lib/booking-nights";
 import {
@@ -68,6 +68,9 @@ export async function GET(
   const pListing = q.get("listingId")?.trim() || "";
   const pTax = q.get("tax")?.trim() || "";
   if (pIn || pOut || pListing || pTax) {
+    if (!hostAcceptsBookings(user.id)) {
+      return NextResponse.json({ error: HOST_ENGINE_OFF_ERROR }, { status: 403 });
+    }
     const effIn = pIn || (booking.hostAdjustedCheckIn ?? booking.checkIn);
     const effOut = pOut || (booking.hostAdjustedCheckOut ?? booking.checkOut);
     const listing = getListingById(pListing || (booking.hostAdjustedListingId ?? booking.listingId));
@@ -203,6 +206,12 @@ export async function PATCH(
       notifyGuestBookingDecision(next, false);
     }
     return NextResponse.json({ ok: true, booking: next, refund: refund.kind });
+  }
+
+  if (action === "sign" || action === "accept") {
+    if (!hostAcceptsBookings(user.id)) {
+      return NextResponse.json({ error: HOST_ENGINE_OFF_ERROR }, { status: 403 });
+    }
   }
 
   if (action === "sign") {

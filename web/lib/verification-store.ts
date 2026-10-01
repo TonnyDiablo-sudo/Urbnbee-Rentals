@@ -306,17 +306,17 @@ export function isHostMembershipActive(userId: string): boolean {
   return s === "active" || s === "trialing" || s === "past_due";
 }
 
+/** Lo que ve el anfitrión cuando intenta aceptar, firmar o cobrar sin membresía pagada. */
+export const HOST_ENGINE_OFF_ERROR =
+  "Sin la membresía de anfitrión pagada no puedes procesar reservas. Las que ya tienes siguen en tu cuenta.";
+
 /**
- * El motor lo enciende `cabibee_booking_engine`. Mientras el catálogo no venda
- * un plan de anfitrión, el candado queda abierto: si se cerrara, nadie podría
- * reservar porque el founder aún no cobra el motor.
+ * El motor de reservas pide la membresía pagada y al corriente.
+ * Sin ella el anuncio sigue publicado y las reservas ya hechas siguen visibles,
+ * pero no entran solicitudes nuevas ni se pueden aceptar, firmar ni cobrar.
  */
 export function hostAcceptsBookings(hostId: string): boolean {
-  backfillEngineFromLegacyMembership(hostId);
-  const engine = getHostEntitlement(hostId, HOST_SKU_BOOKING_ENGINE);
-  if (engine) return hostEntitlementAllowsAccess(engine.status);
-  if (!membershipCatalogHasPricedPlan("host")) return true;
-  return false;
+  return isHostMembershipPaidUp(hostId);
 }
 
 /** Margen para que llegue el webhook de renovación antes de dar el período por vencido. */

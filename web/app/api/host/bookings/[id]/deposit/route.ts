@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { hostClaimDeposit, hostCloseDeposit } from "@/lib/booking-deposit";
 import { getBookingById } from "@/lib/bookings-store";
 import { getSessionUser } from "@/lib/session";
+import { HOST_ENGINE_OFF_ERROR, hostAcceptsBookings } from "@/lib/verification-store";
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
@@ -18,6 +19,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const action = String(body.action ?? "");
 
   if (action === "claim") {
+    if (!hostAcceptsBookings(user.id)) {
+      return NextResponse.json({ error: HOST_ENGINE_OFF_ERROR }, { status: 403 });
+    }
     const result = hostClaimDeposit(id, { note: String(body.note ?? "") });
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: result.status ?? 409 });

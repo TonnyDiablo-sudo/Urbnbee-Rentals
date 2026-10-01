@@ -5,7 +5,7 @@ import {
   getVerification,
   hostShowsVerifiedRibbon,
   isHostIdentityVerified,
-  isHostMembershipActive,
+  isHostMembershipPaidUp,
   setHostMembershipFields,
   setHostVerification,
   stripeIdentityEnabled,
@@ -37,7 +37,7 @@ export function hostVerificationSummary(userId: string): HostVerificationSummary
   const v = getVerification(userId);
   return {
     identityVerified: isHostIdentityVerified(userId),
-    membershipActive: isHostMembershipActive(userId),
+    membershipActive: isHostMembershipPaidUp(userId),
     ribbon: hostShowsVerifiedRibbon(userId),
     verifiedAt: v?.hostVerifiedAt,
     source: v?.hostVerificationSource,

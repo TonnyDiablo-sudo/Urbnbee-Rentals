@@ -12,6 +12,8 @@ export const appHost: Record<string, string> = {
   "Reservas en línea activas": "Online bookings on",
   "Activa Reservas en línea": "Turn on online bookings",
   "Tus anuncios muestran «Miembro verificado».": "Your listings show “Verified member”.",
+  "Sin la membresía de anfitrión pagada no puedes procesar reservas. Las que ya tienes siguen en tu cuenta.":
+    "Without a paid host membership you can’t process bookings. The ones you already have stay in your account.",
   "Los huéspedes ya pueden reservar y pagar en tus anuncios.": "Guests can now book and pay on your listings.",
   "Hoy los huéspedes sólo te pueden escribir. Con la membresía reservan y pagan en Cabibee.":
     "Right now guests can only message you. With a membership they book and pay on Cabibee.",
