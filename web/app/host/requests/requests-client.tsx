@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { HostManualPay } from "@/components/booking/manual-pay";
 import { BookingDepositPanel } from "@/components/booking-deposit-panel";
-import type { PayConfirmation, PayInstruction } from "@/lib/booking-types";
+import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
 import { BookingReviewPanel } from "@/components/booking-review-panel";
 import { BookingScreeningPanel } from "@/components/booking-screening-panel";
 import { useLang, useT } from "@/components/i18n-provider";
@@ -25,6 +25,7 @@ type BookingRow = {
   stripeCheckoutSessionId?: string;
   payInstruction?: PayInstruction | null;
   payConfirmation?: PayConfirmation | null;
+  payProof?: PayProof | null;
   refundedAt?: string;
   refundAmountMxn?: number;
   checkIn: string;
@@ -170,6 +171,7 @@ export function HostRequestsClient() {
                     stripePaid={Boolean(b.stripeCheckoutSessionId)}
                     payInstruction={b.payInstruction}
                     payConfirmation={b.payConfirmation}
+                    payProof={b.payProof}
                     onChanged={() => void load()}
                   />
                   <p className="mt-2 text-xs text-[#aaa]">

@@ -61,6 +61,7 @@ export type AdminBookingRow = {
   contractAccepted: boolean;
   depositMxn: number;
   depositStatus?: string;
+  hasPayProof: boolean;
 };
 
 export type AdminOverview = {
@@ -233,6 +234,7 @@ export function getAdminBookings(): AdminBookingRow[] {
       contractAccepted: Boolean(b.contract?.hostAcceptedAt && b.contract?.guestAcceptedAt),
       depositMxn: b.deposit?.amountMxn ?? b.contract?.snapshot.depositMxn ?? 0,
       depositStatus: b.deposit?.status,
+      hasPayProof: Boolean(b.payProof),
     };
   });
 }

@@ -46,6 +46,7 @@ export async function POST(
     notifyGuestPayInstructions(next);
     return NextResponse.json({
       payInstruction: next.payInstruction,
+      payProof: next.payProof ?? null,
       payConfirmation: next.payConfirmation ?? null,
       paidAt: next.paidAt ?? null,
       status: next.status,
@@ -56,6 +57,9 @@ export async function POST(
     if (paid) return NextResponse.json({ error: "Esta reserva ya está pagada." }, { status: 409 });
     if (!booking.payInstruction) {
       return NextResponse.json({ error: "Primero envía los datos para que el huésped pague." }, { status: 409 });
+    }
+    if (!booking.payProof) {
+      return NextResponse.json({ error: "El huésped todavía no sube el comprobante de pago." }, { status: 409 });
     }
     if (booking.status !== "AWAITING_PAYMENT") {
       return NextResponse.json({ error: "La reserva ya no está esperando pago." }, { status: 409 });
@@ -71,6 +75,7 @@ export async function POST(
     notifyGuestPaymentConfirmed(next);
     return NextResponse.json({
       payInstruction: next.payInstruction ?? null,
+      payProof: next.payProof ?? null,
       payConfirmation: next.payConfirmation ?? null,
       paidAt: next.paidAt ?? null,
       status: next.status,

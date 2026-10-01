@@ -159,6 +159,20 @@ export function notifyGuestPayInstructions(booking: BookingRecord): void {
   });
 }
 
+export function notifyHostPayProof(booking: BookingRecord): void {
+  notifyUser(booking.hostId, {
+    kind: "request",
+    title: "Comprobante de pago",
+    body: "{name} subió el comprobante de {listing}. Revísalo y confirma el pago.",
+    vars: {
+      name: booking.guestName,
+      listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId),
+    },
+    url: "/host",
+    tag: `proof:${booking.id}`,
+  });
+}
+
 export function notifyGuestPaymentConfirmed(booking: BookingRecord): void {
   if (!booking.guestUserId) return;
   notifyUser(booking.guestUserId, {

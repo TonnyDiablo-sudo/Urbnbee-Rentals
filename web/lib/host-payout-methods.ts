@@ -250,7 +250,10 @@ export function paymentNoteLines(booking: BookingRecord): string[] {
     return [...head, `Ya se pagó el ${fmtWhen(booking.paidAt)}`];
   }
   if (booking.payInstruction) {
-    return [...head, ...booking.payInstruction.lines, "El anfitrión confirmará cuando reciba el pago."];
+    const extra = booking.payProof
+      ? "El huésped ya envió su comprobante. El anfitrión lo confirma."
+      : "El huésped debe subir su comprobante de pago en la reserva. El anfitrión lo revisa y confirma.";
+    return [...head, ...booking.payInstruction.lines, extra];
   }
   return [];
 }

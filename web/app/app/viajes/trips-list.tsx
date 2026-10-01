@@ -7,7 +7,7 @@ import { GuestPayNote } from "@/components/booking/manual-pay";
 import { PayDifference } from "@/components/booking/pay-difference";
 import { useLang, useT } from "@/components/i18n-provider";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
-import type { PayConfirmation, PayInstruction } from "@/lib/booking-types";
+import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
 import { GUEST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../_components/booking-status";
 import { Sheet } from "../_components/sheet";
 import { WebLink } from "../_components/site-origin";
@@ -40,6 +40,7 @@ type Trip = {
   stripeCheckoutSessionId?: string;
   payInstruction?: PayInstruction | null;
   payConfirmation?: PayConfirmation | null;
+  payProof?: PayProof | null;
   screening?: {
     status: string;
     payer: "host" | "guest";
@@ -184,10 +185,13 @@ export function TripsList() {
                 )}
                 {(trip.payInstruction || trip.payConfirmation || trip.paidAt) && (
                   <GuestPayNote
+                    bookingId={trip.id}
                     payInstruction={trip.payInstruction}
                     payConfirmation={trip.payConfirmation}
+                    payProof={trip.payProof}
                     paidAt={trip.paidAt}
                     stripePaid={Boolean(trip.stripeCheckoutSessionId) || trip.payConfirmation?.by === "stripe"}
+                    onUploaded={() => void load()}
                   />
                 )}
                 {(trip.balanceDueMxn ?? 0) > 0 && (

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { GuestPayNote } from "@/components/booking/manual-pay";
 import { BookingDepositPanel } from "@/components/booking-deposit-panel";
+import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
 import { BookingReviewPanel } from "@/components/booking-review-panel";
 import { BookingScreeningPanel } from "@/components/booking-screening-panel";
 import { useLang, useT } from "@/components/i18n-provider";
@@ -20,6 +22,10 @@ type Row = {
   nights: number;
   estimatedTotalMxn: number;
   paidAt?: string;
+  stripeCheckoutSessionId?: string;
+  payInstruction?: PayInstruction | null;
+  payConfirmation?: PayConfirmation | null;
+  payProof?: PayProof | null;
   refundedAt?: string;
   refundAmountMxn?: number;
   listingTitle: string;
@@ -160,6 +166,17 @@ export default function GuestBookingsPage() {
                 {t("Ver reserva")}
               </Link>
             </div>
+            {(b.payInstruction || b.payConfirmation || b.payProof) && (
+              <GuestPayNote
+                bookingId={b.id}
+                payInstruction={b.payInstruction}
+                payConfirmation={b.payConfirmation}
+                payProof={b.payProof}
+                paidAt={b.paidAt}
+                stripePaid={Boolean(b.stripeCheckoutSessionId) || b.payConfirmation?.by === "stripe"}
+                onUploaded={() => void load()}
+              />
+            )}
             <BookingScreeningPanel
               bookingId={b.id}
               role="guest"

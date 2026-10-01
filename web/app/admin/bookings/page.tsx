@@ -213,6 +213,16 @@ export default function AdminBookingsPage() {
                       >
                         {STATUS_LABELS[b.status] ?? b.status}
                       </span>
+                      {b.hasPayProof && (
+                        <a
+                          href={`/api/bookings/${encodeURIComponent(b.id)}/pay-proof`}
+                          target="_blank"
+                          rel="noopener"
+                          className="mt-1 block text-[11px] font-medium text-amber-700 underline"
+                        >
+                          Comprobante
+                        </a>
+                      )}
                       {b.paidAt && (
                         <p className="text-[10px] text-green-600 mt-0.5">
                           Pag. {new Date(b.paidAt).toLocaleDateString("es-MX")}

@@ -1,4 +1,4 @@
-import type { PayConfirmation, PayInstruction } from "@/lib/booking-types";
+import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import { mutateCached, prefetchCached, useCached } from "../../_components/cached-fetch";
 
@@ -28,6 +28,7 @@ export type HostBooking = {
   stripeCheckoutSessionId?: string;
   payInstruction?: PayInstruction;
   payConfirmation?: PayConfirmation;
+  payProof?: PayProof;
   createdAt: string;
 };
 

@@ -71,6 +71,7 @@ export function ReservationSheet({
           stripePaid={Boolean(booking.stripeCheckoutSessionId)}
           payInstruction={booking.payInstruction}
           payConfirmation={booking.payConfirmation}
+          payProof={booking.payProof}
           onChanged={() => {
             void revalidate(HOST_URLS.bookings);
           }}

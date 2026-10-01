@@ -4,6 +4,7 @@ import { bookingBalanceDueMxn, paidStayOf } from "@/lib/booking-adjustments";
 import { applyBookingLifecycle } from "@/lib/booking-deposit";
 import { findBookingByToken } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
+import { getSessionUser } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token")?.replace(/\D/g, "").slice(0, 6) ?? "";
@@ -18,6 +19,7 @@ export async function GET(req: NextRequest) {
   if (!booking.contract && !["CANCELLED", "EXPIRED", "REJECTED"].includes(booking.status)) {
     booking = ensureBookingContract(booking.id, { role: "system", userId: booking.hostId }) ?? booking;
   }
+  const user = await getSessionUser();
   const listing = getListingById(booking.listingId);
   const effListingId = booking.hostAdjustedListingId ?? booking.listingId;
   const effListing = getListingById(effListingId);
@@ -43,6 +45,8 @@ export async function GET(req: NextRequest) {
       stripePaid: Boolean(booking.stripeCheckoutSessionId),
       payInstruction: booking.payInstruction ?? null,
       payConfirmation: booking.payConfirmation ?? null,
+      payProof: booking.payProof ?? null,
+      canUploadProof: user?.id === booking.guestUserId && Boolean(booking.payInstruction) && !booking.paidAt,
       balanceDueMxn: bookingBalanceDueMxn(booking),
       paidStayMxn: booking.paidAt ? paidStayOf(booking) : 0,
       contract: booking.contract

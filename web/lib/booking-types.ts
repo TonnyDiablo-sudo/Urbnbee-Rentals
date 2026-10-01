@@ -98,6 +98,13 @@ export type BookingRecord = {
   payInstruction?: PayInstruction;
   /** Quién dejó constancia de que la estancia ya se pagó. */
   payConfirmation?: PayConfirmation;
+  /** Comprobante que subió el huésped en un pago manual. */
+  payProof?: PayProof;
+};
+
+export type PayProof = {
+  uploadedAt: string;
+  mime: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "application/pdf";
 };
 
 export type ManualPayMethod = "clabe" | "zelle" | "cashapp" | "oxxo";

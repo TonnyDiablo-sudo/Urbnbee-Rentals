@@ -9,6 +9,23 @@ export const appPay: Record<string, string> = {
   "Así te pide el anfitrión que le pagues": "This is how your host asked you to pay",
   "Cuando le llegue, el anfitrión lo confirma y les aparece a los dos.":
     "When it arrives, the host confirms it and you both see it.",
+  "Sube tu comprobante de pago. El anfitrión lo revisa para confirmar, y Urbnbee también puede verlo.":
+    "Upload your payment receipt. Your host reviews it to confirm, and Urbnbee can see it too.",
+  "Ver comprobante": "View receipt",
+  "Comprobante de pago": "Payment receipt",
+  "Subiendo…": "Uploading…",
+  "Cambiar comprobante": "Replace receipt",
+  "Subir comprobante": "Upload receipt",
+  "Ya le enviaste estos datos. Cuando suba el comprobante, revísalo y confirma.":
+    "You already sent these details. When they upload the receipt, review it and confirm.",
+  "Esperando a que el huésped suba su comprobante de pago.": "Waiting for the guest to upload their payment receipt.",
+  "El huésped todavía no sube el comprobante de pago.": "The guest hasn't uploaded the payment receipt yet.",
+  "El anfitrión todavía no te envió datos para pagar.": "Your host hasn't sent payment details yet.",
+  "Archivo requerido.": "A file is required.",
+  "El comprobante supera 8 MB.": "The receipt is over 8 MB.",
+  "Sube una imagen (JPG, PNG, WebP, GIF) o un PDF.": "Upload an image (JPG, PNG, WebP, GIF) or a PDF.",
+  "{name} subió el comprobante de {listing}. Revísalo y confirma el pago.":
+    "{name} uploaded the receipt for {listing}. Review it and confirm the payment.",
   "Cobro de la reserva": "Reservation payment",
   "Ya le enviaste estos datos. Cuando te pague, confírmalo.":
     "You already sent these details. Confirm once they pay you.",

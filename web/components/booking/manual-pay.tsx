@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
-import type { ManualPayMethod, PayConfirmation, PayInstruction } from "@/lib/booking-types";
+import type { ManualPayMethod, PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
 import { WebLink } from "@/app/app/_components/site-origin";
 
 const SEND: { method: ManualPayMethod; label: string }[] = [
@@ -28,16 +28,37 @@ function when(iso: string, lang: string) {
   });
 }
 
+function PayProofView({ bookingId, proof }: { bookingId: string; proof: PayProof }) {
+  const t = useT();
+  const href = `/api/bookings/${encodeURIComponent(bookingId)}/pay-proof?v=${encodeURIComponent(proof.uploadedAt)}`;
+  if (proof.mime === "application/pdf") {
+    return (
+      <a href={href} target="_blank" rel="noopener" className="mt-2 inline-block text-sm font-semibold underline">
+        {t("Ver comprobante")}
+      </a>
+    );
+  }
+  return <img src={href} alt={t("Comprobante de pago")} className="mt-2 max-h-48 rounded-lg border border-[#ddd] bg-white" />;
+}
+
 export function GuestPayNote({
+  bookingId,
   payInstruction,
   payConfirmation,
+  payProof,
   paidAt,
   stripePaid,
+  canUpload,
+  onUploaded,
 }: {
+  bookingId?: string;
   payInstruction?: PayInstruction | null;
   payConfirmation?: PayConfirmation | null;
+  payProof?: PayProof | null;
   paidAt?: string | null;
   stripePaid?: boolean;
+  canUpload?: boolean;
+  onUploaded?: () => void;
 }) {
   const t = useT();
   const lang = useLang();
@@ -60,12 +81,15 @@ export function GuestPayNote({
               ? "Oxxo"
               : "Stripe";
     return (
-      <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-950">
-        {t("El anfitrión confirmó el pago ({method}) el {date}", {
-          method,
-          date: when(payConfirmation.at, lang),
-        })}
-      </p>
+      <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-950">
+        <p>
+          {t("El anfitrión confirmó el pago ({method}) el {date}", {
+            method,
+            date: when(payConfirmation.at, lang),
+          })}
+        </p>
+        {bookingId && payProof && <PayProofView bookingId={bookingId} proof={payProof} />}
+      </div>
     );
   }
   if (paidAt) {
@@ -84,8 +108,64 @@ export function GuestPayNote({
           <li key={line}>{line}</li>
         ))}
       </ul>
-      <p className="mt-2 text-xs">{t("Cuando le llegue, el anfitrión lo confirma y les aparece a los dos.")}</p>
+      <p className="mt-2 text-xs">
+        {t("Sube tu comprobante de pago. El anfitrión lo revisa para confirmar, y Urbnbee también puede verlo.")}
+      </p>
+      {bookingId && payProof && <PayProofView bookingId={bookingId} proof={payProof} />}
+      {bookingId && canUpload !== false && (
+        <GuestProofUpload bookingId={bookingId} hasProof={Boolean(payProof)} onUploaded={onUploaded} />
+      )}
     </div>
+  );
+}
+
+function GuestProofUpload({
+  bookingId,
+  hasProof,
+  onUploaded,
+}: {
+  bookingId: string;
+  hasProof: boolean;
+  onUploaded?: () => void;
+}) {
+  const t = useT();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function onFile(file: File | undefined) {
+    if (!file) return;
+    setBusy(true);
+    setErr(null);
+    const body = new FormData();
+    body.set("file", file);
+    const res = await fetch(`/api/guest/bookings/${encodeURIComponent(bookingId)}/pay-proof`, {
+      method: "POST",
+      credentials: "include",
+      body,
+    }).catch(() => null);
+    const j = res ? await res.json().catch(() => ({})) : {};
+    setBusy(false);
+    if (!res?.ok) {
+      setErr(typeof j.error === "string" ? j.error : "No se pudo guardar.");
+      return;
+    }
+    onUploaded?.();
+  }
+
+  return (
+    <label className="mt-3 block">
+      <span className="inline-block cursor-pointer rounded-lg bg-[#111] px-3 py-2 text-sm font-semibold text-white">
+        {busy ? t("Subiendo…") : hasProof ? t("Cambiar comprobante") : t("Subir comprobante")}
+      </span>
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+        className="sr-only"
+        disabled={busy}
+        onChange={(e) => void onFile(e.target.files?.[0])}
+      />
+      {err && <span className="mt-2 block text-sm text-red-700">{t(err)}</span>}
+    </label>
   );
 }
 
@@ -97,6 +177,7 @@ export function HostManualPay({
   stripePaid,
   payInstruction,
   payConfirmation,
+  payProof,
   onChanged,
 }: {
   bookingId: string;
@@ -105,6 +186,7 @@ export function HostManualPay({
   stripePaid?: boolean;
   payInstruction?: PayInstruction | null;
   payConfirmation?: PayConfirmation | null;
+  payProof?: PayProof | null;
   onChanged?: () => void;
 }) {
   const t = useT();
@@ -114,6 +196,7 @@ export function HostManualPay({
     status?: string;
     payInstruction?: PayInstruction | null;
     payConfirmation?: PayConfirmation | null;
+    payProof?: PayProof | null;
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -123,6 +206,7 @@ export function HostManualPay({
     paidAt: local?.paidAt ?? paidAt,
     payInstruction: local?.payInstruction ?? payInstruction,
     payConfirmation: local?.payConfirmation ?? payConfirmation,
+    payProof: local?.payProof ?? payProof,
   };
 
   useEffect(() => {
@@ -140,6 +224,40 @@ export function HostManualPay({
       cancelled = true;
     };
   }, [view.paidAt, view.status, bookingId]);
+
+  useEffect(() => {
+    if (!view.payInstruction || view.payProof || view.paidAt) return;
+    let cancelled = false;
+    fetch(`/api/bookings/${encodeURIComponent(bookingId)}/pay-proof`, {
+      method: "HEAD",
+      credentials: "include",
+      cache: "no-store",
+    })
+      .then((r) => {
+        if (cancelled || !r.ok) return;
+        const mime = r.headers.get("content-type") ?? "";
+        if (
+          mime !== "image/jpeg" &&
+          mime !== "image/png" &&
+          mime !== "image/webp" &&
+          mime !== "image/gif" &&
+          mime !== "application/pdf"
+        ) {
+          return;
+        }
+        setLocal((prev) => ({
+          status: prev?.status,
+          paidAt: prev?.paidAt,
+          payInstruction: prev?.payInstruction,
+          payConfirmation: prev?.payConfirmation,
+          payProof: { uploadedAt: new Date().toISOString(), mime },
+        }));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingId, view.payInstruction, view.payProof, view.paidAt]);
 
   async function act(action: "send" | "confirm", method?: ManualPayMethod) {
     setBusy(true);
@@ -161,18 +279,26 @@ export function HostManualPay({
       status: j.status,
       payInstruction: j.payInstruction,
       payConfirmation: j.payConfirmation,
+      payProof: j.payProof,
     });
     onChanged?.();
   }
 
   if (view.payConfirmation || view.paidAt) {
     return (
-      <GuestPayNote
-        payInstruction={view.payInstruction}
-        payConfirmation={view.payConfirmation}
-        paidAt={view.paidAt}
-        stripePaid={stripePaid || view.payConfirmation?.by === "stripe"}
-      />
+      <>
+        <GuestPayNote
+          bookingId={bookingId}
+          payInstruction={view.payInstruction}
+          payConfirmation={view.payConfirmation}
+          paidAt={view.paidAt}
+          stripePaid={stripePaid || view.payConfirmation?.by === "stripe"}
+          canUpload={false}
+        />
+        {view.payProof && view.payConfirmation?.by === "host" && (
+          <PayProofView bookingId={bookingId} proof={view.payProof} />
+        )}
+      </>
     );
   }
   if (view.status !== "AWAITING_PAYMENT") return null;
@@ -184,20 +310,27 @@ export function HostManualPay({
       <p className="text-[15px] font-semibold text-[#222]">{t("Cobro de la reserva")}</p>
       {view.payInstruction && (
         <div className="mt-2 rounded-xl bg-[#fafafa] px-3 py-2 text-sm text-[#333]">
-          <p className="font-medium">{t("Ya le enviaste estos datos. Cuando te pague, confírmalo.")}</p>
+          <p className="font-medium">{t("Ya le enviaste estos datos. Cuando suba el comprobante, revísalo y confirma.")}</p>
           <ul className="mt-1 space-y-0.5">
             {view.payInstruction.lines.map((line) => (
               <li key={line}>{line}</li>
             ))}
           </ul>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void act("confirm")}
-            className="mt-3 w-full rounded-xl bg-[#111] py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {t("Confirmo que ya pagó")}
-          </button>
+          {view.payProof ? (
+            <>
+              <PayProofView bookingId={bookingId} proof={view.payProof} />
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void act("confirm")}
+                className="mt-3 w-full rounded-xl bg-[#111] py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {t("Confirmo que ya pagó")}
+              </button>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-[#717171]">{t("Esperando a que el huésped suba su comprobante de pago.")}</p>
+          )}
         </div>
       )}
       <div className="mt-3 grid grid-cols-2 gap-2">
