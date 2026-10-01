@@ -92,7 +92,7 @@ function Form({ initial }: { initial: HostTaxSettings | null }) {
     <div className="space-y-5 px-5 pt-4">
       <p className="text-[15px] leading-relaxed text-[#484848]">
         {t(
-          "Si facturas, cobra el IVA y los impuestos de hospedaje de tu país. Se muestran al huésped antes de reservar, se cobran junto con la estancia y quedan en el contrato."
+          "Pon aquí los impuestos que cobras y el porcentaje: cambia según tu estado o municipio. El huésped ve un solo total. El desglose queda en el contrato, que es donde se lo explicas."
         )}
       </p>
 

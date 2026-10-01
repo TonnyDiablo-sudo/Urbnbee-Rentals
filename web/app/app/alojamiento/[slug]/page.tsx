@@ -197,21 +197,10 @@ export default async function AppListingPage({ params }: Props) {
             {pricing?.minNights ? <Row label={t("Estancia mínima")} value={t("{n} noches", { n: pricing.minNights })} /> : null}
             {listing.cleaningFee ? <Row label={t("Limpieza (una vez)")} value={mxn(listing.cleaningFee)} /> : null}
             {listing.depositMxn ? <Row label={t("Depósito (entre ustedes)")} value={mxn(listing.depositMxn)} /> : null}
-            {bookable && (
-              <Row
-                label={t("Impuestos")}
-                value={
-                  listing.tax
-                    ? listing.tax.lines.map((l) => `${l.name} ${l.ratePct}%`).join(" + ") +
-                      (listing.tax.mode === "included" ? ` (${t("incluidos")})` : "")
-                    : t("No cobra")
-                }
-              />
-            )}
           </dl>
           {bookable && listing.instantBook === false && (
             <p className="mt-3 text-xs leading-relaxed text-[#888]">
-              {t("El anfitrión aprueba cada solicitud y confirma el total final (fechas e impuestos) antes de que se te cobre cualquier diferencia.")}
+              {t("El anfitrión aprueba cada solicitud y confirma el total antes de que se te cobre cualquier diferencia.")}
             </p>
           )}
         </Section>

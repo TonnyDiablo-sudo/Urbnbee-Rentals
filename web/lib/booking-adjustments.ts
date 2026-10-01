@@ -233,7 +233,7 @@ export async function startAdjustmentCheckout(
                 price_data: {
                   currency: "mxn" as const,
                   unit_amount: feeCents,
-                  product_data: { name: "Cargo de servicio Cabibee" },
+                  product_data: { name: "Cargo de servicio" },
                 },
               },
             ]

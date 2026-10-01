@@ -45,7 +45,7 @@ export function quoteListingStay(
         ? q.taxLines.map((l) => ({ label: `${l.name} (${l.ratePct}%)`, amount: l.amountMxn }))
         : []),
       ...(platformFee > 0
-        ? [{ label: "Cargo de servicio Cabibee", amount: platformFee }]
+        ? [{ label: "Cargo de servicio", amount: platformFee }]
         : []),
     ],
     total,

@@ -8,7 +8,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
   return {
     title: t("Quiénes somos"),
-    description: t("Cabibee es un lugar seguro para hospedarte. Sabes quién te recibe, ves el lugar y tu reserva queda guardada."),
+    description: t(
+      "Cabibee es la plataforma para rentar directo: sin comisión, con contacto a la vista y herramientas de seguridad para quien las quiera."
+    ),
   };
 }
 

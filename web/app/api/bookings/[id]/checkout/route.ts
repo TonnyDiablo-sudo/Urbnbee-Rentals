@@ -116,8 +116,8 @@ export async function POST(req: NextRequest, ctx: Ctx) {
                   currency: "mxn" as const,
                   unit_amount: feeCents,
                   product_data: {
-                    name: "Cargo de servicio Cabibee",
-                    description: "Cargo de plataforma sobre el total de la estancia (configurable).",
+                    name: "Cargo de servicio",
+                    description: "Cargo de plataforma sobre el total de la estancia.",
                   },
                 },
               },

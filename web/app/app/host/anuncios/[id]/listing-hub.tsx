@@ -71,8 +71,8 @@ function TaxPanel({ chargeTax, onChange, approval }: { chargeTax: boolean; onCha
       </p>
       {(
         [
-          [true, "Cobrar impuestos en este anuncio", "El huésped ve el desglose antes de pagar y se agrega a su contrato."],
-          [false, "No cobrar impuestos", "El huésped ve que este anuncio no cobra impuestos."],
+          [true, "Cobrar impuestos en este anuncio", "El huésped ve un solo total. El desglose y el porcentaje quedan en el contrato."],
+          [false, "No cobrar impuestos", "Este anuncio no suma impuestos. El precio que ve el huésped es el total."],
         ] as const
       ).map(([v, label, hint]) => (
         <button
@@ -87,7 +87,7 @@ function TaxPanel({ chargeTax, onChange, approval }: { chargeTax: boolean; onCha
       ))}
       <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm leading-relaxed text-[#484848]">
         {approval
-          ? t("Como tú apruebas cada solicitud, esto es lo que se propone al huésped. Al aceptar puedes cambiarlo para esa reserva; si el total cambia, Cabibee le cobra o le devuelve la diferencia.")
+          ? t("Como tú apruebas cada solicitud, esto es lo que se propone al huésped. Al aceptar puedes cambiarlo para esa reserva; si el total cambia, se cobra o se devuelve la diferencia.")
           : t("Con reservación inmediata se aplica tal cual al pagar, así que decide aquí.")}
       </p>
       <Link href="/host/impuestos" className="block text-sm font-semibold text-[#222] underline">

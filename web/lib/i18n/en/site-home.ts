@@ -84,19 +84,23 @@ export const siteHome: Record<string, string> = {
   // Quiénes somos
   "Quiénes somos": "About us",
   "Cabibee es un lugar seguro para hospedarte.": "Cabibee is a safe place to find a stay.",
-  "Juntamos viajeros con anfitriones. Antes de ir, sabes con quién tratas, cómo es el lugar y tu reserva no se pierde.":
-    "We bring travelers and hosts together. Before you go, you know who you're dealing with, what the place is like, and your booking never gets lost.",
-  "Sabes quién te recibe": "You know who's hosting you",
-  "El anfitrión tiene nombre y un perfil que puedes leer antes de reservar.":
-    "The host has a name and a profile you can read before you book.",
-  "Ves el lugar antes de ir": "You see the place before you go",
-  "El anuncio muestra fotos, el precio y las reglas. Nada queda escondido.":
-    "The listing shows photos, the price and the rules. Nothing is hidden.",
-  "Tu reserva queda guardada": "Your booking is on record",
-  "Queda un registro en Cabibee: quién reservó, cuándo y en qué lugar.":
-    "Cabibee keeps a record: who booked, when and where.",
-  "Cabibee es un lugar seguro para hospedarte. Sabes quién te recibe, ves el lugar y tu reserva queda guardada.":
-    "Cabibee is a safe place to find a stay. You know who's hosting you, you see the place, and your booking is on record.",
+  "Conectamos al anfitrión con el huésped. El trato es directo.": "We connect the host and the guest. The deal is direct.",
+  "Cabibee es la plataforma para quien renta directo y no quiere comisiones. Publicas gratis, la gente te escribe, y ustedes acuerdan. Si quieren más seguridad, ahí están las herramientas: cada quien usa las que necesite.":
+    "Cabibee is the platform for people who rent directly and don't want commissions. Listing is free, people message you, and you agree between yourselves. If you want more safety, the tools are there: each person uses the ones they need.",
+  "Trato directo, sin comisión": "A direct deal, no commission",
+  "No somos intermediarios y no le sumamos nada al precio. El anuncio se publica gratis y el contacto queda a la vista para que anfitrión y huésped se escriban y cierren entre ellos.":
+    "We are not a middleman and we don't add anything to the price. The listing is free and contact details stay visible so host and guest can message each other and close the deal themselves.",
+  "Identidad de los dos lados": "Identity on both sides",
+  "Anfitrión y huésped pueden comprobar su identidad. Antes de cerrar, sabes con quién estás tratando.":
+    "Host and guest can verify their identity. Before you close, you know who you're dealing with.",
+  "Historial crediticio, si se pide": "A credit check, if it's asked for",
+  "El anfitrión puede pedir una revisión de crédito de quien solicita. La paga quien acuerden. No es obligatoria para publicar ni para escribirse.":
+    "The host can ask for a credit check on the person requesting the stay. Whoever they agree on pays for it. It isn't required to publish or to message.",
+  "Herramientas, solo si las quieren": "Tools, only if you want them",
+  "Contrato, depósito y ayuda para el pago. Cabibee no cobra la estancia ni le pone un precio encima: el hospedaje se paga entre ustedes. Estas herramientas solo dejan el acuerdo por escrito y más seguro.":
+    "A contract, a deposit and help with payment. Cabibee doesn't charge for the stay or add a price on top: the lodging is paid between you. These tools only put the agreement in writing and make it safer.",
+  "Cabibee es la plataforma para rentar directo: sin comisión, con contacto a la vista y herramientas de seguridad para quien las quiera.":
+    "Cabibee is the platform for renting directly: no commission, contact details in view, and safety tools for whoever wants them.",
   // Tarjetas de anuncio
   "Ver más": "See more",
   "/noche": "/night",

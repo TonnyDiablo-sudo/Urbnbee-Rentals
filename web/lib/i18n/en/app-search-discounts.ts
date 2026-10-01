@@ -64,6 +64,12 @@ export const appSearchDiscounts: Record<string, string> = {
   "ya incluidos en el precio": "already included in the price",
   "se suman al precio": "added to the price",
   "Cobrar impuestos en este anuncio": "Charge taxes on this listing",
+  "El huésped ve un solo total. El desglose y el porcentaje quedan en el contrato.":
+    "The guest sees a single total. The breakdown and the rate go in the contract.",
+  "Este anuncio no suma impuestos. El precio que ve el huésped es el total.":
+    "This listing doesn't add taxes. The price the guest sees is the total.",
+  "Como tú apruebas cada solicitud, esto es lo que se propone al huésped. Al aceptar puedes cambiarlo para esa reserva; si el total cambia, se cobra o se devuelve la diferencia.":
+    "Because you approve each request, this is what is offered to the guest. When you accept you can change it for that booking; if the total changes, the difference is charged or refunded.",
   "El huésped ve el desglose antes de pagar y se agrega a su contrato.":
     "The guest sees the breakdown before paying and it's added to their contract.",
   "No cobrar impuestos": "Don't charge taxes",
@@ -84,10 +90,10 @@ export const appSearchDiscounts: Record<string, string> = {
   "Los impuestos ya vienen en el precio.": "Taxes are already included in the price.",
   "Este anfitrión cobra impuestos en esta reserva.": "This host charges taxes on this booking.",
   "Este anfitrión no cobra impuestos (IVA) en esta reserva.": "This host doesn't charge taxes (VAT) on this booking.",
-  "El anfitrión aprueba tu solicitud y confirma el total final (fechas e impuestos). Si cambia, te avisamos antes de cobrar o devolver la diferencia. Puedes platicarlo por el chat.":
-    "The host approves your request and confirms the final total (dates and taxes). If it changes, we'll let you know before charging or refunding the difference. You can talk it over in the chat.",
-  "El anfitrión aprueba cada solicitud y confirma el total final (fechas e impuestos) antes de que se te cobre cualquier diferencia.":
-    "The host approves each request and confirms the final total (dates and taxes) before any difference is charged.",
+  "El anfitrión aprueba tu solicitud y confirma el total. Si cambia, te avisamos antes de cobrar o devolver la diferencia. Puedes platicarlo por el chat.":
+    "The host approves your request and confirms the total. If it changes, we'll let you know before charging or refunding the difference. You can talk it over in the chat.",
+  "El anfitrión aprueba cada solicitud y confirma el total antes de que se te cobre cualquier diferencia.":
+    "The host approves each request and confirms the total before any difference is charged.",
 
   // Revisión crediticia
   "Historial crediticio": "Credit history",

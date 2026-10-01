@@ -8,7 +8,7 @@ import {
   type ListingPricing,
   type StayDiscountKind,
 } from "@/lib/listing-pricing";
-import { computeStayTax, taxLineLabel, type HostTaxSettings } from "@/lib/stay-tax";
+import { computeStayTax, type HostTaxSettings } from "@/lib/stay-tax";
 
 const DISCOUNT_LABEL: Record<StayDiscountKind, string> = {
   monthly: "Descuento mensual ({n}%)",
@@ -356,35 +356,14 @@ export function AvailabilityCalendar({
               <span>${cleaningFee}</span>
             </div>
           )}
-          {!taxes.included &&
-            taxes.lines.map((l) => (
-              <div key={l.name} className="flex justify-between text-[#3a3a3a]">
-                <span>{taxLineLabel(l)}</span>
-                <span>${l.amountMxn.toLocaleString("es-MX")}</span>
-              </div>
-            ))}
           <div className="mt-2 flex justify-between border-t pt-2 font-semibold text-[#484848]" style={{ borderColor: "#ebebeb" }}>
-            <span>{t("Total en Cabibee")}</span>
+            <span>{t("Total")}</span>
             <span>${total.toLocaleString("es-MX")}</span>
           </div>
-          {taxes.included && taxes.taxMxn > 0 && (
-            <p className="mt-1 text-xs text-[#888]">
-              {t("Incluye {taxes}", {
-                taxes: taxes.lines.map((l) => `${taxLineLabel(l)} $${l.amountMxn.toLocaleString("es-MX")}`).join(" · "),
-              })}
-            </p>
-          )}
-          {listingId && bookable && (
-            <p className="mt-1 text-xs text-[#888]">
-              {taxes.taxMxn > 0
-                ? t(taxes.included ? "Los impuestos ya vienen en el precio." : "Este anfitrión cobra impuestos en esta reserva.")
-                : t("Este anfitrión no cobra impuestos (IVA) en esta reserva.")}
-            </p>
-          )}
           {listingId && bookable && !instantBook && (
             <p className="mt-2 rounded bg-[#fdf6d8] px-3 py-2 text-xs leading-relaxed text-[#6b5510]">
               {t(
-                "El anfitrión aprueba tu solicitud y confirma el total final (fechas e impuestos). Si cambia, te avisamos antes de cobrar o devolver la diferencia. Puedes platicarlo por el chat."
+                "El anfitrión aprueba tu solicitud y confirma el total. Si cambia, te avisamos antes de cobrar o devolver la diferencia. Puedes platicarlo por el chat."
               )}
             </p>
           )}

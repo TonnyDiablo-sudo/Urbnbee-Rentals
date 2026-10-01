@@ -158,14 +158,7 @@ export function TripsList() {
                   {fmtDay(inD, lang)} – {fmtDay(outD, lang)} · {trip.nights} {trip.nights === 1 ? t("noche") : t("noches")}
                 </p>
                 <p className="text-sm text-[#555]">
-                  {fmtMxn(trip.estimatedTotalMxn + (trip.platformFeeMxn ?? 0))} · {t("código {code}", { code: trip.token })}
-                </p>
-                <p className="text-xs text-[#888]">
-                  {(trip.taxMxn ?? 0) > 0
-                    ? t(trip.taxIncluded ? "Incluye {amount} de impuestos." : "Con {amount} de impuestos.", {
-                        amount: fmtMxn(trip.taxMxn ?? 0),
-                      })
-                    : t("Sin impuestos.")}
+                  {fmtMxn(trip.estimatedTotalMxn)} · {t("código {code}", { code: trip.token })}
                 </p>
                 {trip.screening && (trip.screening.needsConsent || trip.screening.needsPayGuest) && !sec.past && (
                   <div className="mt-3 rounded-xl bg-[#fdf6d8] px-3 py-3 text-sm text-[#5c4a0a]">

@@ -504,8 +504,8 @@ export function contractPlainLines(c: BookingContractRecord): string[] {
           ...(s.hostTaxId ? [`Registro fiscal del anfitrión: ${s.hostTaxId}`] : []),
         ]
       : []),
-    `Cargo de servicio Cabibee: ${money(s.platformFeeMxn)}`,
-    `Total cobrado en Cabibee: ${money(s.totalMxn)}`,
+    ...(s.platformFeeMxn > 0 ? [`Cargo de servicio: ${money(s.platformFeeMxn)}`] : []),
+    `Total: ${money(s.totalMxn)}`,
     `Depósito (fuera de Cabibee): ${s.depositMxn > 0 ? money(s.depositMxn) : "no declarado"}`,
     s.depositNote,
     "",

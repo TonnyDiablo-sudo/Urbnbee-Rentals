@@ -125,6 +125,7 @@ export const siteListing: Record<string, string> = {
   "{n} noches": "{n} nights",
   "Precio por noche según fecha (definido por el anfitrión).": "Nightly price varies by date (set by the host).",
   "Total en Cabibee": "Total on Cabibee",
+  "Volver al anuncio": "Back to the listing",
   "Depósito pactado: ${amount} MXN. Se entrega entre ustedes; Cabibee no lo cobra ni lo guarda.":
     "Agreed deposit: ${amount} MXN. It's handled between you two; Cabibee doesn't charge or hold it.",
   "Este anfitrión todavía no recibe reservas dentro de Cabibee. Puedes escribirle por el chat o usar sus datos de contacto.":

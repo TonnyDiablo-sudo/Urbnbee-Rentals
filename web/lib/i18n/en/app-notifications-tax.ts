@@ -57,8 +57,8 @@ export const appNotificationsTax: Record<string, string> = {
   // Impuestos
   "Impuestos (IVA)": "Taxes (VAT)",
   "Cobra IVA u otros impuestos según tu país": "Charge VAT or other taxes for your country",
-  "Si facturas, cobra el IVA y los impuestos de hospedaje de tu país. Se muestran al huésped antes de reservar, se cobran junto con la estancia y quedan en el contrato.":
-    "If you invoice, charge your country's VAT and lodging taxes. Guests see them before booking, they're charged with the stay and they appear in the contract.",
+  "Pon aquí los impuestos que cobras y el porcentaje: cambia según tu estado o municipio. El huésped ve un solo total. El desglose queda en el contrato, que es donde se lo explicas.":
+    "Enter the taxes you charge and the rate: it changes by state or city. The guest sees a single total. The breakdown stays in the contract, which is where you explain it.",
   "Cobrar impuestos": "Charge taxes",
   "Apagado: tus precios se cobran tal cual.": "Off: your prices are charged as they are.",
   Impuestos: "Taxes",

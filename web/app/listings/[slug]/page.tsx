@@ -123,17 +123,6 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     {discountRows(listing.pricing).map((r) => (
                       <PriceRow key={r.key + JSON.stringify(r.vars ?? {})} label={t(r.key, r.vars)} value={`−${r.pct}%`} />
                     ))}
-                    {bookable && (
-                      <PriceRow
-                        label={t("Impuestos")}
-                        value={
-                          listing.tax
-                            ? listing.tax.lines.map((l) => `${l.name} ${l.ratePct}%`).join(" + ") +
-                              (listing.tax.mode === "included" ? ` (${t("incluidos")})` : "")
-                            : t("No cobra")
-                        }
-                      />
-                    )}
                     {listing.depositMxn ? (
                       <PriceRow
                         label={t("Depósito (fuera de Cabibee)")}

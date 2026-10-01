@@ -22,8 +22,8 @@ export function ListingMap({ lat, lng }: { lat: number; lng: number }) {
 
   return (
     <>
-      <div className="relative h-64 overflow-hidden rounded-2xl border border-[#ebebeb]">
-        <PlaceMap lat={lat} lng={lng} zoom={15} interactive={false} />
+      <div className="relative z-0 h-64 overflow-hidden rounded-2xl border border-[#ebebeb] [isolation:isolate]">
+        {!open && <PlaceMap lat={lat} lng={lng} zoom={15} interactive={false} />}
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -37,7 +37,7 @@ export function ListingMap({ lat, lng }: { lat: number; lng: number }) {
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-[60] flex flex-col bg-white" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[80] flex flex-col bg-white" role="dialog" aria-modal="true">
           <div
             className="flex items-center gap-3 border-b border-[#ebebeb] px-4 pb-3"
             style={{ paddingTop: "calc(12px + env(safe-area-inset-top))" }}
