@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { SCREENING_BAND_LABEL, SCREENING_PAYER_LABEL, SCREENING_STATUS_LABEL } from "@/lib/screening-types";
+import { revalidate } from "../../_components/cached-fetch";
 import { HOST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../../_components/booking-status";
 import { Sheet } from "../../_components/sheet";
 import { WebLink } from "../../_components/site-origin";
-import { hostChatHref, isPending, stayOf, type HostBooking } from "./host-data";
+import { HostManualPay } from "@/components/booking/manual-pay";
+import { HOST_URLS, hostChatHref, isPending, stayOf, type HostBooking } from "./host-data";
 
 /** Detalle de una reserva: quién viene, cuándo, cuánto y cómo escribirle. */
 export function ReservationSheet({
@@ -61,6 +63,18 @@ export function ReservationSheet({
           {booking.guestEmail && <Row label={t("Correo")} value={booking.guestEmail} />}
           {booking.guestPhone && <Row label={t("Teléfono")} value={booking.guestPhone} />}
         </dl>
+
+        <HostManualPay
+          bookingId={booking.id}
+          status={booking.status}
+          paidAt={booking.paidAt}
+          stripePaid={Boolean(booking.stripeCheckoutSessionId)}
+          payInstruction={booking.payInstruction}
+          payConfirmation={booking.payConfirmation}
+          onChanged={() => {
+            void revalidate(HOST_URLS.bookings);
+          }}
+        />
 
         {booking.guestUserId && !CLOSED_STATUSES.has(booking.status) && <ScreeningBox bookingId={booking.id} />}
 

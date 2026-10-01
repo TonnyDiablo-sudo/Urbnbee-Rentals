@@ -6,6 +6,7 @@ import type {
   BookingRecord,
   BookingStatus,
   BookingTransitionEvent,
+  PayConfirmation,
 } from "@/lib/booking-types";
 import { enqueueBookingOutbound } from "@/lib/beeagent-outbound";
 import { mysqlApplyBookingOccupancy } from "@/lib/booking-nights";
@@ -126,7 +127,12 @@ export function transitionBooking(
 /** Pago de estancia. Idempotente: si ya hay paidAt / paymentStatus=paid, no mueve el estado. */
 export function markBookingPaid(
   bookingId: string,
-  opts?: { stripeCheckoutSessionId?: string; stripePaymentIntentId?: string; actor?: BookingActor }
+  opts?: {
+    stripeCheckoutSessionId?: string;
+    stripePaymentIntentId?: string;
+    actor?: BookingActor;
+    payConfirmation?: PayConfirmation;
+  }
 ): BookingRecord | undefined {
   const prev = getBookingById(bookingId);
   if (!prev) return undefined;
@@ -137,13 +143,16 @@ export function markBookingPaid(
 
   const listing = getListingById(prev.listingId);
   const to: BookingStatus = listing?.bookingApprovalMode === "instant" ? "CONFIRMED" : "PENDING_HOST";
+  const at = opts?.payConfirmation?.at ?? nowIso();
+  const payConfirmation: PayConfirmation = opts?.payConfirmation ?? { at, by: "stripe", method: "stripe" };
   const next = transitionBooking(bookingId, to, {
     actor: opts?.actor ?? "system",
-    reason: "payment_received",
+    reason: payConfirmation.by === "host" ? "manual_payment_confirmed" : "payment_received",
     paymentStatus: "paid",
     contractStatus: to === "CONFIRMED" ? contractStatusOf(prev) : "pending",
     patch: {
-      paidAt: nowIso(),
+      paidAt: at,
+      payConfirmation,
       stripeCheckoutSessionId: opts?.stripeCheckoutSessionId ?? prev.stripeCheckoutSessionId,
       stripePaymentIntentId: opts?.stripePaymentIntentId ?? prev.stripePaymentIntentId,
     },

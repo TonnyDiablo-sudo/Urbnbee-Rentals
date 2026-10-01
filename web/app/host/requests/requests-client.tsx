@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { HostManualPay } from "@/components/booking/manual-pay";
 import { BookingDepositPanel } from "@/components/booking-deposit-panel";
+import type { PayConfirmation, PayInstruction } from "@/lib/booking-types";
 import { BookingReviewPanel } from "@/components/booking-review-panel";
 import { BookingScreeningPanel } from "@/components/booking-screening-panel";
 import { useLang, useT } from "@/components/i18n-provider";
@@ -20,6 +22,9 @@ type BookingRow = {
   guestName: string;
   guestEmail: string;
   paidAt?: string;
+  stripeCheckoutSessionId?: string;
+  payInstruction?: PayInstruction | null;
+  payConfirmation?: PayConfirmation | null;
   refundedAt?: string;
   refundAmountMxn?: number;
   checkIn: string;
@@ -158,6 +163,15 @@ export function HostRequestsClient() {
                       </span>
                     )}
                   </p>
+                  <HostManualPay
+                    bookingId={b.id}
+                    status={b.status}
+                    paidAt={b.paidAt}
+                    stripePaid={Boolean(b.stripeCheckoutSessionId)}
+                    payInstruction={b.payInstruction}
+                    payConfirmation={b.payConfirmation}
+                    onChanged={() => void load()}
+                  />
                   <p className="mt-2 text-xs text-[#aaa]">
                     {t("Código huésped:")} <span className="font-mono tracking-wide">{b.token}</span>
                   </p>

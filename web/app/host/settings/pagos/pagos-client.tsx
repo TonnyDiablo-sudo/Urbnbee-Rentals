@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
+import { PayoutMethodsForm } from "./payout-methods-form";
 
 type Status = {
   connected: boolean;
@@ -63,7 +64,7 @@ export function HostPagosClient() {
   }
 
   async function disconnect() {
-    if (!confirm(t("¿Dejar de cobrar en tu Stripe? Las reservas nuevas volverán a la cuenta de Cabibee hasta que conectes otra vez."))) {
+    if (!confirm(t("¿Dejar de cobrar en tu Stripe? Las reservas nuevas ya no se cobrarán con esa cuenta hasta que conectes otra."))) {
       return;
     }
     setBusy(true);
@@ -126,7 +127,7 @@ export function HostPagosClient() {
         </section>
       ) : (
         <p className="rounded-lg border border-[#ebebeb] bg-[#fafafa] px-4 py-3 text-sm text-[#555]">
-          {t("Mientras no conectes, las reservas se cobran en la cuenta de Cabibee (como hoy).")}
+          {t("Si no conectas Stripe, envía tu CLABE, Zelle, Cash App u Oxxo para que el huésped te pague directo.")}
         </p>
       )}
 
@@ -178,6 +179,8 @@ export function HostPagosClient() {
           {busy ? t("Guardando…") : t("Guardar y verificar")}
         </button>
       </section>
+
+      <PayoutMethodsForm />
     </div>
   );
 }

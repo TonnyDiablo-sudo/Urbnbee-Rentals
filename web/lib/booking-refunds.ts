@@ -67,6 +67,10 @@ export async function refundBookingPayment(
 
   if (!booking.paidAt) return { ok: true, kind: "not_needed", booking };
   if (booking.refundedAt) return { ok: true, kind: "already_refunded", booking };
+  // CLABE, Zelle, Cash App u Oxxo: el dinero lo recibió el anfitrión, no Stripe.
+  if (booking.payConfirmation?.by === "host") {
+    return { ok: true, kind: "not_needed", booking };
+  }
 
   function recorded(next: BookingRecord, kind: BookingRefundKind): BookingRefundResult {
     enqueueBookingOutbound("booking.refunded", next);

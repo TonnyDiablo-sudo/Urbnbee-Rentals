@@ -4,6 +4,7 @@ import { appHost } from "./app-host";
 import { appHostTools } from "./app-host-tools";
 import { appNotificationsTax } from "./app-notifications-tax";
 import { appProfileContracts } from "./app-profile-contracts";
+import { appPay } from "./app-pay";
 import { appSearchDiscounts } from "./app-search-discounts";
 import { common } from "./common";
 import { siteAccount } from "./site-account";
@@ -27,4 +28,5 @@ export const EN: Record<string, string> = {
   ...appProfileContracts,
   ...appNotificationsTax,
   ...appSearchDiscounts,
+  ...appPay,
 };

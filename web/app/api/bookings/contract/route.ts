@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveBookingForContract } from "@/lib/booking-contract-access";
 import { bookingContractPdf } from "@/lib/booking-contract-pdf";
 import { contractIsFullyAccepted, contractPlainLines } from "@/lib/booking-contract";
+import { paymentNoteLines } from "@/lib/host-payout-methods";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +26,10 @@ export async function GET(req: NextRequest) {
 
   const filename = `contrato-cabibee-${booking.token}`;
 
+  const note = paymentNoteLines(booking);
+
   if (format === "pdf") {
-    const pdf = bookingContractPdf(booking.contract);
+    const pdf = bookingContractPdf(booking.contract, note);
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
@@ -36,7 +39,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (format === "txt") {
-    const body = contractPlainLines(booking.contract).join("\r\n");
+    const body = [...contractPlainLines(booking.contract), ...note].join("\r\n");
     return new NextResponse(body, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
@@ -51,6 +54,6 @@ export async function GET(req: NextRequest) {
     status: booking.status,
     accepted: contractIsFullyAccepted(booking.contract),
     contract: booking.contract,
-    lines: contractPlainLines(booking.contract),
+    lines: [...contractPlainLines(booking.contract), ...note],
   });
 }

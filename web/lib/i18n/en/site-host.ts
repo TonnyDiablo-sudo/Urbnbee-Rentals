@@ -158,8 +158,8 @@ export const siteHost: Record<string, string> = {
   "No se pudo cargar.": "Couldn't load.",
   "No se pudo guardar.": "Couldn't save.",
   "Stripe conectado. Las estancias se cobran en tu cuenta.": "Stripe connected. Stays are now charged to your account.",
-  "¿Dejar de cobrar en tu Stripe? Las reservas nuevas volverán a la cuenta de Cabibee hasta que conectes otra vez.":
-    "Stop charging through your Stripe? New reservations will go back to Cabibee's account until you reconnect.",
+  "¿Dejar de cobrar en tu Stripe? Las reservas nuevas ya no se cobrarán con esa cuenta hasta que conectes otra.":
+    "Stop charging through your Stripe? New reservations won't be charged to that account until you connect it again.",
   "No se pudo desconectar.": "Couldn't disconnect.",
   "Desconectado.": "Disconnected.",
   "Pagos de la estancia": "Stay payments",
@@ -175,8 +175,8 @@ export const siteHost: Record<string, string> = {
   "Llave …{last4}": "Key …{last4}",
   "verificada {date}": "verified {date}",
   Desconectar: "Disconnect",
-  "Mientras no conectes, las reservas se cobran en la cuenta de Cabibee (como hoy).":
-    "Until you connect, reservations are charged to Cabibee's account (as they are today).",
+  "Si no conectas Stripe, envía tu CLABE, Zelle, Cash App u Oxxo para que el huésped te pague directo.":
+    "If you don't connect Stripe, send your CLABE, Zelle, Cash App, or Oxxo so the guest pays you directly.",
   "Webhook en tu Dashboard de Stripe": "Webhook in your Stripe Dashboard",
   "Eventos:": "Events:",
   y: "and",

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { GuestPayNote } from "@/components/booking/manual-pay";
 import { useT } from "@/components/i18n-provider";
+import type { PayConfirmation, PayInstruction } from "@/lib/booking-types";
 
 type Lookup = {
   id: string;
@@ -10,6 +12,10 @@ type Lookup = {
   token: string;
   guestName: string;
   listingTitle?: string;
+  paidAt?: string | null;
+  stripePaid?: boolean;
+  payInstruction?: PayInstruction | null;
+  payConfirmation?: PayConfirmation | null;
   contract?: {
     generated: boolean;
     accepted: boolean;
@@ -166,6 +172,13 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
           {t("El contrato aún no está listo. Si acabas de reservar, recarga en un momento.")}
         </p>
       )}
+
+      <GuestPayNote
+        payInstruction={row.payInstruction}
+        payConfirmation={row.payConfirmation}
+        paidAt={row.paidAt}
+        stripePaid={row.stripePaid || row.payConfirmation?.by === "stripe"}
+      />
 
       {wantPay && needsGuestSign && (
         <p className="mt-6 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">

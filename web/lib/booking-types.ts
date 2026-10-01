@@ -94,6 +94,29 @@ export type BookingRecord = {
   paidStayMxn?: number;
   /** Cobros o devoluciones extra por cambio de fechas. */
   adjustments?: BookingAdjustment[];
+  /** Datos de cobro manual que el anfitrión ya le mandó al huésped. */
+  payInstruction?: PayInstruction;
+  /** Quién dejó constancia de que la estancia ya se pagó. */
+  payConfirmation?: PayConfirmation;
+};
+
+export type ManualPayMethod = "clabe" | "zelle" | "cashapp" | "oxxo";
+
+export type PayInstruction = {
+  method: ManualPayMethod;
+  sentAt: string;
+  /** Texto en español que se anexa al contrato. No entra al hash de la firma. */
+  lines: string[];
+  clabe?: { holder: string; clabe: string; bank?: string };
+  zelle?: { name: string; contact: string };
+  cashapp?: { name: string; cashtag: string };
+  oxxo?: { holder: string; reference: string; note?: string };
+};
+
+export type PayConfirmation = {
+  at: string;
+  by: "stripe" | "host";
+  method: "stripe" | ManualPayMethod;
 };
 
 export type BookingTaxLine = { name: string; ratePct: number; amountMxn: number };

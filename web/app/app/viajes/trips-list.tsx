@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { GuestPayNote } from "@/components/booking/manual-pay";
 import { PayDifference } from "@/components/booking/pay-difference";
 import { useLang, useT } from "@/components/i18n-provider";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
+import type { PayConfirmation, PayInstruction } from "@/lib/booking-types";
 import { GUEST_STATUS, TONE_CLS, fmtDay, fmtMxn } from "../_components/booking-status";
 import { Sheet } from "../_components/sheet";
 import { WebLink } from "../_components/site-origin";
@@ -34,6 +36,10 @@ type Trip = {
   paidStayMxn?: number;
   taxMxn?: number;
   taxIncluded?: boolean;
+  paidAt?: string;
+  stripeCheckoutSessionId?: string;
+  payInstruction?: PayInstruction | null;
+  payConfirmation?: PayConfirmation | null;
   screening?: {
     status: string;
     payer: "host" | "guest";
@@ -175,6 +181,14 @@ export function TripsList() {
                       {trip.screening.needsConsent ? t("Revisar y autorizar") : t("Pagar consulta")}
                     </WebLink>
                   </div>
+                )}
+                {(trip.payInstruction || trip.payConfirmation || trip.paidAt) && (
+                  <GuestPayNote
+                    payInstruction={trip.payInstruction}
+                    payConfirmation={trip.payConfirmation}
+                    paidAt={trip.paidAt}
+                    stripePaid={Boolean(trip.stripeCheckoutSessionId) || trip.payConfirmation?.by === "stripe"}
+                  />
                 )}
                 {(trip.balanceDueMxn ?? 0) > 0 && (
                   <div className="mt-3">

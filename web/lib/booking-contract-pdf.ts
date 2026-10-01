@@ -49,8 +49,8 @@ function wrapLine(line: string, max = 92): string[] {
 }
 
 /** PDF 1.4: Helvetica + WinAnsi, varias páginas si el contrato no cabe en una. */
-export function bookingContractPdf(contract: BookingContractRecord): Buffer {
-  const lines = contractPlainLines(contract).flatMap((l) => wrapLine(l));
+export function bookingContractPdf(contract: BookingContractRecord, extraLines: string[] = []): Buffer {
+  const lines = [...contractPlainLines(contract), ...extraLines].flatMap((l) => wrapLine(l));
   const perPage = 48;
   const pages: string[][] = [];
   for (let i = 0; i < lines.length; i += perPage) pages.push(lines.slice(i, i + perPage));

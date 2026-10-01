@@ -26,6 +26,7 @@ import {
   quoteBookingMxn,
   retaxBookingMxn,
 } from "@/lib/booking-quote";
+import { paymentNoteLines } from "@/lib/host-payout-methods";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
 
 type PatchBody = {
@@ -127,7 +128,7 @@ export async function GET(
       accepted: Boolean(booking.contract.hostAcceptedAt && booking.contract.guestAcceptedAt),
       hostAcceptedAt: booking.contract.hostAcceptedAt,
       guestAcceptedAt: booking.contract.guestAcceptedAt,
-      lines: contractPlainLines(booking.contract),
+      lines: [...contractPlainLines(booking.contract), ...paymentNoteLines(booking)],
     });
   }
   const snapshot = buildContractSnapshot(booking);

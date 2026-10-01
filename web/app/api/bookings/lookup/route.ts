@@ -40,6 +40,9 @@ export async function GET(req: NextRequest) {
       listingSlug: effListing?.slug ?? listing?.slug,
       bookingApprovalMode: effListing?.bookingApprovalMode ?? listing?.bookingApprovalMode ?? "approval",
       paidAt: booking.paidAt,
+      stripePaid: Boolean(booking.stripeCheckoutSessionId),
+      payInstruction: booking.payInstruction ?? null,
+      payConfirmation: booking.payConfirmation ?? null,
       balanceDueMxn: bookingBalanceDueMxn(booking),
       paidStayMxn: booking.paidAt ? paidStayOf(booking) : 0,
       contract: booking.contract
