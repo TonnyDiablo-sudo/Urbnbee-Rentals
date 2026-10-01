@@ -2,11 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
-
-function embedUrl(lat: number, lng: number, span: number) {
-  const bbox = [lng - span, lat - span * 0.75, lng + span, lat + span * 0.75].join("%2C");
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lng}`;
-}
+import { PlaceMap } from "@/components/maps/place-map";
 
 export function ListingMap({ lat, lng }: { lat: number; lng: number }) {
   const t = useT();
@@ -26,15 +22,8 @@ export function ListingMap({ lat, lng }: { lat: number; lng: number }) {
 
   return (
     <>
-      <div className="relative h-52 overflow-hidden rounded-2xl border border-[#ebebeb]">
-        <iframe
-          title={t("Mapa aproximado")}
-          width="100%"
-          height="100%"
-          style={{ border: 0, pointerEvents: "none" }}
-          loading="lazy"
-          src={embedUrl(lat, lng, 0.02)}
-        />
+      <div className="relative h-64 overflow-hidden rounded-2xl border border-[#ebebeb]">
+        <PlaceMap lat={lat} lng={lng} zoom={15} interactive={false} />
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -63,12 +52,9 @@ export function ListingMap({ lat, lng }: { lat: number; lng: number }) {
             </button>
             <p className="text-base font-semibold text-[#222]">{t("Ubicación aproximada")}</p>
           </div>
-          <iframe
-            title={t("Mapa aproximado")}
-            className="w-full flex-1"
-            style={{ border: 0 }}
-            src={embedUrl(lat, lng, 0.05)}
-          />
+          <div className="min-h-0 flex-1">
+            <PlaceMap lat={lat} lng={lng} zoom={15} />
+          </div>
           <p
             className="px-4 pt-2 text-xs text-[#717171]"
             style={{ paddingBottom: "calc(10px + env(safe-area-inset-bottom))" }}

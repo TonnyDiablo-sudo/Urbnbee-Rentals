@@ -1,4 +1,5 @@
 import "server-only";
+import { matchesBrowseQuery } from "@/lib/browse-query";
 import { BROWSE_TITLES, getBrowseListings } from "@/lib/browse-merge";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { getListingById } from "@/lib/marketplace-store";
@@ -48,49 +49,46 @@ export function listingIsBookable(listingId: string): boolean {
   return Boolean(record?.published && hostAcceptsBookings(record.hostId));
 }
 
-function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
 export function appBrowseListings(opts: { tipo?: string; q?: string; verifiedOnly?: boolean }): AppListingCard[] {
   const all = browseCards(opts);
   return opts.verifiedOnly ? all.filter((c) => c.identityVerified) : all;
 }
 
 function browseCards(opts: { tipo?: string; q?: string }): AppListingCard[] {
-  const seen = new Set<string>();
-  const cards: AppListingCard[] = [];
-  for (const l of getBrowseListings(opts.tipo || undefined)) {
-    if (seen.has(l.id)) continue;
-    seen.add(l.id);
-    const detail = getListingDetail(l.slug);
-    const coords = mapCoords(detail?.lat, detail?.lng);
-    cards.push({
-      id: l.id,
-      slug: l.slug,
-      title: l.title,
-      imageSrc: l.imageSrc,
-      pricePerNight: l.pricePerNight,
-      rating: l.rating,
-      city: detail?.city ?? "",
-      zone: detail?.zone ?? "",
-      spaceType: l.spaceType,
-      guests: l.guests,
-      bedrooms: l.bedrooms,
-      verified: Boolean(l.verified),
-      identityVerified: Boolean(detail?.identityVerified ?? l.identityVerified),
-      bookable: listingIsBookable(l.id),
-      lat: coords?.lat ?? null,
-      lng: coords?.lng ?? null,
-    });
-  }
+  const q = opts.q?.trim() ?? "";
+  const build = (tipo?: string) => {
+    const seen = new Set<string>();
+    const cards: AppListingCard[] = [];
+    for (const l of getBrowseListings(tipo || undefined)) {
+      if (seen.has(l.id)) continue;
+      seen.add(l.id);
+      const detail = getListingDetail(l.slug);
+      const text = `${l.title} ${l.categoryLabel} ${l.spaceType} ${detail?.city ?? ""} ${detail?.zone ?? ""}`;
+      if (q && !matchesBrowseQuery(text, q)) continue;
+      const coords = mapCoords(detail?.lat, detail?.lng);
+      cards.push({
+        id: l.id,
+        slug: l.slug,
+        title: l.title,
+        imageSrc: l.imageSrc,
+        pricePerNight: l.pricePerNight,
+        rating: l.rating,
+        city: detail?.city ?? "",
+        zone: detail?.zone ?? "",
+        spaceType: l.spaceType,
+        guests: l.guests,
+        bedrooms: l.bedrooms,
+        verified: Boolean(l.verified),
+        identityVerified: Boolean(detail?.identityVerified ?? l.identityVerified),
+        bookable: listingIsBookable(l.id),
+        lat: coords?.lat ?? null,
+        lng: coords?.lng ?? null,
+      });
+    }
+    return cards;
+  };
 
-  const q = normalize(opts.q?.trim() ?? "");
-  if (!q) return cards;
-  return cards.filter((c) =>
-    normalize(`${c.title} ${c.city} ${c.zone} ${c.spaceType}`).includes(q)
-  );
+  const matched = build(opts.tipo);
+  if (q && opts.tipo && matched.length === 0) return build(undefined);
+  return matched;
 }

@@ -80,10 +80,9 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
         type="button"
         onClick={prev}
         aria-label={t("Anterior")}
-        className="absolute left-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full"
-        style={{ backgroundColor: "#dcb81e" }}
+        className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-[2px] transition hover:bg-white/35"
       >
-        <svg className="h-5 w-5 text-black" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
@@ -91,10 +90,9 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
         type="button"
         onClick={next}
         aria-label={t("Siguiente")}
-        className="absolute right-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full"
-        style={{ backgroundColor: "#dcb81e" }}
+        className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-[2px] transition hover:bg-white/35"
       >
-        <svg className="h-5 w-5 text-black" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       </button>
@@ -119,31 +117,32 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
       {/* Search bar */}
       <div className="absolute bottom-0 left-0 right-0 z-20">
         <div className="mx-auto max-w-3xl px-4 pb-6 sm:px-6">
-          <div className="flex overflow-hidden rounded shadow-lg">
+          <form action="/alojamientos" method="get" className="flex overflow-hidden rounded shadow-lg">
             <div className="flex flex-1 items-center gap-3 bg-white px-5 py-4">
               <svg className="h-4 w-4 shrink-0" style={{ color: "#dcb81e" }} fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
               </svg>
               <input
                 type="text"
+                name="q"
                 placeholder={t("Ubicación")}
                 className="w-full bg-transparent text-sm text-[#3a3a3a] outline-none placeholder:text-[#aaa]"
               />
             </div>
             <button
-              type="button"
+              type="submit"
               className="shrink-0 px-10 py-4 text-sm font-semibold text-black transition hover:brightness-90"
               style={{ backgroundColor: "#dcb81e" }}
             >
               {t("Buscar")}
             </button>
-          </div>
-          <button
-            type="button"
+          </form>
+          <a
+            href="/alojamientos"
             className="mt-2 block w-full text-center text-xs text-white/60 transition hover:text-white/90"
           >
             {t("Más opciones de búsqueda")}
-          </button>
+          </a>
         </div>
       </div>
 

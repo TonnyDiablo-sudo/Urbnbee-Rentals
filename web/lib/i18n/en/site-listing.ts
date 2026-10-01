@@ -166,6 +166,7 @@ export const siteListing: Record<string, string> = {
   "Error al conectar. Intenta más tarde.": "Connection error. Please try again later.",
   "¿En qué puedo ayudarte? 🐝": "How can I help? 🐝",
   "Asistente de Cabibee": "Cabibee assistant",
+  "Pregúntame": "Ask me",
   "¡Pregúntame! →": "Ask me! →",
   "🐝 Pregúntame": "🐝 Ask me",
   "Abrir el asistente de Cabibee": "Open the Cabibee assistant",

@@ -37,7 +37,6 @@ export default async function AppExplorePage({ searchParams }: Props) {
   const listings = appBrowseListings({ tipo, q, verifiedOnly });
   const hrefWith = (next: { tipo?: string; vista?: string; verif?: boolean }) => {
     const p = new URLSearchParams();
-    if (q) p.set("q", q);
     const nt = next.tipo ?? tipo;
     if (nt) p.set("tipo", nt);
     if (next.verif ?? verifiedOnly) p.set("verif", "1");
@@ -75,7 +74,6 @@ export default async function AppExplorePage({ searchParams }: Props) {
           </div>
         </div>
         <form action="/" className="relative">
-          {tipo && <input type="hidden" name="tipo" value={tipo} />}
           {mapView && <input type="hidden" name="vista" value="mapa" />}
           {verifiedOnly && <input type="hidden" name="verif" value="1" />}
           <IconSearch className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#222]" />

@@ -3,32 +3,51 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ListingCard } from "@/components/listing-card";
 import { LazySearchMap } from "@/components/search/search-map-lazy";
-import { appBrowseListings } from "@/lib/app-listings";
+import { matchesBrowseQuery } from "@/lib/browse-query";
 import { BROWSE_TITLES, getBrowseListings } from "@/lib/browse-merge";
+import { getListingDetail } from "@/lib/get-listing-detail";
 import { getT } from "@/lib/i18n/server";
+import type { Listing } from "@/lib/mock-data";
 
-type Props = { searchParams: Promise<{ tipo?: string; vista?: string }> };
+type Props = { searchParams: Promise<{ tipo?: string; vista?: string; q?: string }> };
+
+function matching(list: Listing[], q: string): Listing[] {
+  return list.filter((l) => {
+    const d = getListingDetail(l.slug);
+    return matchesBrowseQuery(`${l.title} ${l.categoryLabel} ${l.spaceType} ${d?.city ?? ""} ${d?.zone ?? ""}`, q);
+  });
+}
 
 export default async function AlojamientosPage({ searchParams }: Props) {
-  const { tipo, vista } = await searchParams;
+  const { tipo, vista, q = "" } = await searchParams;
   const t = await getT();
-  const items = getBrowseListings(tipo);
+  const query = q.trim();
+  let items = getBrowseListings(tipo);
+  if (query) {
+    items = matching(items, query);
+    if (tipo && items.length === 0) items = matching(getBrowseListings(undefined), query);
+  }
   const title = t((tipo && BROWSE_TITLES[tipo.toLowerCase()]) || "Alojamientos");
   const mapView = vista === "mapa";
-  const mapItems = appBrowseListings({ tipo })
-    .filter((l) => l.lat !== null && l.lng !== null)
-    .map((l) => ({
-      id: l.id,
-      href: `/listings/${l.slug}`,
-      title: l.title,
-      subtitle: [l.city, l.zone].filter(Boolean).join(", "),
-      imageSrc: l.imageSrc,
-      pricePerNight: l.pricePerNight,
-      rating: l.rating,
-      identityVerified: l.identityVerified,
-      lat: l.lat as number,
-      lng: l.lng as number,
-    }));
+  const mapItems = items.flatMap((l) => {
+    const d = getListingDetail(l.slug);
+    if (d?.lat == null || d.lng == null) return [];
+    if (Math.abs(d.lat) < 0.01 && Math.abs(d.lng) < 0.01) return [];
+    return [
+      {
+        id: l.id,
+        href: `/listings/${l.slug}`,
+        title: l.title,
+        subtitle: [d.city, d.zone].filter(Boolean).join(", "),
+        imageSrc: l.imageSrc,
+        pricePerNight: l.pricePerNight,
+        rating: l.rating,
+        identityVerified: Boolean(d.identityVerified ?? l.identityVerified),
+        lat: d.lat,
+        lng: d.lng,
+      },
+    ];
+  });
   const toggleHref = (() => {
     const p = new URLSearchParams();
     if (tipo) p.set("tipo", tipo);

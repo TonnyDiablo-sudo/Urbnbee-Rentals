@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap, Marker } from "leaflet";
 import { useT } from "@/components/i18n-provider";
+import { addCleanTiles } from "@/components/maps/clean-tiles";
 
 export type SearchMapItem = {
   id: string;
@@ -63,10 +64,7 @@ export function SearchMap({ items, height, bottomReserve = "0px", className = ""
       if (cancelled || !boxRef.current || mapRef.current) return;
       const map = L.map(boxRef.current, { zoomControl: false, attributionControl: true }).setView(MX_CENTER, 5);
       L.control.zoom({ position: "topright" }).addTo(map);
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
+      addCleanTiles(L, map);
       map.on("click", () => setSelected(null));
       mapRef.current = map;
       setReady(true);

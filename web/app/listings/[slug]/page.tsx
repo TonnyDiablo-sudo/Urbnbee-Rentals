@@ -9,6 +9,7 @@ import { ContactModal } from "@/components/listing/contact-modal";
 import { AvailabilityCalendar } from "@/components/listing/availability-calendar";
 import { ReviewsSection } from "@/components/listing/reviews-section";
 import { AiChatWidget } from "@/components/listing/ai-chat-widget";
+import { PlaceMap } from "@/components/maps/place-map";
 import { ListingHostChat } from "@/components/listing/listing-host-chat";
 import { listingIsBookable } from "@/lib/app-listings";
 import { discountRows } from "@/lib/listing-pricing";
@@ -248,14 +249,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                 <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Ubicación cercana (No exacta)")}</h2>
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <div className="overflow-hidden rounded" style={{ height: "300px", border: "1px solid #ebebeb" }}>
-                  <iframe
-                    title={t("Mapa de ubicación aproximada")}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${listing.lng - 0.02}%2C${listing.lat - 0.015}%2C${listing.lng + 0.02}%2C${listing.lat + 0.015}&layer=mapnik&marker=${listing.lat}%2C${listing.lng}`}
-                  />
+                  <PlaceMap lat={listing.lat} lng={listing.lng} zoom={15} />
                 </div>
                 <p className="mt-2 text-xs text-[#aaa]">
                   {t("La dirección exacta se proporciona tras confirmar la reserva.")}
