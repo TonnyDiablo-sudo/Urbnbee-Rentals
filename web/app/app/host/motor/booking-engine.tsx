@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
@@ -107,12 +108,8 @@ export function BookingEngine() {
         <Row label={t("Listón «Miembro verificado»")} value={data.ribbon ? t("Sí") : t("No")} />
       </dl>
 
-      <p className="text-sm leading-relaxed text-[#666]">
-        <WebLink path="/host/settings/pagos" className="font-medium underline">
-          {t("Conecta tu Stripe")}
-        </WebLink>{" "}
-        {t("para cobrar la estancia en tu cuenta. Si no lo haces, se sigue cobrando en Cabibee.")}
-      </p>
+      <StripeCard />
+
 
       {!data.identityVerified && data.identityEnabled && data.stripeConfigured && (
         <button
@@ -148,6 +145,60 @@ export function BookingEngine() {
       >
         {t("Detalle de la verificación en la web")}{" "}
       </WebLink>
+    </div>
+  );
+}
+
+type StripeState = {
+  connected: boolean;
+  account: { chargesEnabled: boolean; livemode: boolean; name: string | null; email: string | null } | null;
+};
+
+function StripeCard() {
+  const t = useT();
+  const [s, setS] = useState<StripeState | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/host/settings/payments", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => alive && j && setS(j as StripeState))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (!s) return null;
+  const ready = s.connected && s.account?.chargesEnabled && s.account.livemode;
+  if (ready) {
+    return (
+      <Link href="/host/pagos" className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <span>
+          <strong>{t("Stripe conectado")}</strong>
+          {s.account?.name || s.account?.email ? ` · ${s.account.name || s.account.email}` : ""}
+          <span className="block text-emerald-800/80">{t("Las estancias se cobran en tu cuenta.")}</span>
+        </span>
+        <span aria-hidden>›</span>
+      </Link>
+    );
+  }
+  return (
+    <div className="rounded-2xl border border-[#d9d6ff] bg-[#f5f4ff] p-4 text-sm text-[#2a2566]">
+      <p className="text-base font-semibold">
+        {s.connected ? t("Termina de activar tu Stripe") : t("Cobra la estancia en tu propia cuenta de Stripe")}
+      </p>
+      <p className="mt-1 leading-relaxed">
+        {s.connected
+          ? s.account && !s.account.livemode
+            ? t("Estás en modo prueba: los huéspedes no pueden pagar con tarjetas reales.")
+            : t("Stripe todavía no te deja cobrar. Completa tus datos y tu banco en Stripe.")
+          : t("Si no tienes cuenta, te ayudamos a crearla en unos minutos. Mientras tanto, el huésped paga a través de Cabibee.")}
+      </p>
+      <Link
+        href="/host/pagos"
+        className="mt-3 flex w-full items-center justify-center rounded-xl bg-[#635bff] py-3 text-[15px] font-semibold text-white"
+      >
+        {s.connected ? t("Revisar mi Stripe") : t("Conectar o crear cuenta de Stripe")}
+      </Link>
     </div>
   );
 }

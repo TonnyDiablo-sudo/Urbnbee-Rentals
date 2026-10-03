@@ -47,7 +47,7 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
           { href: "/notificaciones", label: t("Notificaciones") },
           { href: "/host/calendar", label: t("Calendario y precios por fecha"), web: true },
           { href: "/host/requests", label: t("Depósitos y reseñas de huéspedes"), web: true },
-          { href: "/host/settings/pagos", label: t("Pagos de la estancia (tu Stripe)"), web: true },
+          { href: "/host/pagos", label: t("Pagos de la estancia (tu Stripe)"), hint: t("Conecta o crea tu cuenta de Stripe para cobrar") },
           { href: "/host/settings/integrations", label: t("BeeAgent e integraciones"), web: true },
           { href: "/host/dashboard", label: t("Panel completo de anfitrión"), web: true },
           { href: "/como-funciona", label: t("Qué es Cabibee y cómo funciona") },

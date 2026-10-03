@@ -102,6 +102,7 @@ export function getHostPaymentPublic(hostId: string): HostPaymentPublicView {
     lastVerifiedAt: r?.lastVerifiedAt ?? null,
     lastError: r?.lastError ?? null,
     webhookPath: hostPaymentsWebhookPath(hostId),
+    webhookAuto: Boolean(r && getHostPaymentSecrets(hostId)?.webhookEndpointId),
     cryptoReady: hostPaymentCryptoReady(),
   };
 }
@@ -116,6 +117,7 @@ export function getHostPaymentSecrets(hostId: string): HostPaymentSecrets | unde
     return {
       stripeSecretKey: parsed.stripeSecretKey.trim(),
       webhookSecret: parsed.webhookSecret?.trim() ?? "",
+      webhookEndpointId: parsed.webhookEndpointId || undefined,
     };
   } catch (e) {
     console.warn("[host-payment] decrypt", hostId, e instanceof Error ? e.message : e);
@@ -132,6 +134,7 @@ export function saveHostPaymentSecrets(
     JSON.stringify({
       stripeSecretKey: secrets.stripeSecretKey.trim(),
       webhookSecret: secrets.webhookSecret.trim(),
+      ...(secrets.webhookEndpointId ? { webhookEndpointId: secrets.webhookEndpointId } : {}),
     })
   );
   rows.set(hostId, {

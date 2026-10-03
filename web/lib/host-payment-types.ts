@@ -1,6 +1,8 @@
 export type HostPaymentSecrets = {
   stripeSecretKey: string;
   webhookSecret: string;
+  /** Set when Cabibee created the endpoint itself in the host's Stripe. */
+  webhookEndpointId?: string;
 };
 
 export type HostPaymentPublicView = {
@@ -9,6 +11,7 @@ export type HostPaymentPublicView = {
   lastVerifiedAt: string | null;
   lastError: string | null;
   webhookPath: string;
+  webhookAuto: boolean;
   cryptoReady: boolean;
 };
 
