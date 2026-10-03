@@ -86,12 +86,22 @@ export function webListingsBySlug(): Map<string, Listing> {
   return out;
 }
 
-/** Rango de precios por noche, para los atajos del filtro. */
-export function appPriceRange(): { min: number; max: number } {
+export type PriceRange = { min: number; max: number; histogram: number[] };
+
+const HISTOGRAM_BARS = 30;
+
+/** Rango de precios por noche y cuántos anuncios caen en cada tramo, para la barra del filtro. */
+export function appPriceRange(): PriceRange {
   const prices = browseCards({})
     .map((c) => c.pricePerNight)
     .filter((n) => n > 0);
-  return prices.length ? { min: Math.min(...prices), max: Math.max(...prices) } : { min: 0, max: 0 };
+  if (!prices.length) return { min: 0, max: 0, histogram: [] };
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const histogram = new Array<number>(HISTOGRAM_BARS).fill(0);
+  const span = Math.max(1, max - min);
+  for (const p of prices) histogram[Math.min(HISTOGRAM_BARS - 1, Math.floor(((p - min) / span) * HISTOGRAM_BARS))]++;
+  return { min, max, histogram };
 }
 
 function browseCards(opts: { tipo?: string; q?: string }): AppListingCard[] {

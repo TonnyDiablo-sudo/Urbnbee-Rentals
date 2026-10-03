@@ -53,6 +53,7 @@ export default async function AlojamientosPage({ searchParams }: Props) {
         amenities: d?.amenities ?? [],
         bookable: listingIsBookable(l.id),
         locationVerified: Boolean(d?.locationVerified ?? l.locationVerified),
+        rating: l.rating,
       },
       filters
     );

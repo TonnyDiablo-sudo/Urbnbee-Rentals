@@ -8,13 +8,13 @@ import {
   AMENITY_FILTERS,
   type BrowseFilters,
   EMPTY_FILTERS,
+  RATING_STEPS,
   activeFilterCount,
   parseBrowseFilters,
   writeBrowseFilters,
 } from "@/lib/browse-filters";
 import { numberLocale } from "@/lib/i18n";
-
-const PRICE_CAPS = [800, 1500, 2500, 4000];
+import { PriceRangeSlider } from "./price-range-slider";
 
 function Stepper({ label, value, max, onChange }: { label: string; value?: number; max: number; onChange: (n?: number) => void }) {
   const t = useT();
@@ -57,7 +57,7 @@ export function FilterButton({
   basePath: string;
   /** Parámetros actuales de la búsqueda (q, tipo, vista, verif y filtros). */
   params: Record<string, string>;
-  priceRange: { min: number; max: number };
+  priceRange: { min: number; max: number; histogram: number[] };
   className?: string;
 }) {
   const t = useT();
@@ -172,8 +172,22 @@ export function FilterButton({
                 <h3 className="text-lg font-semibold text-[#222]">{t("Precio por noche")}</h3>
                 {priceRange.max > 0 && (
                   <p className="mt-0.5 text-[13px] text-[#717171]">
-                    {t("Van de {min} a {max} MXN", { min: money(priceRange.min), max: money(priceRange.max) })}
+                    {t("Desliza las barras o escribe el precio. Van de {min} a {max} MXN.", {
+                      min: money(priceRange.min),
+                      max: money(priceRange.max),
+                    })}
                   </p>
+                )}
+                {priceRange.max > priceRange.min && (
+                  <div className="-mx-4 mt-4">
+                    <PriceRangeSlider
+                      range={priceRange}
+                      lo={f.min}
+                      hi={f.max}
+                      onChange={(min, max) => set({ min, max })}
+                      label={{ min: t("Precio mínimo"), max: t("Precio máximo") }}
+                    />
+                  </div>
                 )}
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <label className="rounded-xl border border-[#bbb] px-3 py-2">
@@ -192,24 +206,40 @@ export function FilterButton({
                       inputMode="numeric"
                       value={f.max ?? ""}
                       onChange={(e) => set({ max: priceNumber(e.target.value) })}
-                      placeholder={t("Sin tope")}
+                      placeholder={priceRange.max > 0 ? `${money(priceRange.max)}+` : t("Sin tope")}
                       className="w-full bg-transparent text-[15px] text-[#222] outline-none"
                     />
                   </label>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {PRICE_CAPS.map((cap) => (
-                    <button
-                      key={cap}
-                      type="button"
-                      onClick={() => set({ max: f.max === cap ? undefined : cap })}
-                      className={`rounded-full border px-3 py-1.5 text-[13px] ${
-                        f.max === cap ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#222]"
-                      }`}
-                    >
-                      {t("Hasta {n}", { n: money(cap) })}
-                    </button>
-                  ))}
+              </section>
+
+              <section className="py-5">
+                <h3 className="text-lg font-semibold text-[#222]">{t("Calificación")}</h3>
+                <p className="mt-0.5 text-[13px] text-[#717171]">{t("Promedio de estrellas que dejaron los huéspedes.")}</p>
+                <div className="mt-3 grid grid-cols-5 overflow-hidden rounded-xl border border-[#ddd] text-sm">
+                  {[undefined, ...RATING_STEPS].map((stars) => {
+                    const on = f.minRating === stars;
+                    return (
+                      <button
+                        key={stars ?? "any"}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => set({ minRating: stars })}
+                        className={`border-l border-[#ddd] px-1 py-3 first:border-l-0 ${on ? "bg-[#222] font-semibold text-white" : "text-[#222]"}`}
+                      >
+                        {stars === undefined ? (
+                          t("Todas")
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5">
+                            <span className={on ? "text-[#f4d65c]" : "text-[#dcb81e]"} aria-hidden>
+                              ★
+                            </span>
+                            {stars === 5 ? "5" : `${stars.toLocaleString(numberLocale(lang))}+`}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
 

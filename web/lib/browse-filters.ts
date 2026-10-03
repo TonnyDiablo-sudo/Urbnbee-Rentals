@@ -13,7 +13,11 @@ export type BrowseFilters = {
   bookable: boolean;
   /** Sólo con comprobante de domicilio revisado. */
   locationVerified: boolean;
+  /** Promedio mínimo de estrellas de las reseñas. */
+  minRating?: number;
 };
+
+export const RATING_STEPS = [3, 4, 4.5, 5] as const;
 
 /** Comodidades que se pueden buscar. Cada una reconoce los nombres con que la escriben los anfitriones. */
 export const AMENITY_FILTERS: { key: string; label: string; match: RegExp }[] = [
@@ -58,7 +62,9 @@ export function parseBrowseFilters(raw: Raw): BrowseFilters {
   let min = positiveInt(raw.min, 1_000_000);
   let max = positiveInt(raw.max, 1_000_000);
   if (min && max && min > max) [min, max] = [max, min];
+  const stars = Number(first(raw.estrellas));
   return {
+    minRating: (RATING_STEPS as readonly number[]).includes(stars) ? stars : undefined,
     min,
     max,
     guests: positiveInt(raw.huespedes, 16),
@@ -72,7 +78,7 @@ export function parseBrowseFilters(raw: Raw): BrowseFilters {
 
 /** Escribe los filtros en la URL (sin tocar q, tipo, vista ni verif). */
 export function writeBrowseFilters(f: BrowseFilters, p: URLSearchParams): URLSearchParams {
-  for (const k of ["min", "max", "huespedes", "recamaras", "espacio", "am", "reserva", "ubicacion"]) p.delete(k);
+  for (const k of ["min", "max", "huespedes", "recamaras", "espacio", "am", "reserva", "ubicacion", "estrellas"]) p.delete(k);
   if (f.min) p.set("min", String(f.min));
   if (f.max) p.set("max", String(f.max));
   if (f.guests) p.set("huespedes", String(f.guests));
@@ -81,6 +87,7 @@ export function writeBrowseFilters(f: BrowseFilters, p: URLSearchParams): URLSea
   if (f.amenities.length) p.set("am", f.amenities.join(","));
   if (f.bookable) p.set("reserva", "1");
   if (f.locationVerified) p.set("ubicacion", "1");
+  if (f.minRating) p.set("estrellas", String(f.minRating));
   return p;
 }
 
@@ -92,7 +99,8 @@ export function activeFilterCount(f: BrowseFilters): number {
     (f.space ? 1 : 0) +
     f.amenities.length +
     (f.bookable ? 1 : 0) +
-    (f.locationVerified ? 1 : 0)
+    (f.locationVerified ? 1 : 0) +
+    (f.minRating ? 1 : 0)
   );
 }
 
@@ -104,9 +112,12 @@ export type FilterableListing = {
   amenities: string[];
   bookable: boolean;
   locationVerified: boolean;
+  /** 0 si todavía no tiene reseñas. */
+  rating: number;
 };
 
 export function matchesBrowseFilters(l: FilterableListing, f: BrowseFilters): boolean {
+  if (f.minRating && !(l.rating >= f.minRating)) return false;
   if (f.min && l.pricePerNight < f.min) return false;
   if (f.max && l.pricePerNight > f.max) return false;
   if (f.guests && l.guests < f.guests) return false;
