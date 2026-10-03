@@ -44,6 +44,14 @@ export const appHelpLegal: Record<string, string> = {
   "Leí el contrato completo y acepto que es un contrato entre mis huéspedes y yo: yo soy responsable de su contenido y de cumplirlo. Cabibee sólo me da la herramienta para prepararlo y firmarlo, y no es parte del contrato.":
     "I have read the full contract and accept that it is a contract between my guests and me: I am responsible for its content and for honoring it. Cabibee only provides the tool to prepare and sign it, and is not a party to the contract.",
 
+  // Pagos sólo en línea
+  "Esperando el pago en línea del huésped. La reserva se confirma sola cuando paga con tarjeta.":
+    "Waiting for the guest's online payment. The booking confirms itself once they pay by card.",
+  "Los pagos del motor de reservas son sólo en línea, con tarjeta. Si no conectas tu Stripe, el huésped paga con Stripe a través de Cabibee y la reserva se confirma sola al pagar.":
+    "Booking engine payments are online only, by card. If you don't connect your Stripe, the guest pays with Stripe through Cabibee and the booking confirms itself once paid.",
+  "Tus huéspedes reservan y pagan en línea con tarjeta (Stripe) y la reserva se confirma sola al pagar.":
+    "Your guests book and pay online by card (Stripe), and the booking confirms itself once paid.",
+
   // Términos de uso
   "Términos y condiciones": "Terms and conditions",
   "Términos y condiciones de uso": "Terms of Use",
@@ -150,8 +158,8 @@ export const appHelpLegal: Record<string, string> = {
   "Abre el anuncio y revisa fotos, reglas, precio total y etiquetas.": "Open the listing and check photos, rules, total price and tags.",
   "Escríbele al anfitrión si tienes dudas. Desconfía de quien te pida salir de la plataforma para pagar.":
     "Message the host if you have questions. Be wary of anyone who asks you to leave the platform to pay.",
-  "Si tiene «Reserva protegida en Cabibee», reserva y paga en línea. Si no, acuerda directo con el anfitrión y pide un contrato.":
-    "If it shows \"Protected booking on Cabibee\", book and pay online. If not, agree directly with the host and ask for a contract.",
+  "Si tiene «Reserva protegida por contrato», reserva y paga en línea. Si no, acuerda directo con el anfitrión y pide un contrato.":
+    "If it shows \"Protected booking by contract\", book and pay online. If not, agree directly with the host and ask for a contract.",
   "Lee el contrato completo antes de firmar: fechas, depósito, cancelación y reglas.":
     "Read the full contract before signing: dates, deposit, cancellation and rules.",
   "Al llegar, toma fotos del lugar. Te ayudan si hay un desacuerdo con el depósito.":
@@ -168,8 +176,8 @@ export const appHelpLegal: Record<string, string> = {
   "Las etiquetas ayudan, pero no son garantía. Usa tu criterio y lee siempre el contrato.":
     "Tags help, but they're not a guarantee. Use your judgment and always read the contract.",
   "Por qué es mejor reservar con motor de reservas de Cabibee": "Why it's better to book with the Cabibee booking engine",
-  "Los anuncios con «Reserva protegida en Cabibee» te dan más respaldo que un trato sólo por mensajes:":
-    "Listings with \"Protected booking on Cabibee\" give you more backing than a deal made only through messages:",
+  "Los anuncios con «Reserva protegida por contrato» te dan más respaldo que un trato sólo por mensajes:":
+    "Listings with \"Protected booking by contract\" give you more backing than a deal made only through messages:",
   "Verifícate tú también": "Get verified too",
   "Los anfitriones confían más en huéspedes con identidad verificada, y algunos sólo aceptan reservas así.":
     "Hosts trust guests with a verified identity more, and some only accept bookings that way.",

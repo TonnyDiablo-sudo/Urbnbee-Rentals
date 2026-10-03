@@ -97,7 +97,7 @@ export default async function AppListingPage({ params }: Props) {
           )}
           {bookable && (
             <span className="rounded-full bg-[#111] px-3 py-1 text-xs font-semibold text-white">
-              {t("Reserva protegida en Cabibee")}
+              {t("Reserva protegida por contrato")}
             </span>
           )}
         </div>

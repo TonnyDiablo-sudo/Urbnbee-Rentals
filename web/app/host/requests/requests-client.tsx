@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { HostManualPay } from "@/components/booking/manual-pay";
+import { HostPayStatus } from "@/components/booking/pay-status";
 import { BookingDepositPanel } from "@/components/booking-deposit-panel";
 import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
 import { BookingReviewPanel } from "@/components/booking-review-panel";
@@ -164,15 +164,13 @@ export function HostRequestsClient() {
                       </span>
                     )}
                   </p>
-                  <HostManualPay
+                  <HostPayStatus
                     bookingId={b.id}
                     status={b.status}
                     paidAt={b.paidAt}
                     stripePaid={Boolean(b.stripeCheckoutSessionId)}
-                    payInstruction={b.payInstruction}
                     payConfirmation={b.payConfirmation}
                     payProof={b.payProof}
-                    onChanged={() => void load()}
                   />
                   <p className="mt-2 text-xs text-[#aaa]">
                     {t("Código huésped:")} <span className="font-mono tracking-wide">{b.token}</span>
@@ -207,11 +205,7 @@ export function HostRequestsClient() {
                     color: "#484848",
                   }}
                 >
-                  {t(
-                    b.payProof && !b.paidAt && b.payConfirmation?.by !== "host"
-                      ? "Pendiente de aprobar"
-                      : (statusLabel[b.status] ?? b.status)
-                  )}
+                  {t(statusLabel[b.status] ?? b.status)}
                 </span>
               </div>
 

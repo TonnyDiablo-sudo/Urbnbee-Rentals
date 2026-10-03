@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { GuestPayNote } from "@/components/booking/manual-pay";
+import { GuestPayNote } from "@/components/booking/pay-status";
 import { BookingDepositPanel } from "@/components/booking-deposit-panel";
 import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
 import { BookingReviewPanel } from "@/components/booking-review-panel";
@@ -126,11 +126,7 @@ export default function GuestBookingsPage() {
                 )}
               </div>
               <span className="rounded-full bg-[#f5f5f5] px-3 py-1 text-xs font-semibold text-[#484848]">
-                {t(
-                  b.payProof && !b.paidAt && b.payConfirmation?.by !== "host"
-                    ? "Pendiente de aprobar"
-                    : labels[b.status] ?? b.status
-                )}
+                {t(labels[b.status] ?? b.status)}
               </span>
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
@@ -170,15 +166,13 @@ export default function GuestBookingsPage() {
                 {t("Ver reserva")}
               </Link>
             </div>
-            {(b.payInstruction || b.payConfirmation || b.payProof) && (
+            {(b.payConfirmation || b.paidAt) && (
               <GuestPayNote
                 bookingId={b.id}
-                payInstruction={b.payInstruction}
                 payConfirmation={b.payConfirmation}
                 payProof={b.payProof}
                 paidAt={b.paidAt}
                 stripePaid={Boolean(b.stripeCheckoutSessionId) || b.payConfirmation?.by === "stripe"}
-                onUploaded={() => void load()}
               />
             )}
             <BookingScreeningPanel

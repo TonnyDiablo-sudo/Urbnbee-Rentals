@@ -265,7 +265,7 @@ export function FilterButton({
               <section className="space-y-1 py-4">
                 {(
                   [
-                    [f.bookable, () => set({ bookable: !f.bookable }), "Reserva en Cabibee", "Reservas y pagas aquí, con contrato."],
+                    [f.bookable, () => set({ bookable: !f.bookable }), "Reserva protegida por contrato", "Reservas y pagas aquí, con contrato."],
                     [verif, () => setVerif(!verif), "Anfitrión verificado", "Comprobó su identidad con Cabibee."],
                   ] as const
                 ).map(([on, toggle, label, hint]) => (

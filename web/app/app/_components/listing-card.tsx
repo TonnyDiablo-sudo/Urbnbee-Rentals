@@ -42,7 +42,7 @@ export function AppListingCardView({
           ) : null}
           {l.bookable && (
             <span className="rounded-full bg-[#dcb81e] px-2.5 py-1 text-[11px] font-semibold text-black shadow">
-              {t("Reserva en Cabibee")}
+              {t("Reserva protegida por contrato")}
             </span>
           )}
         </div>

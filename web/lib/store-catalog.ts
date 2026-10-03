@@ -34,7 +34,7 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
   ],
   booking_engine: [
     "Se paga por anuncio: eliges qué anuncios lo usan.",
-    "Tus huéspedes reservan y pagan en línea: Stripe a tu cuenta o pago manual (transferencia, CLABE, Zelle).",
+    "Tus huéspedes reservan y pagan en línea con tarjeta (Stripe) y la reserva se confirma sola al pagar.",
     "Contrato entre tú y tu huésped, firmado en línea y adaptado a la ley de tu estado y ciudad.",
     "Verificación de domicilio del anuncio incluida.",
     "Bloqueo automático de fechas y calendario.",

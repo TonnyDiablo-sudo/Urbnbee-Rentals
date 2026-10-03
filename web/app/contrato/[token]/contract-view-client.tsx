@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { GuestPayNote } from "@/components/booking/manual-pay";
+import { GuestPayNote } from "@/components/booking/pay-status";
 import { useT } from "@/components/i18n-provider";
-import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
+import type { PayConfirmation, PayProof } from "@/lib/booking-types";
 
 type Lookup = {
   id: string;
@@ -14,10 +14,8 @@ type Lookup = {
   listingTitle?: string;
   paidAt?: string | null;
   stripePaid?: boolean;
-  payInstruction?: PayInstruction | null;
   payConfirmation?: PayConfirmation | null;
   payProof?: PayProof | null;
-  canUploadProof?: boolean;
   contract?: {
     generated: boolean;
     accepted: boolean;
@@ -177,13 +175,10 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
 
       <GuestPayNote
         bookingId={row.id}
-        payInstruction={row.payInstruction}
         payConfirmation={row.payConfirmation}
         payProof={row.payProof}
         paidAt={row.paidAt}
         stripePaid={row.stripePaid || row.payConfirmation?.by === "stripe"}
-        canUpload={row.canUploadProof}
-        onUploaded={() => void load()}
       />
 
       {wantPay && needsGuestSign && (

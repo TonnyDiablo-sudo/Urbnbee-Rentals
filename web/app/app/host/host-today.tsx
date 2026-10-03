@@ -15,7 +15,6 @@ import {
   addDays,
   isConfirmed,
   isPending,
-  proofAwaitingHost,
   stayOf,
   todayIso,
   useHostBookings,
@@ -85,7 +84,7 @@ export function HostToday() {
 
   const today = todayIso();
   const soon = addDays(today, 3);
-  const pending = bookings.filter((b) => isPending(b.status) || proofAwaitingHost(b));
+  const pending = bookings.filter((b) => isPending(b.status));
   const confirmed = bookings
     .filter((b) => isConfirmed(b.status))
     .sort((a, b) => stayOf(a).checkIn.localeCompare(stayOf(b).checkIn));
@@ -150,16 +149,6 @@ export function HostToday() {
                 <button type="button" onClick={() => setOpened(b)} className="block w-full text-left">
                   <BookingSummary b={b} />
                 </button>
-                {proofAwaitingHost(b) ? (
-                  <button
-                    type="button"
-                    onClick={() => setOpened(b)}
-                    className="mt-3 flex w-full flex-col items-center rounded-2xl bg-[#dcb81e] px-4 py-4 text-black"
-                  >
-                    <span className="text-base font-semibold">{t("Revisar comprobante")}</span>
-                    <span className="mt-0.5 text-sm font-medium">{t("Ver la imagen del pago")}</span>
-                  </button>
-                ) : (
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -176,7 +165,6 @@ export function HostToday() {
                     {t("Revisar y aceptar")}
                   </button>
                 </div>
-                )}
               </li>
             ))}
           </ul>
@@ -266,7 +254,6 @@ function BookingSummary({ b }: { b: Booking }) {
         {fmtDay(b.hostAdjustedCheckIn ?? b.checkIn, lang)} – {fmtDay(b.hostAdjustedCheckOut ?? b.checkOut, lang)} · {b.nights}{" "}
         {b.nights === 1 ? t("noche") : t("noches")} · {fmtMxn(b.estimatedTotalMxn)}
         {b.paidAt ? ` · ${t("pagado")}` : ""}
-        {b.payProof && !b.paidAt ? ` · ${t("Subió el comprobante")}` : ""}
       </p>
     </>
   );

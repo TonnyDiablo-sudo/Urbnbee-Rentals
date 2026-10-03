@@ -175,8 +175,6 @@ export const siteHost: Record<string, string> = {
   "Llave …{last4}": "Key …{last4}",
   "verificada {date}": "verified {date}",
   Desconectar: "Disconnect",
-  "Si no conectas Stripe, envía tu CLABE, Zelle, Cash App u Oxxo para que el huésped te pague directo.":
-    "If you don't connect Stripe, send your CLABE, Zelle, Cash App, or Oxxo so the guest pays you directly.",
   "Webhook en tu Dashboard de Stripe": "Webhook in your Stripe Dashboard",
   "Eventos:": "Events:",
   y: "and",

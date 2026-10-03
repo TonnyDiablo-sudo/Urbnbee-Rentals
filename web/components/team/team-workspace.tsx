@@ -30,8 +30,6 @@ type Booking = {
   nights: number;
   effectiveListingTitle?: string;
   listingTitle: string;
-  payInstruction?: unknown;
-  payProof?: unknown;
   paidAt?: string;
   contract?: { hostAcceptedAt?: string } | null;
 };
@@ -100,7 +98,6 @@ function BookingsBlock({ hostId, canSign }: { hostId: string; canSign: boolean }
         <ul className="mt-2 space-y-2">
           {open.map((b) => {
             const pendingHost = b.status === "PENDING" || b.status === "PENDING_HOST";
-            const proofToCheck = b.status === "AWAITING_PAYMENT" && Boolean(b.payInstruction && b.payProof) && !b.paidAt;
             const toSign = canSign && !pendingHost && Boolean(b.contract) && !b.contract?.hostAcceptedAt;
             return (
               <li key={b.id} className="rounded-xl border border-[#e5e5e5] p-3">
@@ -113,14 +110,12 @@ function BookingsBlock({ hostId, canSign }: { hostId: string; canSign: boolean }
                   {pendingHost
                     ? t("Esperando que la aceptes")
                     : b.status === "AWAITING_PAYMENT"
-                      ? proofToCheck
-                        ? t("Revisar comprobante de pago")
-                        : t("Esperando pago")
+                      ? t("Esperando pago")
                       : b.status === "AWAITING_DETAILS"
                         ? t("Esperando datos del huésped")
                         : t("Confirmada")}
                 </p>
-                {(pendingHost || proofToCheck || toSign) && (
+                {(pendingHost || toSign) && (
                   <div className="mt-2 flex gap-2">
                     {pendingHost && (
                       <>
@@ -156,19 +151,6 @@ function BookingsBlock({ hostId, canSign }: { hostId: string; canSign: boolean }
                         className="rounded-lg border border-[#222] px-3 py-1.5 text-sm font-semibold text-[#222] disabled:opacity-50"
                       >
                         {t("Firmar contrato")}
-                      </button>
-                    )}
-                    {proofToCheck && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          if (confirm(t("¿Ya verificaste que el dinero llegó a la cuenta del anfitrión?")))
-                            void act(`/api/host/bookings/${b.id}/pay`, { action: "confirm" });
-                        }}
-                        className="rounded-lg bg-[#222] px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
-                      >
-                        {t("Confirmar pago")}
                       </button>
                     )}
                   </div>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { GuestPayNote } from "@/components/booking/manual-pay";
+import { GuestPayNote } from "@/components/booking/pay-status";
 import { PayDifference } from "@/components/booking/pay-difference";
 import { useLang, useT } from "@/components/i18n-provider";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
@@ -183,15 +183,13 @@ export function TripsList() {
                     </WebLink>
                   </div>
                 )}
-                {(trip.payInstruction || trip.payConfirmation || trip.paidAt) && (
+                {(trip.payConfirmation || trip.paidAt) && (
                   <GuestPayNote
                     bookingId={trip.id}
-                    payInstruction={trip.payInstruction}
                     payConfirmation={trip.payConfirmation}
                     payProof={trip.payProof}
                     paidAt={trip.paidAt}
                     stripePaid={Boolean(trip.stripeCheckoutSessionId) || trip.payConfirmation?.by === "stripe"}
-                    onUploaded={() => void load()}
                   />
                 )}
                 {(trip.balanceDueMxn ?? 0) > 0 && (

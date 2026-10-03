@@ -20,7 +20,7 @@ const TAGS = [
     text: "Comprobamos con documentos que la dirección existe y que el anfitrión es dueño o administra la propiedad.",
   },
   {
-    label: "Reserva protegida en Cabibee",
+    label: "Reserva protegida por contrato",
     cls: "bg-[#111] text-white",
     text: "El anuncio usa el motor de reservas: pagas en línea, firmas el contrato y todo queda registrado.",
   },
@@ -47,7 +47,7 @@ const STEPS = [
   "Busca por zona y fechas. Usa los filtros para precio y amenidades.",
   "Abre el anuncio y revisa fotos, reglas, precio total y etiquetas.",
   "Escríbele al anfitrión si tienes dudas. Desconfía de quien te pida salir de la plataforma para pagar.",
-  "Si tiene «Reserva protegida en Cabibee», reserva y paga en línea. Si no, acuerda directo con el anfitrión y pide un contrato.",
+  "Si tiene «Reserva protegida por contrato», reserva y paga en línea. Si no, acuerda directo con el anfitrión y pide un contrato.",
   "Lee el contrato completo antes de firmar: fechas, depósito, cancelación y reglas.",
   "Al llegar, toma fotos del lugar. Te ayudan si hay un desacuerdo con el depósito.",
 ];
@@ -100,7 +100,7 @@ export function HowToBook({ exploreHref, membershipHref }: { exploreHref: string
       <section className="mt-10">
         <h2 className="text-xl font-semibold">{t("Por qué es mejor reservar con motor de reservas de Cabibee")}</h2>
         <p className="mt-1.5 text-[15px] leading-relaxed text-[#555]">
-          {t("Los anuncios con «Reserva protegida en Cabibee» te dan más respaldo que un trato sólo por mensajes:")}
+          {t("Los anuncios con «Reserva protegida por contrato» te dan más respaldo que un trato sólo por mensajes:")}
         </p>
         <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
           {ENGINE.map((e) => (

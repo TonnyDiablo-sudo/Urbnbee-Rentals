@@ -52,7 +52,6 @@ export const common: Record<string, string> = {
   "✓ Miembro verificado": "✓ Verified member",
   "Miembro verificado": "Verified member",
   "Anfitrión no verificado": "Unverified host",
-  "Reserva en Cabibee": "Book on Cabibee",
   Anfitrión: "Host",
   Huésped: "Guest",
   Mensajes: "Messages",

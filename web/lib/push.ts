@@ -147,44 +147,6 @@ export function notifyGuestHostReply(p: { listingId: string; guestSessionId: str
   });
 }
 
-export function notifyGuestPayInstructions(booking: BookingRecord): void {
-  if (!booking.guestUserId) return;
-  notifyUser(booking.guestUserId, {
-    kind: "request",
-    title: "Datos para pagar tu reserva",
-    body: "{listing}: el anfitrión te envió cómo pagarle.",
-    vars: { listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId) },
-    url: "/viajes",
-    tag: `pay:${booking.id}`,
-  });
-}
-
-export function notifyHostPayProof(booking: BookingRecord): void {
-  notifyUser(booking.hostId, {
-    kind: "request",
-    title: "Comprobante de pago",
-    body: "{name} subió el comprobante de {listing}. Revísalo y confirma el pago.",
-    vars: {
-      name: booking.guestName,
-      listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId),
-    },
-    url: "/host",
-    tag: `proof:${booking.id}`,
-  });
-}
-
-export function notifyGuestPaymentConfirmed(booking: BookingRecord): void {
-  if (!booking.guestUserId) return;
-  notifyUser(booking.guestUserId, {
-    kind: "booking",
-    title: "El anfitrión confirmó tu pago",
-    body: "{listing}: ya aparece como pagada para los dos.",
-    vars: { listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId) },
-    url: "/viajes",
-    tag: `paid:${booking.id}`,
-  });
-}
-
 export function notifyHostBookingPaid(booking: BookingRecord): void {
   const instant = booking.status === "AWAITING_DETAILS" || booking.status === "CONFIRMED";
   notifyUser(booking.hostId, {

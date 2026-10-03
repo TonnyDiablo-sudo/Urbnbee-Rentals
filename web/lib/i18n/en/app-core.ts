@@ -18,7 +18,7 @@ export const appCore: Record<string, string> = {
   Alojamiento: "Stay",
   "Este anfitrión todavía no sube fotos": "This host hasn't uploaded photos yet",
   "Ver foto {n} de {total}": "View photo {n} of {total}",
-  "Reserva protegida en Cabibee": "Protected booking on Cabibee",
+  "Reserva protegida por contrato": "Protected booking by contract",
   "Anfitrión: {name}": "Hosted by {name}",
   "Este anfitrión todavía no recibe reservas dentro de Cabibee. Puedes escribirle por el chat o ver sus datos de contacto y acordar directamente.":
     "This host doesn't take bookings on Cabibee yet. You can message them in the chat or see their contact details and arrange directly.",

@@ -58,10 +58,6 @@ export function stayOf(b: HostBooking) {
 
 export const isPending = (s: string) => s === "PENDING" || s === "PENDING_HOST";
 
-/** Pago manual con comprobante, esperando que el anfitrión lo apruebe. */
-export function proofAwaitingHost(b: { status: string; paidAt?: string; payProof?: unknown; payConfirmation?: { by?: string } | null }) {
-  return b.status === "AWAITING_PAYMENT" && Boolean(b.payProof) && !b.paidAt && b.payConfirmation?.by !== "host";
-}
 export const isConfirmed = (s: string) => s === "CONFIRMED" || s === "AWAITING_DETAILS";
 
 /** Mismo criterio que el servidor: estas reservas ocupan noches en el calendario. */

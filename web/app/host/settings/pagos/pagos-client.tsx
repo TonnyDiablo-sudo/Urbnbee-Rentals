@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
-import { PayoutMethodsForm } from "./payout-methods-form";
 
 type Status = {
   connected: boolean;
@@ -127,7 +126,7 @@ export function HostPagosClient() {
         </section>
       ) : (
         <p className="rounded-lg border border-[#ebebeb] bg-[#fafafa] px-4 py-3 text-sm text-[#555]">
-          {t("Si no conectas Stripe, envía tu CLABE, Zelle, Cash App u Oxxo para que el huésped te pague directo.")}
+          {t("Los pagos del motor de reservas son sólo en línea, con tarjeta. Si no conectas tu Stripe, el huésped paga con Stripe a través de Cabibee y la reserva se confirma sola al pagar.")}
         </p>
       )}
 
@@ -180,7 +179,6 @@ export function HostPagosClient() {
         </button>
       </section>
 
-      <PayoutMethodsForm />
     </div>
   );
 }

@@ -45,7 +45,7 @@ const FAMILY_COPY: Record<MembershipPlanFamily, { label: string; description: st
   booking_engine: {
     label: "Motor de reservas",
     description:
-      "Por cada anuncio: reservas en línea con cobro por Stripe o pago manual (transferencia, CLABE, Zelle), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
+      "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
   },
   cleaning_tool: {
     label: "Herramienta de limpieza",
@@ -159,6 +159,21 @@ function mergeIdentityPlansOnce(): boolean {
   return true;
 }
 
+const OLD_ENGINE_COPY =
+  "Por cada anuncio: reservas en línea con cobro por Stripe o pago manual (transferencia, CLABE, Zelle), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.";
+
+/** El motor ya no acepta pagos manuales: cambia la descripción vieja si nadie la editó. */
+function dropManualPayCopy(): boolean {
+  let changed = false;
+  for (const code of MEMBERSHIP_PLAN_CODES) {
+    const prev = rows.get(code);
+    if (!prev || prev.description !== OLD_ENGINE_COPY) continue;
+    rows.set(code, { ...prev, description: seedFor(code).description, updatedAt: nowIso() });
+    changed = true;
+  }
+  return changed;
+}
+
 function persist() {
   try {
     ensureDir(getDataDir());
@@ -201,7 +216,8 @@ function reloadFromDisk() {
   seedMissing();
   const priced = applyOwnerPricesOnce();
   const merged = mergeIdentityPlansOnce();
-  if (priced || merged) persist();
+  const copy = dropManualPayCopy();
+  if (priced || merged || copy) persist();
 }
 
 function syncIfStale() {

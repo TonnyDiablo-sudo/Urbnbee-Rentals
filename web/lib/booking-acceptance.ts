@@ -1,19 +1,9 @@
 import "server-only";
-import type { BookingRecord, ManualPayMethod } from "@/lib/booking-types";
+import type { BookingRecord } from "@/lib/booking-types";
 import { attachContractIfInstant } from "@/lib/booking-contract";
-import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
-import { getHostPayoutMethods, instructionFor, type HostPayoutMethods } from "@/lib/host-payout-methods";
+import { getBookingById } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
-import { notifyGuestPayInstructions } from "@/lib/push";
 import { requestScreeningForBooking } from "@/lib/screening-service";
-
-function firstSavedMethod(saved: HostPayoutMethods): ManualPayMethod | undefined {
-  if (saved.clabe) return "clabe";
-  if (saved.zelle) return "zelle";
-  if (saved.cashapp) return "cashapp";
-  if (saved.oxxo) return "oxxo";
-  return undefined;
-}
 
 /** Si el anuncio pide crédito, el huésped (o el anfitrión) recibe la liga para autorizar y pagar. */
 export function requestCreditCheckIfRequired(booking: BookingRecord): void {
@@ -37,26 +27,8 @@ export function onBookingPaid(booking: BookingRecord): BookingRecord {
   return getBookingById(withContract.id) ?? withContract;
 }
 
-/**
- * El anfitrión aceptó a mano: manda cómo pagar si todavía no hay datos,
- * y la liga del crédito si el anuncio la exige.
- */
+/** El anfitrión aceptó a mano: manda la liga del crédito si el anuncio la exige. El huésped paga en línea. */
 export function deliverAfterHostAccept(booking: BookingRecord): BookingRecord {
-  let current = booking;
-  if (current.payConfirmation?.by !== "stripe" && !current.payInstruction) {
-    const saved = getHostPayoutMethods(current.hostId);
-    const method = saved ? firstSavedMethod(saved) : undefined;
-    if (saved && method) {
-      const instruction = instructionFor(method, saved);
-      if (!("error" in instruction)) {
-        const patched = patchBookingRecord(current.id, { payInstruction: instruction });
-        if (patched) {
-          notifyGuestPayInstructions(patched);
-          current = patched;
-        }
-      }
-    }
-  }
-  requestCreditCheckIfRequired(current);
-  return getBookingById(current.id) ?? current;
+  requestCreditCheckIfRequired(booking);
+  return getBookingById(booking.id) ?? booking;
 }

@@ -279,7 +279,6 @@ export const appToolsStore: Record<string, string> = {
   // Espacio del colaborador
   "No hay reservas por atender.": "No bookings to handle.",
   "Esperando que la aceptes": "Waiting for you to accept",
-  "Revisar comprobante de pago": "Review proof of payment",
   Aceptar: "Accept",
   "¿Rechazar esta reserva? Se le devuelve el pago al huésped.": "Decline this booking? The guest will be refunded.",
   "Vas a firmar el contrato en nombre del anfitrión, con su nombre legal. ¿Continuar?":
@@ -357,8 +356,8 @@ export const appToolsStore: Record<string, string> = {
   "Listón «Miembro verificado» en todos tus anuncios, respaldado por tu identidad comprobada.":
     "“Verified member” ribbon on all your listings, backed by your verified identity.",
   "Motor de reservas": "Booking engine",
-  "Por cada anuncio: reservas en línea con cobro por Stripe o pago manual (transferencia, CLABE, Zelle), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.":
-    "Per listing: online bookings with Stripe or manual payment (transfer, CLABE, Zelle), a contract signed online under local law, address verification, date blocking and urbnbeeai's AI assistant.",
+  "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.":
+    "Per listing: online bookings with automatic card payment (Stripe), a contract signed online under local law, address verification, date blocking and urbnbeeai's AI assistant.",
   "Por cada anuncio: las limpiezas salen solas de tus reservas, se asignan a tu equipo y les llegan los avisos.":
     "Per listing: cleanings are created from your bookings, assigned to your team, and they get notified.",
   "Otra persona con su propia cuenta de Cabibee acepta reservas, firma contratos en tu nombre o contesta mensajes en los anuncios que elijas.":
@@ -376,8 +375,6 @@ export const appToolsStore: Record<string, string> = {
   "Listón «Miembro verificado» en todos tus anuncios.": "“Verified member” ribbon on all your listings.",
   "Tus anuncios se destacan frente a los no verificados.": "Your listings stand out from unverified ones.",
   "Se paga por anuncio: eliges qué anuncios lo usan.": "Paid per listing: you choose which listings use it.",
-  "Tus huéspedes reservan y pagan en línea: Stripe a tu cuenta o pago manual (transferencia, CLABE, Zelle).":
-    "Your guests book and pay online: Stripe to your account or manual payment (transfer, CLABE, Zelle).",
   "Contrato entre tú y tu huésped, firmado en línea y adaptado a la ley de tu estado y ciudad.":
     "A contract between you and your guest, signed online and adapted to your state and city's law.",
   "Verificación de domicilio del anuncio incluida.": "Listing address verification included.",
