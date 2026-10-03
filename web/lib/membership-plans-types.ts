@@ -35,7 +35,10 @@ export type MembershipPlanCode =
   | "collaborator_seat_12"
   | "address_proof"
   | "address_proof_6"
-  | "address_proof_12";
+  | "address_proof_12"
+  | "featured_listing"
+  | "featured_listing_6"
+  | "featured_listing_12";
 
 export const MEMBERSHIP_PLAN_CODES: MembershipPlanCode[] = [
   "pase_reserva",
@@ -57,6 +60,9 @@ export const MEMBERSHIP_PLAN_CODES: MembershipPlanCode[] = [
   "address_proof",
   "address_proof_6",
   "address_proof_12",
+  "featured_listing",
+  "featured_listing_6",
+  "featured_listing_12",
 ];
 
 /** Todos los precios viven en Cabibee: urbnbeeai sólo interviene en su agente de IA. */
@@ -73,7 +79,8 @@ export type MembershipPlanFamily =
   | "booking_engine"
   | "cleaning_tool"
   | "collaborator_seat"
-  | "address_proof";
+  | "address_proof"
+  | "featured_listing";
 
 export const MEMBERSHIP_PLAN_FAMILY: Record<MembershipPlanCode, MembershipPlanFamily> = {
   pase_reserva: "guest_pass",
@@ -95,6 +102,9 @@ export const MEMBERSHIP_PLAN_FAMILY: Record<MembershipPlanCode, MembershipPlanFa
   address_proof: "address_proof",
   address_proof_6: "address_proof",
   address_proof_12: "address_proof",
+  featured_listing: "featured_listing",
+  featured_listing_6: "featured_listing",
+  featured_listing_12: "featured_listing",
 };
 
 export function planFamily(code: string): MembershipPlanFamily | undefined {
@@ -107,6 +117,7 @@ export const MEMBERSHIP_FAMILY_UNIT: Partial<Record<MembershipPlanFamily, "listi
   cleaning_tool: "listing",
   collaborator_seat: "seat",
   address_proof: "listing",
+  featured_listing: "listing",
 };
 
 export const MEMBERSHIP_PLAN_UNIT: Partial<Record<MembershipPlanCode, "listing" | "seat">> = Object.fromEntries(

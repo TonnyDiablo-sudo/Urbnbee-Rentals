@@ -62,6 +62,10 @@ const FAMILY_COPY: Record<MembershipPlanFamily, { label: string; description: st
     description:
       "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",
   },
+  featured_listing: {
+    label: "Anuncio destacado",
+    description: "Por cada anuncio: aparece primero en las búsquedas y lleva la etiqueta «Destacado».",
+  },
 };
 
 /**
@@ -88,6 +92,9 @@ const OWNER_PRICES: Partial<Record<MembershipPlanCode, { mxn: number; usd: numbe
   address_proof: { mxn: 100, usd: 6 },
   address_proof_6: { mxn: 65 * 6, usd: 4 * 6 },
   address_proof_12: { mxn: 35 * 12, usd: 2 * 12 },
+  featured_listing: { mxn: 850, usd: 50 },
+  featured_listing_6: { mxn: 650 * 6, usd: 40 * 6 },
+  featured_listing_12: { mxn: 600 * 12, usd: 35 * 12 },
 };
 
 function seedFor(code: MembershipPlanCode): Omit<MembershipPlanRecord, "updatedAt"> {
@@ -111,10 +118,14 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function seedMissing() {
+function seedMissing(): boolean {
+  let added = false;
   for (const code of MEMBERSHIP_PLAN_CODES) {
-    if (!rows.has(code)) rows.set(code, { ...seedFor(code), updatedAt: nowIso() });
+    if (rows.has(code)) continue;
+    rows.set(code, { ...seedFor(code), updatedAt: nowIso() });
+    added = true;
   }
+  return added;
 }
 
 /** Una vez: los planes que siguen en 0 toman el precio del dueño y se encienden. */
@@ -213,11 +224,11 @@ function reloadFromDisk() {
   } catch (e) {
     console.warn("[membership-plans] load failed:", e);
   }
-  seedMissing();
+  const seeded = seedMissing();
   const priced = applyOwnerPricesOnce();
   const merged = mergeIdentityPlansOnce();
   const copy = dropManualPayCopy();
-  if (priced || merged || copy) persist();
+  if (seeded || priced || merged || copy) persist();
 }
 
 function syncIfStale() {

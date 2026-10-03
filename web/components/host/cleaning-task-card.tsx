@@ -51,6 +51,7 @@ export function CleaningTaskCard({
   onCancel,
   onNote,
   onChanged,
+  showAssignee = false,
 }: {
   task: CleaningTaskItem;
   busy: boolean;
@@ -65,6 +66,8 @@ export function CleaningTaskCard({
   onNote?: (note: string) => void;
   /** Tras subir o borrar una foto. */
   onChanged?: () => Promise<void> | void;
+  /** Muestra a quién le toca (en el calendario). */
+  showAssignee?: boolean;
 }) {
   const t = useT();
   const lang = useLang();
@@ -115,6 +118,15 @@ export function CleaningTaskCard({
               .filter(Boolean)
               .join(" · ")}
           </p>
+          {showAssignee && (
+            <p className={`mt-1 text-sm font-medium ${task.assignee ? "text-[#222]" : "text-amber-700"}`}>
+              {!task.assignee
+                ? t("Nadie asignado todavía")
+                : done
+                  ? t("La hizo: {name}", { name: t(task.assigneeLabel) })
+                  : t("Le toca: {name}", { name: t(task.assigneeLabel) })}
+            </p>
+          )}
           {task.note && !onNote && <p className="mt-1 text-sm text-[#555]">📝 {task.note}</p>}
         </div>
         <label className={`flex shrink-0 items-center gap-2 text-sm ${needsPhoto ? "text-[#aaa]" : "text-[#222]"}`}>

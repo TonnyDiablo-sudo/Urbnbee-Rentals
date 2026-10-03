@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { CleaningCalendar } from "@/components/host/cleaning-calendar";
 import { CleaningTaskCard, type CleaningTaskItem } from "@/components/host/cleaning-task-card";
 
 type Settings = { assignMode: "auto" | "manual"; requirePhoto: boolean };
@@ -15,6 +16,8 @@ type View = {
   cleaners: { id: string; name: string; listingIds: string[] | "all" }[];
   pendingInvites: number;
   tasks: CleaningTaskItem[];
+  today: string;
+  recentSince: string;
 };
 
 const covers = (c: View["cleaners"][number], listingId: string) => c.listingIds === "all" || c.listingIds.includes(listingId);
@@ -78,7 +81,7 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
   }
 
   const pending = data.tasks.filter((x) => x.status === "pending");
-  const done = data.tasks.filter((x) => x.status === "done");
+  const done = data.tasks.filter((x) => x.status === "done" && x.date >= data.recentSince);
   const onListings = data.listings.filter((l) => l.on);
 
   return (
@@ -87,6 +90,7 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
 
       <nav className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 text-sm">
         {[
+          ["#calendario", t("Calendario")],
           ["#limpiezas", t("Limpiezas")],
           ["#anuncios", t("Anuncios y quién limpia")],
           ["#como", t("Cómo trabajas")],
@@ -97,6 +101,27 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
           </a>
         ))}
       </nav>
+
+      <CleaningCalendar
+        tasks={data.tasks}
+        today={data.today}
+        listings={data.listings.filter((l) => l.on || data.tasks.some((x) => x.listingId === l.id))}
+        renderTask={(task) => (
+          <CleaningTaskCard
+            key={task.id}
+            task={task}
+            busy={busy}
+            showAssignee
+            requirePhoto={data.settings.requirePhoto}
+            chatPath={hostChatPath(task)}
+            chatLabel={t("Chat con {name}", { name: task.assigneeLabel })}
+            onChanged={load}
+            cleaners={data.cleaners.filter((c) => covers(c, task.listingId))}
+            onAssign={(assignee) => void send(`/api/cleaning/${task.id}`, "PATCH", { assignee })}
+            onDone={(d) => void send(`/api/cleaning/${task.id}`, "PATCH", { done: d })}
+          />
+        )}
+      />
 
       <section id="limpiezas" className="scroll-mt-20 rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[#222]">{t("Próximas limpiezas")}</h2>

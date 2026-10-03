@@ -87,6 +87,8 @@ export type HostListingRecord = {
   locationPrecision?: "approximate" | "exact";
   /** El anfitrión le asignó uno de sus lugares pagados del motor de reservas. */
   bookingEngineOn?: boolean;
+  /** El anfitrión usa aquí uno de sus lugares pagados de «Anuncio destacado». */
+  featuredOn?: boolean;
   /** El anuncio está en la herramienta de limpieza. */
   cleaningOn?: boolean;
   guests: number;

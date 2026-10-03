@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { addressCoveredListingIds, addressProofSlots, listingShowsLocationBadge } from "@/lib/address-proof-access";
 import { engineCapacity, engineListingIds } from "@/lib/booking-engine-slots";
+import { featuredCapacity, featuredListingIds } from "@/lib/featured-slots";
 import { cleaningCapacity, cleaningListingIds } from "@/lib/cleaning-service";
 import { getListingCleaner } from "@/lib/cleaning-store";
 import { publicNameOf } from "@/lib/display-name";
@@ -10,6 +11,7 @@ import {
   HOST_SKU_BOOKING_ENGINE,
   HOST_SKU_CLEANING,
   HOST_SKU_COLLABORATORS,
+  HOST_SKU_FEATURED,
   type HostEntitlementRecord,
 } from "@/lib/host-entitlement-types";
 import type { Lang, TFn } from "@/lib/i18n";
@@ -26,6 +28,7 @@ const PATHS: Record<string, Record<Surface, string>> = {
   team: { app: "/host/colaboradores", web: "/host/colaboradores" },
   address: { app: "/host/motor", web: "/host/verificacion" },
   identity: { app: "/host/motor", web: "/host/verificacion" },
+  featured: { app: "/host/destacados", web: "/host/destacados" },
 };
 
 function Card({
@@ -131,6 +134,10 @@ export function HostToolsView({ hostId, t, lang, surface }: { hostId: string; t:
   const addressRow = getHostEntitlement(hostId, HOST_SKU_ADDRESS_PROOF);
   const addressSlots = addressProofSlots(hostId);
   const covered = addressCoveredListingIds(hostId);
+
+  const featuredRow = getHostEntitlement(hostId, HOST_SKU_FEATURED);
+  const featuredCap = featuredCapacity(hostId);
+  const featuredOn = featuredListingIds(hostId);
 
   const identityOn = identityPlanActive(hostId);
   const identityChecked = isHostIdentityVerified(hostId);
@@ -251,6 +258,26 @@ export function HostToolsView({ hostId, t, lang, surface }: { hostId: string; t:
           })}
           empty={t("Ningún anuncio está cubierto todavía.")}
         />
+      </Card>
+
+      <Card
+        t={t}
+        title={t("Anuncio destacado")}
+        status={statusOf(featuredRow, featuredCap > 0)}
+        usage={
+          featuredCap > 0
+            ? t("Usas {used} de {cap} lugares pagados.", { used: featuredOn.size, cap: featuredCap })
+            : t("Tu anuncio aparece primero en las búsquedas, con la etiqueta «Destacado».")
+        }
+        manage={featuredCap > 0 ? PATHS.featured[surface] : undefined}
+        buy={store}
+      >
+        {featuredCap > 0 && (
+          <Rows
+            rows={[...featuredOn].map((id) => ({ key: id, title: titleOf.get(id) ?? id }))}
+            empty={t("Todavía no eliges anuncios. Entra a Administrar y enciéndelos.")}
+          />
+        )}
       </Card>
 
       <Card

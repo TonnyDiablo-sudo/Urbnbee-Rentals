@@ -24,6 +24,7 @@ const MANAGE: Record<string, { app: string; web: string }> = {
   cleaning_tool: { app: "/host/limpieza", web: "/host/limpieza" },
   collaborator_seat: { app: "/host/colaboradores", web: "/host/colaboradores" },
   address_proof: { app: "/host/motor", web: "/host/verificacion" },
+  featured_listing: { app: "/host/destacados", web: "/host/destacados" },
 };
 
 type Data = { region: "mx" | "us"; isHost: boolean; items: Item[] };

@@ -31,6 +31,11 @@ export function AppListingCardView({
           decoding="async"
         />
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+          {l.featured && (
+            <span className="rounded-full bg-[#222] px-2.5 py-1 text-[11px] font-semibold text-white shadow">
+              {t("Destacado")}
+            </span>
+          )}
           {l.identityVerified ? (
             <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1e7a3a] shadow">
               {t("✓ Identidad verificada")}

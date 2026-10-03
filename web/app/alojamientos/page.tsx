@@ -51,6 +51,7 @@ export default async function AlojamientosPage({ searchParams }: Props) {
         spaceType: l.spaceType,
         amenities: d?.amenities ?? [],
         bookable: listingIsBookable(l.id),
+        locationVerified: Boolean(d?.locationVerified ?? l.locationVerified),
       },
       filters
     );

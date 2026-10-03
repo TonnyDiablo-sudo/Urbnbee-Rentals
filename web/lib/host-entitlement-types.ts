@@ -3,6 +3,7 @@ export const HOST_SKU_HOST_VERIFICATION = "cabibee_host_verification";
 export const HOST_SKU_CLEANING = "cabibee_cleaning_tool";
 export const HOST_SKU_COLLABORATORS = "cabibee_collaborators";
 export const HOST_SKU_ADDRESS_PROOF = "cabibee_address_proof";
+export const HOST_SKU_FEATURED = "cabibee_featured_listing";
 
 export const HOST_SKUS = [
   HOST_SKU_BOOKING_ENGINE,
@@ -10,6 +11,7 @@ export const HOST_SKUS = [
   HOST_SKU_CLEANING,
   HOST_SKU_COLLABORATORS,
   HOST_SKU_ADDRESS_PROOF,
+  HOST_SKU_FEATURED,
 ] as const;
 export type HostSku = (typeof HOST_SKUS)[number];
 

@@ -22,6 +22,10 @@ export type AppListingCard = {
   amenities: string[];
   verified: boolean;
   identityVerified: boolean;
+  /** Comprobante de domicilio revisado por Cabibee. */
+  locationVerified: boolean;
+  /** Pagó «Anuncio destacado». */
+  featured: boolean;
   /** Se puede reservar dentro de Cabibee (anuncio real con motor de reservas activo). */
   bookable: boolean;
   /** Ubicación aproximada para el mapa; null si el anuncio no tiene coordenadas. */
@@ -117,6 +121,8 @@ function browseCards(opts: { tipo?: string; q?: string }): AppListingCard[] {
         amenities: detail?.amenities ?? [],
         verified: Boolean(l.verified),
         identityVerified: Boolean(detail?.identityVerified ?? l.identityVerified),
+        locationVerified: Boolean(detail?.locationVerified ?? l.locationVerified),
+        featured: Boolean(l.featured),
         bookable: listingIsBookable(l.id),
         lat: coords?.lat ?? null,
         lng: coords?.lng ?? null,

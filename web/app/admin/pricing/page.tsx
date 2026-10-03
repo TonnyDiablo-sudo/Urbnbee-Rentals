@@ -58,6 +58,7 @@ const UNIT_BY_FAMILY: Record<string, string> = {
   collaborator_seat: "precio por colaborador",
   cleaning_tool: "precio por anuncio",
   address_proof: "precio por anuncio (ya incluida en el motor)",
+  featured_listing: "precio por anuncio destacado",
 };
 const unitLabel = (code: string): string | undefined => UNIT_BY_FAMILY[code.replace(/_(6|12)$/, "")];
 

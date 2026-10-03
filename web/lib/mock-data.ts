@@ -21,6 +21,8 @@ export type Listing = {
   verified?: boolean;
   /** El anfitrión comprobó su identidad con Cabibee. */
   identityVerified?: boolean;
+  locationVerified?: boolean;
+  /** Pagó «Anuncio destacado»: sale primero en las búsquedas. */
   featured?: boolean;
   /** Filtros de la cuadrícula: vistas, tropical, mar, albercas. */
   tags?: string[];
@@ -153,7 +155,6 @@ export const demoListings: Record<ListingCategory, Listing[]> = {
       bedrooms: 2,
       bathrooms: 1,
       verified: true,
-      featured: true,
       tags: ["albercas"],
     },
   ],
@@ -189,7 +190,6 @@ export const demoListings: Record<ListingCategory, Listing[]> = {
       guests: 5,
       bedrooms: 1,
       bathrooms: 1,
-      featured: true,
       tags: ["tropical"],
     },
   ],

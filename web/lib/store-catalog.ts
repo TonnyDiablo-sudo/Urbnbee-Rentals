@@ -61,6 +61,12 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
     "Tu anuncio muestra la insignia «Ubicación verificada».",
     "Si el anuncio tiene motor de reservas, ya viene incluida.",
   ],
+  featured_listing: [
+    "Se paga por anuncio: eliges qué anuncios se destacan.",
+    "Tu anuncio aparece antes que los demás en las búsquedas de la web y la app.",
+    "Lleva la etiqueta «Destacado».",
+    "Cambias de anuncio cuando quieras desde Mis herramientas.",
+  ],
 };
 
 export type StoreTerm = {
@@ -98,6 +104,7 @@ const FAMILY_ORDER: MembershipPlanFamily[] = [
   "cleaning_tool",
   "collaborator_seat",
   "address_proof",
+  "featured_listing",
   "host_verification",
   "guest_membership",
   "guest_pass",

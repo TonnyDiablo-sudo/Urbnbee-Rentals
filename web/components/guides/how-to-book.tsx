@@ -26,8 +26,8 @@ const TAGS = [
   },
   {
     label: "Destacado",
-    cls: "bg-[#dcb81e] text-black",
-    text: "Cabibee lo eligió para mostrarlo primero. No es una verificación: revisa también las otras etiquetas.",
+    cls: "bg-[#222] text-white",
+    text: "El anfitrión pagó para que su anuncio aparezca primero. Es publicidad, no una verificación: revisa también las otras etiquetas.",
   },
   {
     label: "Anfitrión no verificado",

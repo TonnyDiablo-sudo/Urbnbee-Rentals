@@ -11,6 +11,8 @@ export type BrowseFilters = {
   amenities: string[];
   /** Sólo los que se reservan y pagan dentro de Cabibee. */
   bookable: boolean;
+  /** Sólo con comprobante de domicilio revisado. */
+  locationVerified: boolean;
 };
 
 /** Comodidades que se pueden buscar. Cada una reconoce los nombres con que la escriben los anfitriones. */
@@ -34,7 +36,7 @@ export const AMENITY_FILTERS: { key: string; label: string; match: RegExp }[] = 
 
 const AMENITY_KEYS = new Set(AMENITY_FILTERS.map((a) => a.key));
 
-export const EMPTY_FILTERS: BrowseFilters = { amenities: [], bookable: false };
+export const EMPTY_FILTERS: BrowseFilters = { amenities: [], bookable: false, locationVerified: false };
 
 type Raw = Record<string, string | string[] | undefined>;
 
@@ -64,12 +66,13 @@ export function parseBrowseFilters(raw: Raw): BrowseFilters {
     space: space === "completo" || space === "habitacion" ? space : undefined,
     amenities: [...new Set(am)],
     bookable: first(raw.reserva) === "1",
+    locationVerified: first(raw.ubicacion) === "1",
   };
 }
 
 /** Escribe los filtros en la URL (sin tocar q, tipo, vista ni verif). */
 export function writeBrowseFilters(f: BrowseFilters, p: URLSearchParams): URLSearchParams {
-  for (const k of ["min", "max", "huespedes", "recamaras", "espacio", "am", "reserva"]) p.delete(k);
+  for (const k of ["min", "max", "huespedes", "recamaras", "espacio", "am", "reserva", "ubicacion"]) p.delete(k);
   if (f.min) p.set("min", String(f.min));
   if (f.max) p.set("max", String(f.max));
   if (f.guests) p.set("huespedes", String(f.guests));
@@ -77,6 +80,7 @@ export function writeBrowseFilters(f: BrowseFilters, p: URLSearchParams): URLSea
   if (f.space) p.set("espacio", f.space);
   if (f.amenities.length) p.set("am", f.amenities.join(","));
   if (f.bookable) p.set("reserva", "1");
+  if (f.locationVerified) p.set("ubicacion", "1");
   return p;
 }
 
@@ -87,7 +91,8 @@ export function activeFilterCount(f: BrowseFilters): number {
     (f.bedrooms ? 1 : 0) +
     (f.space ? 1 : 0) +
     f.amenities.length +
-    (f.bookable ? 1 : 0)
+    (f.bookable ? 1 : 0) +
+    (f.locationVerified ? 1 : 0)
   );
 }
 
@@ -98,6 +103,7 @@ export type FilterableListing = {
   spaceType: string;
   amenities: string[];
   bookable: boolean;
+  locationVerified: boolean;
 };
 
 export function matchesBrowseFilters(l: FilterableListing, f: BrowseFilters): boolean {
@@ -108,6 +114,7 @@ export function matchesBrowseFilters(l: FilterableListing, f: BrowseFilters): bo
   if (f.space === "habitacion" && !/habitaci/i.test(l.spaceType)) return false;
   if (f.space === "completo" && /habitaci|compartid/i.test(l.spaceType)) return false;
   if (f.bookable && !l.bookable) return false;
+  if (f.locationVerified && !l.locationVerified) return false;
   for (const key of f.amenities) {
     const a = AMENITY_FILTERS.find((x) => x.key === key);
     if (a && !l.amenities.some((name) => a.match.test(name.trim()))) return false;

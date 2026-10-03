@@ -4,6 +4,7 @@ import {
   HOST_SKU_BOOKING_ENGINE,
   HOST_SKU_CLEANING,
   HOST_SKU_COLLABORATORS,
+  HOST_SKU_FEATURED,
   HOST_SKU_HOST_VERIFICATION,
   type HostSku,
 } from "@/lib/host-entitlement-types";
@@ -17,6 +18,7 @@ const FAMILY_SKU: Partial<Record<MembershipPlanFamily, HostSku>> = {
   cleaning_tool: HOST_SKU_CLEANING,
   collaborator_seat: HOST_SKU_COLLABORATORS,
   address_proof: HOST_SKU_ADDRESS_PROOF,
+  featured_listing: HOST_SKU_FEATURED,
   host_verification: HOST_SKU_HOST_VERIFICATION,
 };
 
@@ -35,6 +37,7 @@ export function hostEntitlementTargets(hostId: string, planCode: string, subscri
     case "cleaning_tool":
     case "collaborator_seat":
     case "address_proof":
+    case "featured_listing":
       return [{ sku: FAMILY_SKU[family]!, perUnit: true }];
     case "host_verification":
       return [

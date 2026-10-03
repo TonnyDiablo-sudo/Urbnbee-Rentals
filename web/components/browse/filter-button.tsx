@@ -267,6 +267,12 @@ export function FilterButton({
                   [
                     [f.bookable, () => set({ bookable: !f.bookable }), "Reserva protegida por contrato", "Reservas y pagas aquí, con contrato."],
                     [verif, () => setVerif(!verif), "Anfitrión verificado", "Comprobó su identidad con Cabibee."],
+                    [
+                      f.locationVerified,
+                      () => set({ locationVerified: !f.locationVerified }),
+                      "Ubicación verificada",
+                      "Cabibee revisó su comprobante de domicilio.",
+                    ],
                   ] as const
                 ).map(([on, toggle, label, hint]) => (
                   <button key={label} type="button" onClick={toggle} className="flex w-full items-center justify-between gap-4 py-2 text-left">

@@ -237,8 +237,8 @@ function taskView(t: CleaningTask) {
 
 export type CleaningTaskView = ReturnType<typeof taskView>;
 
-function visibleTasks(list: CleaningTask[]) {
-  const since = shiftDayKey(analyticsDayKey(), -14);
+function visibleTasks(list: CleaningTask[], doneDays = 14) {
+  const since = shiftDayKey(analyticsDayKey(), -doneDays);
   return list
     .filter((t) => t.status === "pending" || (t.date >= since && t.status === "done"))
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -267,7 +267,10 @@ export function hostCleaningView(hostId: string) {
       ...team.map((m) => ({ id: m.id, name: memberName(m.id), listingIds: m.listingIds })),
     ],
     pendingInvites: listTeamForHost(hostId).filter((m) => m.status === "pending" && m.roles.includes("cleaning")).length,
-    tasks: visibleTasks(listCleaningTasksForHost(hostId)),
+    /** Las terminadas de los últimos 4 meses, para que el calendario muestre el historial. */
+    tasks: visibleTasks(listCleaningTasksForHost(hostId), 120),
+    today: analyticsDayKey(),
+    recentSince: shiftDayKey(analyticsDayKey(), -14),
   };
 }
 
