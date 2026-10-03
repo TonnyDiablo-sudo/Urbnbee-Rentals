@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { AiAgentCard } from "@/components/store/ai-agent-card";
 
 type Term = { code: string; months: number; amount: number; perMonth: number };
 
@@ -316,11 +317,10 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
       {data.isHost && (
         <section>
           <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Para anfitriones")}</h2>
-          {hostItems.length ? (
-            <div className="grid gap-4 sm:grid-cols-2">{hostItems.map(card)}</div>
-          ) : (
-            <p className="text-sm text-[#999]">{t("Pronto habrá herramientas aquí.")}</p>
-          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <AiAgentCard />
+            {hostItems.map(card)}
+          </div>
         </section>
       )}
 
