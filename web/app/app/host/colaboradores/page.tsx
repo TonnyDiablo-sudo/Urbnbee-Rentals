@@ -11,7 +11,7 @@ export default async function AppHostTeamPage() {
   const t = await getT();
   return (
     <>
-      <TopBar title={t("Colaboradores")} back="/perfil" />
+      <TopBar title={t("Colaboradores")} back="/host/menu" />
       <div className="px-5 pb-10 pt-4">
         <TeamPanel />
       </div>

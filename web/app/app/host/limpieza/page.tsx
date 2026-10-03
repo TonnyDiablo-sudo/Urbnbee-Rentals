@@ -11,7 +11,7 @@ export default async function AppHostCleaningPage() {
   const t = await getT();
   return (
     <>
-      <TopBar title={t("Limpieza")} back="/perfil" />
+      <TopBar title={t("Limpieza")} back="/host/menu" />
       <div className="px-5 pb-10 pt-4">
         <CleaningPanel />
       </div>

@@ -28,6 +28,8 @@ export type HostEntitlementRecord = {
    * Sin campo en el motor = suscripción anterior al cobro por anuncio, que cubre todos.
    */
   quantity?: number;
+  /** Plan del catálogo con que se compró (fija el plazo y el precio). */
+  planCode?: string;
   /** Pidió cancelar: sigue activa hasta `currentPeriodEnd` y ya no se renueva. */
   cancelAtPeriodEnd?: boolean;
   /** Cuándo pasó a activa por última vez (para contar suscripciones nuevas). */

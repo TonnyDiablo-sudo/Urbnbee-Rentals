@@ -14,7 +14,7 @@ type Item = {
   audience: "guest" | "host";
   unit?: "listing" | "seat";
   terms: Term[];
-  owned?: { status: string; quantity?: number; until?: string; cancelAtPeriodEnd?: boolean; renews?: boolean };
+  owned?: { status: string; quantity?: number; until?: string; cancelAtPeriodEnd?: boolean; renews?: boolean; code?: string };
 };
 
 type Data = { region: "mx" | "us"; isHost: boolean; items: Item[] };
@@ -50,7 +50,8 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
 
   const returnPath = "/tienda";
 
-  const chosenTerm = (item: Item) => item.terms.find((x) => x.code === term[item.family]) ?? item.terms[0];
+  const chosenTerm = (item: Item) =>
+    item.terms.find((x) => x.code === (item.owned?.code ?? term[item.family])) ?? item.terms[0];
 
   async function buy(item: Item) {
     const plan = chosenTerm(item);
@@ -76,7 +77,7 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
     const res = await fetch("/api/store/quantity", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan: item.terms[0].code, quantity }),
+      body: JSON.stringify({ plan: chosenTerm(item).code, quantity }),
     }).catch(() => null);
     const j = res ? await res.json().catch(() => ({})) : {};
     setBusy(null);
@@ -165,13 +166,17 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
           </div>
         )}
 
-        <p className="mt-3 text-[20px] font-bold text-[#222]">
-          {money(plan.perMonth, item.currency)}{" "}
-          <span className="text-sm font-normal text-[#717171]">
-            {[unitLabel, plan.months ? t("al mes") : ""].filter(Boolean).join(" · ")}
-          </span>
-        </p>
-        <p className="text-xs text-[#888]">{charge}</p>
+        {(!owned || owned.code || plan.months === 0) && (
+          <>
+            <p className="mt-3 text-[20px] font-bold text-[#222]">
+              {money(plan.perMonth, item.currency)}{" "}
+              <span className="text-sm font-normal text-[#717171]">
+                {[unitLabel, plan.months ? t("al mes") : ""].filter(Boolean).join(" · ")}
+              </span>
+            </p>
+            <p className="text-xs text-[#888]">{charge}</p>
+          </>
+        )}
 
         <button
           type="button"

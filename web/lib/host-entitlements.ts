@@ -34,6 +34,11 @@ export type ApplyHostEntitlementInput = {
 };
 
 export function applyHostEntitlement(input: ApplyHostEntitlementInput): HostEntitlementRecord {
+  // Misma suscripción viva: se conservan el plazo comprado y la cancelación pedida.
+  const prev = getHostEntitlement(input.hostId, input.sku);
+  const same =
+    prev && prev.status !== "cancelled" && prev.stripeSubscriptionId === input.stripeSubscriptionId ? prev : undefined;
+  const cancelAtPeriodEnd = input.cancelAtPeriodEnd ?? same?.cancelAtPeriodEnd;
   const row = upsertHostEntitlement({
     hostId: input.hostId,
     sku: input.sku,
@@ -42,7 +47,8 @@ export function applyHostEntitlement(input: ApplyHostEntitlementInput): HostEnti
     stripeSubscriptionId: input.stripeSubscriptionId,
     currentPeriodEnd: input.currentPeriodEnd,
     ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
-    ...(input.cancelAtPeriodEnd !== undefined ? { cancelAtPeriodEnd: input.cancelAtPeriodEnd } : {}),
+    ...(cancelAtPeriodEnd !== undefined ? { cancelAtPeriodEnd } : {}),
+    ...(same?.planCode ? { planCode: same.planCode } : {}),
     updatedAt: new Date().toISOString(),
   });
 

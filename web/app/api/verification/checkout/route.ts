@@ -13,6 +13,7 @@ import { getMembershipPlan, membershipPlanAmount } from "@/lib/membership-plans-
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { MEMBERSHIP_PLAN_AUDIENCE, type MembershipPlanCode } from "@/lib/membership-plans-types";
 import { simulateCatalogMembership } from "@/lib/membership-simulate";
+import { rememberPlanCode } from "@/lib/owned-plan";
 import { primarySkuForPlan } from "@/lib/membership-entitlements";
 import { getHostEntitlement } from "@/lib/host-entitlements-store";
 import { hostEntitlementAllowsAccess } from "@/lib/host-entitlement-types";
@@ -182,6 +183,7 @@ export async function POST(req: NextRequest) {
           );
         }
         const simulated = simulateCatalogMembership(user.id, catalogCode, membershipQuantity(catalogCode, body.quantity));
+        rememberPlanCode(user.id, catalogCode);
         return NextResponse.json({
           simulated: true,
           audience: simulated.audience,

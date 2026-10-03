@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useT } from "@/components/i18n-provider";
+import { useLang, useT } from "@/components/i18n-provider";
 
 export type CleaningTaskItem = {
   id: string;
@@ -9,6 +9,7 @@ export type CleaningTaskItem = {
   listingTitle: string;
   date: string;
   dateLabel: string;
+  nextCheckIn?: string;
   nextCheckInLabel?: string;
   guestName?: string;
   assignee: string | null;
@@ -19,6 +20,16 @@ export type CleaningTaskItem = {
   photos: { id: string; url: string }[];
   cleanerUserId: string | null;
 };
+
+function dayLabel(day: string, lang: "es" | "en"): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Intl.DateTimeFormat(lang === "en" ? "en-US" : "es-MX", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+}
 
 /** El chat vive en la app: desde el sitio se abre en app.<dominio>. */
 export function appChatHref(path: string): string {
@@ -56,6 +67,7 @@ export function CleaningTaskCard({
   onChanged?: () => Promise<void> | void;
 }) {
   const t = useT();
+  const lang = useLang();
   const [note, setNote] = useState(task.note);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -93,12 +105,12 @@ export function CleaningTaskCard({
     <li className={`rounded-xl border p-4 ${done ? "border-[#eee] bg-[#fafafa]" : "border-[#e5e5e5] bg-white"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold capitalize text-[#222]">{task.dateLabel}</p>
-          <p className="truncate text-[15px] text-[#222]">{task.listingTitle}</p>
+          <p className="text-sm font-semibold text-[#222] first-letter:uppercase">{dayLabel(task.date, lang)}</p>
+          <p className="line-clamp-2 text-[15px] text-[#222]">{task.listingTitle}</p>
           <p className="text-xs text-[#888]">
             {[
               task.manual ? t("Limpieza extra") : task.guestName ? t("Sale {name}", { name: task.guestName }) : null,
-              task.nextCheckInLabel ? t("Siguiente llegada: {date}", { date: task.nextCheckInLabel }) : t("Sin llegada próxima"),
+              task.nextCheckIn ? t("Siguiente llegada: {date}", { date: dayLabel(task.nextCheckIn, lang) }) : t("Sin llegada próxima"),
             ]
               .filter(Boolean)
               .join(" · ")}

@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { rememberPlanCode } from "@/lib/owned-plan";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { settleBookingCheckoutSession } from "@/lib/booking-payment-settle";
@@ -112,6 +113,7 @@ async function syncFromSubscription(sub: Stripe.Subscription, explicitUserId?: s
       });
     }
     syncHostBadgeToListings(userId);
+    if (isMembershipPlanCode(planCode)) rememberPlanCode(userId, planCode);
     return;
   }
 
@@ -122,6 +124,7 @@ async function syncFromSubscription(sub: Stripe.Subscription, explicitUserId?: s
     currentPeriodEnd: end,
     cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
   });
+  if (isMembershipPlanCode(planCode)) rememberPlanCode(userId, planCode);
 }
 
 function legalNameFromIdentity(session: Stripe.Identity.VerificationSession): string | undefined {

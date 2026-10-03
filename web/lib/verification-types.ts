@@ -16,6 +16,8 @@ export type GuestVerificationRecord = {
   userId: string;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
+  /** Plan del catálogo de la membresía (fija el plazo y el precio). */
+  planCode?: string;
   /** Pidió cancelar la membresía: sigue hasta `currentPeriodEnd` y no se renueva. */
   cancelAtPeriodEnd?: boolean;
   subscriptionStatus: VerificationSubscriptionStatus;

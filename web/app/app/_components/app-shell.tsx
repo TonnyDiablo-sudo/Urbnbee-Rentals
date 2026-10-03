@@ -2,7 +2,7 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useT } from "@/components/i18n-provider";
 import { IconCalendar, IconChart, IconChat, IconHome, IconMenu, IconSearch, IconToday, IconTrips, IconUser } from "./icons";
 import { prefetchHostData } from "../host/_shared/host-data";
@@ -26,14 +26,19 @@ const FULLSCREEN = [
 ];
 
 /** Pantallas compartidas por ambos modos: abrirlas no cambia el modo guardado. */
-const NEUTRAL = [/^\/notificaciones/];
+const NEUTRAL = [/^\/notificaciones/, /^\/tienda/, /^\/equipo/, /^\/cuenta\//];
+
+const noSubscribe = () => () => {};
+const savedHostMode = () => /(?:^|;\s*)cabibee_mode=host/.test(document.cookie);
 
 export function AppShell({ user, children }: { user: AppUser; children: React.ReactNode }) {
   const t = useT();
   const pathname = usePathname() ?? "/";
   const isHost = user?.role === "host" || user?.role === "admin";
   // Sin cuenta de anfitrión, /host es sólo la invitación: se conserva la navegación de huésped.
-  const hostMode = isHost && (pathname === "/host" || pathname.startsWith("/host/"));
+  const neutral = NEUTRAL.some((r) => r.test(pathname));
+  const lastWasHost = useSyncExternalStore(noSubscribe, savedHostMode, () => false);
+  const hostMode = isHost && (neutral ? lastWasHost : pathname === "/host" || pathname.startsWith("/host/"));
   setCacheOwner(user?.id ?? null);
   const unread = useUnreadCount(hostMode ? "host" : "guest", user);
   useNotificationsSync(Boolean(user));
@@ -52,7 +57,6 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
     return () => window.clearTimeout(id);
   }, [isHost, hostMode]);
 
-  const neutral = NEUTRAL.some((r) => r.test(pathname));
   useEffect(() => {
     if (neutral) return;
     document.cookie = `cabibee_mode=${hostMode ? "host" : "guest"}; path=/; max-age=31536000; samesite=lax`;

@@ -33,6 +33,7 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
           { href: "/host/motor", label: t("Reservas en línea"), hint: t("Elige qué anuncios usan el motor de reservas") },
           { href: "/host/limpieza", label: t("Limpieza"), hint: t("Limpiezas automáticas según tus reservas") },
           { href: "/host/colaboradores", label: t("Colaboradores"), hint: t("Da acceso a otras personas con roles") },
+          { href: "/equipo", label: t("Equipos donde colaboro"), hint: t("Invitaciones, limpiezas, reservas y mensajes") },
           { href: "/host/anuncios", label: t("Mis anuncios") },
           { href: "/host/estadisticas", label: t("Estadísticas y sugerencias"), hint: t("Quién ve tus anuncios y cómo destacar") },
           { href: "/cuenta/seguridad", label: t("Correo y contraseña") },

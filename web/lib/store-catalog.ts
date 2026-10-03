@@ -85,6 +85,8 @@ export type StoreItem = {
     until?: string;
     /** Ya pidió cancelar: termina en `until` y no se renueva. */
     cancelAtPeriodEnd?: boolean;
+    /** Plazo comprado; sin él no se sabe qué precio aplica. */
+    code?: string;
     /** Es una suscripción que se renueva sola y se puede cancelar. */
     renews?: boolean;
   };
@@ -114,6 +116,7 @@ function ownedFor(user: UserRecord, family: MembershipPlanFamily, anyCode: Membe
       quantity: row.quantity,
       until: row.currentPeriodEnd,
       cancelAtPeriodEnd: row.cancelAtPeriodEnd === true,
+      code: row.planCode,
       renews: Boolean(row.stripeSubscriptionId) && row.source === "cabibee_direct",
     };
   }
@@ -128,6 +131,7 @@ function ownedFor(user: UserRecord, family: MembershipPlanFamily, anyCode: Membe
         status: s,
         until: v?.currentPeriodEnd,
         cancelAtPeriodEnd: v?.cancelAtPeriodEnd === true,
+        code: v?.planCode,
         renews: Boolean(v?.stripeSubscriptionId),
       }
     : undefined;
