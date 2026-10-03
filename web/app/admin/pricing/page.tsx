@@ -53,6 +53,14 @@ function billingLabel(b: Billing): string {
   return `Suscripción cada ${b.intervalCount} meses`;
 }
 
+const UNIT_BY_FAMILY: Record<string, string> = {
+  booking_engine: "precio por anuncio (el anfitrión elige cuántos)",
+  collaborator_seat: "precio por colaborador",
+  cleaning_tool: "precio por anuncio",
+  address_proof: "precio por anuncio (ya incluida en el motor)",
+};
+const unitLabel = (code: string): string | undefined => UNIT_BY_FAMILY[code.replace(/_(6|12)$/, "")];
+
 function monthlyEquivalent(amount: number, b: Billing): string | null {
   if (b.kind !== "subscription" || amount <= 0) return null;
   const perMonth = amount / b.intervalCount;
@@ -81,7 +89,8 @@ export default function AdminPricingPage() {
   }, []);
 
   useEffect(() => {
-    void load();
+    const id = setTimeout(() => void load(), 0);
+    return () => clearTimeout(id);
   }, [load]);
 
   const syncProducts = async () => {
@@ -112,20 +121,13 @@ export default function AdminPricingPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Precios</h1>
         <p className="mt-1 max-w-3xl text-sm text-gray-500">
-          Los montos viven en el catálogo de urbnbeeai. Aquí los editas; Cabibee guarda un caché
-          y el Producto de Stripe (el nombre del recibo). El piso es solo para vendedores: no
-          aparece en el sitio ni en APIs públicas.
+          Los precios se deciden aquí y sólo aquí. Stripe guarda el Producto (el nombre del
+          recibo) y cobra el monto que esté escrito en esta página al momento de comprar.
         </p>
       </div>
 
       {err && <p className="mb-4 text-sm text-red-600">{err}</p>}
 
-      {data && data.catalogConfigured === false && (
-        <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">
-          Falta <code>CABIBEE_TO_URBNBEEAI_API_SECRET</code> (el mismo valor en Cabibee y en
-          urbnbeeai). Mientras tanto los precios se guardan solo aquí.
-        </div>
-      )}
 
       {data && data.catalogConfigured && data.catalogLive === false && (
         <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">
@@ -189,8 +191,12 @@ export default function AdminPricingPage() {
               ))}
           </div>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">
-            Anfitrión — listón y motor de reservas
+            Anfitrión — listón, motor de reservas y herramientas
           </h2>
+          <p className="mb-4 max-w-3xl text-sm text-gray-500">
+            Cada producto tiene plazo de 1, 6 y 12 meses. El monto es lo que se cobra por período
+            (6 meses = 6 × el precio mensual de ese plazo). Todo se renueva solo al vencer.
+          </p>
           <div className="mb-8 space-y-4">
             {data.plans
               .filter((p) => p.audience === "host")
@@ -219,7 +225,6 @@ function PlanCard({ plan, onSaved }: { plan: PlanRow; onSaved: () => void }) {
   const [description, setDescription] = useState(plan.description);
   const [mxn, setMxn] = useState(String(plan.amountMxn || ""));
   const [usd, setUsd] = useState(String(plan.amountUsd || ""));
-  const [floor, setFloor] = useState(plan.floorPrice == null || plan.floorPrice === 0 ? "" : String(plan.floorPrice));
   const [active, setActive] = useState(plan.active);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -237,7 +242,6 @@ function PlanCard({ plan, onSaved }: { plan: PlanRow; onSaved: () => void }) {
           description,
           amountMxn: mxn,
           amountUsd: usd,
-          floorPrice: floor,
           active,
         }),
       });
@@ -270,7 +274,10 @@ function PlanCard({ plan, onSaved }: { plan: PlanRow; onSaved: () => void }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-mono text-xs text-gray-400">{plan.sku ?? plan.code}</p>
-          <p className="mt-0.5 text-sm font-semibold text-gray-900">{billingLabel(plan.billing)}</p>
+          <p className="mt-0.5 text-sm font-semibold text-gray-900">
+            {billingLabel(plan.billing)}
+            {unitLabel(plan.code) && <span className="font-normal text-gray-500"> · {unitLabel(plan.code)}</span>}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {plan.stripeProductId ? (
@@ -343,18 +350,6 @@ function PlanCard({ plan, onSaved }: { plan: PlanRow; onSaved: () => void }) {
               {monthlyEquivalent(usdNum, plan.billing)} USD
             </span>
           )}
-        </label>
-        <label className="block sm:col-span-2">
-          <span className="text-xs font-medium text-gray-500">
-            Piso para vendedores (USD, no se muestra al público)
-          </span>
-          <input
-            value={floor}
-            onChange={(e) => setFloor(e.target.value)}
-            inputMode="decimal"
-            placeholder="vacío = sin piso"
-            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-          />
         </label>
       </div>
 

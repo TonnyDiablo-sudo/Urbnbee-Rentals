@@ -29,6 +29,8 @@ export type ApplyHostEntitlementInput = {
   source: HostEntitlementSource;
   stripeSubscriptionId?: string;
   currentPeriodEnd?: string;
+  quantity?: number;
+  cancelAtPeriodEnd?: boolean;
 };
 
 export function applyHostEntitlement(input: ApplyHostEntitlementInput): HostEntitlementRecord {
@@ -39,10 +41,13 @@ export function applyHostEntitlement(input: ApplyHostEntitlementInput): HostEnti
     source: input.source,
     stripeSubscriptionId: input.stripeSubscriptionId,
     currentPeriodEnd: input.currentPeriodEnd,
+    ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
+    ...(input.cancelAtPeriodEnd !== undefined ? { cancelAtPeriodEnd: input.cancelAtPeriodEnd } : {}),
     updatedAt: new Date().toISOString(),
   });
 
-  if (input.sku === HOST_SKU_BOOKING_ENGINE) {
+  // El motor por anuncio (con cantidad) ya no concede el listón de verificado: son productos aparte.
+  if (input.sku === HOST_SKU_BOOKING_ENGINE && row.quantity === undefined) {
     const existing = getHostEntitlement(input.hostId, HOST_SKU_HOST_VERIFICATION);
     const keepPaid =
       existing &&

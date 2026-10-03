@@ -4,7 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
-import { IconCalendar, IconChat, IconHome, IconMenu, IconSearch, IconToday, IconTrips, IconUser } from "./icons";
+import { IconCalendar, IconChart, IconChat, IconHome, IconMenu, IconSearch, IconToday, IconTrips, IconUser } from "./icons";
 import { prefetchHostData } from "../host/_shared/host-data";
 import { GUEST_THREADS_URL, prefetchCached, setCacheOwner } from "./cached-fetch";
 import { useNotificationsSync } from "./notifications";
@@ -68,6 +68,7 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
         { href: "/host", label: t("Hoy"), icon: <IconToday /> },
         { href: "/host/calendario", label: t("Calendario"), icon: <IconCalendar /> },
         { href: "/host/anuncios", label: t("Anuncios"), icon: <IconHome /> },
+        { href: "/host/estadisticas", label: t("Métricas"), icon: <IconChart /> },
         { href: "/host/mensajes", label: t("Mensajes"), icon: <IconChat />, badge: unread > 0 },
         { href: "/host/menu", label: t("Menú"), icon: <IconMenu /> },
       ]

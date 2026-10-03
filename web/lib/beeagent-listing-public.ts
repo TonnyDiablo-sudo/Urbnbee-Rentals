@@ -3,7 +3,7 @@ import {
   defaultListingContract,
   getContractTemplate,
 } from "@/lib/booking-contract-templates";
-import { hostAcceptsBookings } from "@/lib/verification-store";
+import { listingHasEngine } from "@/lib/booking-engine-slots";
 import { getHostPaymentPublic } from "@/lib/host-payment-store";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 
@@ -12,7 +12,7 @@ export const PARTNER_CURRENCY = "MXN";
 export function listingIsPartnerBookable(listing: HostListingRecord): boolean {
   return Boolean(
     listing.published &&
-      hostAcceptsBookings(listing.hostId) &&
+      listingHasEngine(listing) &&
       getHostPaymentPublic(listing.hostId).connected
   );
 }

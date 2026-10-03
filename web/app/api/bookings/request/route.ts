@@ -12,11 +12,11 @@ import { bookingTaxFields, quoteBookingMxn } from "@/lib/booking-quote";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { stayLengthError } from "@/lib/listing-pricing";
 import { getSessionUser } from "@/lib/session";
+import { listingAcceptsBookings } from "@/lib/booking-engine-slots";
 import { stayPlatformFeeMxn } from "@/lib/platform-fees";
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import {
   consumeBookingPass,
-  hostAcceptsBookings,
   resolveGuestBookingAccess,
   restoreBookingPass,
 } from "@/lib/verification-store";
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No puedes reservar tu propio alojamiento." }, { status: 403 });
   }
 
-  if (!hostAcceptsBookings(listing.hostId)) {
+  if (!listingAcceptsBookings(listing.id)) {
     return NextResponse.json(
       {
         error:

@@ -53,7 +53,19 @@ export type BookingContractSnapshot = {
     children: boolean | null;
   };
   cancellationPolicy: string;
+  /** Sólo en contratos con formato anterior; los nuevos usan `thirdPartyClause`. */
   facilitatorNote: string;
+  /** 2 = contrato entre particulares con cláusulas por jurisdicción. Sin campo = formato anterior. */
+  format?: 2;
+  listingState?: string;
+  listingCountry?: string;
+  maxGuests?: number;
+  jurisdiction?: {
+    label: string;
+    governingLaw: string;
+    courts: string;
+    clauses: { title: string; text: string }[];
+  };
 };
 
 export type BookingContractRecord = {

@@ -124,6 +124,22 @@ const HOSTS = [
     bookable: false,
     verified: false,
   },
+  {
+    id: "usr_show_totti",
+    name: "Totti Hernández",
+    legal: "Totti Hernández Aguilar",
+    email: "totti@urbnbee.test",
+    phone: "+52 55 6273 1188",
+    address: "Col. Juárez, Cuauhtémoc, CDMX",
+    avatar: A("1492562080023-ab3db95bfbce"),
+    bio: "Chef y chilango de toda la vida. Rento cuatro espacios en la Juárez, Polanco, San Rafael y San Ángel. Te dejo mi lista de taquerías, mercados y cantinas; si te animas, te llevo al mercado de Medellín un sábado.",
+    languages: ["Español", "Inglés", "Italiano"],
+    interests: ["Cocina mexicana", "Fútbol", "Mercados", "Mezcal"],
+    instagram: "totti.en.cdmx",
+    website: "https://urbnbee.net",
+    bookable: true,
+    verified: true,
+  },
 ];
 
 const HOST_WORK = {
@@ -134,6 +150,7 @@ const HOST_WORK = {
   usr_show_javier: "Carpintero",
   usr_show_valeria: "Arquitecta de interiores",
   usr_show_rodrigo: "Ingeniero de software",
+  usr_show_totti: "Chef",
 };
 
 /* Huéspedes de muestra que dejan reseñas. */
@@ -414,6 +431,56 @@ const L = [
   },
 ];
 
+/* Totti (CDMX): anfitrión y huésped a la vez, como Sofía. Va aparte para no mover los tokens de las reseñas de arriba. */
+const TOTTI_ID = "usr_show_totti";
+const TOTTI_SID = `gu_${TOTTI_ID}`;
+const TOTTI_L = [
+  {
+    id: "lst_show_totti_juarez_loft", host: TOTTI_ID, cat: "departamentos", space: "Espacio completo",
+    title: "Loft industrial a pasos de Reforma — Juárez", city: "Ciudad de México", zone: "Juárez", county: "Cuauhtémoc",
+    lat: 19.4268, lng: -99.1597, guests: 2, bedrooms: 1, bathrooms: 1, size: "58 m²", price: 1590, cleaning: 230,
+    photos: ["1502672260266-1c1ef2d93688", "1505693416388-ac5ce068fe85", "1484154218962-a197022b5858", "1556912172-45b7abe8b7e1"],
+    amenities: [WIFI, "Aire Acondicionado", "Cocina", "Lavadora", "Televisión", "Cafetera", "Escritorio", "Elementos básicos"],
+    rules: { smoking: false, pets: false, parties: false, children: false },
+    desc: "Loft de doble altura en un edificio de los años 50, a dos cuadras del Ángel de la Independencia. Cocina de chef (es la mía de pruebas), escritorio y cama queen en el tapanco.\n\nEstás a pie de la Zona Rosa, la Roma y el Bosque de Chapultepec. Te dejo café de Veracruz y mi mapa de taquerías.",
+    details: ["la cocina equipadísima", "el mapa de taquerías de Totti", "lo bien ubicado junto a Reforma"],
+    pricing: { weekendPrice: 1790, weeklyDiscountPct: 10 },
+    guide: { checkInTime: "15:00", checkOutTime: "11:00", wifiName: "Totti-Juarez", wifiPassword: "tacosalpastor", checkInMethod: "Cerradura con código; te lo mando por aquí el día anterior." },
+  },
+  {
+    id: "lst_show_totti_polanco_depa", host: TOTTI_ID, cat: "departamentos", space: "Espacio completo",
+    title: "Departamento con vista a Chapultepec — Polanco", city: "Ciudad de México", zone: "Polanco", county: "Miguel Hidalgo",
+    lat: 19.4256, lng: -99.1934, guests: 4, bedrooms: 2, bathrooms: 2, size: "110 m²", price: 3200, cleaning: 400,
+    photos: ["1600210492486-724fe5c67fb0", "1600607687939-ce8a6c25118c", "1600566753190-17f0baa2a6c3", "1584622650111-993a426fbf0a"],
+    amenities: [WIFI, "Aire Acondicionado", "Cocina", "Lavadora", "Secadora", "Televisión", "Terraza o balcón", "Estacionamiento Gratuito"],
+    rules: { smoking: false, pets: false, parties: false, children: true },
+    desc: "Departamento en piso 9 con balcón hacia el Bosque de Chapultepec, a tres cuadras de Masaryk. Dos recámaras con baño propio, sala amplia y cajón de estacionamiento.\n\nEdificio con seguridad 24 h. Ideal para familias o viajes de trabajo cerca de Reforma.",
+    details: ["la vista al bosque desde el balcón", "lo amplio y silencioso", "las recomendaciones de restaurantes"],
+    pricing: { weekendPrice: 3600, weeklyDiscountPct: 12, minNights: 2 },
+  },
+  {
+    id: "lst_show_totti_sanrafael_hab", host: TOTTI_ID, cat: "habitaciones", space: "Habitación privada",
+    title: "Habitación con balcón en casa art déco — San Rafael", city: "Ciudad de México", zone: "San Rafael", county: "Cuauhtémoc",
+    lat: 19.4383, lng: -99.1621, guests: 2, bedrooms: 1, bathrooms: 1, size: "20 m²", price: 780, cleaning: 100,
+    photos: ["1616594039964-ae9021a400a0", "1522771739844-6a9f6d5f14af", "1584622650111-993a426fbf0a"],
+    amenities: [WIFI, "Agua caliente", "Cocina", "Ropa de cama", "Cafetera", "Shampoo", "Desayuno incluido"],
+    rules: { smoking: false, pets: false, parties: false, children: false },
+    desc: "Recámara con balcón y baño privado en una casa art déco de 1938. Comparto cocina y comedor; los domingos hago chilaquiles para todos.\n\nA cinco minutos del Metro San Cosme y del Museo del Chopo.",
+    details: ["los chilaquiles del domingo", "el balcón de la recámara", "lo bonita de la casa"],
+  },
+  {
+    id: "lst_show_totti_sanangel_casa", host: TOTTI_ID, cat: "casas", space: "Espacio completo",
+    title: "Casa con jardín y asador — San Ángel", city: "Ciudad de México", zone: "San Ángel", county: "Álvaro Obregón",
+    lat: 19.3466, lng: -99.1903, guests: 6, bedrooms: 3, bathrooms: 3, size: "220 m²", price: 3800, cleaning: 500,
+    photos: ["1600585154340-be6161a56a0c", "1600047509807-ba8f99d2cdde", "1600566752355-35792bedcfea", "1556020685-ae41abfc9365"],
+    amenities: [WIFI, "Cocina", "Jardín / Patio", "Lavadora", "Estacionamiento Gratuito", "Amigable Familias/Niños", "Mesa de comedor", "Permiten Mascotas"],
+    rules: { smoking: false, pets: true, parties: false, children: true },
+    desc: "Casa de piedra con jardín grande y asador en una calle empedrada de San Ángel. Tres recámaras, comedor para diez y cocina con horno de leña.\n\nA pie del Bazar del Sábado y de la Plaza San Jacinto.",
+    details: ["el jardín con asador", "el horno de leña", "caminar al Bazar del Sábado"],
+    pricing: { weekendPrice: 4300, minNights: 2 },
+  },
+];
+
 /* ─────────────── Reseñas ─────────────── */
 
 const REVIEW_TEMPLATES = [
@@ -529,7 +596,7 @@ function booking({ id, listing, guest, checkIn, checkOut, token, status = "COMPL
     contractStatus: "signed",
     token,
     createdAt,
-    updatedAt: `${checkOut}T18:00:00.000Z`,
+    updatedAt: status === "COMPLETED" ? `${checkOut}T18:00:00.000Z` : createdAt,
     paidAt: createdAt,
     chargedVia: "platform",
     stripeCheckoutSessionId: `simulated_show_${id}`,
@@ -566,6 +633,8 @@ async function main() {
         interests: h.interests,
         work: HOST_WORK[h.id],
         livesIn: h.address.split(",").slice(-2).join(",").trim(),
+        ...(h.instagram ? { instagram: h.instagram } : {}),
+        ...(h.website ? { website: h.website } : {}),
       };
     }
   }
@@ -579,7 +648,7 @@ async function main() {
   }
 
   const haveListing = new Set(store.listings.map((l) => l.id));
-  for (const l of L) {
+  for (const l of [...L, ...TOTTI_L]) {
     if (haveListing.has(l.id)) continue;
     store.listings.push(listingRecord(l));
     added.listings++;
@@ -601,40 +670,43 @@ async function main() {
     { id: "lst_demo_sofia_valle", host: SOFIA_ID, price: 2100, cleaning: 320, details: ["la chimenea", "las hamacas de la terraza", "el sendero al bosque"] },
   ].filter((l) => store.listings.some((x) => x.id === l.id));
 
-  const reviewed = [...L, ...sofiaListings];
   let gi = 0;
-  let tok = 700100;
-  reviewed.forEach((l, li) => {
-    const count = sofiaListings.includes(l) ? 2 : 3;
-    for (let n = 0; n < count; n++) {
-      const guest = GUESTS[gi++ % GUESTS.length];
-      const [checkIn, checkOut] = REVIEW_WINDOWS[(li + n) % REVIEW_WINDOWS.length];
-      const bid = `bkg_show_rev_${l.id}_${n}`;
-      if (!haveBooking.has(bid)) {
-        bookingFile.bookings.push(booking({ id: bid, listing: l, guest, checkIn, checkOut, token: String(tok) }));
-        added.bookings++;
+  const addReviews = (reviewed, firstToken) => {
+    let tok = firstToken;
+    reviewed.forEach((l, li) => {
+      const count = sofiaListings.includes(l) ? 2 : 3;
+      for (let n = 0; n < count; n++) {
+        const guest = GUESTS[gi++ % GUESTS.length];
+        const [checkIn, checkOut] = REVIEW_WINDOWS[(li + n) % REVIEW_WINDOWS.length];
+        const bid = `bkg_show_rev_${l.id}_${n}`;
+        if (!haveBooking.has(bid)) {
+          bookingFile.bookings.push(booking({ id: bid, listing: l, guest, checkIn, checkOut, token: String(tok) }));
+          added.bookings++;
+        }
+        tok++;
+        const rid = `rev_show_${l.id}_${n}`;
+        if (!haveReview.has(rid)) {
+          const host = hostById(l.host)?.name.split(" ")[0] ?? "Sofía";
+          const t = (li + n) % REVIEW_TEMPLATES.length;
+          reviewFile.reviews.push({
+            id: rid,
+            bookingId: bid,
+            listingId: l.id,
+            hostId: l.host,
+            guestUserId: guest.id,
+            kind: "guest_to_listing",
+            authorUserId: guest.id,
+            rating: RATINGS[(li * 2 + n) % RATINGS.length],
+            comment: REVIEW_TEMPLATES[t](l.details[n % l.details.length], host),
+            createdAt: `${checkOut}T20:00:00.000Z`,
+          });
+          added.reviews++;
+        }
       }
-      tok++;
-      const rid = `rev_show_${l.id}_${n}`;
-      if (!haveReview.has(rid)) {
-        const host = hostById(l.host)?.name.split(" ")[0] ?? "Sofía";
-        const t = (li + n) % REVIEW_TEMPLATES.length;
-        reviewFile.reviews.push({
-          id: rid,
-          bookingId: bid,
-          listingId: l.id,
-          hostId: l.host,
-          guestUserId: guest.id,
-          kind: "guest_to_listing",
-          authorUserId: guest.id,
-          rating: RATINGS[(li * 2 + n) % RATINGS.length],
-          comment: REVIEW_TEMPLATES[t](l.details[n % l.details.length], host),
-          createdAt: `${checkOut}T20:00:00.000Z`,
-        });
-        added.reviews++;
-      }
-    }
-  });
+    });
+  };
+  addReviews([...L, ...sofiaListings], 700100);
+  addReviews(TOTTI_L, 960100);
 
   const sofia = { id: SOFIA_ID, name: "Sofía Ramírez", email: "sofia@urbnbee.test", phone: "+52 55 3901 7742" };
   const byId = (id) => L.find((l) => l.id === id);
@@ -646,6 +718,32 @@ async function main() {
   for (const s of sofiaStays) {
     if (haveBooking.has(s.id)) continue;
     bookingFile.bookings.push(booking({ ...s, guest: sofia }));
+    added.bookings++;
+  }
+
+  // Totti como huésped (viajes) y como anfitrión (reservas que le llegan).
+  const totti = { id: TOTTI_ID, name: "Totti Hernández", email: "totti@urbnbee.test", phone: "+52 55 6273 1188" };
+  const tottiById = (id) => TOTTI_L.find((l) => l.id === id);
+  const g = (key) => GUESTS.find((x) => x.id === `usr_show_g_${key}`);
+  const sofiaValle = sofiaListings.find((l) => l.id === "lst_demo_sofia_valle");
+  const tottiTrips = [
+    { id: "bkg_show_totti_pv", listing: byId("lst_show_valeria_pv_villa"), checkIn: "2026-07-03", checkOut: "2026-07-07", token: "961501" },
+    { id: "bkg_show_totti_gto", listing: byId("lst_show_mariana_gto_depa"), checkIn: "2026-04-10", checkOut: "2026-04-13", token: "961502" },
+    ...(sofiaValle
+      ? [{ id: "bkg_show_totti_sofia_valle", listing: sofiaValle, checkIn: "2026-10-23", checkOut: "2026-10-25", token: "961503", status: "CONFIRMED" }]
+      : []),
+    { id: "bkg_show_totti_tulum_selva", listing: byId("lst_show_lucia_tulum_selva"), checkIn: "2026-11-13", checkOut: "2026-11-16", token: "961504", status: "CONFIRMED" },
+    { id: "bkg_show_totti_vinedo", listing: byId("lst_show_andres_vinedo_casa"), checkIn: "2026-12-04", checkOut: "2026-12-07", token: "961505", status: "PENDING_HOST" },
+  ];
+  const tottiHosting = [
+    { id: "bkg_show_totti_h_current", listing: tottiById("lst_show_totti_juarez_loft"), guest: g("carlos"), checkIn: "2026-09-30", checkOut: "2026-10-05", token: "961601", status: "CONFIRMED" },
+    { id: "bkg_show_totti_h_upcoming", listing: tottiById("lst_show_totti_polanco_depa"), guest: g("fernanda"), checkIn: "2026-10-16", checkOut: "2026-10-19", token: "961602", status: "CONFIRMED" },
+    { id: "bkg_show_totti_h_pending_hab", listing: tottiById("lst_show_totti_sanrafael_hab"), guest: g("sara"), checkIn: "2026-10-10", checkOut: "2026-10-12", token: "961603", status: "PENDING_HOST" },
+    { id: "bkg_show_totti_h_pending_casa", listing: tottiById("lst_show_totti_sanangel_casa"), guest: g("miguel"), checkIn: "2026-11-20", checkOut: "2026-11-23", token: "961604", status: "PENDING_HOST" },
+  ];
+  for (const s of [...tottiTrips.map((t) => ({ ...t, guest: totti })), ...tottiHosting]) {
+    if (haveBooking.has(s.id)) continue;
+    bookingFile.bookings.push(booking(s));
     added.bookings++;
   }
   writeJson("bookings.json", bookingFile);
@@ -674,6 +772,48 @@ async function main() {
       body: m.body,
       createdAt: m.createdAt,
     });
+    added.messages++;
+  }
+
+  const asTottiGuest = (listingId, hostId) => (id, sender, body, createdAt) => ({
+    id, listingId, hostId, guestSessionId: TOTTI_SID, sender,
+    guestName: sender === "guest" ? totti.name : "",
+    guestEmail: sender === "guest" ? totti.email : undefined,
+    body, createdAt,
+  });
+  const toTotti = (listingId, guest, sessionId = `gu_${guest.id}`) => (id, sender, body, createdAt) => ({
+    id, listingId, hostId: TOTTI_ID, guestSessionId: sessionId, sender,
+    guestName: sender === "guest" ? guest.name : "",
+    guestEmail: sender === "guest" ? guest.email : undefined,
+    body, createdAt,
+  });
+  const lucia = asTottiGuest("lst_show_lucia_tulum_selva", "usr_show_lucia");
+  const sofiaChat = asTottiGuest("lst_demo_sofia_valle", SOFIA_ID);
+  const carlos = toTotti("lst_show_totti_juarez_loft", g("carlos"));
+  const fernanda = toTotti("lst_show_totti_polanco_depa", g("fernanda"));
+  const sara = toTotti("lst_show_totti_sanrafael_hab", g("sara"));
+  const familia = toTotti("lst_show_totti_sanangel_casa", { name: "Familia Gutiérrez", email: "gutierrez.viajes@gmail.com" }, "sess_show_totti_familia");
+  const tottiMsgs = [
+    lucia("msg_show_totti_lucia_1", "guest", "Hola Lucía, reservé la villa del 13 al 16 de noviembre. Somos cuatro amigos y nos gusta cocinar: ¿la cocina tiene comal y licuadora?", "2026-09-24T18:10:00.000Z"),
+    lucia("msg_show_totti_lucia_2", "host", "¡Hola Totti! Sí, hay comal, licuadora y hasta molcajete. Si quieren les encargo pescado fresco con un pescador de Punta Allen.", "2026-09-24T19:02:00.000Z"),
+    lucia("msg_show_totti_lucia_3", "guest", "¡Eso sí! Encárganos un huachinango para el sábado. Yo cocino y te invitamos.", "2026-09-24T19:20:00.000Z"),
+    ...(sofiaValle
+      ? [
+          sofiaChat("msg_show_totti_sofia_1", "guest", "Hola Sofía, vamos a Valle el 23 de octubre. ¿Hay leña para la chimenea o la compro en el camino?", "2026-09-26T15:30:00.000Z"),
+          sofiaChat("msg_show_totti_sofia_2", "host", "Hola Totti, te dejo leña para dos noches. Si quieres más, en la entrada a Avándaro venden por manojo.", "2026-09-26T16:12:00.000Z"),
+        ]
+      : []),
+    carlos("msg_show_totti_carlos_1", "guest", "Hola Totti, llego el 30 en la tarde. ¿El código de la puerta es el mismo para el edificio?", "2026-09-29T20:05:00.000Z"),
+    carlos("msg_show_totti_carlos_2", "host", "Hola Carlos, el edificio abre con el mismo código. Te dejé café de Veracruz y mi mapa de taquerías en la barra.", "2026-09-29T20:31:00.000Z"),
+    carlos("msg_show_totti_carlos_3", "guest", "Ya estoy instalado, el loft está increíble. Hoy pruebo El Califa que marcaste en el mapa.", "2026-10-01T02:14:00.000Z"),
+    fernanda("msg_show_totti_fernanda_1", "guest", "Hola, vamos mi esposo, yo y dos niños. ¿El cajón de estacionamiento cabe una camioneta?", "2026-09-27T14:40:00.000Z"),
+    fernanda("msg_show_totti_fernanda_2", "host", "Hola Fernanda, sí cabe sin problema. Les dejo dos juegos de llaves y una cuna plegable si la necesitan.", "2026-09-27T15:22:00.000Z"),
+    sara("msg_show_totti_sara_1", "guest", "Hola Totti, mandé solicitud para el 10–12 de octubre. Vengo a un congreso en el Chopo, ¿el desayuno es entre semana también?", "2026-10-02T17:45:00.000Z"),
+    familia("msg_show_totti_familia_1", "guest", "Buenas tardes, ¿la casa de San Ángel está libre en Navidad (23–27 de diciembre)? Somos seis adultos y un perro mediano.", "2026-10-02T21:10:00.000Z"),
+  ];
+  for (const m of tottiMsgs) {
+    if (haveMsg.has(m.id)) continue;
+    inbox.messages.push(m);
     added.messages++;
   }
   writeJson("host-inbox-messages.json", inbox);

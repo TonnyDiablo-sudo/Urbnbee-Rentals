@@ -1,16 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { hostScope } from "@/lib/team-access";
+import { memberCoversListing } from "@/lib/team-store";
 import { getSessionUser } from "@/lib/session";
 import { groupThreads } from "@/lib/host-inbox-store";
 import { nameForViewer, shareABooking } from "@/lib/display-name";
 import { getListingById } from "@/lib/marketplace-store";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const user = await getSessionUser();
-  if (!user || (user.role !== "host" && user.role !== "admin")) {
+  const scope = hostScope(user, req.nextUrl.searchParams.get("host"), "messages");
+  if (!scope) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
-  const grouped = groupThreads(user.id);
+  const grouped = groupThreads(scope.hostId);
   type ThreadOut = {
     listingId: string;
     listingTitle: string;
@@ -32,12 +35,13 @@ export async function GET() {
   for (const [key, msgs] of grouped.entries()) {
     const colon = key.indexOf(":");
     const listingId = colon === -1 ? key : key.slice(0, colon);
+    if (scope.member && !memberCoversListing(scope.member, listingId)) continue;
     const guestSessionId = colon === -1 ? "" : key.slice(colon + 1);
     const listing = getListingById(listingId);
     const firstGuest = msgs.find((m) => m.sender === "guest");
     const last = msgs[msgs.length - 1];
     const guestUserId = guestSessionId.startsWith("gu_") ? guestSessionId.slice(3) : "";
-    const reveal = Boolean(guestUserId && shareABooking(user.id, guestUserId));
+    const reveal = Boolean(guestUserId && shareABooking(scope.hostId, guestUserId));
     const guestName =
       (guestUserId && nameForViewer(guestUserId, reveal)) || firstGuest?.guestName || "?";
     threads.push({

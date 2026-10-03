@@ -18,32 +18,112 @@
 
 export type MembershipPlanCode =
   | "pase_reserva"
+  | "meses_1"
   | "meses_6"
   | "meses_12"
+  | "anfitrion_1"
   | "anfitrion_6"
   | "anfitrion_12"
-  | "booking_engine";
+  | "booking_engine"
+  | "booking_engine_6"
+  | "booking_engine_12"
+  | "cleaning_tool"
+  | "cleaning_tool_6"
+  | "cleaning_tool_12"
+  | "collaborator_seat"
+  | "collaborator_seat_6"
+  | "collaborator_seat_12"
+  | "address_proof"
+  | "address_proof_6"
+  | "address_proof_12";
 
 export const MEMBERSHIP_PLAN_CODES: MembershipPlanCode[] = [
   "pase_reserva",
+  "meses_1",
   "meses_6",
   "meses_12",
+  "anfitrion_1",
   "anfitrion_6",
   "anfitrion_12",
   "booking_engine",
+  "booking_engine_6",
+  "booking_engine_12",
+  "cleaning_tool",
+  "cleaning_tool_6",
+  "cleaning_tool_12",
+  "collaborator_seat",
+  "collaborator_seat_6",
+  "collaborator_seat_12",
+  "address_proof",
+  "address_proof_6",
+  "address_proof_12",
 ];
+
+/** Todos los precios viven en Cabibee: urbnbeeai sólo interviene en su agente de IA. */
+export const URBNBEEAI_CATALOG_CODES: MembershipPlanCode[] = [];
+
+/**
+ * Un mismo producto se vende a 1, 6 o 12 meses: cada plazo es su propio plan (su
+ * precio y su suscripción), y la familia dice qué desbloquea.
+ */
+export type MembershipPlanFamily =
+  | "guest_pass"
+  | "guest_membership"
+  | "host_verification"
+  | "booking_engine"
+  | "cleaning_tool"
+  | "collaborator_seat"
+  | "address_proof";
+
+export const MEMBERSHIP_PLAN_FAMILY: Record<MembershipPlanCode, MembershipPlanFamily> = {
+  pase_reserva: "guest_pass",
+  meses_1: "guest_membership",
+  meses_6: "guest_membership",
+  meses_12: "guest_membership",
+  anfitrion_1: "host_verification",
+  anfitrion_6: "host_verification",
+  anfitrion_12: "host_verification",
+  booking_engine: "booking_engine",
+  booking_engine_6: "booking_engine",
+  booking_engine_12: "booking_engine",
+  cleaning_tool: "cleaning_tool",
+  cleaning_tool_6: "cleaning_tool",
+  cleaning_tool_12: "cleaning_tool",
+  collaborator_seat: "collaborator_seat",
+  collaborator_seat_6: "collaborator_seat",
+  collaborator_seat_12: "collaborator_seat",
+  address_proof: "address_proof",
+  address_proof_6: "address_proof",
+  address_proof_12: "address_proof",
+};
+
+export function planFamily(code: string): MembershipPlanFamily | undefined {
+  return MEMBERSHIP_PLAN_FAMILY[code as MembershipPlanCode];
+}
+
+/** Familias que se cobran por unidad: el precio es por anuncio o por colaborador. */
+export const MEMBERSHIP_FAMILY_UNIT: Partial<Record<MembershipPlanFamily, "listing" | "seat">> = {
+  booking_engine: "listing",
+  cleaning_tool: "listing",
+  collaborator_seat: "seat",
+  address_proof: "listing",
+};
+
+export const MEMBERSHIP_PLAN_UNIT: Partial<Record<MembershipPlanCode, "listing" | "seat">> = Object.fromEntries(
+  MEMBERSHIP_PLAN_CODES.filter((c) => MEMBERSHIP_FAMILY_UNIT[MEMBERSHIP_PLAN_FAMILY[c]]).map((c) => [
+    c,
+    MEMBERSHIP_FAMILY_UNIT[MEMBERSHIP_PLAN_FAMILY[c]],
+  ])
+);
+
+export const MEMBERSHIP_PLAN_MAX_QUANTITY = 200;
 
 /** A quién le vende cada plan. Determina qué desbloquea el pago. */
 export type MembershipAudience = "guest" | "host";
 
-export const MEMBERSHIP_PLAN_AUDIENCE: Record<MembershipPlanCode, MembershipAudience> = {
-  pase_reserva: "guest",
-  meses_6: "guest",
-  meses_12: "guest",
-  anfitrion_6: "host",
-  anfitrion_12: "host",
-  booking_engine: "host",
-};
+export const MEMBERSHIP_PLAN_AUDIENCE: Record<MembershipPlanCode, MembershipAudience> = Object.fromEntries(
+  MEMBERSHIP_PLAN_CODES.map((c) => [c, MEMBERSHIP_PLAN_FAMILY[c].startsWith("guest_") ? "guest" : "host"])
+) as Record<MembershipPlanCode, MembershipAudience>;
 
 /**
  * Cómo se cobra cada plan. No es editable porque no es precio: cambiarlo
@@ -54,14 +134,13 @@ export type MembershipPlanBilling =
   | { kind: "one_time" }
   | { kind: "subscription"; intervalCount: number };
 
-export const MEMBERSHIP_PLAN_BILLING: Record<MembershipPlanCode, MembershipPlanBilling> = {
-  pase_reserva: { kind: "one_time" },
-  meses_6: { kind: "subscription", intervalCount: 6 },
-  meses_12: { kind: "subscription", intervalCount: 12 },
-  anfitrion_6: { kind: "subscription", intervalCount: 6 },
-  anfitrion_12: { kind: "subscription", intervalCount: 12 },
-  booking_engine: { kind: "subscription", intervalCount: 1 },
-};
+export const MEMBERSHIP_PLAN_BILLING: Record<MembershipPlanCode, MembershipPlanBilling> = Object.fromEntries(
+  MEMBERSHIP_PLAN_CODES.map((c) => {
+    if (c === "pase_reserva") return [c, { kind: "one_time" }];
+    const m = /_(6|12)$/.exec(c);
+    return [c, { kind: "subscription", intervalCount: m ? Number(m[1]) : 1 }];
+  })
+) as Record<MembershipPlanCode, MembershipPlanBilling>;
 
 export type MembershipPlanRecord = {
   code: MembershipPlanCode;
@@ -86,4 +165,6 @@ export type MembershipPlansSnapshot = {
   catalogSyncedAt?: string;
   /** Primera subida de precios locales a urbnbeeai. */
   catalogPushedAt?: string;
+  /** Se aplicaron los precios iniciales que fijó el dueño (sólo a planes en 0). */
+  defaultPricesAppliedAt?: string;
 };

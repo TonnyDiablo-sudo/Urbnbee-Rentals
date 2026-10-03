@@ -17,6 +17,7 @@ export type ListingImportLlmPayload = {
   city?: string;
   zone?: string;
   county?: string;
+  state?: string;
   country?: string;
   addressLine?: string;
   guests?: number;

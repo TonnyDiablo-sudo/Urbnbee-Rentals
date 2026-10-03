@@ -5,8 +5,12 @@ import { getSessionUser } from "@/lib/session";
 
 const NAV = [
   { href: "/admin/overview", label: "Resumen", icon: "📊" },
+  { href: "/admin/estadisticas", label: "Estadísticas", icon: "📈" },
   { href: "/admin/users", label: "Usuarios", icon: "👥" },
   { href: "/admin/bookings", label: "Reservas", icon: "🏠" },
+  { href: "/asociados", label: "Asociados (alta con IA)", icon: "🤝" },
+  { href: "/admin/reclamos", label: "Reclamos de anuncios", icon: "🙋" },
+  { href: "/admin/domicilios", label: "Comprobantes de domicilio", icon: "📍" },
   { href: "/admin/pricing", label: "Precios", icon: "💲" },
   { href: "/admin/logs", label: "Actividad", icon: "📋" },
   { href: "/admin/blog-bot", label: "Blog (LLM)", icon: "✍️" },

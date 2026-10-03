@@ -35,9 +35,16 @@ export type ListingDetail = {
   city: string;
   zone: string;
   county: string;
+  state?: string;
   country: string;
+  /** Si el anfitrión eligió ubicación aproximada, ya vienen corridas unos cientos de metros. */
   lat: number;
   lng: number;
+  exactLocation?: boolean;
+  /** Sólo con ubicación exacta; si no, la calle se comparte al confirmar la reserva. */
+  addressLine?: string;
+  /** El domicilio del anuncio coincide con un comprobante revisado. */
+  locationVerified?: boolean;
   pricePerNight: number;
   /** Precios por noche por fecha (YYYY-MM-DD) para el huésped. */
   nightlyPriceOverrides?: Record<string, number>;

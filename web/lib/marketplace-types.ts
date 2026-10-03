@@ -23,6 +23,21 @@ export type UserRecord = {
   addressLine?: string;
   role: UserRole;
   createdAt: string;
+  /** Puede usar el panel de asociados (alta de anfitriones con IA). Los admin siempre pueden. */
+  associate?: boolean;
+  /** Hash del token que usa la extensión de Chrome del asociado. */
+  associateTokenHash?: string;
+  /** Asociado que dio de alta esta cuenta. */
+  provisionedBy?: string;
+  /** El correo es interno (`@cuentas.cabibee.com`) hasta que el dueño ponga el suyo. */
+  placeholderEmail?: boolean;
+  /** Al entrar con la contraseña temporal debe poner su correo y una contraseña nueva. */
+  mustChangePassword?: boolean;
+  /** Cuándo el dueño tomó control de una cuenta creada por un asociado. */
+  claimedAt?: string;
+  emailVerifiedAt?: string;
+  emailVerifyTokenHash?: string;
+  emailVerifyExpiresAt?: string;
 };
 
 /** Contact & bio shown on listing detail — scoped per host (tenant). */
@@ -57,11 +72,20 @@ export type HostListingRecord = {
   spaceType: string;
   city: string;
   zone: string;
+  /** Municipio / alcaldía / condado. */
   county: string;
+  /** Estado / provincia. Los anuncios viejos lo infieren al cargar (lib/geo-places). */
+  state?: string;
   country: string;
   addressLine: string;
   lat: number;
   lng: number;
+  /** approximate (por defecto): el mapa público corre el punto y no muestra la calle. */
+  locationPrecision?: "approximate" | "exact";
+  /** El anfitrión le asignó uno de sus lugares pagados del motor de reservas. */
+  bookingEngineOn?: boolean;
+  /** El anuncio está en la herramienta de limpieza. */
+  cleaningOn?: boolean;
   guests: number;
   bedrooms: number;
   bathrooms: number;
@@ -96,8 +120,20 @@ export type HostListingRecord = {
   chargeTax?: boolean;
   /** Plantilla y datos que el anfitrión usa para celebrar el contrato de cada reserva. */
   contract?: ListingContractSettings;
+  /** De dónde lo capturó un asociado. Interno: no se muestra al público. */
+  source?: ListingSource;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ListingSourceKind = "facebook" | "web" | "screenshots";
+
+export type ListingSource = {
+  kind: ListingSourceKind;
+  url?: string;
+  site?: string;
+  capturedBy: string;
+  capturedAt: string;
 };
 
 export type SessionPayload = {

@@ -19,6 +19,14 @@ import {
 
 const TTL_MS = 5 * 60 * 1000;
 
+/**
+ * Los precios de Cabibee se deciden sólo en Cabibee: urbnbeeai nada más interviene en
+ * su agente de IA. La sincronización queda apagada; el código se conserva por si algún
+ * día se vuelve a compartir el catálogo.
+ */
+const CATALOG_SYNC_ENABLED = false;
+const catalogSyncOn = () => CATALOG_SYNC_ENABLED && urbnbeeaiCatalogConfigured();
+
 type AdminExtra = {
   floorPrice: number | null;
   sellerSellable: boolean;
@@ -88,7 +96,7 @@ export async function ensurePublicCatalogFresh(): Promise<{
   configured: boolean;
   live: boolean;
 }> {
-  if (!urbnbeeaiCatalogConfigured()) return { configured: false, live: false };
+  if (!catalogSyncOn()) return { configured: false, live: false };
   if (Date.now() - lastPublicOkAt < TTL_MS) return { configured: true, live: true };
   if (publicInflight) {
     const live = await publicInflight;
@@ -115,7 +123,7 @@ export async function ensureAdminCatalogFresh(adminEmail: string): Promise<{
   configured: boolean;
   live: boolean;
 }> {
-  if (!urbnbeeaiCatalogConfigured()) return { configured: false, live: false };
+  if (!catalogSyncOn()) return { configured: false, live: false };
   if (Date.now() - lastAdminOkAt < TTL_MS && adminExtra.size > 0) {
     return { configured: true, live: true };
   }
@@ -196,7 +204,7 @@ export async function savePlanToCatalog(
   },
   adminEmail: string
 ): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
-  if (!urbnbeeaiCatalogConfigured()) {
+  if (!catalogSyncOn()) {
     return { ok: false, error: "Falta CABIBEE_TO_URBNBEEAI_API_SECRET en Cabibee y en urbnbeeai.", status: 503 };
   }
   const res = await patchAdminCatalog(
@@ -234,7 +242,7 @@ export async function savePlanToCatalog(
 }
 
 export function startCatalogRefreshWorker() {
-  if (!urbnbeeaiCatalogConfigured()) return;
+  if (!catalogSyncOn()) return;
   void ensurePublicCatalogFresh();
   setInterval(() => {
     void ensurePublicCatalogFresh();

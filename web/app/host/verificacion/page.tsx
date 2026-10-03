@@ -2,6 +2,8 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { AddressProofPanel } from "@/components/host/address-proof-panel";
+import { EngineListingsPanel } from "@/components/host/engine-listings-panel";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale, type TFn } from "@/lib/i18n";
 import type { VerificationRegion } from "@/lib/verification-types";
@@ -249,6 +251,11 @@ function HostVerificacionClient() {
               </div>
             )}
           </dl>
+
+          <div className="mt-8 space-y-8">
+            <EngineListingsPanel />
+            <AddressProofPanel surface="web" />
+          </div>
 
           {showRegionToggle && (
             <div className="mt-6 flex flex-wrap items-center gap-2">

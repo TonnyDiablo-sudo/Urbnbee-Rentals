@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { lockLegalName } from "@/lib/display-name";
-import { findUserById, setUserRole } from "@/lib/marketplace-store";
+import { findUserById, setUserRole, updateUserAuth } from "@/lib/marketplace-store";
 import type { UserRole } from "@/lib/marketplace-types";
 import {
   getVerification,
@@ -30,7 +30,15 @@ export async function PATCH(
     role?: string;
     grantPass?: boolean;
     verifyGuestIdentity?: boolean;
+    associate?: boolean;
   };
+  if (typeof body.associate === "boolean") {
+    const updated = updateUserAuth(id, {
+      associate: body.associate || undefined,
+      ...(body.associate ? {} : { associateTokenHash: undefined }),
+    });
+    return NextResponse.json({ ok: true, associate: Boolean(updated?.associate) });
+  }
   if (body.verifyGuestIdentity) {
     const v = markGuestIdentityVerified(id);
     lockLegalName(id);

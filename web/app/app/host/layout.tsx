@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 import { AuthGate } from "../_components/auth-gate";
@@ -26,6 +27,8 @@ export default async function AppHostLayout({ children }: { children: React.Reac
       </>
     );
   }
+
+  if (user.mustChangePassword) redirect("/cuenta/activar");
 
   if (user.role === "guest") {
     return (

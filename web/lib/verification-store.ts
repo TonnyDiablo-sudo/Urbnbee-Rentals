@@ -10,6 +10,7 @@ import {
   applyHostEntitlement,
   getHostEntitlement,
   HOST_SKU_BOOKING_ENGINE,
+  HOST_SKU_HOST_VERIFICATION,
   hostEntitlementAllowsAccess,
 } from "@/lib/host-entitlements";
 import { membershipCatalogHasPricedPlan } from "@/lib/membership-plans-store";
@@ -136,6 +137,11 @@ export function getVerification(userId: string): GuestVerificationRecord | undef
   return rows.get(userId);
 }
 
+export function listAllVerifications(): GuestVerificationRecord[] {
+  syncIfStale();
+  return [...rows.values()];
+}
+
 export function upsertVerification(
   userId: string,
   patch: Partial<Omit<GuestVerificationRecord, "userId" | "updatedAt">>
@@ -158,8 +164,15 @@ export function upsertVerification(
     hostCurrentPeriodEnd: patch.hostCurrentPeriodEnd ?? prev?.hostCurrentPeriodEnd,
     bookingPassesRemaining: patch.bookingPassesRemaining ?? prev?.bookingPassesRemaining,
     grantedPassSessionIds: patch.grantedPassSessionIds ?? prev?.grantedPassSessionIds,
+    subscriptionStartedAt: prev?.subscriptionStartedAt,
+    hostSubscriptionStartedAt: prev?.hostSubscriptionStartedAt,
     updatedAt: nowIso(),
   };
+  const live = (s?: VerificationSubscriptionStatus) => s === "active" || s === "trialing";
+  if (live(next.subscriptionStatus) && !live(prev?.subscriptionStatus)) next.subscriptionStartedAt = next.updatedAt;
+  if (live(next.hostSubscriptionStatus) && !live(prev?.hostSubscriptionStatus)) {
+    next.hostSubscriptionStartedAt = next.updatedAt;
+  }
   rows.set(userId, next);
   persist();
   return next;
@@ -172,6 +185,7 @@ export function setVerificationSubscriptionFields(
     stripeSubscriptionId?: string;
     subscriptionStatus: VerificationSubscriptionStatus;
     currentPeriodEnd?: string;
+    cancelAtPeriodEnd?: boolean;
   }
 ): GuestVerificationRecord {
   return upsertVerification(userId, fields);
@@ -352,7 +366,12 @@ export function isHostMembershipPaidUp(userId: string): boolean {
  * membresía de anfitrión pagada. Sin membresía no hay listón, pase lo que pase.
  */
 export function hostShowsVerifiedRibbon(userId: string): boolean {
-  return isHostIdentityVerified(userId) && isHostMembershipPaidUp(userId);
+  if (!isHostIdentityVerified(userId)) return false;
+  const paid = getHostEntitlement(userId, HOST_SKU_HOST_VERIFICATION);
+  if (paid && paid.status === "active" && !periodOver(paid.currentPeriodEnd)) return true;
+  const engine = getHostEntitlement(userId, HOST_SKU_BOOKING_ENGINE);
+  if (engine?.quantity !== undefined) return false;
+  return isHostMembershipPaidUp(userId);
 }
 
 /** @deprecated Usa hostShowsVerifiedRibbon o isHostIdentityVerified. */

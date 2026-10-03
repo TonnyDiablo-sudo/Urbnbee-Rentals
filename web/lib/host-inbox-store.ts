@@ -76,6 +76,11 @@ export function appendMessage(rec: Omit<HostInboxMessageRecord, "id" | "createdA
   return message;
 }
 
+export function listAllMessages(): readonly HostInboxMessageRecord[] {
+  syncIfStale();
+  return rows;
+}
+
 export function listThread(listingId: string, guestSessionId: string): HostInboxMessageRecord[] {
   syncIfStale();
   return rows

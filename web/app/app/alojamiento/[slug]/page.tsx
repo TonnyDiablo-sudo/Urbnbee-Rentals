@@ -7,7 +7,10 @@ import { listingIsBookable } from "@/lib/app-listings";
 import { discountRows } from "@/lib/listing-pricing";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { stripHostContactChannels } from "@/lib/host-contact-policy";
+import { UnclaimedNotice } from "@/components/listing/unclaimed-notice";
 import { getT } from "@/lib/i18n/server";
+import { isListingUnclaimed } from "@/lib/listing-claim-status";
+import { trackListingView } from "@/lib/listing-view-tracking";
 import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 import { IconChat } from "../../_components/icons";
@@ -35,8 +38,10 @@ export default async function AppListingPage({ params }: Props) {
   const hostListing = Boolean(record?.published);
   const bookable = listingIsBookable(listing.id);
   const isOwn = Boolean(viewer && record && viewer.id === record.hostId);
+  const unclaimed = hostListing && isListingUnclaimed(listing.id);
+  await trackListingView(record, viewer);
   const host = viewer ? listing.host : stripHostContactChannels(listing.host);
-  const place = [listing.city, listing.zone].filter(Boolean).join(", ");
+  const place = [listing.zone, listing.city, listing.state].filter(Boolean).join(", ");
   const mxn = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
   const pricing = listing.pricing;
   const chatPath = `/mensajes/${encodeURIComponent(listing.id)}`;
@@ -69,6 +74,11 @@ export default async function AppListingPage({ params }: Props) {
           {listing.identityVerified && (
             <span className="rounded-full bg-[#e7f5ec] px-3 py-1 text-xs font-semibold text-[#1e7a3a]">
               {t("✓ Identidad verificada")}
+            </span>
+          )}
+          {listing.locationVerified && (
+            <span className="rounded-full bg-[#e8f0fb] px-3 py-1 text-xs font-semibold text-[#1d4f91]">
+              {t("📍 Ubicación verificada")}
             </span>
           )}
           {listing.verified && (
@@ -142,6 +152,11 @@ export default async function AppListingPage({ params }: Props) {
               {t("Enviar mensaje a {name}", { name: listing.host.name.split(" ")[0] })}
             </Link>
           )}
+          {unclaimed && (
+            <div className="mt-3">
+              <UnclaimedNotice listingId={listing.id} t={t} />
+            </div>
+          )}
         </Section>
 
         {!bookable && (
@@ -205,9 +220,18 @@ export default async function AppListingPage({ params }: Props) {
           )}
         </Section>
 
-        <Section title={t("Ubicación aproximada")}>
-          <ListingMap lat={listing.lat} lng={listing.lng} />
-          <p className="mt-2 text-xs text-[#999]">{t("La dirección exacta se comparte al confirmar la reserva.")}</p>
+        <Section title={listing.exactLocation ? t("Ubicación") : t("Ubicación aproximada")}>
+          <ListingMap lat={listing.lat} lng={listing.lng} exact={listing.exactLocation} />
+          {listing.exactLocation && listing.addressLine ? (
+            <p className="mt-2 text-sm text-[#484848]">{listing.addressLine}</p>
+          ) : (
+            <p className="mt-2 text-xs text-[#999]">{t("La dirección exacta se comparte al confirmar la reserva.")}</p>
+          )}
+          {listing.locationVerified && (
+            <p className="mt-1 text-xs text-[#1d4f91]">
+              {t("El anfitrión comprobó con un recibo de servicios que la dirección de este anuncio es real.")}
+            </p>
+          )}
         </Section>
 
         <Section title={t("Reseñas")}>

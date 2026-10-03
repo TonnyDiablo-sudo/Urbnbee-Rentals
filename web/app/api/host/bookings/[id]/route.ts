@@ -8,7 +8,13 @@ import {
   previewContractLines,
   syncContractWithBooking,
 } from "@/lib/booking-contract";
-import { HOST_ENGINE_OFF_ERROR, hostAcceptsBookings, restoreBookingPass } from "@/lib/verification-store";
+import { restoreBookingPass } from "@/lib/verification-store";
+import { LISTING_ENGINE_OFF_ERROR, listingAcceptsBookings } from "@/lib/booking-engine-slots";
+import { defaultListingContract } from "@/lib/booking-contract-templates";
+import { findUserById } from "@/lib/marketplace-store";
+import { bookingActor, memberCan } from "@/lib/team-access";
+import { publicNameOf } from "@/lib/display-name";
+import { memberCoversListing } from "@/lib/team-store";
 import { deliverAfterHostAccept } from "@/lib/booking-acceptance";
 import { acceptBookingByHost, isPendingHostApproval, rejectBookingByHost } from "@/lib/booking-machine";
 import { mysqlApplyBookingOccupancy } from "@/lib/booking-nights";
@@ -54,12 +60,13 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const user = await getSessionUser();
-  if (!user || (user.role !== "host" && user.role !== "admin")) {
+  if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
   const { id } = await ctx.params;
   const booking = getBookingById(id);
-  if (!booking || booking.hostId !== user.id) {
+  const actor = booking ? bookingActor(user, booking) : null;
+  if (!booking || !actor) {
     return NextResponse.json({ error: "No encontrada." }, { status: 404 });
   }
 
@@ -70,13 +77,13 @@ export async function GET(
   const pListing = q.get("listingId")?.trim() || "";
   const pTax = q.get("tax")?.trim() || "";
   if (pIn || pOut || pListing || pTax) {
-    if (!hostAcceptsBookings(user.id)) {
-      return NextResponse.json({ error: HOST_ENGINE_OFF_ERROR }, { status: 403 });
+    if (!listingAcceptsBookings(pListing || (booking.hostAdjustedListingId ?? booking.listingId))) {
+      return NextResponse.json({ error: LISTING_ENGINE_OFF_ERROR }, { status: 403 });
     }
     const effIn = pIn || (booking.hostAdjustedCheckIn ?? booking.checkIn);
     const effOut = pOut || (booking.hostAdjustedCheckOut ?? booking.checkOut);
     const listing = getListingById(pListing || (booking.hostAdjustedListingId ?? booking.listingId));
-    if (!listing || listing.hostId !== user.id) {
+    if (!listing || listing.hostId !== actor.hostId) {
       return NextResponse.json({ error: "El alojamiento elegido no está disponible." }, { status: 400 });
     }
     const nights = countNights(effIn, effOut);
@@ -156,13 +163,14 @@ export async function PATCH(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const user = await getSessionUser();
-  if (!user || (user.role !== "host" && user.role !== "admin")) {
+  if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
   const { id } = await ctx.params;
   const booking = getBookingById(id);
-  if (!booking || booking.hostId !== user.id) {
+  const actor = booking ? bookingActor(user, booking) : null;
+  if (!booking || !actor) {
     return NextResponse.json({ error: "No encontrada." }, { status: 404 });
   }
 
@@ -211,13 +219,27 @@ export async function PATCH(
   }
 
   if (action === "sign" || action === "accept") {
-    if (!hostAcceptsBookings(user.id)) {
-      return NextResponse.json({ error: HOST_ENGINE_OFF_ERROR }, { status: 403 });
+    if (!listingAcceptsBookings(booking.hostAdjustedListingId ?? booking.listingId)) {
+      return NextResponse.json({ error: LISTING_ENGINE_OFF_ERROR }, { status: 403 });
     }
   }
 
+  const listingForSign = getListingById(booking.hostAdjustedListingId ?? booking.listingId);
+  const signsForHost =
+    !actor.owner && Boolean(listingForSign && memberCan(user.id, actor.hostId, "contracts", listingForSign.id));
+  const hostSignName = () =>
+    defaultListingContract(listingForSign?.contract).hostLegalName || findUserById(actor.hostId)?.fullName || "";
+  const collaboratorName = publicNameOf(user) || user.fullName || user.email;
+
+  if (action === "sign" && !actor.owner && !signsForHost) {
+    return NextResponse.json(
+      { error: "Para firmar en nombre del anfitrión necesitas el rol «Firmar contratos»." },
+      { status: 403 }
+    );
+  }
+
   if (action === "sign") {
-    const signName = typeof body.signName === "string" ? body.signName.trim() : "";
+    const signName = signsForHost ? hostSignName() : typeof body.signName === "string" ? body.signName.trim() : "";
     if (signName.length < 3) {
       return NextResponse.json({ error: "Escribe tu nombre para firmar el contrato." }, { status: 400 });
     }
@@ -228,6 +250,7 @@ export async function PATCH(
       name: signName,
       userId: user.id,
       ip: requestIp(req),
+      signedBy: signsForHost ? collaboratorName : undefined,
     });
     return NextResponse.json({ ok: true, booking: signed });
   }
@@ -264,7 +287,11 @@ export async function PATCH(
       : booking.checkOut;
 
   const listing = getListingById(effListingId);
-  if (!listing?.published || listing.hostId !== user.id) {
+  if (
+    !listing?.published ||
+    listing.hostId !== actor.hostId ||
+    (actor.member && !memberCoversListing(actor.member, listing.id))
+  ) {
     return NextResponse.json(
       { error: "El alojamiento elegido no está disponible." },
       { status: 400 }
@@ -320,7 +347,21 @@ export async function PATCH(
       { status: 400 }
     );
   }
-  const signName = typeof body.signName === "string" ? body.signName.trim() : "";
+  let signName = typeof body.signName === "string" ? body.signName.trim() : "";
+  if (!actor.owner) {
+    // Quien colabora no firma por sí mismo: se usa la firma por adelantado del anfitrión.
+    const settings = defaultListingContract(listing.contract);
+    if (!settings.hostAcknowledged && !memberCan(user.id, actor.hostId, "contracts", listing.id)) {
+      return NextResponse.json(
+        {
+          error:
+            "El anfitrión tiene que firmar por adelantado el contrato de este anuncio (en Contratos) o darte el rol «Firmar contratos» para que puedas aceptar.",
+        },
+        { status: 409 }
+      );
+    }
+    signName = settings.hostLegalName || findUserById(actor.hostId)?.fullName || "";
+  }
   if (signName.length < 3) {
     return NextResponse.json(
       { error: "Firma el contrato con tu nombre completo." },
@@ -369,6 +410,7 @@ export async function PATCH(
         userId: user.id,
         ip: requestIp(req),
         signName,
+        signedBy: actor.owner ? undefined : collaboratorName,
       }) ?? money.booking ?? next
     : next;
   const delivered = withContract ? deliverAfterHostAccept(withContract) : withContract;

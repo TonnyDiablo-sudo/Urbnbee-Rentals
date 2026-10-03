@@ -5,7 +5,16 @@ import { randomBytes } from "crypto";
 import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
-export type NotificationKind = "message" | "request" | "booking" | "payment" | "review" | "contract";
+export type NotificationKind =
+  | "message"
+  | "request"
+  | "booking"
+  | "payment"
+  | "review"
+  | "contract"
+  | "verification"
+  | "team"
+  | "cleaning";
 
 export type NotificationRecord = {
   id: string;

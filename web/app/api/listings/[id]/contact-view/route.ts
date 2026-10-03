@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getListingStats, recordContactView, viewerKeyFrom } from "@/lib/listing-stats-store";
+import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
-
-// In-memory store for dev (replace with DB in production)
-const viewCounts: Record<string, number> = {};
 
 export async function POST(
   _req: NextRequest,
@@ -14,14 +13,11 @@ export async function POST(
   }
 
   const { id } = await params;
-  viewCounts[id] = (viewCounts[id] ?? 0) + 1;
-
-  // TODO: persist to DB
-  // await db.query("INSERT INTO listing_contact_views (listing_id, viewed_at) VALUES (?, NOW())", [id]);
-
-  console.log(`[contact-view] listing ${id} → total views: ${viewCounts[id]}`);
-
-  return NextResponse.json({ ok: true, views: viewCounts[id] });
+  const listing = getListingById(id);
+  if (listing && listing.hostId !== user.id) {
+    recordContactView(id, viewerKeyFrom({ userId: user.id }));
+  }
+  return NextResponse.json({ ok: true, views: listing ? getListingStats(id).contactsTotal : 0 });
 }
 
 export async function GET(
@@ -29,5 +25,5 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return NextResponse.json({ views: viewCounts[id] ?? 0 });
+  return NextResponse.json({ views: getListingById(id) ? getListingStats(id).contactsTotal : 0 });
 }

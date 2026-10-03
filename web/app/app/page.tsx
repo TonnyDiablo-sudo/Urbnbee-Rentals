@@ -87,6 +87,12 @@ export default async function AppExplorePage({ searchParams }: Props) {
         </form>
         <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
           <Link
+            href="/recomendar"
+            className="shrink-0 rounded-full border border-[#dcb81e] bg-[#fdf6d8] px-4 py-2 text-[13px] font-semibold text-[#5c4a0a]"
+          >
+            {t("✨ Recomiéndame")}
+          </Link>
+          <Link
             href={hrefWith({ verif: !verifiedOnly })}
             className={`shrink-0 rounded-full border px-4 py-2 text-[13px] font-medium ${
               verifiedOnly ? "border-[#1e7a3a] bg-[#1e7a3a] text-white" : "border-[#e0e0e0] bg-white text-[#1e7a3a]"

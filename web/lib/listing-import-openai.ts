@@ -34,6 +34,16 @@ export function getListingImportModel(): string {
   );
 }
 
+/** Modelo para el panel de asociados: el más listo disponible, el volumen es bajo. */
+export function getAssociateImportModel(): string {
+  return process.env.ASSOCIATE_IMPORT_OPENAI_MODEL?.trim() || "gpt-5";
+}
+
+/** Los modelos de razonamiento rechazan `temperature` y `max_tokens`. */
+function isReasoningModel(model: string): boolean {
+  return /^(gpt-[5-9]|o\d)/i.test(model);
+}
+
 export function getListingImportOpenAiUrl(): string {
   return (
     process.env.LISTING_IMPORT_OPENAI_URL?.trim() || "https://api.openai.com/v1/chat/completions"
@@ -56,6 +66,10 @@ export async function callListingImportOpenAiJson<T>(opts: {
   maxTokens?: number;
   timeoutMs?: number;
   imageDetail?: "low" | "high" | "auto";
+  model?: string;
+  /** PDFs u otros documentos (sólo modelos con visión). */
+  files?: { filename: string; mime: string; base64: string }[];
+  reasoningEffort?: "minimal" | "low" | "medium" | "high";
 }): Promise<OpenAiChatResult<T>> {
   const apiKey = getEffectiveBlogBotApiKey();
   if (!apiKey) {
@@ -66,13 +80,18 @@ export async function callListingImportOpenAiJson<T>(opts: {
     };
   }
 
-  const model = getListingImportModel();
+  const model = opts.model ?? getListingImportModel();
   const url = getListingImportOpenAiUrl();
+  const reasoning = isReasoningModel(model);
 
   const userParts: Array<
     | { type: "text"; text: string }
     | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } }
+    | { type: "file"; file: { filename: string; file_data: string } }
   > = [{ type: "text", text: opts.userText }];
+  for (const f of opts.files ?? []) {
+    userParts.push({ type: "file", file: { filename: f.filename, file_data: `data:${f.mime};base64,${f.base64}` } });
+  }
 
   const detail = opts.imageDetail ?? "high";
   for (const img of opts.images ?? []) {
@@ -85,7 +104,7 @@ export async function callListingImportOpenAiJson<T>(opts: {
   const controller = new AbortController();
   const envTimeout = Number(process.env.LISTING_IMPORT_TIMEOUT_MS);
   const defaultTimeout = Number.isFinite(envTimeout) && envTimeout > 0 ? envTimeout : 90_000;
-  const timeoutMs = Math.min(120_000, Math.max(15_000, opts.timeoutMs ?? defaultTimeout));
+  const timeoutMs = Math.min(300_000, Math.max(15_000, opts.timeoutMs ?? defaultTimeout));
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -102,8 +121,13 @@ export async function callListingImportOpenAiJson<T>(opts: {
           { role: "system", content: opts.system },
           { role: "user", content: userParts },
         ],
-        temperature: 0.2,
-        max_tokens: opts.maxTokens ?? 2500,
+        ...(reasoning
+          ? {
+              max_completion_tokens: Math.max(16_000, opts.maxTokens ?? 0),
+              reasoning_effort:
+                opts.reasoningEffort ?? (process.env.ASSOCIATE_IMPORT_REASONING_EFFORT?.trim() || "medium"),
+            }
+          : { temperature: 0.2, max_tokens: opts.maxTokens ?? 2500 }),
         response_format: { type: "json_object" },
       }),
     });

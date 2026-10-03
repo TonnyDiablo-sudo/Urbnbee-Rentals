@@ -13,12 +13,15 @@ export function PlaceMap({
   zoom = 15,
   className = "",
   interactive = true,
+  exact = false,
 }: {
   lat: number;
   lng: number;
   zoom?: number;
   className?: string;
   interactive?: boolean;
+  /** Exacta: punto. Aproximada: sólo un círculo amplio (las coordenadas ya vienen corridas del servidor). */
+  exact?: boolean;
 }) {
   const t = useT();
   const boxRef = useRef<HTMLDivElement>(null);
@@ -43,20 +46,23 @@ export function PlaceMap({
         touchZoom: interactive,
       }).setView([lat, lng], zoom);
       addCleanTiles(L, map);
-      L.circle([lat, lng], {
-        radius: 280,
-        color: "#c9a71a",
-        weight: 1,
-        fillColor: "#dcb81e",
-        fillOpacity: 0.28,
-      }).addTo(map);
-      L.circleMarker([lat, lng], {
-        radius: 7,
-        color: "#fff",
-        weight: 2,
-        fillColor: "#222",
-        fillOpacity: 1,
-      }).addTo(map);
+      if (exact) {
+        L.circleMarker([lat, lng], {
+          radius: 9,
+          color: "#fff",
+          weight: 3,
+          fillColor: "#222",
+          fillOpacity: 1,
+        }).addTo(map);
+      } else {
+        L.circle([lat, lng], {
+          radius: 450,
+          color: "#c9a71a",
+          weight: 1,
+          fillColor: "#dcb81e",
+          fillOpacity: 0.28,
+        }).addTo(map);
+      }
       mapRef.current = map;
       requestAnimationFrame(() => map.invalidateSize());
     })();
@@ -65,7 +71,7 @@ export function PlaceMap({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [lat, lng, zoom, interactive]);
+  }, [lat, lng, zoom, interactive, exact]);
 
   return (
     <div className={`relative h-full w-full ${className}`}>

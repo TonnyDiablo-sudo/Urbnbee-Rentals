@@ -16,6 +16,7 @@ import {
   upsertListingRow,
   upsertUserRow,
 } from "@/lib/mysql-sync";
+import { inferListingState } from "@/lib/geo-places";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 import { getVerification } from "@/lib/verification-store";
 
@@ -31,6 +32,7 @@ const STORE_FILE = join(getDataDir(), "marketplace-store.json");
 function normalizeListing(l: HostListingRecord): HostListingRecord {
   return {
     ...l,
+    state: l.state ?? inferListingState(l),
     bookingApprovalMode: l.bookingApprovalMode ?? "approval",
     contract: defaultListingContract(l.contract),
   };
@@ -92,12 +94,18 @@ function reloadStoreFromDisk() {
     for (const [uid, p] of Object.entries(hp)) {
       hostProfiles.set(uid, { ...p, userId: uid });
     }
+    let backfilled = 0;
     for (const l of data.listings ?? []) {
       const listing = normalizeListing(l);
+      if (l.state === undefined) backfilled++;
       listingsById.set(listing.id, listing);
       slugToListingId.set(listing.slug, listing.id);
     }
     cachedDiskMtimeMs = statSync(STORE_FILE).mtimeMs;
+    if (backfilled) {
+      console.info("[marketplace-store] estado inferido en", backfilled, "anuncios");
+      persistToDisk();
+    }
     console.info("[marketplace-store] loaded", usersById.size, "users,", listingsById.size, "listings from disk");
   } catch (e) {
     console.warn("[marketplace-store] load failed:", e);
@@ -154,6 +162,9 @@ export function createUser(input: {
   fullName: string;
   phone?: string;
   role: UserRole;
+  provisionedBy?: string;
+  placeholderEmail?: boolean;
+  mustChangePassword?: boolean;
 }): UserRecord {
   syncStoreFromDiskIfStale();
   const email = input.email.trim().toLowerCase();
@@ -168,6 +179,9 @@ export function createUser(input: {
     phone: input.phone?.trim(),
     role: input.role,
     createdAt: nowIso(),
+    ...(input.provisionedBy ? { provisionedBy: input.provisionedBy } : {}),
+    ...(input.placeholderEmail ? { placeholderEmail: true } : {}),
+    ...(input.mustChangePassword ? { mustChangePassword: true } : {}),
   };
   usersById.set(user.id, user);
   usersByEmail.set(email, user.id);
@@ -244,10 +258,12 @@ export function createListing(hostId: string, partial?: Partial<HostListingRecor
     city: partial?.city ?? "",
     zone: partial?.zone ?? "",
     county: partial?.county ?? "",
+    state: partial?.state ?? inferListingState(partial ?? {}),
     country: partial?.country ?? "México",
     addressLine: partial?.addressLine ?? "",
     lat: partial?.lat ?? 19.4326,
     lng: partial?.lng ?? -99.1332,
+    locationPrecision: partial?.locationPrecision ?? "approximate",
     guests: partial?.guests ?? 2,
     bedrooms: partial?.bedrooms ?? 1,
     bathrooms: partial?.bathrooms ?? 1,
@@ -268,9 +284,10 @@ export function createListing(hostId: string, partial?: Partial<HostListingRecor
     },
     blockedDates: partial?.blockedDates ?? [],
     verified: false,
-    published: false,
+    published: partial?.published ?? false,
     bookingApprovalMode: partial?.bookingApprovalMode ?? "approval",
     contract: defaultListingContract(partial?.contract),
+    ...(partial?.source ? { source: partial.source } : {}),
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
@@ -385,6 +402,61 @@ export function eraseUserRecord(userId: string): boolean {
   }
   persistToDisk();
   return true;
+}
+
+type UserAuthPatch = Partial<
+  Pick<
+    UserRecord,
+    | "email"
+    | "passwordHash"
+    | "associate"
+    | "associateTokenHash"
+    | "placeholderEmail"
+    | "mustChangePassword"
+    | "claimedAt"
+    | "emailVerifiedAt"
+    | "emailVerifyTokenHash"
+    | "emailVerifyExpiresAt"
+  >
+>;
+
+/** Correo, contraseña y banderas de cuenta. Lanza EMAIL_IN_USE si el correo ya es de otra cuenta. */
+export function updateUserAuth(userId: string, patch: UserAuthPatch): UserRecord | undefined {
+  syncStoreFromDiskIfStale();
+  const u = usersById.get(userId);
+  if (!u) return undefined;
+  const next: UserRecord = { ...u, ...patch };
+  if (patch.email !== undefined) {
+    const email = patch.email.trim().toLowerCase();
+    const owner = usersByEmail.get(email);
+    if (owner && owner !== userId) throw new Error("EMAIL_IN_USE");
+    next.email = email;
+    if (email !== u.email) {
+      usersByEmail.delete(u.email.toLowerCase());
+      usersByEmail.set(email, userId);
+    }
+  }
+  for (const k of Object.keys(next) as (keyof UserRecord)[]) {
+    if (next[k] === undefined) delete next[k];
+  }
+  usersById.set(userId, next);
+  persistToDisk();
+  return next;
+}
+
+export function listUsersProvisionedBy(associateId: string): UserRecord[] {
+  syncStoreFromDiskIfStale();
+  return [...usersById.values()]
+    .filter((u) => u.provisionedBy === associateId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export function findUserByAssociateTokenHash(hash: string): UserRecord | undefined {
+  syncStoreFromDiskIfStale();
+  for (const u of usersById.values()) {
+    if (u.associateTokenHash && u.associateTokenHash === hash) return u;
+  }
+  return undefined;
 }
 
 export function setUserRole(userId: string, role: UserRole): UserRecord | undefined {

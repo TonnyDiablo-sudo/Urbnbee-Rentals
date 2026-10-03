@@ -7,6 +7,7 @@ import { useT } from "@/components/i18n-provider";
 import { AMENITY_OPTIONS } from "@/lib/amenity-options";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
 import { getContractTemplate } from "@/lib/booking-contract-templates";
+import { COUNTRY_OPTIONS, isMexico, MX_STATE_LIST } from "@/lib/geo-places";
 import { sizedImage } from "@/lib/image-url";
 import { taxActive, type HostTaxSettings } from "@/lib/stay-tax";
 import type { ListingCategory } from "@/lib/mock-data";
@@ -284,7 +285,7 @@ export function ListingHub({ listingId }: { listingId: string }) {
           />
           <Row
             label={t("Ubicación")}
-            value={[listing.zone, listing.city].filter(Boolean).join(", ") || t("Sin ciudad")}
+            value={[listing.zone, listing.city, listing.state].filter(Boolean).join(", ") || t("Sin ciudad")}
             onClick={() => setPanel("location")}
           />
           <Row
@@ -478,8 +479,10 @@ function PanelBody({
     city: listing.city,
     zone: listing.zone,
     county: listing.county,
+    state: listing.state ?? "",
     country: listing.country,
     addressLine: listing.addressLine,
+    locationPrecision: listing.locationPrecision ?? "approximate",
     rules: { ...listing.rules },
     bookingApprovalMode: listing.bookingApprovalMode,
     requireCreditCheck: listing.requireCreditCheck === true,
@@ -514,7 +517,15 @@ function PanelBody({
       case "amenities":
         return { amenities: draft.amenities };
       case "location":
-        return { city: draft.city, zone: draft.zone, county: draft.county, country: draft.country, addressLine: draft.addressLine };
+        return {
+          city: draft.city,
+          zone: draft.zone,
+          county: draft.county,
+          state: draft.state,
+          country: draft.country,
+          addressLine: draft.addressLine,
+          locationPrecision: draft.locationPrecision,
+        };
       case "rules":
         return { rules: draft.rules, arrivalGuide: draft.arrival };
       case "booking":
@@ -537,7 +548,16 @@ function PanelBody({
     }
     setBusy(true);
     setErr(null);
-    const r = await patchListing(listing.id, bodyFor());
+    const body = bodyFor();
+    if (id === "location") {
+      const q = [draft.addressLine, draft.zone, draft.city, draft.county, draft.state, draft.country]
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .join(", ");
+      const geo = q.length >= 5 ? await fetch(`/api/geocode?q=${encodeURIComponent(q)}`).then((x) => (x.ok ? x.json() : null)).catch(() => null) : null;
+      if (geo && typeof geo.lat === "number" && typeof geo.lng === "number") Object.assign(body, { lat: geo.lat, lng: geo.lng });
+    }
+    const r = await patchListing(listing.id, body);
     setBusy(false);
     if (r.listing) onSaved(r.listing);
     else setErr(r.error ?? "No se pudo guardar.");
@@ -648,28 +668,70 @@ function PanelBody({
 
           {id === "location" && (
             <>
-              <label className="block text-sm font-medium text-[#222]">
-                {t("Dirección")}
-                <input value={draft.addressLine} onChange={(e) => set("addressLine", e.target.value)} className={inputCls} autoComplete="street-address" />
-                <span className="mt-1 block text-xs text-[#717171]">{t("La dirección exacta sólo se comparte con huéspedes confirmados.")}</span>
-              </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block text-sm font-medium text-[#222]">
-                  {t("Zona / colonia")}
-                  <input value={draft.zone} onChange={(e) => set("zone", e.target.value)} className={inputCls} />
+                  {t("País")}
+                  <input list="cb-countries" value={draft.country} onChange={(e) => set("country", e.target.value)} className={inputCls} />
+                  <datalist id="cb-countries">
+                    {COUNTRY_OPTIONS.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </label>
+                <label className="block text-sm font-medium text-[#222]">
+                  {t("Estado / provincia")}
+                  <input
+                    list={isMexico(draft.country) ? "cb-mx-states" : undefined}
+                    value={draft.state}
+                    onChange={(e) => set("state", e.target.value)}
+                    className={inputCls}
+                  />
+                  <datalist id="cb-mx-states">
+                    {MX_STATE_LIST.map((s) => (
+                      <option key={s} value={s} />
+                    ))}
+                  </datalist>
                 </label>
                 <label className="block text-sm font-medium text-[#222]">
                   {t("Ciudad")}
                   <input value={draft.city} onChange={(e) => set("city", e.target.value)} className={inputCls} />
                 </label>
                 <label className="block text-sm font-medium text-[#222]">
-                  {t("Estado / provincia")}
+                  {t("Municipio (opcional)")}
                   <input value={draft.county} onChange={(e) => set("county", e.target.value)} className={inputCls} />
                 </label>
-                <label className="block text-sm font-medium text-[#222]">
-                  {t("País")}
-                  <input value={draft.country} onChange={(e) => set("country", e.target.value)} className={inputCls} />
-                </label>
+              </div>
+              <label className="block text-sm font-medium text-[#222]">
+                {t("Colonia / zona")}
+                <input value={draft.zone} onChange={(e) => set("zone", e.target.value)} className={inputCls} />
+              </label>
+              <label className="block text-sm font-medium text-[#222]">
+                {t("Calle, número y código postal")}
+                <input value={draft.addressLine} onChange={(e) => set("addressLine", e.target.value)} className={inputCls} autoComplete="street-address" />
+                <span className="mt-1 block text-xs text-[#717171]">{t("Al guardar, el mapa se centra con esta dirección.")}</span>
+              </label>
+              <div className="space-y-2 rounded-xl border border-[#ebebeb] p-3">
+                <p className="text-sm font-semibold text-[#222]">{t("¿Qué ven los huéspedes antes de reservar?")}</p>
+                {(
+                  [
+                    ["approximate", "Ubicación aproximada (recomendado)", "Un círculo de unos cientos de metros; la calle se comparte al confirmar la reserva."],
+                    ["exact", "Ubicación exacta", "El punto exacto y la calle son públicos desde el anuncio."],
+                  ] as const
+                ).map(([value, label, help]) => (
+                  <label key={value} className="flex items-start gap-3 text-sm">
+                    <input
+                      type="radio"
+                      name="locationPrecision"
+                      className="mt-1"
+                      checked={draft.locationPrecision === value}
+                      onChange={() => set("locationPrecision", value)}
+                    />
+                    <span>
+                      <span className="font-medium text-[#222]">{t(label)}</span>
+                      <span className="block text-xs text-[#717171]">{t(help)}</span>
+                    </span>
+                  </label>
+                ))}
               </div>
             </>
           )}

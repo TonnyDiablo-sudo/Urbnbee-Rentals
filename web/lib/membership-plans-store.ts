@@ -5,6 +5,8 @@ import {
   MEMBERSHIP_PLAN_AUDIENCE,
   MEMBERSHIP_PLAN_BILLING,
   MEMBERSHIP_PLAN_CODES,
+  MEMBERSHIP_PLAN_FAMILY,
+  type MembershipPlanFamily,
   type MembershipAudience,
   type MembershipPlanBilling,
   type MembershipPlanCode,
@@ -20,65 +22,88 @@ const rows = new Map<MembershipPlanCode, MembershipPlanRecord>();
 let cachedMtimeMs = 0;
 let catalogSyncedAt: string | undefined;
 let catalogPushedAt: string | undefined;
+let defaultPricesAppliedAt: string | undefined;
 
-/**
- * Los planes nacen en cero y apagados: mientras nadie escriba un precio, el sitio
- * no ofrece membresía. Un plan sembrado con precio inventado se cobraría de verdad.
- */
-const SEEDS: Record<MembershipPlanCode, Omit<MembershipPlanRecord, "updatedAt">> = {
-  pase_reserva: {
-    code: "pase_reserva",
+const TERM_SUFFIX: Record<number, string> = { 1: "· 1 mes", 6: "· 6 meses", 12: "· 12 meses" };
+
+const FAMILY_COPY: Record<MembershipPlanFamily, { label: string; description: string }> = {
+  guest_pass: {
     label: "Pase Cabibee por reserva",
+    description: "Un solo pago que habilita una reserva. Para quien viaja una vez y no quiere membresía.",
+  },
+  guest_membership: {
+    label: "Huésped verificado",
+    description: "Tu identidad verificada y reservas ilimitadas con anfitriones verificados.",
+  },
+  host_verification: {
+    label: "Anfitrión verificado",
     description:
-      "Un solo pago que habilita una reserva. Para quien viaja una vez y no quiere membresía.",
-    amountMxn: 0,
-    amountUsd: 0,
-    active: false,
-  },
-  meses_6: {
-    code: "meses_6",
-    label: "Membresía Cabibee 6 meses",
-    description: "Reservas ilimitadas durante seis meses. Se renueva al vencer.",
-    amountMxn: 0,
-    amountUsd: 0,
-    active: false,
-  },
-  meses_12: {
-    code: "meses_12",
-    label: "Membresía Cabibee 12 meses",
-    description: "Reservas ilimitadas durante un año, al mejor precio por mes.",
-    amountMxn: 0,
-    amountUsd: 0,
-    active: false,
-  },
-  anfitrion_6: {
-    code: "anfitrion_6",
-    label: "Anfitrión Verificado Cabibee 6 meses",
-    description:
-      "Listón «Miembro verificado» en todos tus anuncios durante seis meses, respaldado por tu identidad comprobada.",
-    amountMxn: 0,
-    amountUsd: 0,
-    active: false,
-  },
-  anfitrion_12: {
-    code: "anfitrion_12",
-    label: "Anfitrión Verificado Cabibee 12 meses",
-    description:
-      "Listón «Miembro verificado» todo el año, al mejor precio por mes.",
-    amountMxn: 0,
-    amountUsd: 0,
-    active: false,
+      "Listón «Miembro verificado» en todos tus anuncios, respaldado por tu identidad comprobada.",
   },
   booking_engine: {
-    code: "booking_engine",
-    label: "Cabibee: motor de reservas",
+    label: "Motor de reservas",
     description:
-      "Cobro de la estancia al Stripe del anfitrión, firma de contrato y bloqueo de fechas. Incluye la verificación del anfitrión.",
-    amountMxn: 0,
-    amountUsd: 0,
-    active: false,
+      "Por cada anuncio: reservas en línea con cobro por Stripe o pago manual (transferencia, CLABE, Zelle), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
+  },
+  cleaning_tool: {
+    label: "Herramienta de limpieza",
+    description:
+      "Por cada anuncio: las limpiezas salen solas de tus reservas, se asignan a tu equipo y les llegan los avisos.",
+  },
+  collaborator_seat: {
+    label: "Colaborador",
+    description:
+      "Otra persona con su propia cuenta de Cabibee acepta reservas, firma contratos en tu nombre o contesta mensajes en los anuncios que elijas.",
+  },
+  address_proof: {
+    label: "Verificación de domicilio",
+    description:
+      "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",
   },
 };
+
+/**
+ * Precios que fijó el dueño, en monto por período (6 meses = 6 × el precio mensual
+ * de ese plazo). Se aplican una sola vez y sólo a planes que sigan en 0: lo que
+ * alguien ya escribió en /admin/pricing no se pisa.
+ */
+const OWNER_PRICES: Partial<Record<MembershipPlanCode, { mxn: number; usd: number }>> = {
+  meses_1: { mxn: 500, usd: 30 },
+  meses_6: { mxn: 350 * 6, usd: 20 * 6 },
+  meses_12: { mxn: 150 * 12, usd: 10 * 12 },
+  anfitrion_1: { mxn: 500, usd: 30 },
+  anfitrion_6: { mxn: 350 * 6, usd: 20 * 6 },
+  anfitrion_12: { mxn: 150 * 12, usd: 10 * 12 },
+  booking_engine: { mxn: 500, usd: 30 },
+  booking_engine_6: { mxn: 350 * 6, usd: 20 * 6 },
+  booking_engine_12: { mxn: 150 * 12, usd: 10 * 12 },
+  cleaning_tool: { mxn: 150, usd: 10 },
+  cleaning_tool_6: { mxn: 100 * 6, usd: 6 * 6 },
+  cleaning_tool_12: { mxn: 60 * 12, usd: 3.5 * 12 },
+  collaborator_seat: { mxn: 250, usd: 15 },
+  collaborator_seat_6: { mxn: 200 * 6, usd: 12 * 6 },
+  collaborator_seat_12: { mxn: 150 * 12, usd: 9 * 12 },
+  address_proof: { mxn: 100, usd: 6 },
+  address_proof_6: { mxn: 65 * 6, usd: 4 * 6 },
+  address_proof_12: { mxn: 35 * 12, usd: 2 * 12 },
+};
+
+function seedFor(code: MembershipPlanCode): Omit<MembershipPlanRecord, "updatedAt"> {
+  const family = MEMBERSHIP_PLAN_FAMILY[code];
+  const copy = FAMILY_COPY[family];
+  const billing = MEMBERSHIP_PLAN_BILLING[code];
+  const label =
+    billing.kind === "subscription" ? `${copy.label} ${TERM_SUFFIX[billing.intervalCount] ?? ""}`.trim() : copy.label;
+  const price = OWNER_PRICES[code];
+  return {
+    code,
+    label,
+    description: copy.description,
+    amountMxn: price?.mxn ?? 0,
+    amountUsd: price?.usd ?? 0,
+    active: Boolean(price),
+  };
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -86,8 +111,29 @@ function nowIso() {
 
 function seedMissing() {
   for (const code of MEMBERSHIP_PLAN_CODES) {
-    if (!rows.has(code)) rows.set(code, { ...SEEDS[code], updatedAt: nowIso() });
+    if (!rows.has(code)) rows.set(code, { ...seedFor(code), updatedAt: nowIso() });
   }
+}
+
+/** Una vez: los planes que siguen en 0 toman el precio del dueño y se encienden. */
+function applyOwnerPricesOnce(): boolean {
+  if (defaultPricesAppliedAt) return false;
+  for (const [code, price] of Object.entries(OWNER_PRICES) as [MembershipPlanCode, { mxn: number; usd: number }][]) {
+    const prev = rows.get(code);
+    if (!prev || prev.amountMxn > 0 || prev.amountUsd > 0) continue;
+    const seed = seedFor(code);
+    rows.set(code, {
+      ...prev,
+      label: seed.label,
+      description: seed.description,
+      amountMxn: price.mxn,
+      amountUsd: price.usd,
+      active: true,
+      updatedAt: nowIso(),
+    });
+  }
+  defaultPricesAppliedAt = nowIso();
+  return true;
 }
 
 function persist() {
@@ -98,6 +144,7 @@ function persist() {
       plans: MEMBERSHIP_PLAN_CODES.map((c) => rows.get(c)!).filter(Boolean),
       catalogSyncedAt,
       catalogPushedAt,
+      defaultPricesAppliedAt,
     };
     writeFileSync(DATA_FILE, JSON.stringify(snapshot, null, 2), "utf8");
     if (existsSync(DATA_FILE)) cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
@@ -120,12 +167,14 @@ function reloadFromDisk() {
       }
       catalogSyncedAt = data.catalogSyncedAt;
       catalogPushedAt = data.catalogPushedAt;
+      defaultPricesAppliedAt = data.defaultPricesAppliedAt;
       cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
     }
   } catch (e) {
     console.warn("[membership-plans] load failed:", e);
   }
   seedMissing();
+  if (applyOwnerPricesOnce()) persist();
 }
 
 function syncIfStale() {

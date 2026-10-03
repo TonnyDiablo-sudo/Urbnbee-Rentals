@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { PlaceMap } from "@/components/maps/place-map";
 
-export function ListingMap({ lat, lng }: { lat: number; lng: number }) {
+export function ListingMap({ lat, lng, exact = false }: { lat: number; lng: number; exact?: boolean }) {
   const t = useT();
   const [open, setOpen] = useState(false);
 
@@ -23,7 +23,7 @@ export function ListingMap({ lat, lng }: { lat: number; lng: number }) {
   return (
     <>
       <div className="relative z-0 h-64 overflow-hidden rounded-2xl border border-[#ebebeb] [isolation:isolate]">
-        {!open && <PlaceMap lat={lat} lng={lng} zoom={15} interactive={false} />}
+        {!open && <PlaceMap lat={lat} lng={lng} zoom={15} interactive={false} exact={exact} />}
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -50,16 +50,18 @@ export function ListingMap({ lat, lng }: { lat: number; lng: number }) {
             >
               ×
             </button>
-            <p className="text-base font-semibold text-[#222]">{t("Ubicación aproximada")}</p>
+            <p className="text-base font-semibold text-[#222]">{exact ? t("Ubicación") : t("Ubicación aproximada")}</p>
           </div>
           <div className="min-h-0 flex-1">
-            <PlaceMap lat={lat} lng={lng} zoom={15} />
+            <PlaceMap lat={lat} lng={lng} zoom={15} exact={exact} />
           </div>
           <p
             className="px-4 pt-2 text-xs text-[#717171]"
             style={{ paddingBottom: "calc(10px + env(safe-area-inset-bottom))" }}
           >
-            {t("Pellizca para acercar. La dirección exacta se comparte al confirmar la reserva.")}
+            {exact
+              ? t("Pellizca para acercar.")
+              : t("Pellizca para acercar. La dirección exacta se comparte al confirmar la reserva.")}
           </p>
         </div>
       )}

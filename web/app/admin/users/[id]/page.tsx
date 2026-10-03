@@ -226,6 +226,24 @@ export default function AdminUserDetailPage() {
         <p className="text-xs text-gray-400 mt-2">
           Registro: {new Date(user.createdAt).toLocaleString("es-MX")}
         </p>
+        <div className="mt-4 flex items-center gap-3 border-t border-gray-100 pt-4">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={user.associate}
+              onChange={async (e) => {
+                const associate = e.target.checked;
+                const res = await fetch(`/api/admin/users/${id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ associate }),
+                });
+                if (res.ok) setUser((prev) => (prev ? { ...prev, associate } : prev));
+              }}
+            />
+            Asociado: puede dar de alta anfitriones con IA en /asociados
+          </label>
+        </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8">

@@ -15,6 +15,7 @@ export default async function HostLayout({ children }: { children: React.ReactNo
   if (user.role !== "host" && user.role !== "admin") {
     redirect("/register?intent=host");
   }
+  if (user.mustChangePassword) redirect("/activar-cuenta");
   const t = await getT();
 
   return (
@@ -45,6 +46,12 @@ export default async function HostLayout({ children }: { children: React.ReactNo
               {t("Calendario")}
             </Link>
             <Link
+              href="/host/estadisticas"
+              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
+            >
+              {t("Estadísticas")}
+            </Link>
+            <Link
               href="/host/messages"
               className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
             >
@@ -55,6 +62,24 @@ export default async function HostLayout({ children }: { children: React.ReactNo
               className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
             >
               {t("Reservas")}
+            </Link>
+            <Link
+              href="/host/limpieza"
+              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
+            >
+              {t("Limpieza")}
+            </Link>
+            <Link
+              href="/host/colaboradores"
+              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
+            >
+              {t("Colaboradores")}
+            </Link>
+            <Link
+              href="/tienda"
+              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-[#b8931a] hover:bg-amber-50 lg:rounded-lg lg:px-3"
+            >
+              {t("Tienda")}
             </Link>
             <Link
               href="/host/verificacion"

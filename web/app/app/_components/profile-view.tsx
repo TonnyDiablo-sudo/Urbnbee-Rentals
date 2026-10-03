@@ -29,8 +29,13 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
   const items: Item[] =
     mode === "host"
       ? [
-          { href: "/host/motor", label: t("Reservas en línea"), hint: t("Membresía e identidad de anfitrión") },
+          { href: "/tienda", label: t("Tienda"), hint: t("Motor de reservas, limpieza, colaboradores y membresías") },
+          { href: "/host/motor", label: t("Reservas en línea"), hint: t("Elige qué anuncios usan el motor de reservas") },
+          { href: "/host/limpieza", label: t("Limpieza"), hint: t("Limpiezas automáticas según tus reservas") },
+          { href: "/host/colaboradores", label: t("Colaboradores"), hint: t("Da acceso a otras personas con roles") },
           { href: "/host/anuncios", label: t("Mis anuncios") },
+          { href: "/host/estadisticas", label: t("Estadísticas y sugerencias"), hint: t("Quién ve tus anuncios y cómo destacar") },
+          { href: "/cuenta/seguridad", label: t("Correo y contraseña") },
           { href: "/host/contratos", label: t("Contratos"), hint: t("Machotes, tus datos y cláusulas por anuncio") },
           { href: "/host/impuestos", label: t("Impuestos (IVA)"), hint: t("Cobra IVA u otros impuestos según tu país") },
           { href: "/notificaciones", label: t("Notificaciones") },
@@ -45,8 +50,11 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
           { href: "/viajes", label: t("Mis viajes") },
           ...(user
             ? [
+                { href: "/tienda", label: t("Tienda"), hint: t("Membresías y herramientas de Cabibee") },
+                { href: "/equipo", label: t("Equipos donde colaboro"), hint: t("Invitaciones, limpiezas, reservas y mensajes") },
                 { href: "/notificaciones", label: t("Notificaciones") },
                 { href: "/perfil/editar", label: t("Datos personales y foto") },
+                { href: "/cuenta/seguridad", label: t("Correo y contraseña") },
               ]
             : []),
           { href: "/", label: t("Sitio web de Cabibee"), web: true },

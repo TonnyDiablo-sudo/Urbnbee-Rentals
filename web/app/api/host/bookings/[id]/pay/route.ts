@@ -6,7 +6,8 @@ import { markBookingPaid, paymentStatusOf } from "@/lib/booking-machine";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { notifyGuestPayInstructions, notifyGuestPaymentConfirmed } from "@/lib/push";
 import { getSessionUser } from "@/lib/session";
-import { HOST_ENGINE_OFF_ERROR, hostAcceptsBookings } from "@/lib/verification-store";
+import { LISTING_ENGINE_OFF_ERROR, listingAcceptsBookings } from "@/lib/booking-engine-slots";
+import { bookingActor } from "@/lib/team-access";
 
 const METHODS = new Set<ManualPayMethod>(["clabe", "zelle", "cashapp", "oxxo"]);
 
@@ -15,16 +16,16 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const user = await getSessionUser();
-  if (!user || (user.role !== "host" && user.role !== "admin")) {
+  if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-  }
-  if (!hostAcceptsBookings(user.id)) {
-    return NextResponse.json({ error: HOST_ENGINE_OFF_ERROR }, { status: 403 });
   }
   const { id } = await ctx.params;
   const booking = getBookingById(id);
-  if (!booking || booking.hostId !== user.id) {
+  if (!booking || !bookingActor(user, booking)) {
     return NextResponse.json({ error: "No encontrada." }, { status: 404 });
+  }
+  if (!listingAcceptsBookings(booking.hostAdjustedListingId ?? booking.listingId)) {
+    return NextResponse.json({ error: LISTING_ENGINE_OFF_ERROR }, { status: 403 });
   }
 
   const body = (await req.json().catch(() => ({}))) as { action?: string; method?: string };
@@ -38,7 +39,7 @@ export async function POST(
     if (!METHODS.has(body.method as ManualPayMethod)) {
       return NextResponse.json({ error: "Elige CLABE, Zelle, Cash App u Oxxo." }, { status: 400 });
     }
-    const saved = getHostPayoutMethods(user.id);
+    const saved = getHostPayoutMethods(booking.hostId);
     if (!saved) return NextResponse.json({ error: "Esa forma de cobro no está guardada." }, { status: 400 });
     const instruction = instructionFor(body.method as ManualPayMethod, saved);
     if ("error" in instruction) return NextResponse.json({ error: instruction.error }, { status: 400 });

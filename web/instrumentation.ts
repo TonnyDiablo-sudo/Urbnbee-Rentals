@@ -4,4 +4,8 @@ export async function register() {
   startOutboundWebhookWorker();
   const { startCatalogRefreshWorker } = await import("@/lib/urbnbeeai-catalog-sync");
   startCatalogRefreshWorker();
+  const { startCleaningWorker } = await import("@/lib/cleaning-service");
+  startCleaningWorker();
+  const { startPlanExpiryWorker } = await import("@/lib/plan-expiry");
+  startPlanExpiryWorker();
 }

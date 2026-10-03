@@ -15,41 +15,42 @@ export type BookingContractTemplate = {
   depositHint: string;
 };
 
-const FACILITATOR =
+/** Sólo para contratos generados antes de las plantillas entre particulares. */
+const LEGACY_FACILITATOR =
   "Cabibee facilita la reserva, el pago y este registro. Las obligaciones de hospedaje son entre anfitrión y huésped. Cabibee no es parte del contrato de hospedaje.";
 
 const DEPOSIT_NOTE =
-  "Si hay depósito, se pacta y se entrega entre anfitrión y huésped. Cabibee no retiene ni custodia ese dinero.";
+  "El depósito, si se pacta, lo entrega el huésped directamente al anfitrión y se devuelve al terminar la estancia, descontando sólo los daños que el anfitrión documente con fotos o comprobantes.";
 
 export const BOOKING_CONTRACT_TEMPLATES: BookingContractTemplate[] = [
   {
     id: "cabibee_reserva_v1",
-    title: "Reserva estándar",
-    blurb: "Estancias cortas. Fechas, montos, reglas de casa y cancelación simple.",
+    title: "Hospedaje estándar",
+    blurb: "Estancias cortas. Fechas, montos, reglas de casa, cancelación simple y la ley del lugar.",
     defaultCancellation:
-      "Las cancelaciones se rigen por lo que acuerden las partes. Un rechazo del anfitrión después del pago devuelve el total cobrado, incluido el cargo de servicio.",
+      "Si el huésped cancela con 5 días o más de anticipación a la entrada, el anfitrión devuelve el total de la estancia. Con menos de 5 días, el anfitrión puede retener hasta el equivalente de una noche. Si el anfitrión cancela o rechaza la reserva después del pago, devuelve el total cobrado.",
     defaultExtraClauses: "",
-    depositHint: "Opcional. Si lo dejas en 0, el contrato dice que no hay depósito declarado.",
+    depositHint: "Opcional. Si lo dejas en 0, el contrato dice que no hay depósito.",
   },
   {
     id: "cabibee_estancia_media_v1",
     title: "Estancia media",
-    blurb: "Semanas o un mes. Más énfasis en uso de la vivienda y salida en orden.",
+    blurb: "Semanas o meses. Más detalle sobre uso de la vivienda, servicios y salida en orden.",
     defaultCancellation:
-      "Si el huésped cancela con 7 días o más de anticipación, las partes acuerdan la devolución salvo gastos ya erogados. Con menos de 7 días, el anfitrión puede retener hasta el equivalente de una noche. Un rechazo del anfitrión después del pago devuelve el total cobrado, incluido el cargo de servicio.",
+      "Si el huésped cancela con 14 días o más de anticipación, el anfitrión devuelve el total de la estancia salvo gastos ya erogados y comprobables. Con menos de 14 días, el anfitrión puede retener hasta el equivalente de siete noches. Una vez iniciada la estancia, si el huésped se va antes, las noches no usadas se devuelven sólo si el anfitrión logra ocupar esas fechas. Si el anfitrión cancela, devuelve el total cobrado.",
     defaultExtraClauses:
-      "El huésped usará el inmueble solo para hospedaje. Al salir dejará las llaves y el espacio en el estado en que lo recibió, salvo desgaste normal.",
-    depositHint: "Recomendado si hay amenidades de valor. Cabibee no lo retiene.",
+      "El huésped usará el inmueble sólo para hospedaje y lo mantendrá limpio durante la estancia. Los consumos de luz, agua y gas que excedan un uso razonable podrán cobrarse con el recibo correspondiente. Al salir entregará las llaves y el espacio en el estado en que lo recibió, salvo el desgaste normal.",
+    depositHint: "Recomendado si hay amenidades de valor o estancias de varias semanas.",
   },
   {
     id: "cabibee_con_deposito_v1",
-    title: "Reserva con depósito",
-    blurb: "Igual que el estándar, más un depósito que pactas tú. Cabibee no lo guarda.",
+    title: "Hospedaje con depósito",
+    blurb: "Igual que el estándar, más un depósito en garantía que pactas directo con el huésped.",
     defaultCancellation:
-      "Las cancelaciones se rigen por lo que acuerden las partes. El depósito, si se entregó, se trata entre anfitrión y huésped. Un rechazo del anfitrión después del pago devuelve el total cobrado en Cabibee, incluido el cargo de servicio.",
+      "Si el huésped cancela con 5 días o más de anticipación a la entrada, el anfitrión devuelve el total de la estancia y el depósito. Con menos de 5 días, el anfitrión puede retener hasta el equivalente de una noche. Si el anfitrión cancela o rechaza la reserva después del pago, devuelve el total cobrado y el depósito.",
     defaultExtraClauses:
-      "El depósito se entrega y se devuelve entre las partes, fuera de Cabibee. El anfitrión documentará cualquier descuento por daños.",
-    depositHint: "Declara el monto. El dinero no pasa por Cabibee.",
+      "El anfitrión devolverá el depósito dentro de los 7 días siguientes a la salida. Si descuenta algún daño, enviará al huésped fotos y el costo de la reparación o reposición.",
+    depositHint: "Declara el monto. Se entrega y se devuelve directo entre tú y el huésped.",
   },
 ];
 
@@ -61,8 +62,8 @@ export function getContractTemplate(id: string | undefined): BookingContractTemp
   return BOOKING_CONTRACT_TEMPLATES.find((t) => t.id === id) ?? BOOKING_CONTRACT_TEMPLATES[0];
 }
 
-export function contractFacilitatorNote(): string {
-  return FACILITATOR;
+export function legacyFacilitatorNote(): string {
+  return LEGACY_FACILITATOR;
 }
 
 export function contractDepositNote(): string {
@@ -80,6 +81,8 @@ export type ListingContractSettings = {
   cancellationOverride?: string;
   /** El anfitrión confirmó esta plantilla en el anuncio (firma de oferta para reservas instantáneas). */
   hostAcknowledged: boolean;
+  /** El anfitrión confirmó que leyó el contrato completo y que se ajusta a su caso. */
+  hostReviewed: boolean;
 };
 
 export function defaultListingContract(partial?: Partial<ListingContractSettings>): ListingContractSettings {
@@ -93,6 +96,7 @@ export function defaultListingContract(partial?: Partial<ListingContractSettings
     extraClauses: (partial?.extraClauses ?? template.defaultExtraClauses).trim(),
     cancellationOverride: partial?.cancellationOverride?.trim() || undefined,
     hostAcknowledged: Boolean(partial?.hostAcknowledged),
+    hostReviewed: Boolean(partial?.hostReviewed),
   };
 }
 
@@ -116,5 +120,6 @@ export function sanitizeListingContract(raw: unknown, fallback?: ListingContract
     cancellationOverride:
       o.cancellationOverride !== undefined ? String(o.cancellationOverride).slice(0, 2000) : prev.cancellationOverride,
     hostAcknowledged: o.hostAcknowledged !== undefined ? Boolean(o.hostAcknowledged) : prev.hostAcknowledged,
+    hostReviewed: o.hostReviewed !== undefined ? Boolean(o.hostReviewed) : prev.hostReviewed,
   });
 }

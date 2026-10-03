@@ -6,6 +6,7 @@ import {
   slugifyTitle,
 } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
+import { deleteProofsForListing } from "@/lib/address-proof-store";
 import { sanitizeArrivalGuide } from "@/lib/arrival-guide";
 import { sanitizeListingContract } from "@/lib/booking-contract-templates";
 import { sanitizePricing } from "@/lib/listing-pricing";
@@ -50,6 +51,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     "city",
     "zone",
     "county",
+    "state",
     "country",
     "addressLine",
     "size",
@@ -67,6 +69,9 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   if (body.bathrooms !== undefined) patch.bathrooms = clampInt(body.bathrooms, 0, 50);
   if (body.lat !== undefined) patch.lat = Number(body.lat);
   if (body.lng !== undefined) patch.lng = Number(body.lng);
+  if (body.locationPrecision === "approximate" || body.locationPrecision === "exact") {
+    patch.locationPrecision = body.locationPrecision;
+  }
   if (body.pricePerNight !== undefined) patch.pricePerNight = Math.max(0, Number(body.pricePerNight));
   if (body.cleaningFee !== undefined) patch.cleaningFee = Math.max(0, Number(body.cleaningFee));
   if (Array.isArray(body.photos)) patch.photos = body.photos.map(String);
@@ -130,6 +135,7 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
   const { id } = await ctx.params;
   const ok = deleteListing(id, user.id);
   if (!ok) return NextResponse.json({ error: "No encontrado." }, { status: 404 });
+  deleteProofsForListing(id);
   return NextResponse.json({ ok: true });
 }
 

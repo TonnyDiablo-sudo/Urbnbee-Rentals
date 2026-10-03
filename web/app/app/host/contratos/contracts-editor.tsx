@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { ContractReviewNotice } from "@/components/host/contract-review-notice";
 import { useT } from "@/components/i18n-provider";
 import {
   BOOKING_CONTRACT_TEMPLATES,
@@ -25,6 +26,7 @@ type Form = {
   cancellation: string;
   extraClauses: string;
   hostAcknowledged: boolean;
+  hostReviewed: boolean;
 };
 
 function formFor(l: HostListing): Form {
@@ -39,6 +41,7 @@ function formFor(l: HostListing): Form {
     cancellation: c.cancellationOverride || tpl.defaultCancellation,
     extraClauses: c.extraClauses,
     hostAcknowledged: c.hostAcknowledged,
+    hostReviewed: c.hostReviewed,
   };
 }
 
@@ -52,7 +55,8 @@ function payload(f: Form, includeProperty: boolean) {
     depositMxn: Math.max(0, Math.round(Number(f.depositMxn) || 0)),
     cancellationOverride: f.cancellation.trim() === tpl.defaultCancellation ? "" : f.cancellation.trim(),
     extraClauses: f.extraClauses.trim(),
-    hostAcknowledged: f.hostAcknowledged,
+    hostAcknowledged: f.hostReviewed && f.hostAcknowledged,
+    hostReviewed: f.hostReviewed,
   };
 }
 
@@ -157,6 +161,7 @@ function ListingContractForm({
   }
 
   async function save() {
+    if (!f.hostReviewed) return setMsg({ ok: false, text: "Confirma que revisaste el contrato antes de guardarlo." });
     setBusy("save");
     setMsg(null);
     const r = await patchListing(listing.id, { contract: payload(f, true) });
@@ -167,6 +172,7 @@ function ListingContractForm({
   }
 
   async function applyAll() {
+    if (!f.hostReviewed) return setMsg({ ok: false, text: "Confirma que revisaste el contrato antes de guardarlo." });
     if (!confirm(t("Se usará este machote, tus datos y tus cláusulas en todos tus anuncios. La dirección de cada propiedad no cambia. ¿Continuar?")))
       return;
     setBusy("all");
@@ -180,10 +186,16 @@ function ListingContractForm({
     setMsg({ ok: true, text: t("Aplicado a tus {n} anuncios.", { n: others.length + 1 }) });
   }
 
-  const propertyFallback = [listing.addressLine, listing.zone, listing.city].filter(Boolean).join(", ");
+  const propertyFallback = [listing.addressLine, listing.zone, listing.city, listing.state].filter(Boolean).join(", ");
 
   return (
     <div className="space-y-7 px-5 pt-6">
+      <ContractReviewNotice
+        listing={listing}
+        reviewed={f.hostReviewed}
+        onReviewed={(v) => setF((p) => ({ ...p, hostReviewed: v, hostAcknowledged: v && p.hostAcknowledged }))}
+      />
+
       <section>
         <h2 className="text-lg font-semibold text-[#222]">{t("Machote")}</h2>
         <div className="mt-3 space-y-2.5">
@@ -266,9 +278,10 @@ function ListingContractForm({
           rows={4}
           placeholder={t("Ej. Horario de silencio de 22:00 a 8:00. No se permiten visitas nocturnas.")}
         />
-        <label className="flex items-start gap-3 text-sm text-[#333]">
+        <label className={`flex items-start gap-3 text-sm text-[#333] ${f.hostReviewed ? "" : "opacity-50"}`}>
           <input
             type="checkbox"
+            disabled={!f.hostReviewed}
             checked={f.hostAcknowledged}
             onChange={(e) => set("hostAcknowledged", e.target.checked)}
             className="mt-0.5 h-5 w-5 shrink-0 accent-[#dcb81e]"

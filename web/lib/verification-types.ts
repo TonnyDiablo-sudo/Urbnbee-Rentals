@@ -16,6 +16,8 @@ export type GuestVerificationRecord = {
   userId: string;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
+  /** Pidió cancelar la membresía: sigue hasta `currentPeriodEnd` y no se renueva. */
+  cancelAtPeriodEnd?: boolean;
   subscriptionStatus: VerificationSubscriptionStatus;
   /** Fin del período pagado actual (Stripe current_period_end). */
   currentPeriodEnd?: string;
@@ -38,5 +40,8 @@ export type GuestVerificationRecord = {
   bookingPassesRemaining?: number;
   /** Sesiones de Checkout ya acreditadas, para no acreditar dos veces el mismo pago. */
   grantedPassSessionIds?: string[];
+  /** Cuándo pasaron a activas por última vez (para contar suscripciones nuevas). */
+  subscriptionStartedAt?: string;
+  hostSubscriptionStartedAt?: string;
   updatedAt: string;
 };

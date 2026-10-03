@@ -244,7 +244,7 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
               className="mt-1 accent-[#dcb81e]"
             />
             <span>
-              {t("He leído este contrato y lo firmo. Cabibee solo registra el acuerdo; el hospedaje es entre anfitrión y huésped.")}
+              {t("He leído este contrato y lo firmo. Es un acuerdo directo entre el anfitrión y yo.")}
             </span>
           </label>
           {saveErr && <p className="text-sm text-red-600">{t(saveErr)}</p>}

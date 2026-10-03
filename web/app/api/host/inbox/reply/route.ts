@@ -5,10 +5,11 @@ import { appendMessage } from "@/lib/host-inbox-store";
 import { sanitizeBodyText } from "@/lib/host-inbox-sanitize";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { notifyGuestHostReply } from "@/lib/push";
+import { memberCan } from "@/lib/team-access";
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
-  if (!user || (user.role !== "host" && user.role !== "admin")) {
+  if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
@@ -30,7 +31,8 @@ export async function POST(req: NextRequest) {
   }
 
   const listing = getListingById(listingId);
-  if (!listing || listing.hostId !== user.id) {
+  const owner = listing?.hostId === user.id && (user.role === "host" || user.role === "admin");
+  if (!listing || (!owner && !memberCan(user.id, listing.hostId, "messages", listing.id))) {
     return NextResponse.json({ error: "No encontrado." }, { status: 404 });
   }
 

@@ -2,7 +2,8 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { settleBookingCheckoutSession } from "@/lib/booking-payment-settle";
-import { applyHostEntitlement, HOST_SKU_BOOKING_ENGINE } from "@/lib/host-entitlements";
+import { applyHostEntitlement, HOST_SKU_BOOKING_ENGINE, HOST_SKU_HOST_VERIFICATION } from "@/lib/host-entitlements";
+import { hostEntitlementTargets } from "@/lib/membership-entitlements";
 import type { HostEntitlementStatus } from "@/lib/host-entitlement-types";
 import { lockLegalName } from "@/lib/display-name";
 import { grantHostVerification, syncHostBadgeToListings } from "@/lib/host-verification";
@@ -87,20 +88,29 @@ async function syncFromSubscription(sub: Stripe.Subscription, explicitUserId?: s
     (isMembershipPlanCode(planCode) ? MEMBERSHIP_PLAN_AUDIENCE[planCode] : "guest");
 
   if (audience === "host") {
-    setHostMembershipFields(userId, {
-      stripeCustomerId: customerId,
-      hostStripeSubscriptionId: sub.id,
-      hostSubscriptionStatus: mapSubStatus(sub.status),
-      hostCurrentPeriodEnd: end,
-    });
-    applyHostEntitlement({
-      hostId: userId,
-      sku: HOST_SKU_BOOKING_ENGINE,
-      status: mapEntitlementStatus(sub.status),
-      source: "cabibee_direct",
-      stripeSubscriptionId: sub.id,
-      currentPeriodEnd: end,
-    });
+    const status = mapEntitlementStatus(sub.status);
+    const quantity = sub.items?.data?.[0]?.quantity ?? 1;
+    const targets = hostEntitlementTargets(userId, planCode, sub.id);
+    if (targets.some((t) => t.sku === HOST_SKU_BOOKING_ENGINE || t.sku === HOST_SKU_HOST_VERIFICATION)) {
+      setHostMembershipFields(userId, {
+        stripeCustomerId: customerId,
+        hostStripeSubscriptionId: sub.id,
+        hostSubscriptionStatus: mapSubStatus(sub.status),
+        hostCurrentPeriodEnd: end,
+      });
+    }
+    for (const t of targets) {
+      applyHostEntitlement({
+        hostId: userId,
+        sku: t.sku,
+        status,
+        source: "cabibee_direct",
+        stripeSubscriptionId: sub.id,
+        currentPeriodEnd: end,
+        cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
+        ...(t.perUnit ? { quantity } : {}),
+      });
+    }
     syncHostBadgeToListings(userId);
     return;
   }
@@ -110,6 +120,7 @@ async function syncFromSubscription(sub: Stripe.Subscription, explicitUserId?: s
     stripeSubscriptionId: sub.id,
     subscriptionStatus: mapSubStatus(sub.status),
     currentPeriodEnd: end,
+    cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
   });
 }
 

@@ -2,11 +2,16 @@ import "server-only";
 import { createHash } from "crypto";
 import {
   contractDepositNote,
-  contractFacilitatorNote,
   defaultListingContract,
   getContractTemplate,
   type ListingContractSettings,
 } from "@/lib/booking-contract-templates";
+import {
+  commonContractClauses,
+  contractJurisdiction,
+  SEVERABILITY_CLAUSE,
+  THIRD_PARTY_CLAUSE,
+} from "@/lib/contract-jurisdiction";
 import type {
   BookingContractActor,
   BookingContractEvent,
@@ -83,10 +88,28 @@ export function buildContractSnapshot(
   const taxAdded = booking.taxIncluded ? 0 : taxMxn;
   const propertyAddress =
     settings.propertyAddress ||
-    [listing.addressLine, listing.zone, listing.city, listing.country].filter(Boolean).join(", ") ||
+    [listing.addressLine, listing.zone, listing.county, listing.city, listing.state, listing.country]
+      .filter(Boolean)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .join(", ") ||
     `${listing.city || "—"}, ${listing.zone || "—"}`;
+  const maxGuests = Math.max(1, listing.guests || 1);
+  const place = contractJurisdiction(
+    { country: listing.country, state: listing.state, city: listing.city, municipality: listing.county },
+    { nights: booking.nights }
+  );
 
   return {
+    format: 2,
+    listingState: listing.state || undefined,
+    listingCountry: listing.country || undefined,
+    maxGuests,
+    jurisdiction: {
+      label: place.label,
+      governingLaw: place.governingLaw,
+      courts: place.courts,
+      clauses: [...commonContractClauses(maxGuests), ...place.localClauses, THIRD_PARTY_CLAUSE, SEVERABILITY_CLAUSE],
+    },
     templateId: template.id,
     templateTitle: template.title,
     listingId: listing.id,
@@ -129,7 +152,7 @@ export function buildContractSnapshot(
       children: listing.rules.children ?? null,
     },
     cancellationPolicy: settings.cancellationOverride || template.defaultCancellation,
-    facilitatorNote: contractFacilitatorNote(),
+    facilitatorNote: THIRD_PARTY_CLAUSE.text,
   };
 }
 
@@ -149,7 +172,7 @@ function hostSignsOnGenerate(
  */
 export function ensureBookingContract(
   bookingId: string,
-  actor: { role: BookingContractActor; userId?: string; ip?: string; signName?: string }
+  actor: { role: BookingContractActor; userId?: string; ip?: string; signName?: string; signedBy?: string }
 ): BookingRecord | undefined {
   const booking = getBookingById(bookingId);
   if (!booking) return undefined;
@@ -159,6 +182,7 @@ export function ensureBookingContract(
         name: actor.signName,
         userId: actor.userId,
         ip: actor.ip,
+        signedBy: actor.signedBy,
       }) ?? booking;
     }
     return booking;
@@ -198,7 +222,7 @@ export function ensureBookingContract(
             event(
               actor.role === "system" ? "host" : actor.role,
               "signed",
-              `El anfitrión firmó como «${hostName}».`,
+              hostSignedText(hostName, actor.signedBy),
               actor.ip
             ),
           ]
@@ -248,7 +272,7 @@ export function changedContractTerms(prev: BookingContractSnapshot, next: Bookin
  */
 export function syncContractWithBooking(
   bookingId: string,
-  actor: { role: BookingContractActor; userId?: string; ip?: string; signName?: string }
+  actor: { role: BookingContractActor; userId?: string; ip?: string; signName?: string; signedBy?: string }
 ): BookingRecord | undefined {
   const booking = getBookingById(bookingId);
   if (!booking) return undefined;
@@ -302,7 +326,7 @@ export function syncContractWithBooking(
         }`,
         actor.ip
       ),
-      ...(hostSigns ? [event("host", "signed", `El anfitrión firmó como «${signName}».`, actor.ip)] : []),
+      ...(hostSigns ? [event("host", "signed", hostSignedText(signName, actor.signedBy), actor.ip)] : []),
     ],
   };
   return patchBookingRecord(bookingId, { contract, contractStatus: "pending" });
@@ -394,9 +418,16 @@ export function attachContractIfInstant(booking: BookingRecord): BookingRecord {
   return ensureBookingContract(booking.id, { role: "system", userId: booking.hostId }) ?? booking;
 }
 
+/** Quien colabora firma con el nombre del anfitrión; el registro dice quién lo hizo. */
+function hostSignedText(name: string, signedBy?: string): string {
+  return signedBy
+    ? `${signedBy} firmó en nombre del anfitrión, como «${name}».`
+    : `El anfitrión firmó como «${name}».`;
+}
+
 export function hostSignBookingContract(
   bookingId: string,
-  opts: { name: string; userId?: string; ip?: string }
+  opts: { name: string; userId?: string; ip?: string; signedBy?: string }
 ): BookingRecord | undefined {
   const booking = getBookingById(bookingId);
   if (!booking?.contract) return undefined;
@@ -414,7 +445,7 @@ export function hostSignBookingContract(
     hostAcceptedIp: opts.ip,
     events: [
       ...booking.contract.events,
-      event("host", "signed", `El anfitrión firmó como «${name}».`, opts.ip),
+      event("host", "signed", hostSignedText(name, opts.signedBy), opts.ip),
     ],
   };
   return patchBookingRecord(bookingId, { contract });
@@ -464,7 +495,120 @@ export function contractIsFullyAccepted(c: BookingContractRecord | undefined): b
   return Boolean(c?.hostAcceptedAt && c?.guestAcceptedAt);
 }
 
+function stamp(iso: string): string {
+  return `${iso.slice(0, 19).replace("T", " ")} UTC`;
+}
+
+function signatureAndHistoryLines(c: BookingContractRecord, hostName: string, money: (n: number) => string): string[] {
+  const s = c.snapshot;
+  return [
+    "FIRMAS",
+    c.hostAcceptedAt
+      ? `Anfitrión (${c.hostAcceptedName ?? hostName}): ${stamp(c.hostAcceptedAt)}${c.hostAcceptedIp ? ` · IP ${c.hostAcceptedIp}` : ""}`
+      : "Anfitrión: pendiente de firma",
+    c.guestAcceptedAt
+      ? `Huésped (${c.guestAcceptedName ?? s.guestName}): ${stamp(c.guestAcceptedAt)}${c.guestAcceptedIp ? ` · IP ${c.guestAcceptedIp}` : ""}`
+      : "Huésped: pendiente de firma",
+    c.acceptedSha256 ? `Huella SHA-256 del texto aceptado: ${c.acceptedSha256}` : "",
+    "",
+    ...(c.previousVersions?.length
+      ? [
+          "VERSIONES ANTERIORES",
+          ...c.previousVersions.flatMap((v, i) => [
+            `Versión ${i + 1} (${v.snapshot.checkIn} → ${v.snapshot.checkOut}, ${money(v.snapshot.totalMxn)}) · reemplazada ${stamp(v.supersededAt)}`,
+            `  Cambios: ${v.changes.join("; ")}`,
+            v.guestAcceptedAt
+              ? `  Firmada por el huésped (${v.guestAcceptedName ?? s.guestName}) el ${stamp(v.guestAcceptedAt)}${v.acceptedSha256 ? ` · SHA-256 ${v.acceptedSha256}` : ""}`
+              : "  Sin firma del huésped",
+          ]),
+          "",
+        ]
+      : []),
+  ];
+}
+
+function eventLines(c: BookingContractRecord): string[] {
+  return [
+    "BITÁCORA",
+    ...c.events.map(
+      (e) => `${stamp(e.at)} · ${e.actor} · ${e.action}${e.detail ? ` — ${e.detail}` : ""}${e.ip ? ` · IP ${e.ip}` : ""}`
+    ),
+  ];
+}
+
 export function contractPlainLines(c: BookingContractRecord): string[] {
+  if (c.snapshot.format !== 2 || !c.snapshot.jurisdiction) return legacyContractPlainLines(c);
+  const s = c.snapshot;
+  const j = s.jurisdiction!;
+  const hostName = s.hostLegalName || "Anfitrión";
+  const money = (n: number) => `$${n.toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN`;
+  const extra = (s.extraClauses ?? "").trim();
+  return [
+    "CONTRATO DE HOSPEDAJE TEMPORAL ENTRE PARTICULARES",
+    s.templateTitle,
+    `Lugar del inmueble: ${j.label}`,
+    `Generado ${stamp(c.generatedAt)}`,
+    "",
+    `Celebran este contrato, por una parte, ${hostName} («el anfitrión») y, por la otra, ${s.guestName} («el huésped»), quienes se reconocen capacidad para obligarse y acuerdan lo siguiente.`,
+    "",
+    "PARTES",
+    `Anfitrión: ${hostName}`,
+    `Domicilio del anfitrión: ${given(s.hostAddress)}`,
+    `Correo del anfitrión: ${given(s.hostEmail)}`,
+    `Teléfono del anfitrión: ${given(s.hostPhone)}`,
+    "",
+    `Huésped: ${s.guestName}`,
+    `Domicilio del huésped: ${given(s.guestAddress)}`,
+    `Correo del huésped: ${given(s.guestEmail)}`,
+    `Teléfono del huésped: ${given(s.guestPhone)}`,
+    "",
+    "INMUEBLE",
+    s.listingTitle,
+    `Dirección: ${s.propertyAddress || "no declarada"}`,
+    `Ocupación máxima: ${s.maxGuests ?? 1} persona${s.maxGuests === 1 ? "" : "s"}`,
+    "",
+    "ESTANCIA",
+    `Entrada ${s.checkIn} · salida ${s.checkOut} · ${s.nights} noche${s.nights === 1 ? "" : "s"}`,
+    "",
+    "CONTRAPRESTACIÓN",
+    `Hospedaje: ${money(s.stayMxn)}`,
+    `Limpieza: ${money(s.cleaningMxn)}`,
+    ...(s.taxMxn && s.taxMxn > 0
+      ? [
+          ...(s.taxLines ?? []).map(
+            (l) => `${s.taxIncluded ? "Incluye " : ""}${l.name} (${l.ratePct}%): ${money(l.amountMxn)}`
+          ),
+          ...(s.hostTaxId ? [`Registro fiscal del anfitrión: ${s.hostTaxId}`] : []),
+        ]
+      : []),
+    ...(s.platformFeeMxn > 0
+      ? [`Cargo de servicio de la herramienta de reservas: ${money(s.platformFeeMxn)} (no forma parte del precio del hospedaje)`]
+      : []),
+    `Total: ${money(s.totalMxn)}`,
+    `Depósito en garantía: ${s.depositMxn > 0 ? money(s.depositMxn) : "no se pacta depósito"}`,
+    ...(s.depositMxn > 0 ? [s.depositNote] : []),
+    "",
+    "REGLAS DEL ALOJAMIENTO",
+    `Fumar: ${ruleLabel(s.rules.smoking)}`,
+    `Mascotas: ${ruleLabel(s.rules.pets)}`,
+    `Fiestas: ${ruleLabel(s.rules.parties)}`,
+    `Niños: ${ruleLabel(s.rules.children)}`,
+    "",
+    "CANCELACIÓN",
+    s.cancellationPolicy,
+    "",
+    ...j.clauses.flatMap((cl) => [cl.title, cl.text, ""]),
+    ...(extra ? ["CLÁUSULAS ADICIONALES DEL ANFITRIÓN", extra, ""] : []),
+    "LEY APLICABLE Y TRIBUNALES",
+    j.governingLaw,
+    j.courts,
+    "",
+    ...signatureAndHistoryLines(c, hostName, money),
+    ...eventLines(c),
+  ].filter((line, i, arr) => !(line === "" && arr[i - 1] === ""));
+}
+
+function legacyContractPlainLines(c: BookingContractRecord): string[] {
   const s = c.snapshot as BookingContractSnapshot & { hostName?: string };
   const hostName = s.hostLegalName || s.hostName || "Anfitrión";
   const money = (n: number) =>

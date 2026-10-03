@@ -12,6 +12,7 @@ import { siteHome } from "./site-home";
 import { siteHost } from "./site-host";
 import { siteHostListings } from "./site-host-listings";
 import { siteListing } from "./site-listing";
+import { appToolsStore } from "./app-tools-store";
 
 /** Clave: el texto exacto en español que aparece en el código. */
 export const EN: Record<string, string> = {
@@ -29,4 +30,5 @@ export const EN: Record<string, string> = {
   ...appNotificationsTax,
   ...appSearchDiscounts,
   ...appPay,
+  ...appToolsStore,
 };

@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Cabibee · Importar anuncio",
+  "version": "1.0.0",
+  "description": "Manda el anuncio de alojamiento que estás viendo al panel de asociados de Cabibee.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Importar a Cabibee"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

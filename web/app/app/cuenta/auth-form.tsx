@@ -59,7 +59,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         setError(typeof data.error === "string" ? data.error : "No se pudo continuar.");
         return;
       }
-      router.replace(next);
+      router.replace(data.user?.mustChangePassword ? "/cuenta/activar" : next);
       router.refresh();
     } catch {
       setError("Sin conexión. Intenta de nuevo.");

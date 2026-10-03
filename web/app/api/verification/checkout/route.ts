@@ -7,11 +7,15 @@ import { publicOriginFromRequest } from "@/lib/public-origin";
 import {
   buildMembershipCheckout,
   membershipPlanCodeFromInput,
+  membershipQuantity,
 } from "@/lib/membership-checkout";
 import { getMembershipPlan, membershipPlanAmount } from "@/lib/membership-plans-store";
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { MEMBERSHIP_PLAN_AUDIENCE, type MembershipPlanCode } from "@/lib/membership-plans-types";
 import { simulateCatalogMembership } from "@/lib/membership-simulate";
+import { primarySkuForPlan } from "@/lib/membership-entitlements";
+import { getHostEntitlement } from "@/lib/host-entitlements-store";
+import { hostEntitlementAllowsAccess } from "@/lib/host-entitlement-types";
 import { getVerification, resolveVerificationPriceId, type VerificationBillingPlan } from "@/lib/verification-store";
 import type { VerificationRegion } from "@/lib/verification-types";
 import { verificationRegionFromRequest } from "@/lib/verification-region";
@@ -46,9 +50,10 @@ async function catalogCheckout(
   region: VerificationRegion,
   user: { id: string; email: string },
   rawCancelPath?: string,
-  rawReturnPath?: string
+  rawReturnPath?: string,
+  quantity = 1
 ) {
-  const pieces = await buildMembershipCheckout(stripe, code, region, user.id);
+  const pieces = await buildMembershipCheckout(stripe, code, region, user.id, quantity);
   if ("error" in pieces) {
     const msg =
       pieces.error === "unknown_plan"
@@ -127,6 +132,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json().catch(() => ({}))) as {
       plan?: string;
       region?: string;
+      quantity?: number;
       cancelPath?: string;
       returnPath?: string;
     };
@@ -153,6 +159,20 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const ownedSku = primarySkuForPlan(catalogCode);
+      const ownedRow = ownedSku ? getHostEntitlement(user.id, ownedSku) : undefined;
+      if (ownedRow && ownedRow.status !== "cancelled" && hostEntitlementAllowsAccess(ownedRow.status)) {
+        return NextResponse.json(
+          {
+            error:
+              ownedRow.quantity === undefined
+                ? "Ya tienes este producto activo."
+                : "Ya tienes este producto. Cambia la cantidad desde la Tienda; para cambiar de plazo, cancela el actual y compra el nuevo al vencer.",
+          },
+          { status: 409 }
+        );
+      }
+
       const stripeForCatalog = getStripe();
       if (!stripeForCatalog) {
         if (!allowSimulatedBookingPayment()) {
@@ -161,7 +181,7 @@ export async function POST(req: NextRequest) {
             { status: 503 }
           );
         }
-        const simulated = simulateCatalogMembership(user.id, catalogCode);
+        const simulated = simulateCatalogMembership(user.id, catalogCode, membershipQuantity(catalogCode, body.quantity));
         return NextResponse.json({
           simulated: true,
           audience: simulated.audience,
@@ -175,7 +195,8 @@ export async function POST(req: NextRequest) {
         region,
         user,
         body.cancelPath,
-        body.returnPath
+        body.returnPath,
+        membershipQuantity(catalogCode, body.quantity)
       );
     }
 

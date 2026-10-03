@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { width: 320px; margin: 0; font: 13px/1.4 system-ui, sans-serif; color: #222; }
+      header { background: #111; color: #fff; padding: 10px 14px; font-weight: 700; letter-spacing: .5px; }
+      header span { color: #dcb81e; }
+      main { padding: 12px 14px 14px; }
+      label { display: block; margin-top: 8px; font-size: 12px; color: #555; }
+      input, textarea { box-sizing: border-box; width: 100%; margin-top: 3px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; font: inherit; }
+      button { width: 100%; margin-top: 10px; padding: 9px; border: 0; border-radius: 8px; background: #dcb81e; font-weight: 600; cursor: pointer; }
+      button:disabled { opacity: .5; cursor: default; }
+      button.link { background: none; color: #555; text-decoration: underline; padding: 4px; margin-top: 6px; font-weight: 400; }
+      .status { margin-top: 10px; padding: 8px; border-radius: 6px; background: #f5f5f5; white-space: pre-wrap; }
+      .status.ok { background: #e7f5ec; color: #1e5a32; }
+      .status.err { background: #fdecec; color: #8a1f1f; }
+      .status a { color: inherit; font-weight: 600; }
+      .hidden { display: none; }
+      .hint { margin-top: 8px; font-size: 11px; color: #888; }
+    </style>
+  </head>
+  <body>
+    <header>CABI<span>BEE</span> · Asociados</header>
+    <main>
+      <section id="settings" class="hidden">
+        <label>Dirección de Cabibee
+          <input id="server" placeholder="https://cabibee.com" />
+        </label>
+        <label>Token de asociado
+          <input id="token" placeholder="cbx_…" />
+        </label>
+        <button id="save">Guardar</button>
+        <p class="hint">El token se genera en Cabibee → Asociados → Extensión de Chrome.</p>
+      </section>
+
+      <section id="import" class="hidden">
+        <label>Notas para la IA (opcional)
+          <textarea id="notes" rows="2" placeholder="Ej. el precio es por semana"></textarea>
+        </label>
+        <button id="go">Importar esta página</button>
+        <p class="hint">Antes, abre la galería del anuncio y pasa por todas las fotos para que carguen.</p>
+        <button id="edit" class="link">Cambiar token</button>
+      </section>
+
+      <div id="status" class="status hidden"></div>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

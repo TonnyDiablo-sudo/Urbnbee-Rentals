@@ -7,14 +7,19 @@ import { canRequestScreening, screeningHostView, screeningQuote } from "@/lib/sc
 import { getScreeningByBooking } from "@/lib/screening-store";
 import { reviewsForBooking, stayReviewEligible } from "@/lib/stay-reviews";
 import { verificationRegionFromRequest } from "@/lib/verification-region";
+import { hostScope } from "@/lib/team-access";
+import { memberCoversListing } from "@/lib/team-store";
 
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();
-  if (!user || (user.role !== "host" && user.role !== "admin")) {
+  const scope = hostScope(user, req.nextUrl.searchParams.get("host"), "bookings");
+  if (!scope) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
-  const rows = listBookingsForHost(user.id).map((b) => applyBookingLifecycle(b));
+  const rows = listBookingsForHost(scope.hostId)
+    .filter((b) => !scope.member || memberCoversListing(scope.member, b.hostAdjustedListingId ?? b.listingId))
+    .map((b) => applyBookingLifecycle(b));
   const bookings = rows.map((b) => {
     const listing = getListingById(b.listingId);
     const adjId = b.hostAdjustedListingId ?? b.listingId;

@@ -8,6 +8,7 @@ import {
 import { ensureMembershipProduct } from "@/lib/stripe-membership-products";
 import { getStripe } from "@/lib/stripe-server";
 import { urbnbeeaiCatalogConfigured } from "@/lib/urbnbeeai-catalog-client";
+import { URBNBEEAI_CATALOG_CODES } from "@/lib/membership-plans-types";
 import { catalogAdminExtra, savePlanToCatalog } from "@/lib/urbnbeeai-catalog-sync";
 
 export const dynamic = "force-dynamic";
@@ -98,7 +99,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ code: str
     }
   }
 
-  if (urbnbeeaiCatalogConfigured()) {
+  if (urbnbeeaiCatalogConfigured() && URBNBEEAI_CATALOG_CODES.includes(code)) {
     const saved = await savePlanToCatalog(
       code,
       { label, description, amountMxn: mxn, amountUsd: usd, active, floorPrice },

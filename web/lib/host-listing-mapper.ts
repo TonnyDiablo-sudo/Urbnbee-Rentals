@@ -1,6 +1,7 @@
 import "server-only";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import type { ListingDetail } from "@/lib/listing-detail-data";
+import { listingShowsLocationBadge } from "@/lib/address-proof-access";
 import { publicNameOf } from "@/lib/display-name";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import { listingReviewsForPublic } from "@/lib/stay-reviews";
@@ -14,6 +15,18 @@ function hashPropertyId(listingId: string): number {
   let h = 0;
   for (let i = 0; i < listingId.length; i++) h = (h * 31 + listingId.charCodeAt(i)) >>> 0;
   return 100000 + (h % 900000);
+}
+
+/** Corre el punto entre 150 y 350 m en una dirección fija por anuncio: el mapa no delata la casa. */
+export function approximateCoords(listingId: string, lat: number, lng: number): { lat: number; lng: number } {
+  let h = 2166136261;
+  for (let i = 0; i < listingId.length; i++) h = Math.imul(h ^ listingId.charCodeAt(i), 16777619) >>> 0;
+  const angle = ((h % 360) * Math.PI) / 180;
+  const meters = 150 + ((h >>> 9) % 200);
+  return {
+    lat: lat + (meters * Math.cos(angle)) / 111_320,
+    lng: lng + (meters * Math.sin(angle)) / (111_320 * Math.cos((lat * Math.PI) / 180)),
+  };
 }
 
 function categoryLabel(key: HostListingRecord["categoryKey"]): string {
@@ -31,6 +44,7 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
   const user = findUserById(record.hostId);
   const profile = getHostProfile(record.hostId);
   const photos = record.photos.length ? record.photos : [PLACEHOLDER];
+  const exact = record.locationPrecision === "exact";
 
   const hostName = (user && publicNameOf(user)) || "Anfitrión";
   const host: ListingDetail["host"] = {
@@ -58,9 +72,12 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
     city: record.city || "—",
     zone: record.zone || "—",
     county: record.county || "",
+    state: record.state || undefined,
     country: record.country || "",
-    lat: record.lat,
-    lng: record.lng,
+    ...(exact ? { lat: record.lat, lng: record.lng } : approximateCoords(record.id, record.lat, record.lng)),
+    exactLocation: exact,
+    addressLine: exact && record.addressLine.trim() ? record.addressLine.trim() : undefined,
+    locationVerified: listingShowsLocationBadge(record),
     pricePerNight: record.pricePerNight,
     nightlyPriceOverrides: record.nightlyPriceOverrides
       ? { ...record.nightlyPriceOverrides }

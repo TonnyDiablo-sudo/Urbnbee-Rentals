@@ -31,6 +31,7 @@ export type AdminUserRow = {
   hostRibbon: boolean;
   kycStatus: string;
   bookingPassesRemaining: number;
+  associate: boolean;
 };
 
 export type AdminBookingRow = {
@@ -190,6 +191,7 @@ export function getAdminUsers(): AdminUserRow[] {
       hostRibbon: hostShowsVerifiedRibbon(u.id),
       kycStatus: v?.kycStatus ?? "not_started",
       bookingPassesRemaining: v?.bookingPassesRemaining ?? 0,
+      associate: Boolean(u.associate),
     };
   });
 }

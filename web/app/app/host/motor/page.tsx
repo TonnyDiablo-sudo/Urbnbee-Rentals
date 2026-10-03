@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import { AddressProofPanel } from "@/components/host/address-proof-panel";
+import { EngineListingsPanel } from "@/components/host/engine-listings-panel";
 import { getT } from "@/lib/i18n/server";
 import { TopBar } from "../../_components/top-bar";
 import { BookingEngine } from "./booking-engine";
@@ -16,6 +18,10 @@ export default async function AppHostEnginePage() {
       <Suspense>
         <BookingEngine />
       </Suspense>
+      <div className="space-y-6 px-5 pb-10 pt-2">
+        <EngineListingsPanel />
+        <AddressProofPanel surface="app" />
+      </div>
     </>
   );
 }

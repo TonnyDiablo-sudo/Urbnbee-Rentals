@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       listingCity: stayListing?.city,
       arrival:
         confirmed && stayListing
-          ? { ...(stayListing.arrivalGuide ?? {}), address: [stayListing.addressLine, stayListing.zone, stayListing.city].filter(Boolean).join(", ") }
+          ? { ...(stayListing.arrivalGuide ?? {}), address: [stayListing.addressLine, stayListing.zone, stayListing.county, stayListing.city, stayListing.state, stayListing.country].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(", ") }
           : undefined,
       balanceDueMxn: bookingBalanceDueMxn(b),
       paidStayMxn: b.paidAt ? paidStayOf(b) : 0,

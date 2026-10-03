@@ -54,6 +54,14 @@ export function IconToday({ className = "h-6 w-6" }: P) {
   );
 }
 
+export function IconChart({ className = "h-6 w-6" }: P) {
+  return (
+    <svg className={className} {...base}>
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </svg>
+  );
+}
+
 export function IconCalendar({ className = "h-6 w-6" }: P) {
   return (
     <svg className={className} {...base}>

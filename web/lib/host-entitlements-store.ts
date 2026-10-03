@@ -69,7 +69,12 @@ export function listHostEntitlements(hostId: string): HostEntitlementRecord[] {
 
 export function upsertHostEntitlement(row: HostEntitlementRecord): HostEntitlementRecord {
   syncIfStale();
-  const next = { ...row, updatedAt: row.updatedAt || new Date().toISOString() };
+  const now = new Date().toISOString();
+  const prev = rows.get(keyOf(row.hostId, row.sku));
+  const wasActive = prev?.status === "active";
+  const isActive = row.status === "active";
+  const startedAt = isActive ? (wasActive ? (row.startedAt ?? prev?.startedAt) : now) : (row.startedAt ?? prev?.startedAt);
+  const next = { ...row, startedAt, updatedAt: row.updatedAt || now };
   rows.set(keyOf(next.hostId, next.sku), next);
   persist();
   return next;

@@ -39,7 +39,9 @@ export default function LoginPage() {
         return;
       }
       const role = data.user?.role as string | undefined;
-      if (role === "admin") {
+      if (data.user?.mustChangePassword) {
+        router.push("/activar-cuenta");
+      } else if (role === "admin") {
         if (next.startsWith("/admin")) router.push(next);
         else if (next.startsWith("/host")) router.push(next);
         else if (next.startsWith("/guest")) router.push(next);

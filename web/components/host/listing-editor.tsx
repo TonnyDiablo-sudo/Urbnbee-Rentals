@@ -14,6 +14,8 @@ import { AMENITY_OPTIONS } from "@/lib/amenity-options";
 import { ListingImportUsagePanel } from "@/components/host/listing-import-usage-panel";
 import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
 import { useT } from "@/components/i18n-provider";
+import { COUNTRY_OPTIONS, isMexico, MX_STATE_LIST } from "@/lib/geo-places";
+import { ContractReviewNotice } from "@/components/host/contract-review-notice";
 
 type Tab = "fotos" | "info" | "ubicacion" | "contacto" | "precio" | "comodidades" | "contrato";
 
@@ -38,7 +40,10 @@ const CATEGORY_OPTIONS: { key: ListingCategory; label: string }[] = [
 export function ListingEditor({ listingId }: { listingId: string }) {
   const searchParams = useSearchParams();
   const t = useT();
-  const [tab, setTab] = useState<Tab>("fotos");
+  const [tab, setTab] = useState<Tab>(() => {
+    const q = searchParams.get("tab");
+    return TABS.find((x) => x.id === q)?.id ?? "fotos";
+  });
   const [listing, setListing] = useState<HostListingRecord | null>(null);
   const [profile, setProfile] = useState<HostProfileRecord | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
@@ -516,14 +521,37 @@ export function ListingEditor({ listingId }: { listingId: string }) {
       {/* ─── Ubicación ─── */}
       {tab === "ubicacion" && (
         <section className="space-y-4 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
-          <Field label="Dirección (no se muestra completa hasta la reserva)">
-            <input
-              className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
-              value={listing.addressLine}
-              onChange={(e) => setListing({ ...listing, addressLine: e.target.value })}
-              onBlur={() => saveListing({ addressLine: listing.addressLine })}
-            />
-          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="País">
+              <input
+                list="cb-countries"
+                className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+                value={listing.country}
+                onChange={(e) => setListing({ ...listing, country: e.target.value })}
+                onBlur={() => saveListing({ country: listing.country })}
+              />
+              <datalist id="cb-countries">
+                {COUNTRY_OPTIONS.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+            </Field>
+            <Field label="Estado / provincia">
+              <input
+                list={isMexico(listing.country) ? "cb-mx-states" : undefined}
+                className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+                value={listing.state ?? ""}
+                onChange={(e) => setListing({ ...listing, state: e.target.value })}
+                onBlur={() => saveListing({ state: listing.state ?? "" })}
+                placeholder={isMexico(listing.country) ? t("Ej. Jalisco") : ""}
+              />
+              <datalist id="cb-mx-states">
+                {MX_STATE_LIST.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            </Field>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Ciudad">
               <input
@@ -533,17 +561,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 onBlur={() => saveListing({ city: listing.city })}
               />
             </Field>
-            <Field label="Zona / barrio">
-              <input
-                className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
-                value={listing.zone}
-                onChange={(e) => setListing({ ...listing, zone: e.target.value })}
-                onBlur={() => saveListing({ zone: listing.zone })}
-              />
-            </Field>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Estado / provincia">
+            <Field label="Municipio / alcaldía (opcional)">
               <input
                 className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
                 value={listing.county}
@@ -551,15 +569,55 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 onBlur={() => saveListing({ county: listing.county })}
               />
             </Field>
-            <Field label="País">
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Colonia / zona">
               <input
                 className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
-                value={listing.country}
-                onChange={(e) => setListing({ ...listing, country: e.target.value })}
-                onBlur={() => saveListing({ country: listing.country })}
+                value={listing.zone}
+                onChange={(e) => setListing({ ...listing, zone: e.target.value })}
+                onBlur={() => saveListing({ zone: listing.zone })}
+              />
+            </Field>
+            <Field label="Calle, número y código postal">
+              <input
+                className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+                value={listing.addressLine}
+                onChange={(e) => setListing({ ...listing, addressLine: e.target.value })}
+                onBlur={() => saveListing({ addressLine: listing.addressLine })}
               />
             </Field>
           </div>
+
+          <fieldset className="rounded-xl border border-[#ebebeb] p-4">
+            <legend className="px-1 text-sm font-semibold text-[#484848]">{t("¿Qué ven los huéspedes antes de reservar?")}</legend>
+            {(
+              [
+                ["approximate", "Ubicación aproximada (recomendado)", "El mapa muestra un círculo de unos cientos de metros y la calle se comparte al confirmar la reserva."],
+                ["exact", "Ubicación exacta", "El mapa muestra el punto exacto y la calle es pública desde el anuncio."],
+              ] as const
+            ).map(([value, label, help]) => (
+              <label key={value} className="mt-2 flex cursor-pointer items-start gap-3 text-sm">
+                <input
+                  type="radio"
+                  name="locationPrecision"
+                  className="mt-1"
+                  checked={(listing.locationPrecision ?? "approximate") === value}
+                  onChange={() => {
+                    setListing({ ...listing, locationPrecision: value });
+                    void saveListing({ locationPrecision: value });
+                  }}
+                />
+                <span>
+                  <span className="font-medium text-[#222]">{t(label)}</span>
+                  <span className="block text-xs text-[#888]">{t(help)}</span>
+                </span>
+              </label>
+            ))}
+            <p className="mt-3 text-xs text-[#888]">
+              {t("Con reserva confirmada por el motor de reservas, el huésped siempre recibe la dirección exacta y queda en el contrato.")}
+            </p>
+          </fieldset>
 
           <div className="overflow-hidden rounded-xl border border-[#ebebeb] bg-[#fafafa]">
             <div className="flex flex-col gap-3 border-b border-[#ebebeb] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -581,6 +639,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                       listing.zone,
                       listing.city,
                       listing.county,
+                      listing.state ?? "",
                       listing.country,
                     ].filter((x) => String(x).trim().length > 0);
                     const q = parts.join(", ");
@@ -1004,14 +1063,29 @@ function ContractTab({
       hostLegalName: listing.contract?.hostLegalName || hostName,
       propertyAddress:
         listing.contract?.propertyAddress ||
-        [listing.addressLine, listing.zone, listing.city].filter(Boolean).join(", "),
+        [listing.addressLine, listing.zone, listing.city, listing.state].filter(Boolean).join(", "),
     })
   );
+
+  const [preview, setPreview] = useState<string[] | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
 
   function patch(partial: Partial<ListingContractSettings>, persist = false) {
     const next = defaultListingContract({ ...draft, ...partial });
     setDraft(next);
     if (persist) onSave(next);
+  }
+
+  async function loadPreview() {
+    setPreviewBusy(true);
+    const res = await fetch("/api/host/contracts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ listingId: listing.id, contract: draft }),
+    }).catch(() => null);
+    const j = res ? await res.json().catch(() => ({})) : {};
+    setPreview(Array.isArray(j.lines) ? j.lines : []);
+    setPreviewBusy(false);
   }
 
   const selected = BOOKING_CONTRACT_TEMPLATES.find((tpl) => tpl.id === draft.templateId) ?? BOOKING_CONTRACT_TEMPLATES[0];
@@ -1026,6 +1100,12 @@ function ContractTab({
           )}
         </p>
       </div>
+
+      <ContractReviewNotice
+        listing={listing}
+        reviewed={draft.hostReviewed}
+        onReviewed={(v) => patch(v ? { hostReviewed: true } : { hostReviewed: false, hostAcknowledged: false }, true)}
+      />
 
       <div className="grid gap-3">
         {BOOKING_CONTRACT_TEMPLATES.map((tpl) => (
@@ -1112,10 +1192,11 @@ function ContractTab({
           onBlur={() => onSave(draft)}
         />
       </Field>
-      <label className="flex items-start gap-2 text-sm text-[#484848]">
+      <label className={`flex items-start gap-2 text-sm text-[#484848] ${draft.hostReviewed ? "" : "opacity-50"}`}>
         <input
           type="checkbox"
           className="mt-1 accent-[#dcb81e]"
+          disabled={!draft.hostReviewed}
           checked={draft.hostAcknowledged}
           onChange={(e) => patch({ hostAcknowledged: e.target.checked }, true)}
         />
@@ -1125,6 +1206,38 @@ function ContractTab({
           )}
         </span>
       </label>
+
+      <div>
+        <button
+          type="button"
+          disabled={previewBusy}
+          onClick={() => (preview ? setPreview(null) : void loadPreview())}
+          className="rounded-lg border border-[#484848] px-4 py-2 text-sm font-semibold text-[#484848] disabled:opacity-50"
+        >
+          {previewBusy ? t("Cargando…") : preview ? t("Ocultar contrato") : t("Ver contrato completo")}
+        </button>
+        {preview && (
+          <div className="mt-3 max-h-[480px] overflow-y-auto rounded-lg bg-[#f7f7f7] p-4 text-[13px] leading-relaxed text-[#333]">
+            {preview.length === 0 ? (
+              <p className="text-red-700">{t("No se pudo cargar el contrato.")}</p>
+            ) : (
+              preview.map((l, i) =>
+                l === "" ? (
+                  <div key={i} className="h-2" />
+                ) : /^[A-ZÁÉÍÓÚÑ ]+$/.test(l) ? (
+                  <p key={i} className="mb-1 mt-2 text-xs font-bold tracking-wide text-[#222]">
+                    {l}
+                  </p>
+                ) : (
+                  <p key={i} className="mb-1">
+                    {l}
+                  </p>
+                )
+              )
+            )}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

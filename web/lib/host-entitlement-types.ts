@@ -1,7 +1,16 @@
 export const HOST_SKU_BOOKING_ENGINE = "cabibee_booking_engine";
 export const HOST_SKU_HOST_VERIFICATION = "cabibee_host_verification";
+export const HOST_SKU_CLEANING = "cabibee_cleaning_tool";
+export const HOST_SKU_COLLABORATORS = "cabibee_collaborators";
+export const HOST_SKU_ADDRESS_PROOF = "cabibee_address_proof";
 
-export const HOST_SKUS = [HOST_SKU_BOOKING_ENGINE, HOST_SKU_HOST_VERIFICATION] as const;
+export const HOST_SKUS = [
+  HOST_SKU_BOOKING_ENGINE,
+  HOST_SKU_HOST_VERIFICATION,
+  HOST_SKU_CLEANING,
+  HOST_SKU_COLLABORATORS,
+  HOST_SKU_ADDRESS_PROOF,
+] as const;
 export type HostSku = (typeof HOST_SKUS)[number];
 
 export type HostEntitlementStatus = "active" | "past_due" | "cancelled";
@@ -14,6 +23,15 @@ export type HostEntitlementRecord = {
   source: HostEntitlementSource;
   stripeSubscriptionId?: string;
   currentPeriodEnd?: string;
+  /**
+   * Unidades pagadas: anuncios con motor de reservas o asientos de colaborador.
+   * Sin campo en el motor = suscripción anterior al cobro por anuncio, que cubre todos.
+   */
+  quantity?: number;
+  /** Pidió cancelar: sigue activa hasta `currentPeriodEnd` y ya no se renueva. */
+  cancelAtPeriodEnd?: boolean;
+  /** Cuándo pasó a activa por última vez (para contar suscripciones nuevas). */
+  startedAt?: string;
   updatedAt: string;
 };
 

@@ -17,6 +17,10 @@ import { getListingDetail } from "@/lib/get-listing-detail";
 import { getSessionUser } from "@/lib/session";
 import { stripHostContactChannels } from "@/lib/host-contact-policy";
 import { getT } from "@/lib/i18n/server";
+import { UnclaimedNotice } from "@/components/listing/unclaimed-notice";
+import { isListingUnclaimed } from "@/lib/listing-claim-status";
+import { trackListingView } from "@/lib/listing-view-tracking";
+import { getListingById } from "@/lib/marketplace-store";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -34,6 +38,9 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
   const canViewHostContacts = Boolean(viewer);
   const hostForUi = canViewHostContacts ? listing.host : stripHostContactChannels(listing.host);
   const bookable = listingIsBookable(listing.id);
+  const record = getListingById(listing.id);
+  const unclaimed = Boolean(record?.published) && isListingUnclaimed(listing.id);
+  await trackListingView(record, viewer);
 
   const ruleIcons = [
     { label: "Fumar", allowed: listing.rules.smoking, icon: "🚬" },
@@ -71,6 +78,11 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     {t("✓ Identidad verificada")}
                   </span>
                 )}
+                {listing.locationVerified && (
+                  <span className="mt-1 shrink-0 rounded bg-[#1d4f91] px-3 py-1 text-xs font-semibold text-white">
+                    {t("📍 Ubicación verificada")}
+                  </span>
+                )}
                 {listing.verified && (
                   <span
                     className="mt-1 rounded px-3 py-1 text-xs font-semibold text-white shrink-0"
@@ -86,7 +98,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                 <svg className="h-4 w-4 shrink-0" style={{ color: "#dcb81e" }} fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                 </svg>
-                {listing.city}, {listing.zone}
+                {[listing.zone, listing.city, listing.state, listing.country].filter(Boolean).join(", ")}
               </p>
 
               {/* Quick stats */}
@@ -142,7 +154,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                 <div className="rounded border p-5 text-sm" style={{ borderColor: "#ebebeb" }}>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <DetailRow
-                      label={t("Estado")}
+                      label={t("Verificación")}
                       value={
                         listing.verified
                           ? t("Miembro verificado")
@@ -158,7 +170,10 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     <DetailRow label={t("Baños")} value={String(listing.bathrooms)} />
                     <DetailRow label={t("Ciudad")} value={listing.city} />
                     <DetailRow label={t("Zona")} value={listing.zone} />
-                    <DetailRow label={t("Condado")} value={listing.county} />
+                    {listing.county && listing.county !== listing.state && (
+                      <DetailRow label={t("Municipio")} value={listing.county} />
+                    )}
+                    {listing.state && <DetailRow label={t("Estado / provincia")} value={listing.state} />}
                     <DetailRow label={t("País")} value={listing.country} />
                     {listing.extras?.breakfast && <DetailRow label={t("Desayuno Incluido")} value={listing.extras.breakfast} />}
                     {listing.extras?.lateCheckIn && <DetailRow label={t("Entrada Tardía")} value={listing.extras.lateCheckIn} />}
@@ -225,6 +240,11 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     canViewContacts={canViewHostContacts}
                   />
                 </div>
+                {unclaimed && (
+                  <div className="mt-3">
+                    <UnclaimedNotice listingId={listing.id} t={t} />
+                  </div>
+                )}
               </section>
 
               <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
@@ -235,14 +255,25 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
               {/* === Mapa === */}
               <section id="section-mapa">
-                <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Ubicación cercana (No exacta)")}</h2>
+                <h2 className="mb-1 text-lg font-semibold text-[#484848]">
+                  {listing.exactLocation ? t("Ubicación") : t("Ubicación cercana (No exacta)")}
+                </h2>
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <div className="overflow-hidden rounded" style={{ height: "300px", border: "1px solid #ebebeb" }}>
-                  <PlaceMap lat={listing.lat} lng={listing.lng} zoom={15} />
+                  <PlaceMap lat={listing.lat} lng={listing.lng} zoom={15} exact={listing.exactLocation} />
                 </div>
-                <p className="mt-2 text-xs text-[#aaa]">
-                  {t("La dirección exacta se proporciona tras confirmar la reserva.")}
-                </p>
+                {listing.exactLocation && listing.addressLine ? (
+                  <p className="mt-2 text-sm text-[#484848]">{listing.addressLine}</p>
+                ) : (
+                  <p className="mt-2 text-xs text-[#aaa]">
+                    {t("La dirección exacta se proporciona tras confirmar la reserva.")}
+                  </p>
+                )}
+                {listing.locationVerified && (
+                  <p className="mt-1 text-xs text-[#1d4f91]">
+                    {t("El anfitrión comprobó con un recibo de servicios que la dirección de este anuncio es real.")}
+                  </p>
+                )}
               </section>
 
               <hr className="my-6" style={{ borderColor: "#ebebeb" }} />

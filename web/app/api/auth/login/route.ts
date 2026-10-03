@@ -21,6 +21,12 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    user: { id: user.id, email: user.email, role: user.role, fullName: user.fullName },
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      fullName: user.fullName,
+      mustChangePassword: Boolean(user.mustChangePassword),
+    },
   });
 }
