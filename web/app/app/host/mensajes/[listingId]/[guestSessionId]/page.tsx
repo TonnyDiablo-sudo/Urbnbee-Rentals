@@ -1,3 +1,4 @@
+import { attachmentView } from "@/lib/chat-attachments";
 import { nameForViewer, shareABooking } from "@/lib/display-name";
 import { groupThreads } from "@/lib/host-inbox-store";
 import { getT } from "@/lib/i18n/server";
@@ -30,7 +31,7 @@ export default async function AppHostThreadPage({ params }: Props) {
         "",
       guestEmail: firstGuest?.guestEmail,
       listingTitle: getListingById(listingId)?.title ?? listingId,
-      messages: msgs.map((m) => ({ id: m.id, sender: m.sender, body: m.body, createdAt: m.createdAt })),
+      messages: msgs.map((m) => ({ id: m.id, sender: m.sender, body: m.body, createdAt: m.createdAt, attachment: attachmentView(m) })),
     };
     if (msgs.length === 0) initial = undefined;
   }

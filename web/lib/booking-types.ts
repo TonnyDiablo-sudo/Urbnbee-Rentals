@@ -67,6 +67,9 @@ export type BookingRecord = {
   /** PaymentIntent del cobro de la estancia — necesario para devolver. */
   stripePaymentIntentId?: string;
   refundedAt?: string;
+  /** Cuándo se le pidió reseña a cada lado (una sola vez). */
+  reviewReminderGuestAt?: string;
+  reviewReminderHostAt?: string;
   refundAmountMxn?: number;
   stripeRefundId?: string;
   refundReason?: BookingRefundReason;

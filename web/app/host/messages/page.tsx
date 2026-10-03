@@ -1,12 +1,21 @@
 "use client";
 
+import { ChatAttachmentView, type ChatAttachmentClient } from "@/components/chat/attachment-view";
 import { MessageBody } from "@/components/chat/message-body";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
 
-type Msg = { id: string; sender: "guest" | "host"; body: string; original?: string; createdAt: string; guestName: string };
+type Msg = {
+  id: string;
+  sender: "guest" | "host";
+  body: string;
+  original?: string;
+  createdAt: string;
+  guestName: string;
+  attachment?: ChatAttachmentClient;
+};
 
 type Thread = {
   listingId: string;
@@ -149,7 +158,12 @@ export default function HostMessagesPage() {
                             <span className="text-[10px] font-bold uppercase opacity-70">
                               {m.sender === "host" ? t("Tú") : m.guestName || t("Huésped")}
                             </span>
-                            <MessageBody body={m.body} original={m.original} className="mt-0.5 whitespace-pre-wrap" />
+                            {m.attachment && (
+                              <div className="mt-1">
+                                <ChatAttachmentView attachment={m.attachment} mine={m.sender === "host"} />
+                              </div>
+                            )}
+                            {m.body && <MessageBody body={m.body} original={m.original} className="mt-0.5 whitespace-pre-wrap" />}
                           </div>
                         </div>
                       ))}

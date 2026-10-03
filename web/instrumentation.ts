@@ -8,4 +8,6 @@ export async function register() {
   startCleaningWorker();
   const { startPlanExpiryWorker } = await import("@/lib/plan-expiry");
   startPlanExpiryWorker();
+  const { startReviewReminderWorker } = await import("@/lib/review-reminders");
+  startReviewReminderWorker();
 }

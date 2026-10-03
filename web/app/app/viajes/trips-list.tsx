@@ -32,6 +32,7 @@ type Trip = {
   arrival?: ArrivalGuide & { address?: string };
   canReview?: boolean;
   myReview?: { rating: number; comment: string } | null;
+  hostReviewOfMe?: { rating: number; comment: string } | null;
   balanceDueMxn?: number;
   paidStayMxn?: number;
   taxMxn?: number;
@@ -61,6 +62,7 @@ export function TripsList() {
   const router = useRouter();
   const params = useSearchParams();
   const sessionId = params.get("session_id");
+  const reviewParam = params.get("resena");
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -102,6 +104,14 @@ export function TripsList() {
       await load();
     })();
   }, [sessionId, load, router]);
+
+  /** /viajes?resena=<id> (desde la notificación «Deja tu reseña») abre el formulario de esa estancia. */
+  const [openedFromLink, setOpenedFromLink] = useState(false);
+  if (reviewParam && trips && !openedFromLink) {
+    setOpenedFromLink(true);
+    const trip = trips.find((x) => x.id === reviewParam && x.canReview);
+    if (trip) setReviewing(trip);
+  }
 
   if (trips === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
 
@@ -213,6 +223,14 @@ export function TripsList() {
                       {t("Tu reseña")} · <Stars value={trip.myReview.rating} />
                     </p>
                     <p className="mt-0.5 line-clamp-3 text-[13px] text-[#555]">{trip.myReview.comment}</p>
+                  </div>
+                )}
+                {trip.hostReviewOfMe && (
+                  <div className="mt-3 rounded-xl border border-[#f0e3a8] bg-[#fffbea] px-3 py-2.5">
+                    <p className="text-[13px] font-semibold text-[#222]">
+                      {t("Reseña de tu anfitrión")} · <Stars value={trip.hostReviewOfMe.rating} />
+                    </p>
+                    <p className="mt-0.5 line-clamp-4 text-[13px] text-[#555]">{trip.hostReviewOfMe.comment}</p>
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">

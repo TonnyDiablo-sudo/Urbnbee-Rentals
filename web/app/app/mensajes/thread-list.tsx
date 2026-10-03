@@ -54,7 +54,7 @@ export function GuestThreadList() {
                 </div>
                 <p className={`mt-0.5 line-clamp-2 text-sm ${unread ? "text-[#222]" : "text-[#717171]"}`}>
                   {th.lastSender === "guest" ? t("Tú: ") : ""}
-                  {th.lastPreview}
+                  {/^(📷 Foto|🎤 Nota de voz)$/.test(th.lastPreview) ? t(th.lastPreview) : th.lastPreview}
                 </p>
               </div>
               {unread && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[#e0452b]" />}

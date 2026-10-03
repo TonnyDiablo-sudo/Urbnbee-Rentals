@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
+import type { ChatAttachmentView } from "@/lib/host-inbox-types";
 import { revalidate, useCached } from "../../_components/cached-fetch";
 import { threadIsUnread } from "../../_components/seen";
 import { HOST_URLS } from "../_shared/host-data";
@@ -15,7 +16,14 @@ export type HostThread = {
   guestName: string;
   guestEmail?: string;
   lastAt: string;
-  messages: { id: string; sender: "guest" | "host"; body: string; original?: string; createdAt: string }[];
+  messages: {
+    id: string;
+    sender: "guest" | "host";
+    body: string;
+    original?: string;
+    createdAt: string;
+    attachment?: ChatAttachmentView;
+  }[];
 };
 
 export function hostThreadHref(t: { listingId: string; guestSessionId: string }) {
@@ -89,7 +97,7 @@ export function HostInbox() {
                 <p className="truncate text-xs text-[#999]">{th.listingTitle}</p>
                 <p className={`mt-0.5 line-clamp-2 text-sm ${unread ? "text-[#222]" : "text-[#717171]"}`}>
                   {last?.sender === "host" ? `${t("Tú:")} ` : ""}
-                  {last?.body}
+                  {last?.body || (last?.attachment ? t(last.attachment.kind === "image" ? "📷 Foto" : "🎤 Nota de voz") : "")}
                 </p>
               </div>
               {unread && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[#e0452b]" />}

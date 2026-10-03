@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { attachmentPreview } from "@/lib/chat-attachments";
 import { listAllThreadsForGuest } from "@/lib/host-inbox-store";
 import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
@@ -18,7 +19,7 @@ export async function GET() {
       listingTitle: listing?.title ?? "Anuncio no disponible",
       listingSlug: listing?.published ? listing.slug : undefined,
       lastAt: t.lastAt,
-      lastPreview: last?.body?.slice(0, 140) ?? "",
+      lastPreview: last?.body?.slice(0, 140) || (last?.attachment ? attachmentPreview(last.attachment.kind) : ""),
       lastSender: last?.sender,
       messageCount: t.messages.length,
     };

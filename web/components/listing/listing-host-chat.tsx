@@ -1,5 +1,6 @@
 "use client";
 
+import { ChatAttachmentView, type ChatAttachmentClient } from "@/components/chat/attachment-view";
 import { MessageBody } from "@/components/chat/message-body";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -11,6 +12,7 @@ type ChatRow = {
   sender: "guest" | "host";
   body: string;
   original?: string;
+  attachment?: ChatAttachmentClient;
   createdAt: string;
   guestLabel: string;
 };
@@ -165,7 +167,12 @@ export function ListingHostChat({
                   <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
                     {m.sender === "guest" ? t("Tú") : m.guestLabel}
                   </p>
-                  <MessageBody body={m.body} original={m.original} className="mt-0.5 whitespace-pre-wrap" />
+                  {m.attachment && (
+                    <div className="mt-1">
+                      <ChatAttachmentView attachment={m.attachment} mine={m.sender === "guest"} />
+                    </div>
+                  )}
+                  {m.body && <MessageBody body={m.body} original={m.original} className="mt-0.5 whitespace-pre-wrap" />}
                 </div>
               </li>
             ))}

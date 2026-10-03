@@ -30,6 +30,8 @@ export type HostBooking = {
   payConfirmation?: PayConfirmation;
   payProof?: PayProof;
   createdAt: string;
+  /** Terminó la estancia y el anfitrión todavía no califica al huésped. */
+  canReview?: boolean;
 };
 
 export function todayIso(): string {

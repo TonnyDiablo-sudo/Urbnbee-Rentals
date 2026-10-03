@@ -8,6 +8,8 @@ import { translateTexts } from "@/lib/content-translate";
 import { getLang } from "@/lib/i18n/server";
 import { translateIncoming } from "@/lib/listing-localize";
 import { getListingById } from "@/lib/marketplace-store";
+import { attachmentView } from "@/lib/chat-attachments";
+import type { ChatAttachmentView } from "@/lib/host-inbox-types";
 
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();
@@ -31,6 +33,7 @@ export async function GET(req: NextRequest) {
       original?: string;
       createdAt: string;
       guestName: string;
+      attachment?: ChatAttachmentView;
     }[];
   };
 
@@ -69,6 +72,7 @@ export async function GET(req: NextRequest) {
         original: m.original,
         createdAt: m.createdAt,
         guestName: m.sender === "guest" ? guestName : "",
+        attachment: attachmentView(m),
       })),
     });
   }

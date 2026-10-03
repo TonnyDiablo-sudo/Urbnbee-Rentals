@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { attachmentView } from "@/lib/chat-attachments";
 import { resolveListingDetail } from "@/lib/get-listing-detail";
 import { guestSessionIdForUser, listAllThreadsForGuest, listThreadMerged } from "@/lib/host-inbox-store";
 import { getT } from "@/lib/i18n/server";
@@ -28,7 +29,13 @@ async function initialMessages(listingId: string, userId: string): Promise<ChatM
     cookieSid = undefined;
   }
   const ids = [guestSessionIdForUser(userId), cookieSid].filter(Boolean) as string[];
-  return listThreadMerged(listingId, ids).map((m) => ({ id: m.id, sender: m.sender, body: m.body, createdAt: m.createdAt }));
+  return listThreadMerged(listingId, ids).map((m) => ({
+    id: m.id,
+    sender: m.sender,
+    body: m.body,
+    createdAt: m.createdAt,
+    attachment: attachmentView(m),
+  }));
 }
 
 export default async function AppGuestThreadPage({ params }: Props) {

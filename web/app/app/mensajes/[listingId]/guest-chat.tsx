@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback } from "react";
 import { useT } from "@/components/i18n-provider";
+import { uploadChatAttachment } from "@/components/chat/upload";
 import { ChatThread, type ChatMessage } from "../../_components/chat-thread";
 
 export function GuestChat({
@@ -46,6 +47,12 @@ export function GuestChat({
     [listingId]
   );
 
+  const sendAttachment = useCallback(
+    (file: Blob, meta: { caption: string; durationSec?: number }) =>
+      uploadChatAttachment(file, { ...meta, listingId, as: "guest" }),
+    [listingId]
+  );
+
   return (
     <ChatThread
       title={title}
@@ -56,6 +63,7 @@ export function GuestChat({
       seenKey={`g:${listingId}`}
       load={load}
       send={send}
+      sendAttachment={closed ? undefined : sendAttachment}
       emptyText={t("Saluda al anfitrión y pregúntale lo que necesites. Las respuestas las escribe él, no un robot.")}
       closedNotice={closed ? t("Este anuncio ya no está disponible, así que ya no se pueden enviar mensajes.") : undefined}
       headerRight={

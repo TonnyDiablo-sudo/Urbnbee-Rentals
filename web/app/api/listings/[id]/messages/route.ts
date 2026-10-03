@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { attachmentView } from "@/lib/chat-attachments";
 import { nameForViewer, publicNameOf, shareABooking } from "@/lib/display-name";
 import { findUserById, getListingById } from "@/lib/marketplace-store";
 import {
@@ -59,7 +60,15 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
       else if (m.guestSessionId.startsWith("gu_")) {
         guestLabel = nameForViewer(m.guestSessionId.slice(3), reveal) || m.guestName;
       }
-      return { id: m.id, sender: m.sender, body: m.body, original: m.original, createdAt: m.createdAt, guestLabel };
+      return {
+        id: m.id,
+        sender: m.sender,
+        body: m.body,
+        original: m.original,
+        createdAt: m.createdAt,
+        guestLabel,
+        attachment: attachmentView(m),
+      };
     }),
   });
 }

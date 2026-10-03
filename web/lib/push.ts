@@ -120,20 +120,22 @@ export function notifyHostNewMessage(p: {
   guestSessionId: string;
   guestName: string;
   body: string;
+  /** El cuerpo es un texto fijo nuestro («📷 Foto»), no lo que escribió alguien. */
+  translatable?: boolean;
 }): void {
   notifyUser(p.hostId, {
     kind: "message",
     title: "{name} · {listing}",
     vars: { name: p.guestName, listing: listingTitle(p.listingId) },
     body: p.body,
-    rawBody: true,
+    rawBody: !p.translatable,
     url: `/host/mensajes/${encodeURIComponent(p.listingId)}/${encodeURIComponent(p.guestSessionId)}`,
     tag: `h:${p.listingId}:${p.guestSessionId}`,
   });
 }
 
 /** Sólo los huéspedes con cuenta tienen sesión `gu_<userId>`; los hilos anónimos viejos no reciben aviso. */
-export function notifyGuestHostReply(p: { listingId: string; guestSessionId: string; body: string }): void {
+export function notifyGuestHostReply(p: { listingId: string; guestSessionId: string; body: string; translatable?: boolean }): void {
   const m = /^gu_(.+)$/.exec(p.guestSessionId);
   if (!m) return;
   notifyUser(m[1], {
@@ -141,7 +143,7 @@ export function notifyGuestHostReply(p: { listingId: string; guestSessionId: str
     title: "Respuesta del anfitrión · {listing}",
     vars: { listing: listingTitle(p.listingId) },
     body: p.body,
-    rawBody: true,
+    rawBody: !p.translatable,
     url: `/mensajes/${encodeURIComponent(p.listingId)}`,
     tag: `g:${p.listingId}`,
   });
@@ -257,12 +259,48 @@ export function notifyHostScreeningReady(p: { hostId: string; guestName: string 
   });
 }
 
+const starsOf = (rating: number) => "★".repeat(Math.max(1, Math.min(5, Math.round(rating))));
+
 export function notifyHostNewReview(p: { hostId: string; listingId: string; guestName: string; rating: number }): void {
   notifyUser(p.hostId, {
     kind: "review",
-    title: "Nueva reseña · {stars}",
-    body: "{name} calificó {listing}.",
-    vars: { stars: "★".repeat(Math.max(1, Math.min(5, Math.round(p.rating)))), name: p.guestName, listing: listingTitle(p.listingId) },
-    url: `/host/anuncios/${encodeURIComponent(p.listingId)}`,
+    title: "{name} te dejó una reseña · {stars}",
+    body: "Calificó su estancia en {listing}. Toca para verla y reseñar tú también.",
+    vars: { stars: starsOf(p.rating), name: p.guestName, listing: listingTitle(p.listingId) },
+    url: "/host/resenas",
+  });
+}
+
+/** El anfitrión calificó al huésped. */
+export function notifyGuestNewReview(p: { guestUserId: string; listingId: string; hostName: string; rating: number }): void {
+  notifyUser(p.guestUserId, {
+    kind: "review",
+    title: "{name} te dejó una reseña · {stars}",
+    body: "Tu anfitrión en {listing} calificó tu estancia.",
+    vars: { stars: starsOf(p.rating), name: p.hostName, listing: listingTitle(p.listingId) },
+    url: "/viajes",
+  });
+}
+
+export function notifyGuestReviewReminder(booking: BookingRecord): void {
+  if (!booking.guestUserId) return;
+  notifyUser(booking.guestUserId, {
+    kind: "review",
+    title: "Deja tu reseña",
+    body: "¿Qué tal tu estancia en {listing}? Califícala y ayuda a otros viajeros.",
+    vars: { listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId) },
+    url: `/viajes?resena=${encodeURIComponent(booking.id)}`,
+    tag: `r:${booking.id}`,
+  });
+}
+
+export function notifyHostReviewReminder(booking: BookingRecord): void {
+  notifyUser(booking.hostId, {
+    kind: "review",
+    title: "Deja una reseña de {name}",
+    body: "Terminó su estancia en {listing}. Califica al huésped para que otros anfitriones lo conozcan.",
+    vars: { name: booking.guestName, listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId) },
+    url: `/host/resenas?b=${encodeURIComponent(booking.id)}`,
+    tag: `r:${booking.id}`,
   });
 }

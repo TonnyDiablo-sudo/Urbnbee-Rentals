@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { revalidate } from "../../../../_components/cached-fetch";
+import { uploadChatAttachment } from "@/components/chat/upload";
 import { ChatThread, type ChatMessage } from "../../../../_components/chat-thread";
 import { HOST_URLS } from "../../../_shared/host-data";
 import type { HostThread } from "../../host-inbox";
@@ -50,6 +51,12 @@ export function HostChat({
     [listingId, guestSessionId, t]
   );
 
+  const sendAttachment = useCallback(
+    (file: Blob, meta: { caption: string; durationSec?: number }) =>
+      uploadChatAttachment(file, { ...meta, listingId, guestSessionId, as: "host" }),
+    [listingId, guestSessionId]
+  );
+
   return (
     <ChatThread
       title={meta?.guestName || t("Conversación")}
@@ -60,6 +67,7 @@ export function HostChat({
       seenKey={`h:${listingId}:${guestSessionId}`}
       load={load}
       send={send}
+      sendAttachment={sendAttachment}
       emptyText={t("No encontramos esta conversación.")}
     />
   );

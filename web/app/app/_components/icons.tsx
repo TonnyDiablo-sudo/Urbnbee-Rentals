@@ -182,6 +182,42 @@ export function IconSend({ className = "h-5 w-5" }: P) {
   );
 }
 
+export function IconCamera({ className = "h-6 w-6" }: P) {
+  return (
+    <svg className={className} {...base}>
+      <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </svg>
+  );
+}
+
+export function IconImage({ className = "h-6 w-6" }: P) {
+  return (
+    <svg className={className} {...base}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="8.5" cy="9.5" r="1.5" />
+      <path d="M21 16l-5-5-8 8" />
+    </svg>
+  );
+}
+
+export function IconMic({ className = "h-6 w-6" }: P) {
+  return (
+    <svg className={className} {...base}>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0014 0M12 18v3" />
+    </svg>
+  );
+}
+
+export function IconTrash({ className = "h-5 w-5" }: P) {
+  return (
+    <svg className={className} {...base}>
+      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+    </svg>
+  );
+}
+
 export function IconClose({ className = "h-5 w-5" }: P) {
   return (
     <svg className={className} {...base} strokeWidth={2.2}>

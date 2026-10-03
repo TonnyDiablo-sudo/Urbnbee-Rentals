@@ -4,7 +4,7 @@ import type { BookingRecord } from "@/lib/booking-types";
 import { publicNameOf } from "@/lib/display-name";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import type { Review } from "@/lib/listing-detail-data";
-import { notifyHostNewReview } from "@/lib/push";
+import { notifyGuestNewReview, notifyHostNewReview } from "@/lib/push";
 import {
   findStayReview,
   insertStayReview,
@@ -78,6 +78,14 @@ export function createStayReview(opts: {
       hostId: booking.hostId,
       listingId,
       guestName: findUserById(authorUserId)?.fullName?.trim() || booking.guestName,
+      rating: stars,
+    });
+  } else {
+    const host = findUserById(booking.hostId);
+    notifyGuestNewReview({
+      guestUserId: booking.guestUserId,
+      listingId,
+      hostName: (host && publicNameOf(host)) || "Tu anfitrión",
       rating: stars,
     });
   }

@@ -85,6 +85,7 @@ export function HostToday() {
   const today = todayIso();
   const soon = addDays(today, 3);
   const pending = bookings.filter((b) => isPending(b.status));
+  const toReview = bookings.filter((b) => b.canReview).length;
   const confirmed = bookings
     .filter((b) => isConfirmed(b.status))
     .sort((a, b) => stayOf(a).checkIn.localeCompare(stayOf(b).checkIn));
@@ -107,6 +108,21 @@ export function HostToday() {
         <Stat label={t("Chats nuevos")} value={newChats} highlight={newChats > 0} href="/host/mensajes" />
         <Stat label={t("Publicados")} value={published} href="/host/anuncios" />
       </div>
+
+      {toReview > 0 && (
+        <Link href="/host/resenas" className="flex items-center gap-3 rounded-2xl border border-[#f0e3a8] bg-[#fffbea] p-4">
+          <span className="text-2xl text-[#dcb81e]" aria-hidden>
+            ★
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] font-semibold text-[#222]">
+              {toReview === 1 ? t("Califica a 1 huésped") : t("Califica a {n} huéspedes", { n: toReview })}
+            </p>
+            <p className="mt-0.5 text-sm text-[#717171]">{t("Ya terminó su estancia. Tu reseña ayuda a otros anfitriones.")}</p>
+          </div>
+          <IconChevron className="h-5 w-5 text-[#999]" />
+        </Link>
+      )}
 
       {status && (
         <Link
