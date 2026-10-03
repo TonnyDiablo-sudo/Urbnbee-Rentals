@@ -83,6 +83,8 @@ export type ListingContractSettings = {
   hostAcknowledged: boolean;
   /** El anfitrión confirmó que leyó el contrato completo y que se ajusta a su caso. */
   hostReviewed: boolean;
+  /** Cuándo aceptó que el contrato es entre él y sus huéspedes y que es responsable de él. */
+  hostReviewedAt?: string;
 };
 
 export function defaultListingContract(partial?: Partial<ListingContractSettings>): ListingContractSettings {
@@ -97,6 +99,7 @@ export function defaultListingContract(partial?: Partial<ListingContractSettings
     cancellationOverride: partial?.cancellationOverride?.trim() || undefined,
     hostAcknowledged: Boolean(partial?.hostAcknowledged),
     hostReviewed: Boolean(partial?.hostReviewed),
+    hostReviewedAt: partial?.hostReviewed ? partial.hostReviewedAt || undefined : undefined,
   };
 }
 
@@ -110,6 +113,7 @@ export function sanitizeListingContract(raw: unknown, fallback?: ListingContract
     o.extraClauses !== undefined
       ? String(o.extraClauses).trim().slice(0, 4000)
       : prev.extraClauses || template.defaultExtraClauses;
+  const reviewed = o.hostReviewed !== undefined ? Boolean(o.hostReviewed) : prev.hostReviewed;
   return defaultListingContract({
     templateId,
     hostLegalName: o.hostLegalName !== undefined ? String(o.hostLegalName).slice(0, 160) : prev.hostLegalName,
@@ -120,6 +124,11 @@ export function sanitizeListingContract(raw: unknown, fallback?: ListingContract
     cancellationOverride:
       o.cancellationOverride !== undefined ? String(o.cancellationOverride).slice(0, 2000) : prev.cancellationOverride,
     hostAcknowledged: o.hostAcknowledged !== undefined ? Boolean(o.hostAcknowledged) : prev.hostAcknowledged,
-    hostReviewed: o.hostReviewed !== undefined ? Boolean(o.hostReviewed) : prev.hostReviewed,
+    hostReviewed: reviewed,
+    hostReviewedAt: reviewed
+      ? (prev.hostReviewed && prev.hostReviewedAt) ||
+        (typeof o.hostReviewedAt === "string" && !Number.isNaN(Date.parse(o.hostReviewedAt)) ? o.hostReviewedAt : "") ||
+        new Date().toISOString()
+      : undefined,
   });
 }

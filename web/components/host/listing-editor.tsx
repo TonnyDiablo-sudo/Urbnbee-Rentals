@@ -16,6 +16,7 @@ import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
 import { useT } from "@/components/i18n-provider";
 import { COUNTRY_OPTIONS, isMexico, MX_STATE_LIST } from "@/lib/geo-places";
 import { ContractReviewNotice } from "@/components/host/contract-review-notice";
+import { ContractTips, MIN_STAY_CLAUSE } from "@/components/host/contract-tips";
 
 type Tab = "fotos" | "info" | "ubicacion" | "contacto" | "precio" | "comodidades" | "contrato";
 
@@ -1105,6 +1106,11 @@ function ContractTab({
         listing={listing}
         reviewed={draft.hostReviewed}
         onReviewed={(v) => patch(v ? { hostReviewed: true } : { hostReviewed: false, hostAcknowledged: false }, true)}
+      />
+
+      <ContractTips
+        hasClause={draft.extraClauses.includes(MIN_STAY_CLAUSE.slice(0, 40))}
+        onAddClause={(c) => patch({ extraClauses: [draft.extraClauses.trim(), c].filter(Boolean).join("\n\n") }, true)}
       />
 
       <div className="grid gap-3">

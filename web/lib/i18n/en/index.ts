@@ -14,8 +14,9 @@ import { siteHostListings } from "./site-host-listings";
 import { siteListing } from "./site-listing";
 import { appToolsStore } from "./app-tools-store";
 import { appWishlists } from "./app-wishlists";
+import { appHelpLegal } from "./app-help-legal";
 
-/** Clave: el texto exacto en español que aparece en el código. */
+/** Clave: el texto exacto en espaÃ±ol que aparece en el cÃ³digo. */
 export const EN: Record<string, string> = {
   ...common,
   ...appCore,
@@ -33,4 +34,5 @@ export const EN: Record<string, string> = {
   ...appPay,
   ...appToolsStore,
   ...appWishlists,
+  ...appHelpLegal,
 };

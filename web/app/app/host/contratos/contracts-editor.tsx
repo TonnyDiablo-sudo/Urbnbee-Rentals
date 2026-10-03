@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ContractReviewNotice } from "@/components/host/contract-review-notice";
+import { ContractTips, MIN_STAY_CLAUSE } from "@/components/host/contract-tips";
 import { useT } from "@/components/i18n-provider";
 import {
   BOOKING_CONTRACT_TEMPLATES,
@@ -194,6 +195,11 @@ function ListingContractForm({
         listing={listing}
         reviewed={f.hostReviewed}
         onReviewed={(v) => setF((p) => ({ ...p, hostReviewed: v, hostAcknowledged: v && p.hostAcknowledged }))}
+      />
+
+      <ContractTips
+        hasClause={f.extraClauses.includes(MIN_STAY_CLAUSE.slice(0, 40))}
+        onAddClause={(c) => set("extraClauses", [f.extraClauses.trim(), c].filter(Boolean).join("\n\n"))}
       />
 
       <section>

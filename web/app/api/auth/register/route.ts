@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { createUser, findUserByEmail } from "@/lib/marketplace-store";
+import { createUser, findUserByEmail, updateUserAuth } from "@/lib/marketplace-store";
 import { createSession } from "@/lib/session";
 import type { UserRole } from "@/lib/marketplace-types";
+import { TERMS_VERSION } from "@/lib/terms";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +16,9 @@ export async function POST(req: NextRequest) {
 
     if (!email || !password || !fullName) {
       return NextResponse.json({ error: "Completa correo, nombre y contraseña." }, { status: 400 });
+    }
+    if (body.acceptTerms !== true) {
+      return NextResponse.json({ error: "Debes aceptar los Términos y condiciones de uso." }, { status: 400 });
     }
     if (password.length < 8) {
       return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres." }, { status: 400 });
@@ -32,6 +36,7 @@ export async function POST(req: NextRequest) {
       phone,
       role,
     });
+    updateUserAuth(user.id, { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date().toISOString() });
 
     await createSession({ id: user.id, email: user.email, role: user.role });
 

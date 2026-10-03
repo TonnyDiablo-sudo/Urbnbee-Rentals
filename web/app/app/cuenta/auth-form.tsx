@@ -32,6 +32,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
   // Antes de hidratar, el envío nativo haría GET a esta misma URL con la contraseña en la query.
   const hydrated = useSyncExternalStore(
     noopSubscribe,
@@ -51,7 +52,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         body: JSON.stringify(
           mode === "login"
             ? { email, password }
-            : { email, password, fullName, phone: phone || undefined, intent: asHost ? "host" : "guest" }
+            : { email, password, fullName, phone: phone || undefined, intent: asHost ? "host" : "guest", acceptTerms }
         ),
       });
       const data = await res.json().catch(() => ({}));
@@ -134,9 +135,28 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               onChange={setPassword}
             />
           </label>
+          {mode === "register" && (
+          <label className="flex cursor-pointer items-start gap-2.5 text-sm leading-snug text-[#444]">
+            <input
+              type="checkbox"
+              required
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#222]"
+            />
+            <span>
+              {t("Acepto los")}{" "}
+              <Link href="/terminos" target="_blank" className="font-semibold underline">
+                {t("Términos y condiciones de uso")}
+              </Link>
+              {". "}
+              {t("Entiendo que Cabibee no es parte de los contratos, chats ni tratos entre usuarios.")}
+            </span>
+          </label>
+          )}
           <button
             type="submit"
-            disabled={loading || !hydrated}
+            disabled={loading || !hydrated || (mode === "register" && !acceptTerms)}
             className="w-full touch-manipulation rounded-xl bg-[#dcb81e] py-3.5 text-[15px] font-semibold text-black disabled:opacity-60"
           >
             {loading ? t("Un momento…") : mode === "login" ? t("Iniciar sesión") : t("Crear cuenta")}

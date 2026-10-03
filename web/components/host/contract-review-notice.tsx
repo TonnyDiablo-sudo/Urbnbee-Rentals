@@ -40,6 +40,7 @@ export function ContractReviewNotice({
             "Es una plantilla general, no asesoría legal. Las leyes, permisos e impuestos de hospedaje cambian por estado y municipio; confírmalo con un abogado o con tu municipio."
           )}
         </li>
+        <li>{t("Puedes cambiar el machote, la cancelación y agregar tus propias cláusulas según tus necesidades.")}</li>
         <li>{t("Abre la vista previa y lee el contrato completo.")}</li>
       </ul>
       {missingState && (
@@ -54,7 +55,9 @@ export function ContractReviewNotice({
           checked={reviewed}
           onChange={(e) => onReviewed(e.target.checked)}
         />
-        {t("Revisé el contrato completo y confirmo que se ajusta a mi caso.")}
+        {t(
+          "Leí el contrato completo y acepto que es un contrato entre mis huéspedes y yo: yo soy responsable de su contenido y de cumplirlo. Cabibee sólo me da la herramienta para prepararlo y firmarlo, y no es parte del contrato."
+        )}
       </label>
     </div>
   );

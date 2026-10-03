@@ -26,6 +26,7 @@ export default function RegisterPage() {
   const [accountType, setAccountType] = useState<"guest" | "host">(intent === "host" ? "host" : "guest");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,6 +43,7 @@ export default function RegisterPage() {
           phone: phone || undefined,
           password,
           intent: accountType === "host" ? "host" : "guest",
+          acceptTerms,
         }),
       });
       const data = await res.json();
@@ -140,9 +142,27 @@ export default function RegisterPage() {
             />
           </label>
 
+          <label className="flex cursor-pointer items-start gap-2.5 text-sm leading-snug text-[#484848]">
+            <input
+              type="checkbox"
+              required
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#222]"
+            />
+            <span>
+              {t("Acepto los")}{" "}
+              <Link href="/terminos" target="_blank" className="font-semibold underline">
+                {t("Términos y condiciones de uso")}
+              </Link>
+              {". "}
+              {t("Entiendo que Cabibee no es parte de los contratos, chats ni tratos entre usuarios.")}
+            </span>
+          </label>
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !acceptTerms}
             className="w-full rounded-full py-3 text-sm font-semibold text-black transition hover:brightness-95 disabled:opacity-50"
             style={{ backgroundColor: "#dcb81e" }}
           >

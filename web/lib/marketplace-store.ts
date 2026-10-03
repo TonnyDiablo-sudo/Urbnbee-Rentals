@@ -414,6 +414,8 @@ type UserAuthPatch = Partial<
     | "placeholderEmail"
     | "mustChangePassword"
     | "claimedAt"
+    | "termsVersion"
+    | "termsAcceptedAt"
     | "emailVerifiedAt"
     | "emailVerifyTokenHash"
     | "emailVerifyExpiresAt"

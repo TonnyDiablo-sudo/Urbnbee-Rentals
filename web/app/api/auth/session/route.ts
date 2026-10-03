@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import { hasAcceptedTerms, TERMS_VERSION } from "@/lib/terms";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -13,6 +14,8 @@ export async function GET() {
       role: user.role,
       fullName: user.fullName,
       phone: user.phone,
+      termsAccepted: hasAcceptedTerms(user),
+      termsVersion: TERMS_VERSION,
     },
   });
 }

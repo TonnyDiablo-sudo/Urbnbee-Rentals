@@ -24,6 +24,23 @@ export function SiteFooter() {
             </a>
           </div>
           <div>
+            <h3 className="text-sm font-semibold text-[#484848]">{t("Ayuda")}</h3>
+            {[
+              ["/como-funciona", "Qué es Cabibee y cómo funciona"],
+              ["/como-reservar", "Cómo reservar"],
+              ["/terminos", "Términos y condiciones"],
+            ].map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                className="mt-1 block text-sm transition hover:text-[#c9a71a]"
+                style={{ color: "#dcb81e" }}
+              >
+                {t(label)}
+              </a>
+            ))}
+          </div>
+          <div>
             <h3 className="text-sm font-semibold text-[#484848]">{t("App Cabibee")}</h3>
             <a
               href="/app"

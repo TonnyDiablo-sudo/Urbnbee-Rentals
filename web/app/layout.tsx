@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import { LangProvider } from "@/components/i18n-provider";
+import { TermsGate } from "@/components/legal/terms-gate";
 import { VisitBeacon } from "@/components/visit-beacon";
 import { getLang, getT } from "@/lib/i18n/server";
 import "./globals.css";
@@ -34,7 +35,10 @@ export default async function RootLayout({
   return (
     <html lang={lang} className={`${roboto.variable} h-full`}>
       <body className="min-h-full flex flex-col antialiased font-sans">
-        <LangProvider lang={lang}>{children}</LangProvider>
+        <LangProvider lang={lang}>
+          {children}
+          <TermsGate />
+        </LangProvider>
         <VisitBeacon />
       </body>
     </html>

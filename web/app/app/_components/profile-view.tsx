@@ -50,6 +50,8 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
           { href: "/host/settings/pagos", label: t("Pagos de la estancia (tu Stripe)"), web: true },
           { href: "/host/settings/integrations", label: t("BeeAgent e integraciones"), web: true },
           { href: "/host/dashboard", label: t("Panel completo de anfitrión"), web: true },
+          { href: "/como-funciona", label: t("Qué es Cabibee y cómo funciona") },
+          { href: "/terminos", label: t("Términos y condiciones") },
         ]
       : [
           { href: "/membresia", label: t("Membresía de huésped"), hint: t("Identidad verificada para reservar") },
@@ -63,6 +65,9 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
                 { href: "/cuenta/seguridad", label: t("Correo y contraseña") },
               ]
             : []),
+          { href: "/como-funciona", label: t("Qué es Cabibee y cómo funciona"), hint: t("Gratis, sin comisión y con herramientas opcionales") },
+          { href: "/como-reservar", label: t("Cómo reservar"), hint: t("Qué significa cada etiqueta y cómo reservar seguro") },
+          { href: "/terminos", label: t("Términos y condiciones") },
           { href: "/", label: t("Sitio web de Cabibee"), web: true },
         ];
 

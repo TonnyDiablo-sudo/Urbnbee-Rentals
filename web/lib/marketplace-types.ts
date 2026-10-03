@@ -35,6 +35,9 @@ export type UserRecord = {
   mustChangePassword?: boolean;
   /** Cuándo el dueño tomó control de una cuenta creada por un asociado. */
   claimedAt?: string;
+  /** Versión de los Términos de uso que aceptó (`TERMS_VERSION`) y cuándo. */
+  termsVersion?: string;
+  termsAcceptedAt?: string;
   emailVerifiedAt?: string;
   emailVerifyTokenHash?: string;
   emailVerifyExpiresAt?: string;
