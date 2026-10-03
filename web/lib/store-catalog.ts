@@ -20,9 +20,10 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
     "Si el anfitrión rechaza tu solicitud, el pase se te devuelve.",
   ],
   guest_membership: [
+    "Es una sola por persona, seas huésped, anfitrión o las dos cosas.",
     "Verificamos tu identidad con tu INE o pasaporte.",
-    "Reservas ilimitadas mientras esté activa.",
-    "Hablas directo con anfitriones de identidad verificada.",
+    "Como huésped: reservas ilimitadas mientras esté activa.",
+    "Como anfitrión: listón «Miembro verificado» en todos tus anuncios.",
     "Entre más largo el plazo, más barato por mes.",
   ],
   host_verification: [
@@ -143,6 +144,8 @@ export function storeItemsFor(user: UserRecord, region: VerificationRegion): Sto
   for (const p of membershipPublicPlans(region)) {
     if (p.audience === "host" && !isHost) continue;
     const family = MEMBERSHIP_PLAN_FAMILY[p.code];
+    // La identidad se vende una sola vez por persona, como «Verificación de identidad».
+    if (family === "host_verification") continue;
     const months = p.billing.kind === "subscription" ? p.billing.intervalCount : 0;
     const term: StoreTerm = {
       code: p.code,

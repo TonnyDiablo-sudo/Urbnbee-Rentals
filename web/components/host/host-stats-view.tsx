@@ -32,6 +32,7 @@ export function HostStatsView({
 }) {
   const newHref = surface === "app" ? "/host/anuncios/nuevo" : "/host/listings/new";
   const editHref = (id: string) => (surface === "app" ? `/host/anuncios/${id}` : `/host/listings/${id}/edit`);
+  const detailHref = (id: string) => `/host/estadisticas/${id}`;
   const rows = listListingsForHost(hostId).map((l) => ({
     listing: l,
     stats: getListingStats(l.id),
@@ -66,7 +67,7 @@ export function HostStatsView({
 
       {rows.map(({ listing: l, stats, suggestions }) => (
         <section key={l.id} className="rounded-2xl border border-[#ebebeb] bg-white p-4">
-          <Link href={editHref(l.id)} className="flex gap-3">
+          <Link href={detailHref(l.id)} className="flex gap-3">
             {l.photos[0] ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={l.photos[0]} alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" />
@@ -83,10 +84,13 @@ export function HostStatsView({
               </p>
             </div>
           </Link>
-          <div className="mt-3">
+          <Link href={detailHref(l.id)} className="mt-3 block">
             <Sparkline daily={stats.daily} />
-            <p className="mt-1 text-[11px] text-[#999]">{t("Últimos 30 días · en dorado, días con contactos")}</p>
-          </div>
+            <p className="mt-1 flex justify-between text-[11px] text-[#999]">
+              <span>{t("Últimos 30 días · en dorado, días con contactos")}</span>
+              <span className="font-semibold text-[#222]">{t("Ver gráficas")} ›</span>
+            </p>
+          </Link>
           {suggestions.length > 0 ? (
             <ul className="mt-4 space-y-2">
               {suggestions.slice(0, 5).map((s) => (

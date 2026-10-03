@@ -22,6 +22,7 @@ type CatalogPlan = {
 type Status = {
   identityVerified: boolean;
   membershipActive: boolean;
+  identityPlanActive: boolean;
   ribbon: boolean;
   verifiedAt?: string;
   source?: "identity" | "admin";
@@ -176,7 +177,7 @@ function HostVerificacionClient() {
       <h1 className="text-2xl font-semibold text-[#484848]">{t("Miembro verificado")}</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#717171]">
         {t(
-          "El listón «Miembro verificado» en tus anuncios pide dos cosas: tu identidad comprobada y una membresía de anfitrión vigente. Una sola no alcanza: si no, el sello no valdría nada."
+          "El listón «Miembro verificado» en tus anuncios pide tu identidad comprobada y la verificación de identidad vigente. Es una sola por persona: si ya la tienes como huésped, también cuenta aquí."
         )}
       </p>
 
@@ -221,7 +222,7 @@ function HostVerificacionClient() {
                 : t("Falta {items}.", {
                     items: [
                       !data.identityVerified ? t("comprobar tu identidad") : null,
-                      !data.membershipActive ? t("contratar la membresía") : null,
+                      !data.identityPlanActive ? t("contratar la verificación de identidad") : null,
                     ]
                       .filter(Boolean)
                       .join(t(" y ")),
@@ -237,9 +238,9 @@ function HostVerificacionClient() {
               </dd>
             </div>
             <div className="flex justify-between gap-4 border-b border-[#f0f0f0] pb-3">
-              <dt className="text-[#717171]">{t("Membresía de anfitrión")}</dt>
+              <dt className="text-[#717171]">{t("Verificación de identidad")}</dt>
               <dd className="font-medium text-[#222]">
-                {data.membershipActive ? t("Activa") : t("Sin contratar")}
+                {data.identityPlanActive ? t("Activa") : t("Sin contratar")}
               </dd>
             </div>
             {data.hostCurrentPeriodEnd && (
@@ -278,7 +279,7 @@ function HostVerificacionClient() {
             </div>
           )}
 
-          {catalogPlans.length > 0 && !data.membershipActive && (
+          {catalogPlans.length > 0 && !data.identityPlanActive && (
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {catalogPlans.map((p) => (
                 <div
@@ -304,10 +305,10 @@ function HostVerificacionClient() {
             </div>
           )}
 
-          {catalogPlans.length === 0 && !data.membershipActive && (
+          {catalogPlans.length === 0 && !data.identityPlanActive && (
             <p className="mt-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
               {t(
-                "Todavía no hay planes de anfitrión con precio. El equipo los define en Administración → Precios (anfitrion_6 y anfitrion_12)."
+                "Todavía no hay planes de verificación de identidad con precio. El equipo los define en Administración → Precios."
               )}
             </p>
           )}

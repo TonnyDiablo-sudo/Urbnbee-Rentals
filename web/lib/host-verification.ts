@@ -5,6 +5,7 @@ import { setHostListingsVerified } from "@/lib/marketplace-store";
 import {
   getVerification,
   hostShowsVerifiedRibbon,
+  identityPlanActive,
   isHostIdentityVerified,
   isHostMembershipPaidUp,
   setHostMembershipFields,
@@ -24,6 +25,8 @@ import type { VerificationSubscriptionStatus } from "@/lib/verification-types";
 export type HostVerificationSummary = {
   identityVerified: boolean;
   membershipActive: boolean;
+  /** Verificación de identidad pagada (una por persona). */
+  identityPlanActive: boolean;
   /** Listón público: las dos cosas a la vez. */
   ribbon: boolean;
   verifiedAt?: string;
@@ -39,6 +42,7 @@ export function hostVerificationSummary(userId: string): HostVerificationSummary
   return {
     identityVerified: isHostIdentityVerified(userId),
     membershipActive: isHostMembershipPaidUp(userId),
+    identityPlanActive: identityPlanActive(userId),
     ribbon: hostShowsVerifiedRibbon(userId),
     verifiedAt: v?.hostVerifiedAt,
     source: v?.hostVerificationSource,

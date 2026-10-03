@@ -167,4 +167,6 @@ export type MembershipPlansSnapshot = {
   catalogPushedAt?: string;
   /** Se aplicaron los precios iniciales que fijó el dueño (sólo a planes en 0). */
   defaultPricesAppliedAt?: string;
+  /** La verificación de identidad quedó como un solo producto por persona. */
+  identityMergedAt?: string;
 };

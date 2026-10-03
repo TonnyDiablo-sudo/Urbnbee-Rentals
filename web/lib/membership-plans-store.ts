@@ -23,6 +23,7 @@ let cachedMtimeMs = 0;
 let catalogSyncedAt: string | undefined;
 let catalogPushedAt: string | undefined;
 let defaultPricesAppliedAt: string | undefined;
+let identityMergedAt: string | undefined;
 
 const TERM_SUFFIX: Record<number, string> = { 1: "· 1 mes", 6: "· 6 meses", 12: "· 12 meses" };
 
@@ -32,8 +33,9 @@ const FAMILY_COPY: Record<MembershipPlanFamily, { label: string; description: st
     description: "Un solo pago que habilita una reserva. Para quien viaja una vez y no quiere membresía.",
   },
   guest_membership: {
-    label: "Huésped verificado",
-    description: "Tu identidad verificada y reservas ilimitadas con anfitriones verificados.",
+    label: "Verificación de identidad",
+    description:
+      "Una por persona. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado».",
   },
   host_verification: {
     label: "Anfitrión verificado",
@@ -136,6 +138,27 @@ function applyOwnerPricesOnce(): boolean {
   return true;
 }
 
+/**
+ * Una vez: la verificación de identidad queda como un solo producto por persona.
+ * Los planes de «Anfitrión verificado» se apagan y la membresía de huésped toma el nombre nuevo.
+ */
+function mergeIdentityPlansOnce(): boolean {
+  if (identityMergedAt) return false;
+  for (const code of MEMBERSHIP_PLAN_CODES) {
+    const prev = rows.get(code);
+    if (!prev) continue;
+    const family = MEMBERSHIP_PLAN_FAMILY[code];
+    if (family === "host_verification" && prev.active) {
+      rows.set(code, { ...prev, active: false, updatedAt: nowIso() });
+    } else if (family === "guest_membership") {
+      const seed = seedFor(code);
+      rows.set(code, { ...prev, label: seed.label, description: seed.description, updatedAt: nowIso() });
+    }
+  }
+  identityMergedAt = nowIso();
+  return true;
+}
+
 function persist() {
   try {
     ensureDir(getDataDir());
@@ -145,6 +168,7 @@ function persist() {
       catalogSyncedAt,
       catalogPushedAt,
       defaultPricesAppliedAt,
+      identityMergedAt,
     };
     writeFileSync(DATA_FILE, JSON.stringify(snapshot, null, 2), "utf8");
     if (existsSync(DATA_FILE)) cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
@@ -168,13 +192,16 @@ function reloadFromDisk() {
       catalogSyncedAt = data.catalogSyncedAt;
       catalogPushedAt = data.catalogPushedAt;
       defaultPricesAppliedAt = data.defaultPricesAppliedAt;
+      identityMergedAt = data.identityMergedAt;
       cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
     }
   } catch (e) {
     console.warn("[membership-plans] load failed:", e);
   }
   seedMissing();
-  if (applyOwnerPricesOnce()) persist();
+  const priced = applyOwnerPricesOnce();
+  const merged = mergeIdentityPlansOnce();
+  if (priced || merged) persist();
 }
 
 function syncIfStale() {

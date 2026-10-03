@@ -4,7 +4,19 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useT } from "@/components/i18n-provider";
-import { IconCalendar, IconChart, IconChat, IconHome, IconMenu, IconSearch, IconToday, IconTrips, IconUser } from "./icons";
+import {
+  IconBag,
+  IconBroom,
+  IconCalendar,
+  IconChart,
+  IconChat,
+  IconHome,
+  IconMenu,
+  IconSearch,
+  IconToday,
+  IconTrips,
+  IconUser,
+} from "./icons";
 import { prefetchHostData } from "../host/_shared/host-data";
 import { GUEST_THREADS_URL, prefetchCached, setCacheOwner } from "./cached-fetch";
 import { useNotificationsSync } from "./notifications";
@@ -73,13 +85,16 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
         { href: "/host/calendario", label: t("Calendario"), icon: <IconCalendar /> },
         { href: "/host/anuncios", label: t("Anuncios"), icon: <IconHome /> },
         { href: "/host/estadisticas", label: t("Métricas"), icon: <IconChart /> },
+        { href: "/host/limpieza", label: t("Limpieza"), icon: <IconBroom /> },
         { href: "/host/mensajes", label: t("Mensajes"), icon: <IconChat />, badge: unread > 0 },
+        { href: "/tienda", label: t("Tienda"), icon: <IconBag /> },
         { href: "/host/menu", label: t("Menú"), icon: <IconMenu /> },
       ]
     : [
         { href: "/", label: t("Explorar"), icon: <IconSearch /> },
         { href: "/viajes", label: t("Viajes"), icon: <IconTrips /> },
         { href: "/mensajes", label: t("Mensajes"), icon: <IconChat />, badge: unread > 0 },
+        ...(user ? [{ href: "/tienda", label: t("Tienda"), icon: <IconBag /> }] : []),
         { href: "/perfil", label: user ? t("Perfil") : t("Iniciar sesión"), icon: <IconUser /> },
       ];
 
@@ -110,9 +125,11 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
                   key={tab.href}
                   href={tab.href}
                   prefetch
-                  className="relative flex flex-1 touch-manipulation flex-col items-center justify-center gap-0.5 text-[11px] font-medium"
+                  className={`relative flex min-w-0 flex-1 touch-manipulation flex-col items-center justify-center gap-0.5 font-medium ${
+                    tabs.length > 6 ? "text-[9.5px] tracking-tight" : "text-[11px]"
+                  }`}
                 >
-                  <TabContent tab={tab} active={active} />
+                  <TabContent tab={tab} active={active} compact={tabs.length > 6} />
                 </Link>
               );
             })}
@@ -124,13 +141,15 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
 }
 
 /** Se pinta como activa en cuanto se toca, sin esperar a que llegue la pantalla. */
-function TabContent({ tab, active }: { tab: Tab; active: boolean }) {
+function TabContent({ tab, active, compact }: { tab: Tab; active: boolean; compact: boolean }) {
   const { pending } = useLinkStatus();
   const on = active || pending;
   return (
     <>
-      <span className={on ? "text-[#dcb81e]" : "text-[#9a9a9a]"}>{tab.icon}</span>
-      <span className={on ? "text-black" : "text-[#9a9a9a]"}>{tab.label}</span>
+      <span className={`${on ? "text-[#dcb81e]" : "text-[#9a9a9a]"} ${compact ? "[&>svg]:h-[22px] [&>svg]:w-[22px]" : ""}`}>
+        {tab.icon}
+      </span>
+      <span className={`max-w-full truncate px-0.5 ${on ? "text-black" : "text-[#9a9a9a]"}`}>{tab.label}</span>
       {tab.badge && (
         <span className="absolute right-[calc(50%-18px)] top-2 h-2.5 w-2.5 rounded-full bg-[#e0452b] ring-2 ring-white" />
       )}

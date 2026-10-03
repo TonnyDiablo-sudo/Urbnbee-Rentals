@@ -29,6 +29,11 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
   const items: Item[] =
     mode === "host"
       ? [
+          {
+            href: "/host/herramientas",
+            label: t("Mis herramientas"),
+            hint: t("Qué tienes contratado, en qué anuncios y con quién"),
+          },
           { href: "/tienda", label: t("Tienda"), hint: t("Motor de reservas, limpieza, colaboradores y membresías") },
           { href: "/host/motor", label: t("Reservas en línea"), hint: t("Elige qué anuncios usan el motor de reservas") },
           { href: "/host/limpieza", label: t("Limpieza"), hint: t("Limpiezas automáticas según tus reservas") },

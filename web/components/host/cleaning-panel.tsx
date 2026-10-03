@@ -85,7 +85,20 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
     <div className="space-y-6">
       {err && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(err)}</p>}
 
-      <section className="rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
+      <nav className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 text-sm">
+        {[
+          ["#limpiezas", t("Limpiezas")],
+          ["#anuncios", t("Anuncios y quién limpia")],
+          ["#como", t("Cómo trabajas")],
+          ["#extra", t("Limpieza extra")],
+        ].map(([href, label]) => (
+          <a key={href} href={href} className="shrink-0 rounded-full border border-[#ddd] bg-white px-3 py-1.5 text-[#222]">
+            {label}
+          </a>
+        ))}
+      </nav>
+
+      <section id="limpiezas" className="scroll-mt-20 rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[#222]">{t("Próximas limpiezas")}</h2>
         {pending.length === 0 ? (
           <p className="mt-2 text-sm text-[#888]">
@@ -116,7 +129,7 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
         )}
       </section>
 
-      <section className="rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
+      <section id="como" className="scroll-mt-20 rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[#222]">{t("Cómo trabajas")}</h2>
         <div className="mt-3 space-y-2 text-sm text-[#222]">
           <label className="flex items-start gap-2">
@@ -167,8 +180,8 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-[#222]">{t("Anuncios en la herramienta")}</h2>
+      <section id="anuncios" className="scroll-mt-20 rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#222]">{t("Anuncios y quién limpia")}</h2>
         <p className="mt-1 text-sm text-[#717171]">
           {t("Usas {used} de {cap} anuncios pagados.", { used: data.used, cap: data.capacity })}{" "}
           <a href={storeHref} className="font-semibold text-[#222] underline">
@@ -218,6 +231,7 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
 
       {onListings.length > 0 && (
         <form
+          id="extra"
           className="rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm"
           onSubmit={async (e) => {
             e.preventDefault();

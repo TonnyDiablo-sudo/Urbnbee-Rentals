@@ -2,8 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { useLang, useT } from "@/components/i18n-provider";
-import { numberLocale } from "@/lib/i18n";
+import { useT } from "@/components/i18n-provider";
 import { WebLink } from "../../_components/site-origin";
 import {
   PlanPicker,
@@ -17,6 +16,7 @@ type Status = {
   acceptsBookings: boolean;
   identityVerified: boolean;
   membershipActive: boolean;
+  identityPlanActive: boolean;
   ribbon: boolean;
   kycStatus: string;
   identityEnabled: boolean;
@@ -30,7 +30,6 @@ const RETURN = "/host/motor";
 
 export function BookingEngine() {
   const t = useT();
-  const lang = useLang();
   const params = useSearchParams();
   const justPaid = params.get("subscription") === "success";
   const [data, setData] = useState<Status | null>(null);
@@ -95,15 +94,12 @@ export function BookingEngine() {
         <p className={`mt-1 text-sm leading-relaxed ${data.acceptsBookings ? "text-white/75" : ""}`}>
           {data.acceptsBookings
             ? t("Los huéspedes verificados pueden elegir fechas, pagar y firmar contrato en Cabibee.")
-            : t("Publicar y chatear es gratis. Con la membresía de anfitrión los huéspedes reservan y pagan dentro de Cabibee, con contrato.")}
+            : t("Publicar y chatear es gratis. Con el motor de reservas los huéspedes reservan y pagan dentro de Cabibee, con contrato.")}
         </p>
       </div>
 
       <dl className="divide-y divide-[#f0f0f0] rounded-2xl border border-[#ebebeb] text-[15px]">
-        <Row label={t("Membresía de anfitrión")} value={data.membershipActive ? t("Activa") : t("Sin contratar")} />
-        {data.hostCurrentPeriodEnd && data.membershipActive && (
-          <Row label={t("Vence")} value={new Date(data.hostCurrentPeriodEnd).toLocaleDateString(numberLocale(lang))} />
-        )}
+        <Row label={t("Verificación de identidad")} value={data.identityPlanActive ? t("Activa") : t("Sin contratar")} />
         <Row
           label={t("Identidad")}
           value={data.identityVerified ? t("Comprobada") : data.kycStatus === "pending" ? t("En revisión") : t("Sin comprobar")}
@@ -129,17 +125,17 @@ export function BookingEngine() {
         </button>
       )}
 
-      {!data.membershipActive && (
+      {!data.identityPlanActive && (
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-[#222]">{t("Planes de anfitrión")}</h2>
+            <h2 className="text-lg font-semibold text-[#222]">{t("Verificación de identidad")}</h2>
             {bothRegions && <RegionToggle value={region} onChange={setRegion} />}
           </div>
           {plans.length > 0 ? (
             <PlanPicker plans={plans} busy={busy} onPick={(c) => void buy(c)} demo={!data.stripeConfigured} />
           ) : (
             <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#555]">
-              {t("Todavía no hay planes de anfitrión a la venta. Mientras tanto tus anuncios aceptan reservas sin membresía.")}
+              {t("Todavía no hay planes de verificación de identidad a la venta.")}
             </p>
           )}
         </section>
@@ -150,7 +146,7 @@ export function BookingEngine() {
         icon
         className="flex items-center justify-center gap-1.5 text-sm font-medium text-[#717171] underline"
       >
-        {t("Detalle de la membresía en la web")}{" "}
+        {t("Detalle de la verificación en la web")}{" "}
       </WebLink>
     </div>
   );

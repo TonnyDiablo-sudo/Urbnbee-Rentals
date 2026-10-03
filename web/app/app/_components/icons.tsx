@@ -62,6 +62,26 @@ export function IconChart({ className = "h-6 w-6" }: P) {
   );
 }
 
+export function IconBag({ className = "h-6 w-6" }: P) {
+  return (
+    <svg className={className} {...base}>
+      <path d="M5 8h14l-1.2 12.1a1 1 0 0 1-1 .9H7.2a1 1 0 0 1-1-.9L5 8Z" />
+      <path d="M9 10V6a3 3 0 0 1 6 0v4" />
+    </svg>
+  );
+}
+
+export function IconBroom({ className = "h-6 w-6" }: P) {
+  return (
+    <svg className={className} {...base}>
+      <path d="M19 3 12.5 9.5" />
+      <path d="M9.5 9.5 14.5 14.5" />
+      <path d="M9.5 9.5c-2.5.5-4.5 2.5-5.5 6l-1 5.5 5.5-1c3.5-1 5.5-3 6-5.5" />
+      <path d="M7 15.5 5 17.5M10 16.5l-2 2.5" />
+    </svg>
+  );
+}
+
 export function IconCalendar({ className = "h-6 w-6" }: P) {
   return (
     <svg className={className} {...base}>

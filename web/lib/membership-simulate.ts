@@ -1,5 +1,5 @@
 import "server-only";
-import { setHostMembershipActive } from "@/lib/host-verification";
+import { setHostMembershipActive, syncHostBadgeToListings } from "@/lib/host-verification";
 import {
   MEMBERSHIP_PLAN_AUDIENCE,
   MEMBERSHIP_PLAN_BILLING,
@@ -60,5 +60,6 @@ export function simulateCatalogMembership(userId: string, code: MembershipPlanCo
     stripeSubscriptionId: "simulated",
     currentPeriodEnd: periodEndIso(billing.intervalCount),
   });
+  syncHostBadgeToListings(userId);
   return { audience: "guest", kind: "subscription" };
 }

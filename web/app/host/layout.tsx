@@ -64,6 +64,12 @@ export default async function HostLayout({ children }: { children: React.ReactNo
               {t("Reservas")}
             </Link>
             <Link
+              href="/host/herramientas"
+              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
+            >
+              {t("Mis herramientas")}
+            </Link>
+            <Link
               href="/host/limpieza"
               className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
             >

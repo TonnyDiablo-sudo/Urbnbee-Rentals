@@ -290,8 +290,10 @@ export function consumeBookingPass(userId: string): boolean {
   return true;
 }
 
+/** La identidad es una por persona: da igual si la comprobó como huésped o como anfitrión. */
 export function isHostIdentityVerified(userId: string): boolean {
-  return Boolean(getVerification(userId)?.hostVerifiedAt);
+  const v = getVerification(userId);
+  return Boolean(v?.hostVerifiedAt) || v?.kycStatus === "verified";
 }
 
 function entitlementStatusFromLegacy(
@@ -367,11 +369,22 @@ export function isHostMembershipPaidUp(userId: string): boolean {
  */
 export function hostShowsVerifiedRibbon(userId: string): boolean {
   if (!isHostIdentityVerified(userId)) return false;
-  const paid = getHostEntitlement(userId, HOST_SKU_HOST_VERIFICATION);
-  if (paid && paid.status === "active" && !periodOver(paid.currentPeriodEnd)) return true;
+  if (identityPlanActive(userId)) return true;
   const engine = getHostEntitlement(userId, HOST_SKU_BOOKING_ENGINE);
   if (engine?.quantity !== undefined) return false;
   return isHostMembershipPaidUp(userId);
+}
+
+/**
+ * Verificación de identidad pagada. Es un solo producto por persona: la membresía de
+ * huésped y la verificación de anfitrión anterior cuentan igual.
+ */
+export function identityPlanActive(userId: string): boolean {
+  const paid = getHostEntitlement(userId, HOST_SKU_HOST_VERIFICATION);
+  if (paid && paid.status === "active" && !periodOver(paid.currentPeriodEnd)) return true;
+  const v = getVerification(userId);
+  const s = v?.subscriptionStatus;
+  return (s === "active" || s === "trialing") && !periodOver(v?.currentPeriodEnd);
 }
 
 /** @deprecated Usa hostShowsVerifiedRibbon o isHostIdentityVerified. */

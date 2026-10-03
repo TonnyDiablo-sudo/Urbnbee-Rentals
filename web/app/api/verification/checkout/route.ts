@@ -22,6 +22,8 @@ import type { VerificationRegion } from "@/lib/verification-types";
 import { verificationRegionFromRequest } from "@/lib/verification-region";
 import { allowSimulatedBookingPayment } from "@/lib/stripe-server";
 import { appReturnPath } from "@/lib/app-return-path";
+import { identityPlanActive } from "@/lib/verification-store";
+import { MEMBERSHIP_PLAN_FAMILY } from "@/lib/membership-plans-types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -160,6 +162,9 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      if (MEMBERSHIP_PLAN_FAMILY[catalogCode] === "guest_membership" && identityPlanActive(user.id)) {
+        return NextResponse.json({ error: "Ya tienes la verificación de identidad activa." }, { status: 409 });
+      }
       const ownedSku = primarySkuForPlan(catalogCode);
       const ownedRow = ownedSku ? getHostEntitlement(user.id, ownedSku) : undefined;
       if (ownedRow && ownedRow.status !== "cancelled" && hostEntitlementAllowsAccess(ownedRow.status)) {

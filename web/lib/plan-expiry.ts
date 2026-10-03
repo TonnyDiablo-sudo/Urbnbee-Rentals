@@ -25,6 +25,7 @@ export function expireCancelledPlans(now = Date.now()): number {
     const end = Date.parse(v.currentPeriodEnd);
     if (!Number.isFinite(end) || end > now) continue;
     setVerificationSubscriptionFields(v.userId, { subscriptionStatus: "canceled" });
+    syncHostBadgeToListings(v.userId);
     closed++;
   }
   return closed;

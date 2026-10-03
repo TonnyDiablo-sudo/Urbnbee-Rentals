@@ -125,6 +125,7 @@ async function syncFromSubscription(sub: Stripe.Subscription, explicitUserId?: s
     cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
   });
   if (isMembershipPlanCode(planCode)) rememberPlanCode(userId, planCode);
+  syncHostBadgeToListings(userId);
 }
 
 function legalNameFromIdentity(session: Stripe.Identity.VerificationSession): string | undefined {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 
@@ -15,6 +16,14 @@ type Item = {
   unit?: "listing" | "seat";
   terms: Term[];
   owned?: { status: string; quantity?: number; until?: string; cancelAtPeriodEnd?: boolean; renews?: boolean; code?: string };
+};
+
+/** Dónde se administra cada herramienta: a qué anuncios aplica y quién la usa. */
+const MANAGE: Record<string, { app: string; web: string }> = {
+  booking_engine: { app: "/host/motor", web: "/host/verificacion" },
+  cleaning_tool: { app: "/host/limpieza", web: "/host/limpieza" },
+  collaborator_seat: { app: "/host/colaboradores", web: "/host/colaboradores" },
+  address_proof: { app: "/host/motor", web: "/host/verificacion" },
 };
 
 type Data = { region: "mx" | "us"; isHost: boolean; items: Item[] };
@@ -115,7 +124,8 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
   if (err) return <p className="px-5 py-8 text-sm text-red-700">{t(err)}</p>;
   if (!data) return <p className="px-5 py-8 text-sm text-[#999]">{t("Cargando…")}</p>;
 
-  const guestItems = data.items.filter((i) => i.audience === "guest");
+  const accountItems = data.items.filter((i) => i.family === "guest_membership");
+  const guestItems = data.items.filter((i) => i.audience === "guest" && i.family !== "guest_membership");
   const hostItems = data.items.filter((i) => i.audience === "host");
 
   const card = (item: Item) => {
@@ -128,7 +138,9 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
       plan.months === 0
         ? t("pago único")
         : plan.months === 1
-          ? t("se cobra cada mes")
+          ? item.unit && q > 1
+            ? t("pagas {total} cada mes", { total: money(plan.amount * q, item.currency) })
+            : t("se cobra cada mes")
           : t("pagas {total} cada {n} meses", { total: money(plan.amount * (item.unit ? q : 1), item.currency), n: plan.months });
     return (
       <div key={item.family} className="rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
@@ -252,6 +264,11 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
                     : t("Activo hasta el {d}", { d: day(owned.until) })
                 : t("Activo")}
             </span>
+            {MANAGE[item.family] && (
+              <Link href={MANAGE[item.family][surface]} className="font-semibold text-[#222] underline">
+                {t("Administrar")}
+              </Link>
+            )}
             {owned.renews && (
               <button
                 type="button"
@@ -279,6 +296,16 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
         {t("Tu cuenta básica de Cabibee es gratis. Elige el plazo de cada herramienta: entre más largo, más barato por mes.")}
       </p>
 
+      {accountItems.length > 0 && (
+        <section>
+          <h2 className="mb-1 text-lg font-semibold text-[#222]">{t("Tu cuenta")}</h2>
+          <p className="mb-3 text-sm text-[#717171]">
+            {t("Una sola verificación de identidad por persona: vale como huésped y como anfitrión.")}
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">{accountItems.map(card)}</div>
+        </section>
+      )}
+
       {data.isHost && (
         <section>
           <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Para anfitriones")}</h2>
@@ -290,14 +317,12 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
         </section>
       )}
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Para huéspedes")}</h2>
-        {guestItems.length ? (
+      {guestItems.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Para huéspedes")}</h2>
           <div className="grid gap-4 sm:grid-cols-2">{guestItems.map(card)}</div>
-        ) : (
-          <p className="text-sm text-[#999]">{t("Pronto habrá membresías aquí.")}</p>
-        )}
-      </section>
+        </section>
+      )}
 
       {!data.isHost && (
         <p className="text-sm text-[#717171]">
