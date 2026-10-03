@@ -87,6 +87,14 @@ export function AuthNav() {
   return (
     <div className="flex items-center gap-2 sm:gap-3 shrink-0">
       <Link
+        href="/favoritos"
+        title={t("Favoritos")}
+        aria-label={t("Favoritos")}
+        className="hidden text-sm font-medium text-white transition hover:text-[#dcb81e] sm:inline"
+      >
+        ♡<span className="hidden 2xl:inline"> {t("Favoritos")}</span>
+      </Link>
+      <Link
         href="/guest"
         className="hidden text-sm font-medium text-white transition hover:text-[#dcb81e] sm:inline"
         title={t("Mis reservas y mensajes")}
@@ -194,6 +202,9 @@ export function AuthNavMobile({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
+      <Link href="/favoritos" className="block rounded px-3 py-2 text-left text-sm text-white" onClick={onNavigate}>
+        ♡ {t("Favoritos")}
+      </Link>
       <Link href="/guest" className="block rounded px-3 py-2 text-left text-sm text-white" onClick={onNavigate}>
         {t("Mi cuenta")}
       </Link>

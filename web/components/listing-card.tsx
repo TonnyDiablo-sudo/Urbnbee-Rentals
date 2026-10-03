@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Listing } from "@/lib/mock-data";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
+import { SaveHeart } from "@/components/wishlist/save-heart";
 
 type Props = { listing: Listing };
 
@@ -60,6 +61,7 @@ export function ListingCard({ listing }: Props) {
             </span>
           )}
         </div>
+        <SaveHeart slug={listing.slug} surface="web" className="absolute bottom-2 right-2" />
       </Link>
 
       {/* Info */}

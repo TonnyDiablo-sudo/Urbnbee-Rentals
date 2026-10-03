@@ -2,7 +2,9 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { LangSwitch } from "@/components/lang-switch";
-import { APP_BROWSE_FILTERS, appBrowseListings } from "@/lib/app-listings";
+import { FilterButton } from "@/components/browse/filter-button";
+import { APP_BROWSE_FILTERS, appBrowseListings, appPriceRange } from "@/lib/app-listings";
+import { activeFilterCount, parseBrowseFilters, writeBrowseFilters } from "@/lib/browse-filters";
 import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 import { IconSearch } from "./_components/icons";
@@ -18,11 +20,18 @@ export async function generateMetadata() {
 }
 
 type Props = {
-  searchParams: Promise<{ q?: string; tipo?: string; source?: string; vista?: string; verif?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function AppExplorePage({ searchParams }: Props) {
-  const { q = "", tipo = "", source, vista = "", verif = "" } = await searchParams;
+  const sp = await searchParams;
+  const one = (k: string) => {
+    const v = sp[k];
+    return (Array.isArray(v) ? v[0] : v) ?? "";
+  };
+  const [q, tipo, source, vista, verif] = ["q", "tipo", "source", "vista", "verif"].map(one);
+  const filters = parseBrowseFilters(sp);
+  const filterCount = activeFilterCount(filters);
 
   // Al abrir el ícono instalado se vuelve al modo en que la persona se quedó.
   if (source === "pwa") {
@@ -34,7 +43,7 @@ export default async function AppExplorePage({ searchParams }: Props) {
   const t = await getT();
   const mapView = vista === "mapa";
   const verifiedOnly = verif === "1";
-  const listings = appBrowseListings({ tipo, q, verifiedOnly });
+  const listings = appBrowseListings({ tipo, q, verifiedOnly, filters });
   const hrefWith = (next: { tipo?: string; vista?: string; verif?: boolean }) => {
     const p = new URLSearchParams();
     const nt = next.tipo ?? tipo;
@@ -42,6 +51,8 @@ export default async function AppExplorePage({ searchParams }: Props) {
     if (next.verif ?? verifiedOnly) p.set("verif", "1");
     const nv = next.vista ?? vista;
     if (nv === "mapa") p.set("vista", "mapa");
+    if (q) p.set("q", q);
+    writeBrowseFilters(filters, p);
     const s = p.toString();
     return s ? `/?${s}` : "/";
   };
@@ -76,6 +87,9 @@ export default async function AppExplorePage({ searchParams }: Props) {
         <form action="/" className="relative">
           {mapView && <input type="hidden" name="vista" value="mapa" />}
           {verifiedOnly && <input type="hidden" name="verif" value="1" />}
+          {[...writeBrowseFilters(filters, new URLSearchParams()).entries()].map(([k, v]) => (
+            <input key={k} type="hidden" name={k} value={v} />
+          ))}
           <IconSearch className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#222]" />
           <input
             name="q"
@@ -86,6 +100,15 @@ export default async function AppExplorePage({ searchParams }: Props) {
           />
         </form>
         <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+          <FilterButton
+            basePath="/"
+            params={Object.fromEntries(
+              Object.keys(sp)
+                .filter((k) => k !== "source")
+                .map((k) => [k, one(k)])
+            )}
+            priceRange={appPriceRange()}
+          />
           <Link
             href="/recomendar"
             className="shrink-0 rounded-full border border-[#dcb81e] bg-[#fdf6d8] px-4 py-2 text-[13px] font-semibold text-[#5c4a0a]"
@@ -126,9 +149,11 @@ export default async function AppExplorePage({ searchParams }: Props) {
             {listings.length === 0 ? (
               <div className="py-16 text-center">
                 <p className="text-base font-semibold text-[#222]">{t("Sin resultados")}</p>
-                <p className="mt-1 text-sm text-[#717171]">{t("Prueba otra ciudad o quita el filtro.")}</p>
+                <p className="mt-1 text-sm text-[#717171]">
+                  {filterCount > 0 ? t("Prueba subir el precio o quitar algunos filtros.") : t("Prueba otra ciudad o quita el filtro.")}
+                </p>
                 <Link href="/" className="mt-4 inline-block text-sm font-semibold underline">
-                  {t("Ver todo")}
+                  {filterCount > 0 ? t("Quitar filtros") : t("Ver todo")}
                 </Link>
               </div>
             ) : (

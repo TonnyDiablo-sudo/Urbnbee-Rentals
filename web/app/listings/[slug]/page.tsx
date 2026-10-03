@@ -11,6 +11,8 @@ import { ReviewsSection } from "@/components/listing/reviews-section";
 import { AiChatWidget } from "@/components/listing/ai-chat-widget";
 import { PlaceMap } from "@/components/maps/place-map";
 import { ListingHostChat } from "@/components/listing/listing-host-chat";
+import { ShareLinkButton } from "@/components/share-link-button";
+import { SaveHeart } from "@/components/wishlist/save-heart";
 import { listingIsBookable } from "@/lib/app-listings";
 import { discountRows } from "@/lib/listing-pricing";
 import { getListingDetail } from "@/lib/get-listing-detail";
@@ -327,20 +329,18 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     listingSlug={slug}
                     canViewContacts={canViewHostContacts}
                   />
-                  <button
-                    type="button"
-                    className="w-full rounded border py-2.5 text-sm font-medium text-[#484848] transition hover:border-[#dcb81e] hover:text-[#dcb81e]"
-                    style={{ borderColor: "#ebebeb" }}
-                  >
-                    {t("♡ Agregar a los favoritos")}
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full rounded border py-2.5 text-sm font-medium text-[#484848] transition hover:border-[#dcb81e] hover:text-[#dcb81e]"
-                    style={{ borderColor: "#ebebeb" }}
-                  >
-                    {t("↗ Compartir")}
-                  </button>
+                  <SaveHeart
+                    slug={slug}
+                    surface="web"
+                    variant="plain"
+                    className="w-full rounded border border-[#ebebeb] py-2.5 text-sm font-medium text-[#484848] transition hover:border-[#dcb81e] hover:text-[#dcb81e]"
+                  />
+                  <ShareLinkButton
+                    path={`/listings/${slug}`}
+                    title={listing.title}
+                    label={t("↗ Compartir")}
+                    className="w-full rounded border border-[#ebebeb] py-2.5 text-sm font-medium text-[#484848] transition hover:border-[#dcb81e] hover:text-[#dcb81e]"
+                  />
                 </div>
               </div>
             </aside>

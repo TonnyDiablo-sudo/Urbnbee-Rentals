@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 function safeNext(raw: string | null): string | null {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+  if (!raw || !/^\/(?![/\\])/.test(raw)) return null;
   return raw;
 }
 
@@ -68,7 +68,7 @@ export default function RegisterPage() {
         <h1 className="text-center text-2xl font-semibold text-[#484848]">{t("Crear cuenta")}</h1>
         <p className="mt-2 text-center text-sm text-[#888]">
           {t("¿Ya tienes cuenta?")}{" "}
-          <Link href="/login" className="font-semibold text-[#dcb81e] underline">
+          <Link href={nextGuest ? `/login?next=${encodeURIComponent(nextGuest)}` : "/login"} className="font-semibold text-[#dcb81e] underline">
             {t("Inicia sesión")}
           </Link>
         </p>

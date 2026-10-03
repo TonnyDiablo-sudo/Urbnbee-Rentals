@@ -28,6 +28,14 @@ export function IconTrips({ className = "h-6 w-6" }: P) {
   );
 }
 
+export function IconHeart({ className = "h-6 w-6" }: P) {
+  return (
+    <svg className={className} {...base}>
+      <path d="M12 20s-7-4.2-8.7-8.7C2.1 7.9 4.2 5 7.2 5c1.9 0 3.4 1 4.8 2.8C13.4 6 14.9 5 16.8 5c3 0 5.1 2.9 3.9 6.3C19 15.8 12 20 12 20z" />
+    </svg>
+  );
+}
+
 export function IconChat({ className = "h-6 w-6" }: P) {
   return (
     <svg className={className} {...base}>

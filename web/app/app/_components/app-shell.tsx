@@ -10,6 +10,7 @@ import {
   IconCalendar,
   IconChart,
   IconChat,
+  IconHeart,
   IconHome,
   IconMenu,
   IconSearch,
@@ -92,6 +93,7 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
       ]
     : [
         { href: "/", label: t("Explorar"), icon: <IconSearch /> },
+        { href: "/favoritos", label: t("Favoritos"), icon: <IconHeart /> },
         { href: "/viajes", label: t("Viajes"), icon: <IconTrips /> },
         { href: "/mensajes", label: t("Mensajes"), icon: <IconChat />, badge: unread > 0 },
         ...(user ? [{ href: "/tienda", label: t("Tienda"), icon: <IconBag /> }] : []),

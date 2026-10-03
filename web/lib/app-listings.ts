@@ -1,9 +1,11 @@
 import "server-only";
+import { type BrowseFilters, matchesBrowseFilters } from "@/lib/browse-filters";
 import { matchesBrowseQuery } from "@/lib/browse-query";
 import { BROWSE_TITLES, getBrowseListings } from "@/lib/browse-merge";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { getListingById } from "@/lib/marketplace-store";
 import { listingHasEngine } from "@/lib/booking-engine-slots";
+import type { Listing } from "@/lib/mock-data";
 
 export type AppListingCard = {
   id: string;
@@ -17,6 +19,7 @@ export type AppListingCard = {
   spaceType: string;
   guests: number;
   bedrooms: number;
+  amenities: string[];
   verified: boolean;
   identityVerified: boolean;
   /** Se puede reservar dentro de Cabibee (anuncio real con motor de reservas activo). */
@@ -49,9 +52,42 @@ export function listingIsBookable(listingId: string): boolean {
   return Boolean(record?.published && listingHasEngine(record));
 }
 
-export function appBrowseListings(opts: { tipo?: string; q?: string; verifiedOnly?: boolean }): AppListingCard[] {
-  const all = browseCards(opts);
-  return opts.verifiedOnly ? all.filter((c) => c.identityVerified) : all;
+export function appBrowseListings(opts: {
+  tipo?: string;
+  q?: string;
+  verifiedOnly?: boolean;
+  filters?: BrowseFilters;
+}): AppListingCard[] {
+  const f = opts.filters;
+  return browseCards(opts).filter(
+    (c) => (!opts.verifiedOnly || c.identityVerified) && (!f || matchesBrowseFilters(c, f))
+  );
+}
+
+/** Todos los anuncios, para buscar uno por su slug (favoritos y viajes). */
+export function appListingsBySlug(): Map<string, AppListingCard> {
+  const out = new Map<string, AppListingCard>();
+  for (const f of APP_BROWSE_FILTERS) {
+    for (const c of browseCards({ tipo: f.key })) if (!out.has(c.slug)) out.set(c.slug, c);
+  }
+  return out;
+}
+
+/** Igual, con la tarjeta del sitio web. */
+export function webListingsBySlug(): Map<string, Listing> {
+  const out = new Map<string, Listing>();
+  for (const f of APP_BROWSE_FILTERS) {
+    for (const l of getBrowseListings(f.key || undefined)) if (!out.has(l.slug)) out.set(l.slug, l);
+  }
+  return out;
+}
+
+/** Rango de precios por noche, para los atajos del filtro. */
+export function appPriceRange(): { min: number; max: number } {
+  const prices = browseCards({})
+    .map((c) => c.pricePerNight)
+    .filter((n) => n > 0);
+  return prices.length ? { min: Math.min(...prices), max: Math.max(...prices) } : { min: 0, max: 0 };
 }
 
 function browseCards(opts: { tipo?: string; q?: string }): AppListingCard[] {
@@ -78,6 +114,7 @@ function browseCards(opts: { tipo?: string; q?: string }): AppListingCard[] {
         spaceType: l.spaceType,
         guests: l.guests,
         bedrooms: l.bedrooms,
+        amenities: detail?.amenities ?? [],
         verified: Boolean(l.verified),
         identityVerified: Boolean(detail?.identityVerified ?? l.identityVerified),
         bookable: listingIsBookable(l.id),

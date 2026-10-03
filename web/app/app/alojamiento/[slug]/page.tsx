@@ -14,6 +14,7 @@ import { trackListingView } from "@/lib/listing-view-tracking";
 import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 import { IconChat } from "../../_components/icons";
+import { SaveHeart } from "@/components/wishlist/save-heart";
 import { FloatingBack } from "./floating-back";
 import { ListingActionBar } from "./listing-action-bar";
 import { ListingMap } from "./listing-map";
@@ -59,6 +60,9 @@ export default async function AppListingPage({ params }: Props) {
       <div className="relative">
         <PhotoGallery photos={listing.photos} title={listing.title} />
         <FloatingBack />
+        <div className="absolute right-4" style={{ top: "calc(12px + env(safe-area-inset-top))" }}>
+          <SaveHeart slug={slug} surface="app" variant="button" />
+        </div>
       </div>
 
       <div className="px-5 pt-5">

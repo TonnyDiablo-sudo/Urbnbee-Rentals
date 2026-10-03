@@ -1,10 +1,22 @@
 import Link from "next/link";
+import { SaveHeart } from "@/components/wishlist/save-heart";
 import type { AppListingCard } from "@/lib/app-listings";
 import type { TFn } from "@/lib/i18n";
 import { sizedImage } from "@/lib/image-url";
 import { IconStar } from "./icons";
 
-export function AppListingCardView({ listing: l, t, priority = false }: { listing: AppListingCard; t: TFn; priority?: boolean }) {
+export function AppListingCardView({
+  listing: l,
+  t,
+  priority = false,
+  note,
+}: {
+  listing: AppListingCard;
+  t: TFn;
+  priority?: boolean;
+  /** Línea extra debajo del precio (p. ej. quién lo agregó a un viaje). */
+  note?: string;
+}) {
   const place = [l.city, l.zone].filter(Boolean).join(", ");
   return (
     <Link href={`/alojamiento/${l.slug}`} className="block">
@@ -34,6 +46,7 @@ export function AppListingCardView({ listing: l, t, priority = false }: { listin
             </span>
           )}
         </div>
+        <SaveHeart slug={l.slug} surface="app" className="absolute right-2 top-2" />
       </div>
       <div className="mt-2.5 flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -54,6 +67,7 @@ export function AppListingCardView({ listing: l, t, priority = false }: { listin
       <p className="mt-1 text-[15px] text-[#222]">
         <span className="font-semibold">${l.pricePerNight.toLocaleString("es-MX")} MXN</span> {t("noche")}
       </p>
+      {note && <p className="mt-0.5 text-[13px] text-[#717171]">{note}</p>}
     </Link>
   );
 }
