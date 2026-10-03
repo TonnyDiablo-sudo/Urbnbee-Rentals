@@ -1,132 +1,19 @@
 import type { NextRequest } from "next/server";
-import { rememberPlanCode } from "@/lib/owned-plan";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { settleBookingCheckoutSession } from "@/lib/booking-payment-settle";
-import { applyHostEntitlement, HOST_SKU_BOOKING_ENGINE, HOST_SKU_HOST_VERIFICATION } from "@/lib/host-entitlements";
-import { hostEntitlementTargets } from "@/lib/membership-entitlements";
-import type { HostEntitlementStatus } from "@/lib/host-entitlement-types";
 import { lockLegalName } from "@/lib/display-name";
-import { grantHostVerification, syncHostBadgeToListings } from "@/lib/host-verification";
+import { grantHostVerification } from "@/lib/host-verification";
 import { MEMBERSHIP_PASS_KIND } from "@/lib/membership-checkout";
 import { settleScreeningCheckoutSession } from "@/lib/screening-service";
 import { SCREENING_KIND } from "@/lib/screening-types";
-import { isMembershipPlanCode } from "@/lib/membership-plans-store";
-import { MEMBERSHIP_PLAN_AUDIENCE } from "@/lib/membership-plans-types";
 import { stripeEventBelongsToCabibee } from "@/lib/stripe-app-meta";
 import { constructStripeWebhookEvent, getStripe } from "@/lib/stripe-server";
-import {
-  grantBookingPass,
-  setHostMembershipFields,
-  setVerificationSubscriptionFields,
-  upsertVerification,
-} from "@/lib/verification-store";
-import type { VerificationSubscriptionStatus } from "@/lib/verification-types";
+import { STORE_CART_KIND, fulfillCartSession } from "@/lib/store-cart";
+import { syncFromSubscription } from "@/lib/stripe-subscription-sync";
+import { grantBookingPass, upsertVerification } from "@/lib/verification-store";
 
 export const runtime = "nodejs";
-
-function mapSubStatus(status: Stripe.Subscription.Status): VerificationSubscriptionStatus {
-  switch (status) {
-    case "active":
-      return "active";
-    case "trialing":
-      return "trialing";
-    case "past_due":
-      return "past_due";
-    case "canceled":
-      return "canceled";
-    case "unpaid":
-      return "unpaid";
-    case "paused":
-    case "incomplete":
-    case "incomplete_expired":
-      return "none";
-    default:
-      return "none";
-  }
-}
-
-function mapEntitlementStatus(status: Stripe.Subscription.Status): HostEntitlementStatus {
-  switch (status) {
-    case "active":
-    case "trialing":
-      return "active";
-    case "past_due":
-      return "past_due";
-    default:
-      return "cancelled";
-  }
-}
-
-function subscriptionPeriodEndIso(sub: Stripe.Subscription): string | undefined {
-  const items = sub.items?.data ?? [];
-  let maxEnd = 0;
-  for (const it of items) {
-    if (typeof it.current_period_end === "number" && it.current_period_end > maxEnd) {
-      maxEnd = it.current_period_end;
-    }
-  }
-  if (!maxEnd) return undefined;
-  return new Date(maxEnd * 1000).toISOString();
-}
-
-async function syncFromSubscription(sub: Stripe.Subscription, explicitUserId?: string) {
-  const userId =
-    (typeof explicitUserId === "string" && explicitUserId
-      ? explicitUserId
-      : undefined) ??
-    (typeof sub.metadata?.userId === "string" ? sub.metadata.userId : undefined);
-  if (!userId) {
-    console.warn("[stripe webhook] subscription sin userId en metadata", sub.id);
-    return;
-  }
-  const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
-  const end = subscriptionPeriodEndIso(sub);
-  const planCode = typeof sub.metadata?.planCode === "string" ? sub.metadata.planCode : "";
-  const audienceFromMeta = sub.metadata?.audience === "host" ? "host" : sub.metadata?.audience === "guest" ? "guest" : null;
-  const audience =
-    audienceFromMeta ??
-    (isMembershipPlanCode(planCode) ? MEMBERSHIP_PLAN_AUDIENCE[planCode] : "guest");
-
-  if (audience === "host") {
-    const status = mapEntitlementStatus(sub.status);
-    const quantity = sub.items?.data?.[0]?.quantity ?? 1;
-    const targets = hostEntitlementTargets(userId, planCode, sub.id);
-    if (targets.some((t) => t.sku === HOST_SKU_BOOKING_ENGINE || t.sku === HOST_SKU_HOST_VERIFICATION)) {
-      setHostMembershipFields(userId, {
-        stripeCustomerId: customerId,
-        hostStripeSubscriptionId: sub.id,
-        hostSubscriptionStatus: mapSubStatus(sub.status),
-        hostCurrentPeriodEnd: end,
-      });
-    }
-    for (const t of targets) {
-      applyHostEntitlement({
-        hostId: userId,
-        sku: t.sku,
-        status,
-        source: "cabibee_direct",
-        stripeSubscriptionId: sub.id,
-        currentPeriodEnd: end,
-        cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
-        ...(t.perUnit ? { quantity } : {}),
-      });
-    }
-    syncHostBadgeToListings(userId);
-    if (isMembershipPlanCode(planCode)) rememberPlanCode(userId, planCode);
-    return;
-  }
-
-  setVerificationSubscriptionFields(userId, {
-    stripeCustomerId: customerId,
-    stripeSubscriptionId: sub.id,
-    subscriptionStatus: mapSubStatus(sub.status),
-    currentPeriodEnd: end,
-    cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
-  });
-  if (isMembershipPlanCode(planCode)) rememberPlanCode(userId, planCode);
-  syncHostBadgeToListings(userId);
-}
 
 function legalNameFromIdentity(session: Stripe.Identity.VerificationSession): string | undefined {
   const out = session.verified_outputs;
@@ -244,6 +131,10 @@ export async function POST(req: NextRequest) {
             }
             break;
           }
+          if (session.mode === "setup") {
+            if (session.metadata?.kind === STORE_CART_KIND) await fulfillCartSession(stripe, session.id);
+            break;
+          }
           if (session.mode !== "subscription") break;
           const userId =
             typeof session.metadata?.userId === "string" ? session.metadata.userId : undefined;
@@ -259,6 +150,7 @@ export async function POST(req: NextRequest) {
           }
           break;
         }
+        case "customer.subscription.created":
         case "customer.subscription.updated":
         case "customer.subscription.deleted": {
           const sub = event.data.object as Stripe.Subscription;

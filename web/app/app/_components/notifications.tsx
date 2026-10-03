@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { useT } from "@/components/i18n-provider";
 import { mutateCached, peekCached, revalidate, useCached } from "./cached-fetch";
-import { IconBell } from "./icons";
+import { IconBell, IconInfo } from "./icons";
 
 export const NOTIFICATIONS_URL = "/api/notifications";
 
@@ -66,6 +66,21 @@ export function useNotificationsSync(enabled: boolean) {
     const here = items.filter((n) => !n.readAt && n.url === pathname).map((n) => n.id);
     if (here.length) markNotificationsRead(here);
   }, [enabled, pathname, data]);
+}
+
+/** Lleva a «Qué es Cabibee y cómo funciona»; va junto a la campana. */
+export function InfoButton({ className = "" }: { className?: string }) {
+  const t = useT();
+  return (
+    <Link
+      href="/como-funciona"
+      prefetch
+      className={`flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-full text-[#222] hover:bg-[#f5f5f5] ${className}`}
+      aria-label={t("Qué es Cabibee y cómo funciona")}
+    >
+      <IconInfo />
+    </Link>
+  );
 }
 
 export function NotificationBell({ className = "" }: { className?: string }) {

@@ -9,21 +9,16 @@ import {
   membershipPlanCodeFromInput,
   membershipQuantity,
 } from "@/lib/membership-checkout";
-import { getMembershipPlan, membershipPlanAmount } from "@/lib/membership-plans-store";
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { MEMBERSHIP_PLAN_AUDIENCE, type MembershipPlanCode } from "@/lib/membership-plans-types";
 import { simulateCatalogMembership } from "@/lib/membership-simulate";
 import { rememberPlanCode } from "@/lib/owned-plan";
-import { primarySkuForPlan } from "@/lib/membership-entitlements";
-import { getHostEntitlement } from "@/lib/host-entitlements-store";
-import { hostEntitlementAllowsAccess } from "@/lib/host-entitlement-types";
+import { catalogPurchaseProblem } from "@/lib/store-cart";
 import { getVerification, resolveVerificationPriceId, type VerificationBillingPlan } from "@/lib/verification-store";
 import type { VerificationRegion } from "@/lib/verification-types";
 import { verificationRegionFromRequest } from "@/lib/verification-region";
 import { allowSimulatedBookingPayment } from "@/lib/stripe-server";
 import { appReturnPath } from "@/lib/app-return-path";
-import { identityPlanActive } from "@/lib/verification-store";
-import { MEMBERSHIP_PLAN_FAMILY } from "@/lib/membership-plans-types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -146,38 +141,8 @@ export async function POST(req: NextRequest) {
     const catalogCode = membershipPlanCodeFromInput(body.plan);
     if (catalogCode) {
       await ensurePublicCatalogFresh();
-      const audience = MEMBERSHIP_PLAN_AUDIENCE[catalogCode];
-      if (audience === "host" && user.role !== "host" && user.role !== "admin") {
-        return NextResponse.json(
-          { error: "Esta membresía es para anfitriones." },
-          { status: 403 }
-        );
-      }
-
-      const catalogPlan = getMembershipPlan(catalogCode);
-      if (!catalogPlan || !catalogPlan.active || membershipPlanAmount(catalogPlan, region) <= 0) {
-        return NextResponse.json(
-          { error: "Ese plan no tiene precio para esta región. Ponlo en /admin/pricing." },
-          { status: 400 }
-        );
-      }
-
-      if (MEMBERSHIP_PLAN_FAMILY[catalogCode] === "guest_membership" && identityPlanActive(user.id)) {
-        return NextResponse.json({ error: "Ya tienes la verificación de identidad activa." }, { status: 409 });
-      }
-      const ownedSku = primarySkuForPlan(catalogCode);
-      const ownedRow = ownedSku ? getHostEntitlement(user.id, ownedSku) : undefined;
-      if (ownedRow && ownedRow.status !== "cancelled" && hostEntitlementAllowsAccess(ownedRow.status)) {
-        return NextResponse.json(
-          {
-            error:
-              ownedRow.quantity === undefined
-                ? "Ya tienes este producto activo."
-                : "Ya tienes este producto. Cambia la cantidad desde la Tienda; para cambiar de plazo, cancela el actual y compra el nuevo al vencer.",
-          },
-          { status: 409 }
-        );
-      }
+      const problem = catalogPurchaseProblem(user, catalogCode, region);
+      if (problem) return NextResponse.json({ error: problem.error }, { status: problem.status });
 
       const stripeForCatalog = getStripe();
       if (!stripeForCatalog) {

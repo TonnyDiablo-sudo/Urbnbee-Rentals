@@ -1,10 +1,18 @@
 import "server-only";
 import Stripe from "stripe";
 
+/** STRIPE_API_URL only exists so tests can point Stripe at a local mock. */
 export function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY?.trim();
   if (!key) return null;
-  return new Stripe(key);
+  const override = process.env.STRIPE_API_URL?.trim();
+  if (!override) return new Stripe(key);
+  const u = new URL(override);
+  return new Stripe(key, {
+    host: u.hostname,
+    port: u.port ? Number(u.port) : undefined,
+    protocol: u.protocol === "http:" ? "http" : "https",
+  });
 }
 
 export function constructStripeWebhookEvent(

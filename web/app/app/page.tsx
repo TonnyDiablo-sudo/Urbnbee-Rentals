@@ -11,7 +11,7 @@ import { getSessionUser } from "@/lib/session";
 import { IconSearch } from "./_components/icons";
 import { AppListingCardView } from "./_components/listing-card";
 import { InstallBanner } from "./_components/install-banner";
-import { NotificationBell } from "./_components/notifications";
+import { InfoButton, NotificationBell } from "./_components/notifications";
 import { Brand } from "./_components/top-bar";
 import { ExploreMap } from "./explore-map";
 
@@ -82,6 +82,7 @@ export default async function AppExplorePage({ searchParams }: Props) {
           <Brand />
           <div className="flex items-center gap-1">
             <LangSwitch />
+            <InfoButton />
             <NotificationBell />
           </div>
         </div>

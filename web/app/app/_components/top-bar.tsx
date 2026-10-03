@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useT } from "@/components/i18n-provider";
 import { IconBack } from "./icons";
-import { NotificationBell } from "./notifications";
+import { InfoButton, NotificationBell } from "./notifications";
 
 /** Encabezado de pantalla. Con `back`, muestra la flecha para regresar. */
 export function TopBar({
@@ -52,6 +52,7 @@ export function TabHeader({ title, subtitle, right }: { title: string; subtitle?
         </div>
         <div className="flex shrink-0 items-start gap-1">
           {right}
+          <InfoButton />
           <NotificationBell />
         </div>
       </div>

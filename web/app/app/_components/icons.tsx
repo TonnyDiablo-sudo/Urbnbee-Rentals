@@ -117,6 +117,16 @@ export function IconBell({ className = "h-6 w-6" }: P) {
   );
 }
 
+export function IconInfo({ className = "h-6 w-6" }: P) {
+  return (
+    <svg className={className} {...base}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5" />
+      <path d="M12 7.6v.1" strokeWidth={2.4} />
+    </svg>
+  );
+}
+
 export function IconMenu({ className = "h-6 w-6" }: P) {
   return (
     <svg className={className} {...base}>
