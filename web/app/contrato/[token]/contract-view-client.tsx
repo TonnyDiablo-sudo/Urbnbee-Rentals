@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ContractText } from "@/components/booking/contract-text";
 import { GuestPayNote } from "@/components/booking/pay-status";
 import { useT } from "@/components/i18n-provider";
 import type { PayConfirmation, PayProof } from "@/lib/booking-types";
@@ -27,6 +28,7 @@ type Lookup = {
     acceptedSha256?: string;
     templateTitle?: string;
     lines?: string[];
+    linesTranslated?: string[];
   };
 };
 
@@ -160,12 +162,11 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
               {t("Descargar PDF")}
             </a>
           </div>
-          <pre
+          <ContractText
+            lines={c.lines ?? []}
+            translated={c.linesTranslated}
             className="mt-3 max-h-[28rem] overflow-auto whitespace-pre-wrap rounded border bg-[#fafafa] p-4 text-xs leading-relaxed text-[#3a3a3a]"
-            style={{ borderColor: "#ebebeb" }}
-          >
-            {(c.lines ?? []).join("\n")}
-          </pre>
+          />
         </>
       ) : (
         <p className="mt-6 text-sm text-[#888]">

@@ -1,5 +1,6 @@
 "use client";
 
+import { MessageBody } from "@/components/chat/message-body";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,6 +10,7 @@ type ChatRow = {
   id: string;
   sender: "guest" | "host";
   body: string;
+  original?: string;
   createdAt: string;
   guestLabel: string;
 };
@@ -163,7 +165,7 @@ export function ListingHostChat({
                   <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
                     {m.sender === "guest" ? t("Tú") : m.guestLabel}
                   </p>
-                  <p className="mt-0.5 whitespace-pre-wrap">{m.body}</p>
+                  <MessageBody body={m.body} original={m.original} className="mt-0.5 whitespace-pre-wrap" />
                 </div>
               </li>
             ))}

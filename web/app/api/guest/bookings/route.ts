@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { bookingBalanceDueMxn, paidStayOf } from "@/lib/booking-adjustments";
 import { applyBookingLifecycle } from "@/lib/booking-deposit";
 import { listBookingsForGuest } from "@/lib/bookings-store";
+import { translateTexts } from "@/lib/content-translate";
+import { getLang } from "@/lib/i18n/server";
 import { getListingById } from "@/lib/marketplace-store";
 import { SCREENING_CONSENT_TEXT, screeningPublicView, screeningQuote } from "@/lib/screening-service";
 import { getScreeningByBooking } from "@/lib/screening-store";
@@ -42,6 +44,16 @@ export async function GET(req: NextRequest) {
       hostReviewOfMe: reviews.hostToGuest,
       screening: screening ? screeningPublicView(screening) : null,
     };
+  });
+
+  const lang = await getLang();
+  const FIELDS = ["checkInMethod", "directions", "houseManual", "checkoutInstructions"] as const;
+  const texts = bookings.flatMap((b) => [b.listingTitle, ...FIELDS.map((k) => b.arrival?.[k] ?? "")]);
+  const out = await translateTexts(texts, lang, { waitMs: 5000 });
+  bookings.forEach((b, i) => {
+    const base = i * (FIELDS.length + 1);
+    b.listingTitle = out[base];
+    if (b.arrival) FIELDS.forEach((k, j) => out[base + 1 + j] && (b.arrival![k] = out[base + 1 + j]));
   });
 
   return NextResponse.json({

@@ -39,6 +39,7 @@ export function listingPartnerView(listing: HostListingRecord) {
     cleaning_fee: listing.cleaningFee,
     price_per_night: listing.pricePerNight,
     rules: listing.rules,
+    house_rules: listing.houseRules?.trim() || null,
     cancellation_policy: listingCancellationPolicy(listing),
   };
 }

@@ -9,6 +9,8 @@ import {
 } from "@/lib/host-inbox-store";
 import { sanitizeBodyText, sanitizeGuestName, sanitizeOptionalEmail } from "@/lib/host-inbox-sanitize";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
+import { getLang } from "@/lib/i18n/server";
+import { translateIncoming } from "@/lib/listing-localize";
 import { getSessionUser } from "@/lib/session";
 import { notifyHostNewMessage } from "@/lib/push";
 
@@ -49,7 +51,7 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
   const guestId = sessionUser?.id;
   const reveal = Boolean(listing && guestId && shareABooking(listing.hostId, guestId));
   const hostLabel = listing ? nameForViewer(listing.hostId, reveal) || "Anfitrión" : "Anfitrión";
-  const messages = listThreadMerged(listingId, ids);
+  const messages = await translateIncoming(listThreadMerged(listingId, ids), "host", await getLang());
   return NextResponse.json({
     messages: messages.map((m) => {
       let guestLabel = m.guestName;
@@ -57,7 +59,7 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
       else if (m.guestSessionId.startsWith("gu_")) {
         guestLabel = nameForViewer(m.guestSessionId.slice(3), reveal) || m.guestName;
       }
-      return { id: m.id, sender: m.sender, body: m.body, createdAt: m.createdAt, guestLabel };
+      return { id: m.id, sender: m.sender, body: m.body, original: m.original, createdAt: m.createdAt, guestLabel };
     }),
   });
 }

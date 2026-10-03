@@ -15,7 +15,7 @@ export type HostThread = {
   guestName: string;
   guestEmail?: string;
   lastAt: string;
-  messages: { id: string; sender: "guest" | "host"; body: string; createdAt: string }[];
+  messages: { id: string; sender: "guest" | "host"; body: string; original?: string; createdAt: string }[];
 };
 
 export function hostThreadHref(t: { listingId: string; guestSessionId: string }) {

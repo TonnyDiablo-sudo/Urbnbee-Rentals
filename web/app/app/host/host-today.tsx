@@ -307,7 +307,7 @@ function AcceptSheet({
         .then(async (r) => {
           const j = await r.json().catch(() => ({}));
           if (cancelled) return;
-          if (Array.isArray(j.lines)) setLines(j.lines);
+          if (Array.isArray(j.lines)) setLines(Array.isArray(j.linesTranslated) ? j.linesTranslated : j.lines);
           else if (!r.ok) setLines((prev) => prev ?? []);
           setPreview(r.ok ? j : { error: typeof j.error === "string" ? j.error : "No se pudo cargar el contrato." });
           setAgree(false);

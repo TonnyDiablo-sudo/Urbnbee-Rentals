@@ -1,5 +1,6 @@
 "use client";
 
+import { ContractText } from "@/components/booking/contract-text";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PayDifference } from "@/components/booking/pay-difference";
@@ -25,6 +26,7 @@ type LookupBooking = {
     hostAcceptedAt?: string;
     guestAcceptedAt?: string;
     lines?: string[];
+    linesTranslated?: string[];
   };
 };
 
@@ -165,9 +167,11 @@ export function FinishBookingClient({ token }: { token: string }) {
               </a>
             </div>
           </div>
-          <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap rounded border bg-[#fafafa] p-3 text-xs leading-relaxed text-[#3a3a3a]" style={{ borderColor: "#ebebeb" }}>
-            {(booking.contract.lines ?? []).join("\n")}
-          </pre>
+          <ContractText
+            lines={booking.contract.lines ?? []}
+            translated={booking.contract.linesTranslated}
+            className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap rounded border bg-[#fafafa] p-3 text-xs leading-relaxed text-[#3a3a3a]"
+          />
           {booking.contract.accepted && (
             <p className="mt-2 text-xs text-green-800">{t("Ambas partes ya aceptaron este contrato.")}</p>
           )}

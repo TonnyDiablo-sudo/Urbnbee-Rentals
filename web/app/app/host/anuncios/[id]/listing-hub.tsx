@@ -484,6 +484,7 @@ function PanelBody({
     addressLine: listing.addressLine,
     locationPrecision: listing.locationPrecision ?? "approximate",
     rules: { ...listing.rules },
+    houseRules: listing.houseRules ?? "",
     bookingApprovalMode: listing.bookingApprovalMode,
     requireCreditCheck: listing.requireCreditCheck === true,
     creditCheckPayer: listing.creditCheckPayer === "host" ? "host" : "guest",
@@ -527,7 +528,7 @@ function PanelBody({
           locationPrecision: draft.locationPrecision,
         };
       case "rules":
-        return { rules: draft.rules, arrivalGuide: draft.arrival };
+        return { rules: draft.rules, houseRules: draft.houseRules.trim(), arrivalGuide: draft.arrival };
       case "booking":
         return {
           bookingApprovalMode: draft.bookingApprovalMode,
@@ -755,6 +756,20 @@ function PanelBody({
                 <TimeField label="Llegada desde" value={draft.arrival.checkInTime} onChange={(v) => setArrival("checkInTime", v)} />
                 <TimeField label="Salida antes de" value={draft.arrival.checkOutTime} onChange={(v) => setArrival("checkOutTime", v)} />
               </div>
+              <label className="block border-t border-[#f0f0f0] pt-5 text-sm font-medium text-[#222]">
+                {t("Otras reglas")}
+                <span className="block text-xs font-normal text-[#717171]">
+                  {t("Horas de silencio, visitas, uso de la alberca, basura… Se muestran en el anuncio y entran al contrato.")}
+                </span>
+                <textarea
+                  value={draft.houseRules}
+                  maxLength={2000}
+                  rows={6}
+                  onChange={(e) => set("houseRules", e.target.value)}
+                  placeholder={t("Ej.: Silencio de 22:00 a 8:00. No se permiten visitas después de las 21:00.")}
+                  className={inputCls}
+                />
+              </label>
             </>
           )}
 

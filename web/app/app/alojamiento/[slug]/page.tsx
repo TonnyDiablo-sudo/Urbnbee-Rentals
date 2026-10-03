@@ -8,7 +8,8 @@ import { discountRows } from "@/lib/listing-pricing";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { stripHostContactChannels } from "@/lib/host-contact-policy";
 import { UnclaimedNotice } from "@/components/listing/unclaimed-notice";
-import { getT } from "@/lib/i18n/server";
+import { getLang, getT } from "@/lib/i18n/server";
+import { localizeListingDetail } from "@/lib/listing-localize";
 import { isListingUnclaimed } from "@/lib/listing-claim-status";
 import { trackListingView } from "@/lib/listing-view-tracking";
 import { getListingById } from "@/lib/marketplace-store";
@@ -30,10 +31,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function AppListingPage({ params }: Props) {
   const { slug } = await params;
-  const listing = getListingDetail(slug);
-  if (!listing) notFound();
+  const found = getListingDetail(slug);
+  if (!found) notFound();
 
-  const t = await getT();
+  const [t, lang] = await Promise.all([getT(), getLang()]);
+  const listing = await localizeListingDetail(found, lang);
   const viewer = await getSessionUser();
   const record = getListingById(listing.id);
   const hostListing = Boolean(record?.published);
@@ -49,10 +51,10 @@ export default async function AppListingPage({ params }: Props) {
   const chatHref = viewer ? chatPath : `/cuenta/registro?next=${encodeURIComponent(chatPath)}`;
 
   const rules = [
-    { label: "Mascotas", v: listing.rules.pets },
-    { label: "Fumar", v: listing.rules.smoking },
-    { label: "Fiestas", v: listing.rules.parties },
-    { label: "Niños", v: listing.rules.children },
+    { icon: "🐾", label: "Mascotas", v: listing.rules.pets },
+    { icon: "🚬", label: "Fumar", v: listing.rules.smoking },
+    { icon: "🎉", label: "Fiestas y eventos", v: listing.rules.parties },
+    { icon: "👶", label: "Niños", v: listing.rules.children },
   ].filter((r) => r.v !== null);
 
   return (
@@ -187,24 +189,49 @@ export default async function AppListingPage({ params }: Props) {
           </Section>
         )}
 
-        {(rules.length > 0 || listing.checkInTime || listing.checkOutTime) && (
-          <Section title={t("Reglas de la casa")}>
-            {(listing.checkInTime || listing.checkOutTime) && (
-              <p className="mb-3 text-sm text-[#333]">
-                {listing.checkInTime ? t("Llegada desde las {time}", { time: listing.checkInTime }) : ""}
-                {listing.checkInTime && listing.checkOutTime ? " · " : ""}
-                {listing.checkOutTime ? t("Salida antes de las {time}", { time: listing.checkOutTime }) : ""}
-              </p>
+        <Section title={t("Reglas de la casa")}>
+          <ul className="divide-y divide-[#f0f0f0] overflow-hidden rounded-2xl border border-[#ebebeb]">
+            {listing.checkInTime && (
+              <RuleRow icon="🕒" label={t("Llegada")} value={t("Desde las {time}", { time: listing.checkInTime })} />
             )}
-            <ul className="grid grid-cols-2 gap-2 text-sm text-[#333]">
-              {rules.map((r) => (
-                <li key={r.label}>
-                  {r.v ? "✓" : "✗"} {t(r.label)} {r.v ? t("permitido") : t("no permitido")}
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
+            {listing.checkOutTime && (
+              <RuleRow icon="🧳" label={t("Salida")} value={t("Antes de las {time}", { time: listing.checkOutTime })} />
+            )}
+            <RuleRow icon="👥" label={t("Huéspedes")} value={t("Máximo {n}", { n: listing.guests })} />
+            {pricing?.minNights && pricing.minNights > 1 ? (
+              <RuleRow icon="🌙" label={t("Estancia mínima")} value={t("{n} noches", { n: pricing.minNights })} />
+            ) : null}
+            {pricing?.maxNights ? (
+              <RuleRow icon="📅" label={t("Estancia máxima")} value={t("{n} noches", { n: pricing.maxNights })} />
+            ) : null}
+            {rules.map((r) => (
+              <RuleRow
+                key={r.label}
+                icon={r.icon}
+                label={t(r.label)}
+                value={r.v ? t("Permitido") : t("No permitido")}
+                tone={r.v ? "yes" : "no"}
+              />
+            ))}
+            {listing.extras?.lateCheckIn && <RuleRow icon="🌃" label={t("Entrada tardía")} value={listing.extras.lateCheckIn} />}
+          </ul>
+          {listing.houseRules && (
+            <div className="mt-4 rounded-2xl bg-[#fafafa] px-4 py-3">
+              <p className="text-sm font-semibold text-[#222]">{t("Otras reglas del anfitrión")}</p>
+              <p className="mt-1 whitespace-pre-line text-[15px] leading-relaxed text-[#333]">{listing.houseRules}</p>
+            </div>
+          )}
+          {listing.extras?.cancellation && (
+            <p className="mt-3 text-sm text-[#484848]">
+              <span className="font-semibold">{t("Cancelación")}:</span> {listing.extras.cancellation}
+            </p>
+          )}
+          {bookable && (
+            <p className="mt-3 text-xs leading-relaxed text-[#888]">
+              {t("Estas reglas quedan en el contrato que firman al reservar.")}
+            </p>
+          )}
+        </Section>
 
         <Section title={t("Precio")}>
           <dl className="space-y-1.5 text-[15px] text-[#333]">
@@ -270,6 +297,27 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
       {title && <h2 className="mb-3 text-lg font-semibold text-[#222]">{title}</h2>}
       {children}
     </section>
+  );
+}
+
+function RuleRow({ icon, label, value, tone }: { icon: string; label: string; value: string; tone?: "yes" | "no" }) {
+  return (
+    <li className="flex items-center justify-between gap-3 px-4 py-3 text-[15px]">
+      <span className="flex min-w-0 items-center gap-3 text-[#222]">
+        <span className="w-6 shrink-0 text-center text-lg" aria-hidden>
+          {icon}
+        </span>
+        <span className="min-w-0">{label}</span>
+      </span>
+      <span
+        className={`shrink-0 text-right text-sm font-medium ${
+          tone === "yes" ? "text-[#1e7a3a]" : tone === "no" ? "text-[#b42318]" : "text-[#484848]"
+        }`}
+      >
+        {tone === "yes" ? "✓ " : tone === "no" ? "✗ " : ""}
+        {value}
+      </span>
+    </li>
   );
 }
 

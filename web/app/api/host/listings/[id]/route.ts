@@ -90,6 +90,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       children: body.rules.children ?? listing.rules.children,
     };
   }
+  if (body.houseRules !== undefined) patch.houseRules = String(body.houseRules ?? "").slice(0, 2000);
   if (typeof body.published === "boolean") patch.published = body.published;
 
   // La insignia de verificado no se autoasigna: la concede Stripe Identity o el equipo.

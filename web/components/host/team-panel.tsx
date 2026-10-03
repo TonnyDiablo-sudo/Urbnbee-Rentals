@@ -151,6 +151,12 @@ export function TeamPanel({ storeHref = "/tienda" }: { storeHref?: string }) {
 
   if (!data) return null;
   const { seats } = data;
+  const seatsLeft = Math.max(0, seats.paid - seats.used);
+  const draftNeedsSeat = draft.roles.some((r) => r !== "cleaning");
+  const draftNeedsCleaning = draft.roles.includes("cleaning") && !data.cleaningTool;
+  const blocked = (draftNeedsSeat && seatsLeft === 0) || draftNeedsCleaning || draft.roles.length === 0;
+  const seatHref = `${storeHref}#p-collaborator_seat`;
+  const cleaningHref = `${storeHref}#p-cleaning_tool`;
 
   return (
     <div className="space-y-6">
@@ -160,12 +166,24 @@ export function TeamPanel({ storeHref = "/tienda" }: { storeHref?: string }) {
           {seats.paid === 0
             ? t("Para que alguien acepte reservas o conteste mensajes necesitas asientos de colaborador.")
             : t("Usas {used} de {paid} asientos de colaborador.", { used: seats.used, paid: seats.paid })}{" "}
-          {!data.cleaningTool && t("El rol de limpieza viene con la herramienta de limpieza.")}{" "}
-          <a href={storeHref} className="font-semibold text-[#222] underline">
-            {t("Ir a la Tienda")}
-          </a>
+          {!data.cleaningTool && t("El rol de limpieza viene con la herramienta de limpieza.")}
         </p>
-        {editing && err && <p className="mt-2 text-sm text-red-700">{t(err)}</p>}
+        <a
+          href={seatHref}
+          className="mt-3 inline-block rounded-xl border border-[#222] px-4 py-2 text-sm font-semibold text-[#222]"
+        >
+          {seats.paid === 0 ? t("Comprar asiento de colaborador") : t("Comprar más asientos")}
+        </a>
+        {editing && err && (
+          <p className="mt-2 text-sm text-red-700">
+            {t(err)}{" "}
+            {/Tienda/.test(err) && (
+              <a href={/limpieza/i.test(err) ? cleaningHref : seatHref} className="font-semibold underline">
+                {t("Comprar")}
+              </a>
+            )}
+          </p>
+        )}
 
         {data.members.length === 0 ? (
           <p className="mt-4 text-sm text-[#888]">{t("Todavía no invitas a nadie.")}</p>
@@ -262,11 +280,36 @@ export function TeamPanel({ storeHref = "/tienda" }: { storeHref?: string }) {
         <div className="mt-4">
           <AccessEditor draft={draft} onChange={setDraft} listings={data.listings} />
         </div>
+        {draftNeedsSeat && seatsLeft === 0 && (
+          <div className="mt-4 rounded-xl bg-[#fdf6d8] p-4 text-sm text-[#5c4a0a]">
+            <p>
+              {seats.paid === 0
+                ? t("Para invitar a alguien que acepte reservas, firme contratos o conteste mensajes necesitas un asiento de colaborador pagado.")
+                : t("Ya usas todos tus asientos de colaborador ({paid}). Compra otro o quita a alguien del equipo.", { paid: seats.paid })}
+            </p>
+            <a href={seatHref} className="mt-3 inline-block rounded-xl bg-[#222] px-4 py-2 font-semibold text-white">
+              {seats.paid === 0 ? t("Comprar asiento de colaborador") : t("Comprar más asientos")}
+            </a>
+          </div>
+        )}
+        {draftNeedsCleaning && (
+          <div className="mt-4 rounded-xl bg-[#fdf6d8] p-4 text-sm text-[#5c4a0a]">
+            <p>{t("El rol de limpieza necesita la herramienta de limpieza.")}</p>
+            <a href={cleaningHref} className="mt-3 inline-block rounded-xl bg-[#222] px-4 py-2 font-semibold text-white">
+              {t("Comprar herramienta de limpieza")}
+            </a>
+          </div>
+        )}
+        {draftNeedsSeat && seatsLeft > 0 && (
+          <p className="mt-3 text-xs text-[#717171]">
+            {t(seatsLeft === 1 ? "Te queda {n} asiento de colaborador." : "Te quedan {n} asientos de colaborador.", { n: seatsLeft })}
+          </p>
+        )}
         {!editing && err && <p className="mt-3 text-sm text-red-700">{t(err)}</p>}
         {ok && <p className="mt-3 text-sm text-green-700">{t(ok)}</p>}
         <button
           type="submit"
-          disabled={busy || !email.trim()}
+          disabled={busy || !email.trim() || blocked}
           className="mt-4 rounded-xl bg-[#222] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
         >
           {busy ? t("Enviando…") : t("Enviar invitación")}

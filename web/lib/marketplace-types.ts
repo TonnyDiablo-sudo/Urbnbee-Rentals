@@ -105,6 +105,8 @@ export type HostListingRecord = {
   photos: string[];
   amenities: string[];
   rules: ListingDetail["rules"];
+  /** Reglas propias del anfitrión, en texto libre (públicas y en el contrato). */
+  houseRules?: string;
   blockedDates: string[];
   /** Platform badges — new host listings start unverified */
   verified: boolean;

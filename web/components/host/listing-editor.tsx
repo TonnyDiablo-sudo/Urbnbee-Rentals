@@ -1031,6 +1031,20 @@ export function ListingEditor({ listingId }: { listingId: string }) {
               onChange={(children) => saveListing({ rules: { ...listing.rules, children } })}
             />
           </div>
+          <Field label="Otras reglas">
+            <textarea
+              rows={5}
+              maxLength={2000}
+              className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+              value={listing.houseRules ?? ""}
+              placeholder={t("Ej.: Silencio de 22:00 a 8:00. No se permiten visitas después de las 21:00.")}
+              onChange={(e) => setListing({ ...listing, houseRules: e.target.value })}
+              onBlur={() => saveListing({ houseRules: (listing.houseRules ?? "").trim() })}
+            />
+            <p className="mt-1 text-xs text-[#888]">
+              {t("Horas de silencio, visitas, uso de la alberca, basura… Se muestran en el anuncio y entran al contrato.")}
+            </p>
+          </Field>
         </section>
       )}
 

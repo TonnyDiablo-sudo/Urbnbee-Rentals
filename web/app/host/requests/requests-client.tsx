@@ -298,7 +298,7 @@ function PendingActions({
       const res = await fetch(`/api/host/bookings/${booking.id}?${q}`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
       if (cancelled) return;
-      if (Array.isArray(data.lines)) setLines(data.lines);
+      if (Array.isArray(data.lines)) setLines(Array.isArray(data.linesTranslated) ? data.linesTranslated : data.lines);
       setPreview(res.ok ? data : { error: typeof data.error === "string" ? data.error : "No se pudo armar el contrato." });
       // Si cambian los términos, la firma anterior ya no aplica: hay que volver a revisar.
       setAcceptContract(false);
@@ -519,7 +519,7 @@ function HostContractText({ bookingId }: { bookingId: string }) {
     (async () => {
       const res = await fetch(`/api/host/bookings/${bookingId}`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
-      if (!cancelled && Array.isArray(data.lines)) setLines(data.lines);
+      if (!cancelled && Array.isArray(data.lines)) setLines(Array.isArray(data.linesTranslated) ? data.linesTranslated : data.lines);
     })();
     return () => {
       cancelled = true;

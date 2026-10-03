@@ -83,6 +83,8 @@ export type ListingDetail = {
     parties: boolean | null;
     children: boolean | null;
   };
+  /** Otras reglas que escribió el anfitrión. */
+  houseRules?: string;
   host: HostContact;
   reviews: Review[];
   extras?: {

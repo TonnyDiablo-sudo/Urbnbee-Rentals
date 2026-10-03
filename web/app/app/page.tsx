@@ -5,7 +5,8 @@ import { LangSwitch } from "@/components/lang-switch";
 import { FilterButton } from "@/components/browse/filter-button";
 import { APP_BROWSE_FILTERS, appBrowseListings, appPriceRange } from "@/lib/app-listings";
 import { activeFilterCount, parseBrowseFilters, writeBrowseFilters } from "@/lib/browse-filters";
-import { getT } from "@/lib/i18n/server";
+import { getLang, getT } from "@/lib/i18n/server";
+import { localizeCards } from "@/lib/listing-localize";
 import { getSessionUser } from "@/lib/session";
 import { IconSearch } from "./_components/icons";
 import { AppListingCardView } from "./_components/listing-card";
@@ -43,7 +44,7 @@ export default async function AppExplorePage({ searchParams }: Props) {
   const t = await getT();
   const mapView = vista === "mapa";
   const verifiedOnly = verif === "1";
-  const listings = appBrowseListings({ tipo, q, verifiedOnly, filters });
+  const listings = await localizeCards(appBrowseListings({ tipo, q, verifiedOnly, filters }), await getLang());
   const hrefWith = (next: { tipo?: string; vista?: string; verif?: boolean }) => {
     const p = new URLSearchParams();
     const nt = next.tipo ?? tipo;

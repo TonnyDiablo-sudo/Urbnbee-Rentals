@@ -18,7 +18,8 @@ import { discountRows } from "@/lib/listing-pricing";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { getSessionUser } from "@/lib/session";
 import { stripHostContactChannels } from "@/lib/host-contact-policy";
-import { getT } from "@/lib/i18n/server";
+import { getLang, getT } from "@/lib/i18n/server";
+import { localizeListingDetail } from "@/lib/listing-localize";
 import { UnclaimedNotice } from "@/components/listing/unclaimed-notice";
 import { isListingUnclaimed } from "@/lib/listing-claim-status";
 import { trackListingView } from "@/lib/listing-view-tracking";
@@ -32,10 +33,11 @@ type Props = {
 export default async function ListingDetailPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const q = await searchParams;
-  const listing = getListingDetail(slug);
-  if (!listing) notFound();
+  const found = getListingDetail(slug);
+  if (!found) notFound();
 
-  const t = await getT();
+  const [t, lang] = await Promise.all([getT(), getLang()]);
+  const listing = await localizeListingDetail(found, lang);
   const viewer = await getSessionUser();
   const canViewHostContacts = Boolean(viewer);
   const hostForUi = canViewHostContacts ? listing.host : stripHostContactChannels(listing.host);
@@ -208,6 +210,20 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                       </div>
                     ))}
                   </div>
+                  {(listing.checkInTime || listing.checkOutTime) && (
+                    <p className="mt-3 text-sm text-[#3a3a3a]">
+                      {listing.checkInTime ? `🕒 ${t("Llegada desde las {time}", { time: listing.checkInTime })}` : ""}
+                      {listing.checkInTime && listing.checkOutTime ? " · " : ""}
+                      {listing.checkOutTime ? `🧳 ${t("Salida antes de las {time}", { time: listing.checkOutTime })}` : ""}
+                    </p>
+                  )}
+                  <p className="mt-1 text-sm text-[#3a3a3a]">👥 {t("Máximo {n} huéspedes", { n: listing.guests })}</p>
+                  {listing.houseRules && (
+                    <div className="mt-4 rounded border p-4" style={{ borderColor: "#ebebeb" }}>
+                      <p className="text-sm font-semibold text-[#484848]">{t("Otras reglas del anfitrión")}</p>
+                      <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-[#3a3a3a]">{listing.houseRules}</p>
+                    </div>
+                  )}
                 </div>
               </section>
 

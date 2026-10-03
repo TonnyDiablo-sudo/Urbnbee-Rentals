@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { earningsRows, earningsSummary, earningsYears } from "@/lib/host-earnings-report";
 import type { TFn } from "@/lib/i18n";
 import { getListingStats, type ListingStats } from "@/lib/listing-stats-store";
 import { suggestionsForListing } from "@/lib/listing-suggestions";
@@ -38,6 +39,11 @@ export function HostStatsView({
     stats: getListingStats(l.id),
     suggestions: suggestionsForListing(l, surface),
   }));
+  const years = earningsYears(hostId);
+  const thisYear = new Date().getFullYear();
+  const reportYear = years[0] ?? thisYear;
+  const report = earningsSummary(earningsRows(hostId, reportYear));
+  const mxn = (n: number) => `$${n.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`;
   const total = rows.reduce(
     (acc, r) => ({ v30: acc.v30 + r.stats.views30, c30: acc.c30 + r.stats.contacts30 }),
     { v30: 0, c30: 0 }
@@ -55,6 +61,50 @@ export function HostStatsView({
           <p className="text-xs text-white/70">{t("vieron tu contacto en 30 días")}</p>
         </div>
       </div>
+
+      <section className="rounded-2xl border border-[#ebebeb] bg-white p-4">
+        <h2 className="text-[16px] font-semibold text-[#222]">{t("Ingresos y reporte para impuestos")}</h2>
+        <p className="mt-1 text-sm text-[#717171]">
+          {t("Reservas hechas con el motor de reservas, lo cobrado y las noches hospedadas. Te sirve para tu contador o si te lo pide el SAT o el IRS.")}
+        </p>
+        <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-xl bg-[#fafafa] p-3">
+            <dt className="text-xs text-[#888]">{t("Ingreso neto {year}", { year: reportYear })}</dt>
+            <dd className="mt-0.5 text-[15px] font-bold text-[#222]">{mxn(report.netMxn)}</dd>
+          </div>
+          <div className="rounded-xl bg-[#fafafa] p-3">
+            <dt className="text-xs text-[#888]">{t("Noches hospedadas")}</dt>
+            <dd className="mt-0.5 text-[15px] font-bold text-[#222]">{report.nights}</dd>
+          </div>
+          <div className="rounded-xl bg-[#fafafa] p-3">
+            <dt className="text-xs text-[#888]">{t("Reservas")}</dt>
+            <dd className="mt-0.5 text-[15px] font-bold text-[#222]">{report.bookings}</dd>
+          </div>
+        </dl>
+        <form action="/api/host/stats/bookings-csv" method="get" className="mt-3 flex flex-wrap items-center gap-2">
+          <select
+            name="year"
+            defaultValue={String(reportYear)}
+            aria-label={t("Año")}
+            className="rounded-xl border border-[#ddd] bg-white px-3 py-2 text-sm text-[#222]"
+          >
+            {[...new Set([thisYear, ...years])]
+              .sort((a, b) => b - a)
+              .map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            <option value="todas">{t("Todos los años")}</option>
+          </select>
+          <button type="submit" className="rounded-xl bg-[#222] px-4 py-2 text-sm font-semibold text-white">
+            {t("Descargar CSV")}
+          </button>
+        </form>
+        <p className="mt-2 text-xs text-[#999]">
+          {t("Se abre en Excel o Google Sheets. Los impuestos son los que configuraste en tus anuncios; confirma con tu contador.")}
+        </p>
+      </section>
 
       {rows.length === 0 && (
         <p className="py-10 text-center text-sm text-[#717171]">

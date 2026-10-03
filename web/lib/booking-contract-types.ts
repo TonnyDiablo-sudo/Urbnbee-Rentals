@@ -46,6 +46,8 @@ export type BookingContractSnapshot = {
   depositMxn: number;
   depositNote: string;
   extraClauses: string;
+  /** Reglas escritas por el anfitrión al momento de generar el contrato. */
+  houseRules?: string;
   rules: {
     smoking: boolean | null;
     pets: boolean | null;

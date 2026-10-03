@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getLang } from "@/lib/i18n/server";
+import { translatedContractLines } from "@/lib/listing-localize";
 import { getSessionUser } from "@/lib/session";
 import { refundBookingPayment } from "@/lib/booking-refunds";
 import {
@@ -130,13 +132,16 @@ export async function GET(
     });
   }
 
+  const lang = await getLang();
   if (booking.contract) {
+    const lines = [...contractPlainLines(booking.contract), ...paymentNoteLines(booking)];
     return NextResponse.json({
       generated: true,
       accepted: Boolean(booking.contract.hostAcceptedAt && booking.contract.guestAcceptedAt),
       hostAcceptedAt: booking.contract.hostAcceptedAt,
       guestAcceptedAt: booking.contract.guestAcceptedAt,
-      lines: [...contractPlainLines(booking.contract), ...paymentNoteLines(booking)],
+      lines,
+      linesTranslated: await translatedContractLines(lines, lang),
     });
   }
   const snapshot = buildContractSnapshot(booking);
@@ -150,11 +155,13 @@ export async function GET(
     snapshot,
     events: [] as [],
   };
+  const previewLines = contractPlainLines(preview);
   return NextResponse.json({
     generated: false,
     preview: true,
     accepted: false,
-    lines: contractPlainLines(preview),
+    lines: previewLines,
+    linesTranslated: await translatedContractLines(previewLines, lang),
   });
 }
 

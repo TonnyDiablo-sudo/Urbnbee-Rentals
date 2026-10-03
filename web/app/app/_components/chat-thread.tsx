@@ -1,5 +1,6 @@
 "use client";
 
+import { MessageBody } from "@/components/chat/message-body";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale, type Lang } from "@/lib/i18n";
@@ -7,7 +8,15 @@ import { IconSend } from "./icons";
 import { markThreadSeen } from "./seen";
 import { TopBar } from "./top-bar";
 
-export type ChatMessage = { id: string; sender: "guest" | "host"; body: string; createdAt: string; pending?: boolean };
+export type ChatMessage = {
+  id: string;
+  sender: "guest" | "host";
+  body: string;
+  /** Lo que escribió la persona, si `body` llegó traducido. */
+  original?: string;
+  createdAt: string;
+  pending?: boolean;
+};
 
 const POLL_MS = 8_000;
 
@@ -126,7 +135,7 @@ export function ChatThread({
                       mine ? "rounded-br-md bg-[#dcb81e] text-black" : "rounded-bl-md border border-[#ebebeb] bg-white text-[#222]"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                    <MessageBody body={m.body} original={m.original} className="whitespace-pre-wrap break-words" />
                     <p className={`mt-0.5 text-right text-[10px] ${mine ? "text-black/60" : "text-[#999]"}`}>
                       {m.pending ? t("Enviando…") : timeLabel(m.createdAt, lang)}
                     </p>

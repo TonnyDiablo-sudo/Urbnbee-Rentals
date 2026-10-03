@@ -145,6 +145,7 @@ export function buildContractSnapshot(
     depositMxn: settings.depositMxn,
     depositNote: contractDepositNote(),
     extraClauses: settings.extraClauses || template.defaultExtraClauses,
+    ...(listing.houseRules?.trim() ? { houseRules: listing.houseRules.trim() } : {}),
     rules: {
       smoking: listing.rules.smoking ?? null,
       pets: listing.rules.pets ?? null,
@@ -593,6 +594,7 @@ export function contractPlainLines(c: BookingContractRecord): string[] {
     `Mascotas: ${ruleLabel(s.rules.pets)}`,
     `Fiestas: ${ruleLabel(s.rules.parties)}`,
     `Niños: ${ruleLabel(s.rules.children)}`,
+    ...(s.houseRules ? ["Otras reglas del anfitrión:", s.houseRules] : []),
     "",
     "CANCELACIÓN",
     s.cancellationPolicy,

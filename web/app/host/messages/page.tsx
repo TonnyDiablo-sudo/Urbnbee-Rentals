@@ -1,11 +1,12 @@
 "use client";
 
+import { MessageBody } from "@/components/chat/message-body";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
 
-type Msg = { id: string; sender: "guest" | "host"; body: string; createdAt: string; guestName: string };
+type Msg = { id: string; sender: "guest" | "host"; body: string; original?: string; createdAt: string; guestName: string };
 
 type Thread = {
   listingId: string;
@@ -148,7 +149,7 @@ export default function HostMessagesPage() {
                             <span className="text-[10px] font-bold uppercase opacity-70">
                               {m.sender === "host" ? t("Tú") : m.guestName || t("Huésped")}
                             </span>
-                            <p className="mt-0.5 whitespace-pre-wrap">{m.body}</p>
+                            <MessageBody body={m.body} original={m.original} className="mt-0.5 whitespace-pre-wrap" />
                           </div>
                         </div>
                       ))}

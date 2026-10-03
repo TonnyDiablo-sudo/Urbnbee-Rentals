@@ -3,6 +3,8 @@ import { contractPlainLines, ensureBookingContract } from "@/lib/booking-contrac
 import { bookingBalanceDueMxn, paidStayOf } from "@/lib/booking-adjustments";
 import { applyBookingLifecycle } from "@/lib/booking-deposit";
 import { findBookingByToken } from "@/lib/bookings-store";
+import { getLang } from "@/lib/i18n/server";
+import { translatedContractLines } from "@/lib/listing-localize";
 import { getListingById } from "@/lib/marketplace-store";
 
 export async function GET(req: NextRequest) {
@@ -23,6 +25,8 @@ export async function GET(req: NextRequest) {
   const effListing = getListingById(effListingId);
   const dispIn = booking.hostAdjustedCheckIn ?? booking.checkIn;
   const dispOut = booking.hostAdjustedCheckOut ?? booking.checkOut;
+  const lines = booking.contract ? contractPlainLines(booking.contract) : [];
+  const linesTranslated = await translatedContractLines(lines, await getLang());
   return NextResponse.json({
     booking: {
       id: booking.id,
@@ -57,7 +61,8 @@ export async function GET(req: NextRequest) {
             guestAcceptedName: booking.contract.guestAcceptedName,
             acceptedSha256: booking.contract.acceptedSha256,
             templateTitle: booking.contract.snapshot.templateTitle,
-            lines: contractPlainLines(booking.contract),
+            lines,
+            linesTranslated,
           }
         : { generated: false, accepted: false },
     },

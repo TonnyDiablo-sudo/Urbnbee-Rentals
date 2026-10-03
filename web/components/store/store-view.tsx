@@ -58,6 +58,12 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
     return () => clearTimeout(id);
   }, [load]);
 
+  /** /tienda#p-collaborator_seat lleva directo al producto (las tarjetas cargan después). */
+  useEffect(() => {
+    if (!data || !window.location.hash.startsWith("#p-")) return;
+    document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [data]);
+
   const returnPath = "/tienda";
 
   const chosenTerm = (item: Item) =>
@@ -144,7 +150,7 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
             : t("se cobra cada mes")
           : t("pagas {total} cada {n} meses", { total: money(plan.amount * (item.unit ? q : 1), item.currency), n: plan.months });
     return (
-      <div key={item.family} className="rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
+      <div key={item.family} id={`p-${item.family}`} className="scroll-mt-20 rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[16px] font-semibold text-[#222]">{t(item.label)}</p>

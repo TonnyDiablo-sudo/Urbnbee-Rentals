@@ -4,6 +4,9 @@ import { memberCoversListing } from "@/lib/team-store";
 import { getSessionUser } from "@/lib/session";
 import { groupThreads } from "@/lib/host-inbox-store";
 import { nameForViewer, shareABooking } from "@/lib/display-name";
+import { translateTexts } from "@/lib/content-translate";
+import { getLang } from "@/lib/i18n/server";
+import { translateIncoming } from "@/lib/listing-localize";
 import { getListingById } from "@/lib/marketplace-store";
 
 export async function GET(req: NextRequest) {
@@ -25,17 +28,25 @@ export async function GET(req: NextRequest) {
       id: string;
       sender: "guest" | "host";
       body: string;
+      original?: string;
       createdAt: string;
       guestName: string;
     }[];
   };
 
   const threads: ThreadOut[] = [];
+  const lang = await getLang();
+  await translateTexts(
+    [...grouped.values()].flatMap((msgs) => msgs.filter((m) => m.sender === "guest").slice(-40).map((m) => m.body)),
+    lang,
+    { waitMs: 2500 }
+  );
 
-  for (const [key, msgs] of grouped.entries()) {
+  for (const [key, raw] of grouped.entries()) {
     const colon = key.indexOf(":");
     const listingId = colon === -1 ? key : key.slice(0, colon);
     if (scope.member && !memberCoversListing(scope.member, listingId)) continue;
+    const msgs = await translateIncoming(raw, "guest", lang, 0);
     const guestSessionId = colon === -1 ? "" : key.slice(colon + 1);
     const listing = getListingById(listingId);
     const firstGuest = msgs.find((m) => m.sender === "guest");
@@ -55,6 +66,7 @@ export async function GET(req: NextRequest) {
         id: m.id,
         sender: m.sender,
         body: m.body,
+        original: m.original,
         createdAt: m.createdAt,
         guestName: m.sender === "guest" ? guestName : "",
       })),

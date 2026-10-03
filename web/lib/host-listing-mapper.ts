@@ -104,6 +104,7 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
       ? record.amenities
       : ["Internet Inalámbrico", "Agua caliente", "Elementos básicos"],
     rules: record.rules,
+    houseRules: record.houseRules?.trim() || undefined,
     host,
     reviews: listingReviewsForPublic(record.id),
   };

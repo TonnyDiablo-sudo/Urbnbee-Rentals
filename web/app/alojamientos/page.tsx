@@ -9,7 +9,8 @@ import { activeFilterCount, matchesBrowseFilters, parseBrowseFilters, writeBrows
 import { matchesBrowseQuery } from "@/lib/browse-query";
 import { BROWSE_TITLES, getBrowseListings } from "@/lib/browse-merge";
 import { getListingDetail } from "@/lib/get-listing-detail";
-import { getT } from "@/lib/i18n/server";
+import { getLang, getT } from "@/lib/i18n/server";
+import { localizeCards } from "@/lib/listing-localize";
 import type { Listing } from "@/lib/mock-data";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -56,6 +57,7 @@ export default async function AlojamientosPage({ searchParams }: Props) {
       filters
     );
   });
+  items = await localizeCards(items, await getLang());
   const title = t((tipo && BROWSE_TITLES[tipo.toLowerCase()]) || "Alojamientos");
   const mapView = vista === "mapa";
   const mapItems = items.flatMap((l) => {
