@@ -5,6 +5,7 @@ import {
 } from "@/lib/booking-contract-templates";
 import { listingHasEngine } from "@/lib/booking-engine-slots";
 import { getHostPaymentPublic } from "@/lib/host-payment-store";
+import { exactAddressProblem, listingFullAddress } from "@/lib/listing-address";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 
 export const PARTNER_CURRENCY = "MXN";
@@ -25,6 +26,7 @@ export function listingCancellationPolicy(listing: HostListingRecord): string {
 export function listingPartnerView(listing: HostListingRecord) {
   const ag = listing.arrivalGuide ?? {};
   const p = listing.pricing ?? {};
+  const exactPublic = listing.locationPrecision === "exact";
   return {
     id: listing.id,
     slug: listing.slug,
@@ -36,7 +38,10 @@ export function listingPartnerView(listing: HostListingRecord) {
     zone: listing.zone,
     country: listing.country,
     address: {
+      /** Dirección exacta completa (calle, número, interior, colonia, ciudad…). */
+      full: listingFullAddress(listing) || null,
       line: listing.addressLine || null,
+      unit: listing.addressUnit?.trim() || null,
       zone: listing.zone || null,
       city: listing.city || null,
       county: listing.county || null,
@@ -44,8 +49,13 @@ export function listingPartnerView(listing: HostListingRecord) {
       country: listing.country || null,
       lat: Number.isFinite(listing.lat) ? listing.lat : null,
       lng: Number.isFinite(listing.lng) ? listing.lng : null,
-      /** approximate: la calle sólo se comparte con huéspedes que ya reservaron. */
-      public_precision: listing.locationPrecision ?? "approximate",
+      /** false: al anfitrión le falta completar la dirección exacta en Cabibee. */
+      complete: exactAddressProblem(listing) === null,
+      public_precision: exactPublic ? "exact" : "approximate",
+      /** Si es false, la calle, el número y el interior sólo se le dicen a un huésped con reserva confirmada. */
+      exact_address_public: exactPublic,
+      /** Lo que sí se puede decir a cualquiera cuando exact_address_public es false. */
+      approximate: [listing.zone, listing.city, listing.state].map((v) => (v ?? "").trim()).filter(Boolean).join(", ") || null,
     },
     published: listing.published,
     booking_approval_mode: listing.bookingApprovalMode ?? "approval",

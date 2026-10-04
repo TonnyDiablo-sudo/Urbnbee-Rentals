@@ -8,6 +8,7 @@ import { AMENITY_OPTIONS } from "@/lib/amenity-options";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
 import { getContractTemplate } from "@/lib/booking-contract-templates";
 import { COUNTRY_OPTIONS, isMexico, MX_STATE_LIST } from "@/lib/geo-places";
+import { exactAddressProblem, listingFullAddress, listingNeedsUnit } from "@/lib/listing-address";
 import { sizedImage } from "@/lib/image-url";
 import { taxActive, type HostTaxSettings } from "@/lib/stay-tax";
 import type { ListingCategory } from "@/lib/mock-data";
@@ -161,6 +162,7 @@ export function ListingHub({ listingId }: { listingId: string }) {
 
   const ag = listing.arrivalGuide ?? {};
   const p = listing.pricing ?? {};
+  const addressProblem = exactAddressProblem(listing);
   const category = CATEGORY_OPTIONS.find((c) => c.key === listing.categoryKey);
   const rulesSummary = [
     listing.rules.pets ? t("Mascotas") : null,
@@ -172,6 +174,11 @@ export function ListingHub({ listingId }: { listingId: string }) {
   const togglePublish = async () => {
     if (!listing.published && (listing.photos.length === 0 || !listing.city.trim() || listing.pricePerNight <= 0)) {
       setErr("Para publicar necesitas al menos una foto, la ciudad y un precio.");
+      return;
+    }
+    if (!listing.published && addressProblem) {
+      setErr(addressProblem);
+      setPanel("location");
       return;
     }
     setBusy(true);
@@ -300,7 +307,8 @@ export function ListingHub({ listingId }: { listingId: string }) {
           />
           <Row
             label={t("Ubicación")}
-            value={[listing.zone, listing.city, listing.state].filter(Boolean).join(", ") || t("Sin ciudad")}
+            value={addressProblem ? t(addressProblem) : listingFullAddress(listing) || t("Sin ciudad")}
+            warn={Boolean(addressProblem)}
             onClick={() => setPanel("location")}
           />
           <Row
@@ -450,12 +458,12 @@ export function ListingHub({ listingId }: { listingId: string }) {
   );
 }
 
-function Row({ label, value, onClick, href }: { label: string; value: string; onClick?: () => void; href?: string }) {
+function Row({ label, value, onClick, href, warn }: { label: string; value: string; onClick?: () => void; href?: string; warn?: boolean }) {
   const body = (
     <>
       <span className="min-w-0 flex-1">
         <span className="block text-[15px] font-medium text-[#222]">{label}</span>
-        <span className="mt-0.5 line-clamp-2 block text-sm text-[#717171]">{value}</span>
+        <span className={`mt-0.5 line-clamp-2 block text-sm ${warn ? "font-medium text-[#b42318]" : "text-[#717171]"}`}>{value}</span>
       </span>
       <IconChevron className="h-5 w-5 shrink-0 text-[#999]" />
     </>
@@ -526,6 +534,8 @@ function PanelBody({
     state: listing.state ?? "",
     country: listing.country,
     addressLine: listing.addressLine,
+    addressUnit: listing.addressUnit ?? "",
+    noAddressUnit: listing.noAddressUnit === true,
     locationPrecision: listing.locationPrecision ?? "approximate",
     rules: { ...listing.rules },
     houseRules: listing.houseRules ?? "",
@@ -570,7 +580,9 @@ function PanelBody({
           county: draft.county,
           state: draft.state,
           country: draft.country,
-          addressLine: draft.addressLine,
+          addressLine: draft.addressLine.trim(),
+          addressUnit: draft.noAddressUnit ? "" : draft.addressUnit.trim(),
+          noAddressUnit: draft.noAddressUnit,
           locationPrecision: draft.locationPrecision,
         };
       case "rules":
@@ -596,6 +608,13 @@ function PanelBody({
     if (id === "title" && draft.title.trim().length < 4) {
       setErr("El título necesita al menos 4 letras.");
       return;
+    }
+    if (id === "location" && listing.published) {
+      const problem = exactAddressProblem({ ...listing, ...draft, categoryKey: listing.categoryKey });
+      if (problem) {
+        setErr(problem);
+        return;
+      }
     }
     if (id === "faq" && draft.agentFaq.some((f) => f.q.trim() && !f.a.trim())) {
       setErr("Cada pregunta necesita su respuesta.");
@@ -760,10 +779,35 @@ function PanelBody({
                 {t("Colonia / zona")}
                 <input value={draft.zone} onChange={(e) => set("zone", e.target.value)} className={inputCls} />
               </label>
+              <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm leading-relaxed text-[#484848]">
+                {t("La dirección exacta siempre es obligatoria: va en el contrato, en la guía de llegada y la usa tu agente de IA. Tú eliges abajo qué ve el público antes de reservar.")}
+              </p>
               <label className="block text-sm font-medium text-[#222]">
-                {t("Calle, número y código postal")}
-                <input value={draft.addressLine} onChange={(e) => set("addressLine", e.target.value)} className={inputCls} autoComplete="street-address" />
+                {t("Calle, número exterior y código postal")}
+                <input
+                  value={draft.addressLine}
+                  onChange={(e) => set("addressLine", e.target.value)}
+                  placeholder={t("Ej.: Colima 123, CP 06700")}
+                  className={inputCls}
+                  autoComplete="street-address"
+                />
                 <span className="mt-1 block text-xs text-[#717171]">{t("Al guardar, el mapa se centra con esta dirección.")}</span>
+              </label>
+              <label className="block text-sm font-medium text-[#222]">
+                {t(listingNeedsUnit(listing) ? "Número interior o departamento" : "Número interior, depto o piso (si aplica)")}
+                <input
+                  value={draft.noAddressUnit ? "" : draft.addressUnit}
+                  disabled={draft.noAddressUnit}
+                  maxLength={60}
+                  onChange={(e) => set("addressUnit", e.target.value)}
+                  placeholder={t("Ej.: Depto 4B, Torre 2")}
+                  className={`${inputCls} disabled:bg-[#f2f2f2]`}
+                  autoComplete="address-line2"
+                />
+              </label>
+              <label className="flex items-center gap-3 text-sm text-[#222]">
+                <input type="checkbox" checked={draft.noAddressUnit} onChange={(e) => set("noAddressUnit", e.target.checked)} className="h-5 w-5" />
+                {t("No tiene número interior")}
               </label>
               <div className="space-y-2 rounded-xl border border-[#ebebeb] p-3">
                 <p className="text-sm font-semibold text-[#222]">{t("¿Qué ven los huéspedes antes de reservar?")}</p>

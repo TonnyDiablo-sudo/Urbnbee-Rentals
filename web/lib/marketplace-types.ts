@@ -81,7 +81,12 @@ export type HostListingRecord = {
   /** Estado / provincia. Los anuncios viejos lo infieren al cargar (lib/geo-places). */
   state?: string;
   country: string;
+  /** Calle, número exterior y código postal. Siempre exacta: el público sólo la ve si `locationPrecision` es exact. */
   addressLine: string;
+  /** Número interior, depto, piso o torre. */
+  addressUnit?: string;
+  /** El anfitrión confirmó que no hay número interior. */
+  noAddressUnit?: boolean;
   lat: number;
   lng: number;
   /** approximate (por defecto): el mapa público corre el punto y no muestra la calle. */

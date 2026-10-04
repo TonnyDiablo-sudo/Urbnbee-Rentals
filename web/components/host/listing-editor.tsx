@@ -15,6 +15,7 @@ import { ListingImportUsagePanel } from "@/components/host/listing-import-usage-
 import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
 import { useT } from "@/components/i18n-provider";
 import { COUNTRY_OPTIONS, isMexico, MX_STATE_LIST } from "@/lib/geo-places";
+import { exactAddressProblem, listingNeedsUnit } from "@/lib/listing-address";
 import { ContractReviewNotice } from "@/components/host/contract-review-notice";
 import { ContractTips, MIN_STAY_CLAUSE } from "@/components/host/contract-tips";
 
@@ -580,15 +581,46 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 onBlur={() => saveListing({ zone: listing.zone })}
               />
             </Field>
-            <Field label="Calle, número y código postal">
+            <Field label="Calle, número exterior y código postal">
               <input
                 className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
                 value={listing.addressLine}
+                placeholder={t("Ej.: Colima 123, CP 06700")}
                 onChange={(e) => setListing({ ...listing, addressLine: e.target.value })}
                 onBlur={() => saveListing({ addressLine: listing.addressLine })}
               />
             </Field>
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={listingNeedsUnit(listing) ? "Número interior o departamento" : "Número interior, depto o piso (si aplica)"}>
+              <input
+                className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e] disabled:bg-[#f2f2f2]"
+                value={listing.noAddressUnit ? "" : (listing.addressUnit ?? "")}
+                disabled={listing.noAddressUnit === true}
+                maxLength={60}
+                placeholder={t("Ej.: Depto 4B, Torre 2")}
+                onChange={(e) => setListing({ ...listing, addressUnit: e.target.value })}
+                onBlur={() => saveListing({ addressUnit: listing.addressUnit ?? "" })}
+              />
+            </Field>
+            <label className="flex items-center gap-2 self-end pb-2 text-sm text-[#484848]">
+              <input
+                type="checkbox"
+                checked={listing.noAddressUnit === true}
+                onChange={(e) => {
+                  setListing({ ...listing, noAddressUnit: e.target.checked });
+                  void saveListing({ noAddressUnit: e.target.checked, ...(e.target.checked ? { addressUnit: "" } : {}) });
+                }}
+              />
+              {t("No tiene número interior")}
+            </label>
+          </div>
+          {exactAddressProblem(listing) && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              {t(exactAddressProblem(listing)!)}{" "}
+              {t("La dirección exacta siempre es obligatoria: va en el contrato, en la guía de llegada y la usa tu agente de IA. Tú eliges abajo qué ve el público antes de reservar.")}
+            </p>
+          )}
 
           <fieldset className="rounded-xl border border-[#ebebeb] p-4">
             <legend className="px-1 text-sm font-semibold text-[#484848]">{t("¿Qué ven los huéspedes antes de reservar?")}</legend>

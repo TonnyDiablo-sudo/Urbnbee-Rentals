@@ -12,6 +12,7 @@ import {
   SEVERABILITY_CLAUSE,
   THIRD_PARTY_CLAUSE,
 } from "@/lib/contract-jurisdiction";
+import { listingFullAddress } from "@/lib/listing-address";
 import type {
   BookingContractActor,
   BookingContractEvent,
@@ -87,12 +88,7 @@ export function buildContractSnapshot(
   const taxMxn = booking.taxMxn ?? 0;
   const taxAdded = booking.taxIncluded ? 0 : taxMxn;
   const propertyAddress =
-    settings.propertyAddress ||
-    [listing.addressLine, listing.zone, listing.county, listing.city, listing.state, listing.country]
-      .filter(Boolean)
-      .filter((v, i, a) => a.indexOf(v) === i)
-      .join(", ") ||
-    `${listing.city || "—"}, ${listing.zone || "—"}`;
+    settings.propertyAddress || listingFullAddress(listing) || `${listing.city || "—"}, ${listing.zone || "—"}`;
   const maxGuests = Math.max(1, listing.guests || 1);
   const place = contractJurisdiction(
     { country: listing.country, state: listing.state, city: listing.city, municipality: listing.county },

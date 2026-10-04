@@ -11,6 +11,7 @@ import {
   getContractTemplate,
   type BookingContractTemplateId,
 } from "@/lib/booking-contract-templates";
+import { listingStreet } from "@/lib/listing-address";
 import { useCached } from "../../_components/cached-fetch";
 import { Sheet } from "../../_components/sheet";
 import { TopBar } from "../../_components/top-bar";
@@ -187,7 +188,7 @@ function ListingContractForm({
     setMsg({ ok: true, text: t("Aplicado a tus {n} anuncios.", { n: others.length + 1 }) });
   }
 
-  const propertyFallback = [listing.addressLine, listing.zone, listing.city, listing.state].filter(Boolean).join(", ");
+  const propertyFallback = [listingStreet(listing), listing.zone, listing.city, listing.state].filter(Boolean).join(", ");
 
   return (
     <div className="space-y-7 px-5 pt-6">

@@ -4,6 +4,7 @@ import { applyBookingLifecycle } from "@/lib/booking-deposit";
 import { listBookingsForGuest } from "@/lib/bookings-store";
 import { translateTexts } from "@/lib/content-translate";
 import { getLang } from "@/lib/i18n/server";
+import { listingFullAddress } from "@/lib/listing-address";
 import { getListingById } from "@/lib/marketplace-store";
 import { SCREENING_CONSENT_TEXT, screeningPublicView, screeningQuote } from "@/lib/screening-service";
 import { getScreeningByBooking } from "@/lib/screening-store";
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
       listingCity: stayListing?.city,
       arrival:
         confirmed && stayListing
-          ? { ...(stayListing.arrivalGuide ?? {}), address: [stayListing.addressLine, stayListing.zone, stayListing.county, stayListing.city, stayListing.state, stayListing.country].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(", ") }
+          ? { ...(stayListing.arrivalGuide ?? {}), address: listingFullAddress(stayListing) }
           : undefined,
       balanceDueMxn: bookingBalanceDueMxn(b),
       paidStayMxn: b.paidAt ? paidStayOf(b) : 0,

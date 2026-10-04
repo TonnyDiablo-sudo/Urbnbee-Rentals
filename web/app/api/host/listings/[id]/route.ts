@@ -9,6 +9,7 @@ import { getSessionUser } from "@/lib/session";
 import { deleteProofsForListing } from "@/lib/address-proof-store";
 import { sanitizeArrivalGuide } from "@/lib/arrival-guide";
 import { sanitizeListingContract } from "@/lib/booking-contract-templates";
+import { exactAddressProblem } from "@/lib/listing-address";
 import { sanitizeAgentFaq, sanitizeAgentNotes } from "@/lib/listing-agent-info";
 import { sanitizePricing } from "@/lib/listing-pricing";
 import type { HostListingRecord } from "@/lib/marketplace-types";
@@ -91,6 +92,8 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       children: body.rules.children ?? listing.rules.children,
     };
   }
+  if (body.addressUnit !== undefined) patch.addressUnit = String(body.addressUnit ?? "").trim().slice(0, 60);
+  if (typeof body.noAddressUnit === "boolean") patch.noAddressUnit = body.noAddressUnit;
   if (body.houseRules !== undefined) patch.houseRules = String(body.houseRules ?? "").slice(0, 2000);
   if (body.agentFaq !== undefined) patch.agentFaq = sanitizeAgentFaq(body.agentFaq);
   if (body.agentNotes !== undefined) patch.agentNotes = sanitizeAgentNotes(body.agentNotes);
@@ -125,6 +128,18 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
 
   if (body.regenerateSlug === true && body.title) {
     patch.slug = slugifyTitle(String(body.title));
+  }
+
+  const touchesAddress = ["addressLine", "addressUnit", "noAddressUnit"].some((k) => k in patch);
+  if (touchesAddress || patch.published === true) {
+    const merged = { ...listing, ...patch };
+    const problem = merged.published ? exactAddressProblem(merged) : null;
+    if (problem) {
+      return NextResponse.json(
+        { error: problem, code: "exact_address_required" },
+        { status: 400 }
+      );
+    }
   }
 
   const updated = updateListing(id, user.id, patch);
