@@ -1,7 +1,7 @@
 import type { Lang } from "@/lib/i18n";
 
 /** Al cambiar el texto de forma relevante, sube la versión: todos vuelven a aceptar. */
-export const TERMS_VERSION = "2026-10-03";
+export const TERMS_VERSION = "2026-10-04";
 
 export type TermsSection = { title: string; paragraphs: string[] };
 export type TermsDoc = { title: string; updated: string; intro: string; sections: TermsSection[] };
@@ -12,13 +12,14 @@ export function hasAcceptedTerms(user: { termsVersion?: string } | null | undefi
 
 const ES: TermsDoc = {
   title: "Términos y condiciones de uso de Cabibee",
-  updated: "Última actualización: 3 de octubre de 2026",
+  updated: "Última actualización: 4 de octubre de 2026",
   intro:
     "Estos Términos y condiciones (los «Términos») regulan el uso del sitio web, la aplicación y los servicios de Cabibee (en conjunto, la «Plataforma»). Al crear una cuenta, reclamar una cuenta creada a tu nombre o seguir usando la Plataforma, aceptas estos Términos de forma electrónica. Si no estás de acuerdo, no uses la Plataforma.",
   sections: [
     {
       title: "1. Qué es Cabibee",
       paragraphs: [
+        "Cabibee es propiedad de Urbnbee LLC, una sociedad de responsabilidad limitada constituida en el estado de Nevada, Estados Unidos, que la opera. En estos Términos, «Cabibee» también se refiere a Urbnbee LLC.",
         "Cabibee es una plataforma tecnológica que permite a anfitriones publicar alojamientos y a huéspedes encontrarlos y contactarlos. También ofrece herramientas opcionales, como plantillas de contrato, firma electrónica, motor de reservas, cobro, verificación de identidad y domicilio, y gestión de limpieza.",
         "Cabibee no es propietario, arrendador, arrendatario, administrador, agente inmobiliario, corredor, aseguradora ni representante de ningún usuario, y no presta servicios de hospedaje.",
       ],
@@ -101,7 +102,7 @@ const ES: TermsDoc = {
       title: "13. Ley aplicable y controversias con Cabibee",
       paragraphs: [
         "Si resides en México, estos Términos se rigen por las leyes federales de los Estados Unidos Mexicanos y te sometes a los tribunales competentes de la Ciudad de México, sin perjuicio de los derechos que te otorga la Procuraduría Federal del Consumidor.",
-        "Si resides en Estados Unidos, estos Términos se rigen por las leyes del estado de Texas, sin considerar sus normas de conflicto de leyes. Antes de demandar, ambas partes intentarán resolver la controversia de buena fe durante 30 días. Las controversias se resolverán de manera individual, no como demanda colectiva, ante el tribunal competente o el tribunal de reclamos menores de tu condado.",
+        "Si resides en Estados Unidos, estos Términos se rigen por las leyes del estado de Nevada, sin considerar sus normas de conflicto de leyes. Antes de demandar, ambas partes intentarán resolver la controversia de buena fe durante 30 días. Las controversias se resolverán de manera individual, no como demanda colectiva, ante el tribunal competente o el tribunal de reclamos menores de tu condado.",
       ],
     },
     {
@@ -122,13 +123,14 @@ const ES: TermsDoc = {
 
 const EN: TermsDoc = {
   title: "Cabibee Terms of Use",
-  updated: "Last updated: October 3, 2026",
+  updated: "Last updated: October 4, 2026",
   intro:
     "These Terms of Use (the \"Terms\") govern your use of the Cabibee website, app and services (together, the \"Platform\"). By creating an account, claiming an account created in your name, or continuing to use the Platform, you accept these Terms electronically. If you do not agree, do not use the Platform.",
   sections: [
     {
       title: "1. What Cabibee is",
       paragraphs: [
+        "Cabibee is owned and operated by Urbnbee LLC, a limited liability company organized under the laws of the State of Nevada, United States. In these Terms, \"Cabibee\" also refers to Urbnbee LLC.",
         "Cabibee is a technology platform that lets hosts list places to stay and lets guests find and contact them. It also offers optional tools such as contract templates, electronic signature, a booking engine, payments, identity and address verification, and cleaning management.",
         "Cabibee is not an owner, landlord, tenant, property manager, real estate agent, broker, insurer or representative of any user, and it does not provide lodging services.",
       ],
@@ -211,7 +213,7 @@ const EN: TermsDoc = {
       title: "13. Governing law and disputes with Cabibee",
       paragraphs: [
         "If you reside in Mexico, these Terms are governed by the federal laws of the United Mexican States and you submit to the competent courts of Mexico City, without prejudice to your rights before the Federal Consumer Protection Agency (PROFECO).",
-        "If you reside in the United States, these Terms are governed by the laws of the State of Texas, without regard to its conflict-of-law rules. Before filing a claim, both parties will try in good faith to resolve the dispute for 30 days. Disputes will be resolved on an individual basis, not as a class action, before the competent court or the small claims court of your county.",
+        "If you reside in the United States, these Terms are governed by the laws of the State of Nevada, without regard to its conflict-of-law rules. Before filing a claim, both parties will try in good faith to resolve the dispute for 30 days. Disputes will be resolved on an individual basis, not as a class action, before the competent court or the small claims court of your county.",
       ],
     },
     {
