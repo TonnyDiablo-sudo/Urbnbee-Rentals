@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
-import { chatAiPartnerView, chatMessagePartnerView } from "@/lib/beeagent-chat-bridge";
+import { botCanThread, chatAiPartnerView, chatMessagePartnerView, threadCounterpartView } from "@/lib/beeagent-chat-bridge";
 import { partnerJson } from "@/lib/beeagent-partner";
-import { requirePartnerLinkedHost } from "@/lib/beeagent-require-link";
+import { requirePartnerLinkedHost, THREAD_PERMISSIONS } from "@/lib/beeagent-require-link";
 import { cabibeeConversationKey, getChatAi } from "@/lib/chat-ai-settings";
 import { groupThreads } from "@/lib/host-inbox-store";
 import { getListingById } from "@/lib/marketplace-store";
@@ -13,7 +13,7 @@ type Ctx = { params: Promise<{ hostId: string }> };
 /** Conversaciones del chat de los anuncios del anfitrión, la más reciente primero. ?since= (ISO) filtra por actividad. */
 export async function GET(req: NextRequest, ctx: Ctx) {
   const { hostId } = await ctx.params;
-  const gate = requirePartnerLinkedHost(req, hostId, "messages");
+  const gate = requirePartnerLinkedHost(req, hostId, THREAD_PERMISSIONS);
   if (!gate.ok) return gate.response;
 
   const since = req.nextUrl.searchParams.get("since")?.trim() ?? "";
@@ -22,6 +22,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     const last = msgs[msgs.length - 1];
     if (!last || (since && last.createdAt <= since)) continue;
     const { listingId, guestSessionId } = last;
+    if (!botCanThread(hostId, guestSessionId)) continue;
     const firstGuest = msgs.find((m) => m.sender === "guest");
     out.push({
       conversation_key: cabibeeConversationKey(listingId, guestSessionId),
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       listing_title: getListingById(listingId)?.title ?? null,
       guest_session_id: guestSessionId,
       guest_name: firstGuest?.guestName ?? null,
+      ...threadCounterpartView(hostId, guestSessionId),
       message_count: msgs.length,
       last_message: chatMessagePartnerView(last),
       ...chatAiPartnerView(getChatAi(hostId, listingId, guestSessionId)),

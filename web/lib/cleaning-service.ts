@@ -131,6 +131,10 @@ export function syncCleaningForHost(hostId: string) {
     const date = dayOf(b.checkOut);
     const nextCheckIn = nextArrival(bookings, listingId, date, b.id);
     if (existing) {
+      if (existing.status === "pending" && existing.dateLocked) {
+        if (existing.nextCheckIn !== nextCheckIn) updateCleaningTask(existing.id, { nextCheckIn });
+        continue;
+      }
       if (existing.status === "pending" && (existing.date !== date || existing.nextCheckIn !== nextCheckIn)) {
         const moved = existing.date !== date;
         const t = updateCleaningTask(existing.id, { date, nextCheckIn, ...(moved ? { remindedAt: undefined } : {}) });
@@ -219,7 +223,8 @@ function taskView(t: CleaningTask) {
     listingId: t.listingId,
     listingTitle: listingTitle(t.listingId),
     date: t.date,
-    dateLabel: formatCleaningDay(t.date),
+    dateLabel: formatCleaningDay(t.date) + (t.time ? ` · ${t.time}` : ""),
+    time: t.time ?? null,
     nextCheckIn: t.nextCheckIn,
     nextCheckInLabel: t.nextCheckIn ? formatCleaningDay(t.nextCheckIn) : undefined,
     guestName: t.guestName,
@@ -321,6 +326,37 @@ export function assignCleaningTask(hostId: string, taskId: string, assignee: str
   const next = updateCleaningTask(taskId, { assignee: a, remindedAt: undefined });
   if (next && a && a !== "host") {
     notify(next, "Te asignaron una limpieza", `${listingTitle(next.listingId)} · ${formatCleaningDay(next.date)}.`);
+  }
+  return { ok: true };
+}
+
+/** Cambiar el día o la hora de una limpieza pendiente; se le avisa a quien limpia. */
+export function rescheduleCleaning(hostId: string, taskId: string, input: { date?: unknown; time?: unknown }): Result {
+  const t = getCleaningTask(taskId);
+  if (!t || t.hostId !== hostId) return { ok: false, error: "No encontrado.", status: 404 };
+  if (t.status !== "pending") return { ok: false, error: "La limpieza ya está cerrada.", status: 409 };
+  const patch: Partial<CleaningTask> = {};
+  if (input.date !== undefined) {
+    if (typeof input.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+      return { ok: false, error: "La fecha debe ser AAAA-MM-DD.", status: 400 };
+    }
+    if (input.date < analyticsDayKey()) return { ok: false, error: "La fecha ya pasó.", status: 400 };
+    if (input.date !== t.date) Object.assign(patch, { date: input.date, dateLocked: true, remindedAt: undefined });
+  }
+  if (input.time !== undefined) {
+    if (input.time !== null && (typeof input.time !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time))) {
+      return { ok: false, error: "La hora debe ser HH:MM.", status: 400 };
+    }
+    if ((input.time || undefined) !== t.time) patch.time = (input.time as string | null) || undefined;
+  }
+  if (Object.keys(patch).length === 0) return { ok: true };
+  const next = updateCleaningTask(taskId, patch);
+  if (next) {
+    notify(
+      next,
+      "Cambió una limpieza",
+      `${listingTitle(next.listingId)}: ahora es el ${formatCleaningDay(next.date)}${next.time ? ` a las ${next.time}` : ""}.`
+    );
   }
   return { ok: true };
 }

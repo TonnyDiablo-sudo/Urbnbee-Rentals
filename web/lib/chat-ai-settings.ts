@@ -4,6 +4,7 @@ import { join } from "path";
 import { getBeeagentAgentStatus } from "@/lib/beeagent-agent-status";
 import { getBeeagentLinkForHost } from "@/lib/beeagent-host-link-store";
 import { botCan } from "@/lib/beeagent-permissions";
+import { threadPermission } from "@/lib/cleaning-thread";
 import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
@@ -65,8 +66,10 @@ export function parseCabibeeConversationKey(key: string): { listingId: string; g
   return m ? { listingId: m[1], guestSessionId: m[2] } : null;
 }
 
-export function chatAiAvailable(hostId: string): boolean {
-  return Boolean(getBeeagentLinkForHost(hostId) && getBeeagentAgentStatus(hostId)?.active && botCan(hostId, "messages"));
+/** Sin hilo: el chat con huéspedes. Los hilos con el equipo de limpieza dependen de «Coordinar limpiezas». */
+export function chatAiAvailable(hostId: string, guestSessionId?: string): boolean {
+  const permission = guestSessionId ? threadPermission(hostId, guestSessionId) : "messages";
+  return Boolean(getBeeagentLinkForHost(hostId) && getBeeagentAgentStatus(hostId)?.active && botCan(hostId, permission));
 }
 
 export function chatChannelReady(hostId: string): boolean {
@@ -88,7 +91,7 @@ export function setChatChannel(hostId: string, enabled: boolean): ChannelState {
 
 export function getChatAi(hostId: string, listingId: string, guestSessionId: string): ChatAiState {
   load();
-  const available = chatAiAvailable(hostId);
+  const available = chatAiAvailable(hostId, guestSessionId);
   const row = conversations[cabibeeConversationKey(listingId, guestSessionId)];
   const enabled = available && (row ? row.enabled : chatChannelReady(hostId));
   return { available, enabled, updatedAt: row?.updatedAt ?? null };

@@ -7,7 +7,8 @@ export type BotPermission =
   | "bookings_decide"
   | "contracts_sign"
   | "cleanings_view"
-  | "cleanings_manage";
+  | "cleanings_manage"
+  | "cleanings_coordinate";
 
 export type BotPermissions = Record<BotPermission, boolean>;
 
@@ -61,7 +62,13 @@ export const BOT_PERMISSION_DEFS: {
   {
     key: "cleanings_manage",
     label: "Organizar limpiezas",
-    hint: "Asignar a tu equipo, agregar, marcar como hechas o cancelar.",
+    hint: "Asignar a tu equipo, agregar, cambiar fecha u hora, elegir quién limpia cada anuncio, marcar como hechas o cancelar.",
+    needs: "cleanings_view",
+  },
+  {
+    key: "cleanings_coordinate",
+    label: "Coordinar con tu equipo de limpieza",
+    hint: "Le escribe a quien limpia para confirmar el horario, avisar cambios o pedir fotos, y lee sus respuestas.",
     needs: "cleanings_view",
   },
 ];
@@ -78,6 +85,7 @@ export const DEFAULT_BOT_PERMISSIONS: BotPermissions = {
   contracts_sign: false,
   cleanings_view: true,
   cleanings_manage: false,
+  cleanings_coordinate: false,
 };
 
 export function sanitizeBotPermissions(raw: unknown, base: BotPermissions = DEFAULT_BOT_PERMISSIONS): BotPermissions {

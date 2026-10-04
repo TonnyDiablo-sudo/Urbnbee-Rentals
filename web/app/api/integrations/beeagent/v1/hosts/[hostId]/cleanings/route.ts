@@ -3,7 +3,7 @@ import { isIsoDate } from "@/lib/beeagent-iso-date";
 import { partnerJson } from "@/lib/beeagent-partner";
 import { requirePartnerLinkedHost } from "@/lib/beeagent-require-link";
 import { partnerIdempotentJson } from "@/lib/beeagent-route-helpers";
-import { cleanersPartnerView, cleaningPartnerView } from "@/lib/beeagent-cleanings";
+import { cleaningPartnerView, cleaningTeamPartnerView } from "@/lib/beeagent-cleanings";
 import { addManualCleaning } from "@/lib/cleaning-service";
 import { listCleaningTasksForHost } from "@/lib/cleaning-store";
 
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       host_id: hostId,
       count: rows.length,
       cleanings: rows.map(cleaningPartnerView),
-      cleaners: cleanersPartnerView(hostId),
+      ...cleaningTeamPartnerView(hostId),
     },
     req
   );

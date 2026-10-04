@@ -30,6 +30,10 @@ export type CleaningTask = {
   bookingId?: string;
   /** Día de la limpieza (YYYY-MM-DD, hora de México): el día de salida. */
   date: string;
+  /** Hora acordada con quien limpia (HH:MM), si la hay. */
+  time?: string;
+  /** Se movió a mano: ya no sigue la fecha de salida de la reserva. */
+  dateLocked?: boolean;
   /** Próxima llegada al mismo anuncio, para saber cuánto tiempo hay. */
   nextCheckIn?: string;
   guestName?: string;

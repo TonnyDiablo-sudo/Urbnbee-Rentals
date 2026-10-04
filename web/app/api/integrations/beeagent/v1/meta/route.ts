@@ -131,6 +131,21 @@ export async function GET(req: NextRequest) {
           path: `${root}/v1/hosts/:hostId/cleanings/:cleaningId`,
           auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
           permission: "cleanings_manage",
+          note: "{status?, note?, assignee_id?, date?, time?}",
+        },
+        hostCleaningListing: {
+          method: "PATCH",
+          path: `${root}/v1/hosts/:hostId/cleanings/listings/:listingId`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+          permission: "cleanings_manage",
+          note: "{default_cleaner_id}",
+        },
+        hostCleaningMessage: {
+          method: "POST",
+          path: `${root}/v1/hosts/:hostId/cleanings/:cleaningId/message`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+          permission: "cleanings_coordinate",
+          note: "Escribe a quien tiene asignada la limpieza. Sus respuestas llegan como message.created con counterpart: cleaning_team.",
         },
         bookingAccept: {
           method: "POST",

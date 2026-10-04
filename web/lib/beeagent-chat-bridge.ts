@@ -2,6 +2,7 @@ import "server-only";
 import { getBeeagentLinkForHost } from "@/lib/beeagent-host-link-store";
 import { enqueueChatOutbound } from "@/lib/beeagent-outbound";
 import { botCan } from "@/lib/beeagent-permissions";
+import { cleaningMemberForThread, threadPermission } from "@/lib/cleaning-thread";
 import { cabibeeConversationKey, getChatAi, type ChatAiState } from "@/lib/chat-ai-settings";
 import { listThread } from "@/lib/host-inbox-store";
 import type { HostInboxMessageRecord } from "@/lib/host-inbox-types";
@@ -38,13 +39,27 @@ export function chatAiPartnerView(state: ChatAiState) {
   return { available: state.available, ai_replies_enabled: state.enabled, updated_at: state.updatedAt };
 }
 
+/** Con quién es el hilo: un huésped o alguien del equipo de limpieza. */
+export function threadCounterpartView(hostId: string, guestSessionId: string) {
+  const member = cleaningMemberForThread(hostId, guestSessionId);
+  return member
+    ? { counterpart: "cleaning_team" as const, team_member_id: member.id }
+    : { counterpart: "guest" as const, team_member_id: null };
+}
+
+/** El agente puede ver ese hilo con los permisos que le dio el anfitrión. */
+export function botCanThread(hostId: string, guestSessionId: string): boolean {
+  return botCan(hostId, threadPermission(hostId, guestSessionId));
+}
+
 /** Manda a la central de chat de urbnbeeai cada mensaje del chat de un anuncio cuyo anfitrión está vinculado. */
 export function bridgeChatMessage(m: HostInboxMessageRecord): void {
-  if (!getBeeagentLinkForHost(m.hostId) || !botCan(m.hostId, "messages")) return;
+  if (!getBeeagentLinkForHost(m.hostId) || !botCanThread(m.hostId, m.guestSessionId)) return;
   const ai = getChatAi(m.hostId, m.listingId, m.guestSessionId);
   enqueueChatOutbound("message.created", m.hostId, cabibeeConversationKey(m.listingId, m.guestSessionId), {
     listing_id: m.listingId,
     guest_session_id: m.guestSessionId,
+    ...threadCounterpartView(m.hostId, m.guestSessionId),
     message: chatMessagePartnerView(m),
     ...chatAiPartnerView(ai),
   });
@@ -60,10 +75,11 @@ export function resolvePartnerConversation(hostId: string, listingId: string, gu
 }
 
 export function bridgeChatAiChanged(hostId: string, listingId: string, guestSessionId: string, state: ChatAiState): void {
-  if (!botCan(hostId, "messages")) return;
+  if (!botCanThread(hostId, guestSessionId)) return;
   enqueueChatOutbound("conversation.ai_changed", hostId, cabibeeConversationKey(listingId, guestSessionId), {
     listing_id: listingId,
     guest_session_id: guestSessionId,
+    ...threadCounterpartView(hostId, guestSessionId),
     changed_by: "host",
     ...chatAiPartnerView(state),
   });

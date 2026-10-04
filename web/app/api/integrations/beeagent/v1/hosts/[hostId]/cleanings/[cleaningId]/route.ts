@@ -3,7 +3,7 @@ import { cleaningPartnerView } from "@/lib/beeagent-cleanings";
 import { partnerJson } from "@/lib/beeagent-partner";
 import { requirePartnerLinkedHost } from "@/lib/beeagent-require-link";
 import { partnerIdempotentJson } from "@/lib/beeagent-route-helpers";
-import { assignCleaningTask, updateCleaningByActor } from "@/lib/cleaning-service";
+import { assignCleaningTask, rescheduleCleaning, updateCleaningByActor } from "@/lib/cleaning-service";
 import { getCleaningTask } from "@/lib/cleaning-store";
 
 export const runtime = "nodejs";
@@ -11,7 +11,8 @@ export const runtime = "nodejs";
 type Ctx = { params: Promise<{ hostId: string; cleaningId: string }> };
 
 /**
- * Organizar una limpieza: {status?: "done"|"pending"|"cancelled", note?, assignee_id?: "host"|id|null}.
+ * Organizar una limpieza: {status?: "done"|"pending"|"cancelled", note?, assignee_id?: "host"|id|null,
+ * date?: "YYYY-MM-DD", time?: "HH:MM"|null}.
  * Permiso `cleanings_manage`.
  */
 export async function PATCH(req: NextRequest, ctx: Ctx) {
@@ -28,6 +29,10 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
         return { status: 409, body: { error: "La limpieza ya está cerrada.", code: "closed" } };
       }
       const r = assignCleaningTask(hostId, cleaningId, body.assignee_id || null);
+      if (!r.ok) return { status: r.status, body: { error: r.error } };
+    }
+    if (body.date !== undefined || body.time !== undefined) {
+      const r = rescheduleCleaning(hostId, cleaningId, { date: body.date, time: body.time });
       if (!r.ok) return { status: r.status, body: { error: r.error } };
     }
     const status = typeof body.status === "string" ? body.status : "";

@@ -16,6 +16,7 @@ import {
 } from "@/lib/beeagent-partner";
 import type { BotPermission } from "@/lib/beeagent-permission-defs";
 import { botCan } from "@/lib/beeagent-permissions";
+import { threadPermission } from "@/lib/cleaning-thread";
 
 export type PartnerLinkOk = {
   ok: true;
@@ -89,6 +90,19 @@ export function requirePartnerLinkedHost(
     }
   }
   return { ok: true, customerId, link: byHost };
+}
+
+/** Los hilos con huéspedes piden «messages»; los hilos con el equipo de limpieza, «cleanings_coordinate». */
+export const THREAD_PERMISSIONS: BotPermission[] = ["messages", "cleanings_coordinate"];
+
+export function partnerThreadDenied(req: NextRequest, hostId: string, guestSessionId: string): NextResponse | null {
+  const permission = threadPermission(hostId, guestSessionId);
+  if (botCan(hostId, permission)) return null;
+  return partnerJson(
+    { error: "El anfitrión no le dio permiso a urbnbeeai para esto.", code: "permission_denied", permission },
+    req,
+    { status: 403 }
+  );
 }
 
 /** Con sólo «Mandar ligas», el agente ve únicamente las reservas que nacieron de sus ligas. */
