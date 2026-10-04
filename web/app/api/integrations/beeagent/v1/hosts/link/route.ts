@@ -7,6 +7,7 @@ import {
 } from "@/lib/beeagent-partner";
 import { linkHostByBeeagentCode } from "@/lib/beeagent-host-provision";
 import { partnerIdempotentJsonAsync } from "@/lib/beeagent-route-helpers";
+import { getBotPermissions } from "@/lib/beeagent-permissions";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,6 @@ export async function POST(req: NextRequest) {
       return { status: result.status, body: { error: result.error } };
     }
     const { host_id, display_name, listings_count } = result;
-    return { status: 200, body: { host_id, display_name, listings_count } };
+    return { status: 200, body: { host_id, display_name, listings_count, permissions: getBotPermissions(host_id) } };
   });
 }

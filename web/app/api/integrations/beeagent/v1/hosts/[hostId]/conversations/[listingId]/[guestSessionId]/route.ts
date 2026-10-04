@@ -10,7 +10,7 @@ type Ctx = { params: Promise<{ hostId: string; listingId: string; guestSessionId
 
 export async function GET(req: NextRequest, ctx: Ctx) {
   const { hostId, listingId, guestSessionId } = await ctx.params;
-  const gate = requirePartnerLinkedHost(req, hostId);
+  const gate = requirePartnerLinkedHost(req, hostId, "messages");
   if (!gate.ok) return gate.response;
   const conv = resolvePartnerConversation(hostId, listingId, guestSessionId);
   if (!conv) return partnerJson({ error: "Conversación no encontrada.", code: "not_found" }, req, { status: 404 });

@@ -1,5 +1,8 @@
 import { parseAllowedConnectReturnUrl } from "@/lib/beeagent-partner";
+import { DEFAULT_BOT_PERMISSIONS } from "@/lib/beeagent-permission-defs";
+import { getBotPermissions } from "@/lib/beeagent-permissions";
 import { getT } from "@/lib/i18n/server";
+import { getSessionUser } from "@/lib/session";
 import { ConnectClient } from "./connect-client";
 
 export default async function ConnectBeeagentPage({
@@ -26,5 +29,12 @@ export default async function ConnectBeeagentPage({
     );
   }
 
-  return <ConnectClient returnUrl={dest.toString()} state={typeof q.state === "string" ? q.state : ""} />;
+  const user = await getSessionUser();
+  return (
+    <ConnectClient
+      returnUrl={dest.toString()}
+      state={typeof q.state === "string" ? q.state : ""}
+      initialPermissions={user ? getBotPermissions(user.id) : DEFAULT_BOT_PERMISSIONS}
+    />
+  );;
 }

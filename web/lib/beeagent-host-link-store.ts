@@ -2,6 +2,7 @@ import "server-only";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
+import { clearBotPermissions } from "@/lib/beeagent-permissions";
 import { replaceBeeagentLinks, scheduleMysql } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
@@ -199,6 +200,7 @@ export function deleteBeeagentHostLink(hostId: string): BeeagentHostLinkRecord |
   }
   pendingProvisionsByHostId.delete(hostId);
   persist();
+  if (prev) clearBotPermissions(hostId);
   return prev;
 }
 

@@ -13,7 +13,7 @@ type Ctx = { params: Promise<{ hostId: string }> };
 
 export async function GET(req: NextRequest, ctx: Ctx) {
   const { hostId } = await ctx.params;
-  const gate = requirePartnerLinkedHost(req, hostId);
+  const gate = requirePartnerLinkedHost(req, hostId, "bookings_view");
   if (!gate.ok) return gate.response;
 
   const status = req.nextUrl.searchParams.get("status")?.trim();

@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { getBeeagentAgentStatus } from "@/lib/beeagent-agent-status";
 import { entitlementsPublicView } from "@/lib/host-entitlements";
 import { getHostPaymentPublic } from "@/lib/host-payment-store";
+import { getBotPermissions, getBotPermissionsUpdatedAt } from "@/lib/beeagent-permissions";
 import { requirePartnerLinkedHost } from "@/lib/beeagent-require-link";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import { partnerJson } from "@/lib/beeagent-partner";
@@ -36,6 +37,8 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       entitlements: entitlementsPublicView(hostId),
       payments_connected: getHostPaymentPublic(hostId).connected,
       agent_status: getBeeagentAgentStatus(hostId) ?? { hostId, active: false },
+      permissions: getBotPermissions(hostId),
+      permissions_updated_at: getBotPermissionsUpdatedAt(hostId),
     },
     req
   );

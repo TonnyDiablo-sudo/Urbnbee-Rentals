@@ -19,7 +19,7 @@ function view(hostId: string) {
 
 export async function GET(req: NextRequest, ctx: Ctx) {
   const { hostId } = await ctx.params;
-  const gate = requirePartnerLinkedHost(req, hostId);
+  const gate = requirePartnerLinkedHost(req, hostId, "messages");
   if (!gate.ok) return gate.response;
   return partnerJson(view(hostId), req);
 }
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 /** urbnbeeai avisa que su central de chat ya recibe y contesta el chat de Cabibee de este anfitrión. */
 export async function PUT(req: NextRequest, ctx: Ctx) {
   const { hostId } = await ctx.params;
-  const gate = requirePartnerLinkedHost(req, hostId);
+  const gate = requirePartnerLinkedHost(req, hostId, "messages");
   if (!gate.ok) return gate.response;
   const body = (await req.json().catch(() => null)) as { enabled?: unknown } | null;
   if (typeof body?.enabled !== "boolean") {

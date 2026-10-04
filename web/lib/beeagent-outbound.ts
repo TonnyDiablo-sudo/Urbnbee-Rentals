@@ -11,6 +11,8 @@ import {
   type OutboundEventName,
 } from "@/lib/beeagent-outbound-policy";
 import { getPartnerWebhookSecret } from "@/lib/beeagent-partner";
+import type { BotPermissions } from "@/lib/beeagent-permission-defs";
+import { botCan } from "@/lib/beeagent-permissions";
 import { listDueOutboundRows, saveOutboundRow, type OutboundWebhookRow } from "@/lib/beeagent-outbound-store";
 import type { BookingRecord } from "@/lib/booking-types";
 import type { HostEntitlementRecord } from "@/lib/host-entitlement-types";
@@ -85,6 +87,8 @@ function persistAndKick(row: OutboundWebhookRow) {
 export function enqueueBookingOutbound(event: OutboundEventName, booking: BookingRecord): void {
   const link = getBeeagentLinkForHost(booking.hostId);
   if (!link) return;
+  const fromBotLink = Boolean(booking.beeagentRef) && botCan(booking.hostId, "booking_links");
+  if (!botCan(booking.hostId, "bookings_view") && !fromBotLink) return;
   const occurredAt = nowIso();
   const id = eventId();
   persistAndKick({
@@ -158,6 +162,32 @@ export function enqueueEntitlementsChanged(hostId: string, entitlements: HostEnt
           current_period_end: e.currentPeriodEnd ?? null,
         })),
       },
+    }),
+    status: "pending",
+    attempts: 0,
+    nextAttemptAt: occurredAt,
+    createdAt: occurredAt,
+  });
+}
+
+export function enqueuePermissionsChanged(hostId: string, permissions: BotPermissions, updatedAt: string): void {
+  const link = getBeeagentLinkForHost(hostId);
+  if (!link) return;
+  const occurredAt = nowIso();
+  const id = eventId();
+  persistAndKick({
+    eventId: id,
+    event: "host.permissions_changed",
+    hostId,
+    beeagentCustomerId: link.beeagentCustomerId,
+    occurredAt,
+    payload: envelope({
+      eventId: id,
+      event: "host.permissions_changed",
+      occurredAt,
+      hostId,
+      customerId: link.beeagentCustomerId,
+      data: { permissions, updated_at: updatedAt },
     }),
     status: "pending",
     attempts: 0,

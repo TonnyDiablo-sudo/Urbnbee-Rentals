@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   const { listingId } = await ctx.params;
   const listing = resolvePartnerListing(listingId);
   if (!listing) return partnerJson({ error: "Anuncio no encontrado." }, req, { status: 404 });
-  const gate = requirePartnerLinkedHost(req, listing.hostId);
+  const gate = requirePartnerLinkedHost(req, listing.hostId, "booking_links");
   if (!gate.ok) return gate.response;
 
   const body = await req.json().catch(() => ({}));

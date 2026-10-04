@@ -1,6 +1,7 @@
 import "server-only";
 import { getBeeagentLinkForHost } from "@/lib/beeagent-host-link-store";
 import { enqueueChatOutbound } from "@/lib/beeagent-outbound";
+import { botCan } from "@/lib/beeagent-permissions";
 import { cabibeeConversationKey, getChatAi, type ChatAiState } from "@/lib/chat-ai-settings";
 import { listThread } from "@/lib/host-inbox-store";
 import type { HostInboxMessageRecord } from "@/lib/host-inbox-types";
@@ -39,7 +40,7 @@ export function chatAiPartnerView(state: ChatAiState) {
 
 /** Manda a la central de chat de urbnbeeai cada mensaje del chat de un anuncio cuyo anfitrión está vinculado. */
 export function bridgeChatMessage(m: HostInboxMessageRecord): void {
-  if (!getBeeagentLinkForHost(m.hostId)) return;
+  if (!getBeeagentLinkForHost(m.hostId) || !botCan(m.hostId, "messages")) return;
   const ai = getChatAi(m.hostId, m.listingId, m.guestSessionId);
   enqueueChatOutbound("message.created", m.hostId, cabibeeConversationKey(m.listingId, m.guestSessionId), {
     listing_id: m.listingId,
@@ -59,6 +60,7 @@ export function resolvePartnerConversation(hostId: string, listingId: string, gu
 }
 
 export function bridgeChatAiChanged(hostId: string, listingId: string, guestSessionId: string, state: ChatAiState): void {
+  if (!botCan(hostId, "messages")) return;
   enqueueChatOutbound("conversation.ai_changed", hostId, cabibeeConversationKey(listingId, guestSessionId), {
     listing_id: listingId,
     guest_session_id: guestSessionId,

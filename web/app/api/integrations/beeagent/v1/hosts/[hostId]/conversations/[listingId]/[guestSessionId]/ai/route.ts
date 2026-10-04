@@ -10,7 +10,7 @@ type Ctx = { params: Promise<{ hostId: string; listingId: string; guestSessionId
 
 export async function GET(req: NextRequest, ctx: Ctx) {
   const { hostId, listingId, guestSessionId } = await ctx.params;
-  const gate = requirePartnerLinkedHost(req, hostId);
+  const gate = requirePartnerLinkedHost(req, hostId, "messages");
   if (!gate.ok) return gate.response;
   if (!resolvePartnerConversation(hostId, listingId, guestSessionId)) {
     return partnerJson({ error: "Conversación no encontrada.", code: "not_found" }, req, { status: 404 });
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 /** El anfitrión prendió o apagó la IA desde urbnbeeai. Body: { ai_replies_enabled, if_match_updated_at? }. */
 export async function POST(req: NextRequest, ctx: Ctx) {
   const { hostId, listingId, guestSessionId } = await ctx.params;
-  const gate = requirePartnerLinkedHost(req, hostId);
+  const gate = requirePartnerLinkedHost(req, hostId, "messages");
   if (!gate.ok) return gate.response;
   if (!resolvePartnerConversation(hostId, listingId, guestSessionId)) {
     return partnerJson({ error: "Conversación no encontrada.", code: "not_found" }, req, { status: 404 });

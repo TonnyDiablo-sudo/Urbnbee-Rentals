@@ -2,32 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLang } from "@/lib/i18n/server";
 import { translatedContractLines } from "@/lib/listing-localize";
 import { getSessionUser } from "@/lib/session";
-import { refundBookingPayment } from "@/lib/booking-refunds";
 import {
   buildContractSnapshot,
   contractPlainLines,
   hostSignBookingContract,
   previewContractLines,
-  syncContractWithBooking,
 } from "@/lib/booking-contract";
-import { restoreBookingPass } from "@/lib/verification-store";
 import { LISTING_ENGINE_OFF_ERROR, listingAcceptsBookings } from "@/lib/booking-engine-slots";
 import { defaultListingContract } from "@/lib/booking-contract-templates";
+import { acceptPendingBooking, rejectPendingBooking } from "@/lib/booking-host-decision";
 import { findUserById } from "@/lib/marketplace-store";
 import { bookingActor, memberCan } from "@/lib/team-access";
 import { publicNameOf } from "@/lib/display-name";
-import { memberCoversListing } from "@/lib/team-store";
-import { deliverAfterHostAccept } from "@/lib/booking-acceptance";
-import { acceptBookingByHost, isPendingHostApproval, rejectBookingByHost } from "@/lib/booking-machine";
-import { mysqlApplyBookingOccupancy } from "@/lib/booking-nights";
 import {
   getBookingById,
   hasOverlappingActiveBooking,
 } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
-import { notifyGuestBookingDecision } from "@/lib/push";
 import { countNights, nightsBlockedByListing } from "@/lib/booking-helpers";
-import { paidStayOf, reconcileBookingTotal } from "@/lib/booking-adjustments";
+import { paidStayOf } from "@/lib/booking-adjustments";
 import {
   bookingChargesTax,
   bookingQuoteDay,
@@ -185,44 +178,9 @@ export async function PATCH(
   const action = typeof body.action === "string" ? body.action.trim().toLowerCase() : "";
 
   if (action === "reject") {
-    if (!isPendingHostApproval(booking.status)) {
-      return NextResponse.json(
-        { error: "Solo se pueden rechazar solicitudes pendientes." },
-        { status: 409 }
-      );
-    }
-    if (booking.guestUserId && !booking.paidAt) {
-      return NextResponse.json(
-        { error: "Esta reserva no tiene pago registrado." },
-        { status: 409 }
-      );
-    }
-
-    // El huésped ya pagó: se devuelve antes de rechazar, para que nunca quede
-    // una reserva rechazada con el dinero retenido.
-    const refund = await refundBookingPayment(booking.id, "host_rejected");
-    if (!refund.ok) {
-      return NextResponse.json(
-        { error: `No se rechazó la reserva porque no se pudo devolver el pago. ${refund.error}` },
-        { status: refund.status }
-      );
-    }
-
-    // El pase se gastó por una reserva que el anfitrión no aceptó: se devuelve,
-    // porque el huésped pagó por reservar, no por pedir permiso.
-    if (booking.usedMembershipPass && booking.guestUserId) {
-      restoreBookingPass(booking.guestUserId);
-    }
-
-    const next = rejectBookingByHost(id);
-    if (next) {
-      const occ = await mysqlApplyBookingOccupancy(next);
-      if (occ === "error") {
-        console.warn("[host/bookings] no se pudieron soltar las noches de", id);
-      }
-      notifyGuestBookingDecision(next, false);
-    }
-    return NextResponse.json({ ok: true, booking: next, refund: refund.kind });
+    const r = await rejectPendingBooking(booking);
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+    return NextResponse.json({ ok: true, booking: r.booking, refund: r.refund });
   }
 
   if (action === "sign" || action === "accept") {
@@ -266,167 +224,44 @@ export async function PATCH(
     return NextResponse.json({ error: "Acción no válida (accept | reject | sign)." }, { status: 400 });
   }
 
-  if (!isPendingHostApproval(booking.status)) {
-    return NextResponse.json(
-      { error: "Solo se pueden aceptar solicitudes pendientes." },
-      { status: 409 }
-    );
-  }
-
-  if (booking.guestUserId && !booking.paidAt) {
-    return NextResponse.json(
-      { error: "Esta reserva no tiene pago registrado." },
-      { status: 409 }
-    );
-  }
-
-  const effListingId =
-    typeof body.hostAdjustedListingId === "string" && body.hostAdjustedListingId.trim()
-      ? body.hostAdjustedListingId.trim()
-      : booking.listingId;
-  const effIn =
-    typeof body.hostAdjustedCheckIn === "string" && body.hostAdjustedCheckIn.trim()
-      ? body.hostAdjustedCheckIn.trim()
-      : booking.checkIn;
-  const effOut =
-    typeof body.hostAdjustedCheckOut === "string" && body.hostAdjustedCheckOut.trim()
-      ? body.hostAdjustedCheckOut.trim()
-      : booking.checkOut;
-
-  const listing = getListingById(effListingId);
-  if (
-    !listing?.published ||
-    listing.hostId !== actor.hostId ||
-    (actor.member && !memberCoversListing(actor.member, listing.id))
-  ) {
-    return NextResponse.json(
-      { error: "El alojamiento elegido no está disponible." },
-      { status: 400 }
-    );
-  }
-
-  const nights = countNights(effIn, effOut);
-  if (nights < 1) {
-    return NextResponse.json(
-      { error: "Las fechas deben dejar al menos una noche." },
-      { status: 400 }
-    );
-  }
-
-  if (nightsBlockedByListing(listing, effIn, effOut)) {
-    return NextResponse.json(
-      { error: "Hay noches bloqueadas en ese rango." },
-      { status: 409 }
-    );
-  }
-
-  if (hasOverlappingActiveBooking(effListingId, effIn, effOut, booking.id)) {
-    return NextResponse.json(
-      { error: "Esas fechas ya tienen otra solicitud o reserva activa." },
-      { status: 409 }
-    );
-  }
-
-  const currentTax = bookingChargesTax(booking);
-  const chargeTax = typeof body.chargeTax === "boolean" ? body.chargeTax : currentTax;
-  const datesChanged =
-    effListingId !== booking.listingId || effIn !== booking.checkIn || effOut !== booking.checkOut;
-  const quote = datesChanged
-    ? quoteBookingMxn(listing, effIn, effOut, { today: bookingQuoteDay(booking), chargeTax })
-    : retaxBookingMxn(booking, listing, chargeTax);
-  const estimatedTotalMxn = quote.totalMxn;
-  const taxChanged = quote.taxAvailable && chargeTax !== currentTax;
-  // Sin cambios se respeta el precio con el que pagó el huésped, aunque el anfitrión haya
-  // movido tarifas o impuestos después.
-  const pricing =
-    datesChanged || taxChanged
-      ? { estimatedTotalMxn, ...bookingTaxFields(quote), chargeTax: quote.taxAvailable ? chargeTax : undefined }
-      : { estimatedTotalMxn: booking.estimatedTotalMxn, chargeTax: quote.taxAvailable ? currentTax : undefined };
-
-  const hostAdjustedListingId =
-    effListingId !== booking.listingId ? effListingId : undefined;
-  const hostAdjustedCheckIn = effIn !== booking.checkIn ? effIn : undefined;
-  const hostAdjustedCheckOut = effOut !== booking.checkOut ? effOut : undefined;
-
-  if (body.acceptContract !== true) {
-    return NextResponse.json(
-      { error: "Tienes que revisar y aceptar el contrato de esta reserva." },
-      { status: 400 }
-    );
-  }
-  let signName = typeof body.signName === "string" ? body.signName.trim() : "";
-  if (!actor.owner) {
-    // Quien colabora no firma por sí mismo: se usa la firma por adelantado del anfitrión.
-    const settings = defaultListingContract(listing.contract);
-    if (!settings.hostAcknowledged && !memberCan(user.id, actor.hostId, "contracts", listing.id)) {
-      return NextResponse.json(
-        {
+  const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+  const r = await acceptPendingBooking(booking, {
+    hostId: actor.hostId,
+    member: actor.member,
+    listingId: text(body.hostAdjustedListingId),
+    checkIn: text(body.hostAdjustedCheckIn),
+    checkOut: text(body.hostAdjustedCheckOut),
+    chargeTax: typeof body.chargeTax === "boolean" ? body.chargeTax : undefined,
+    signer: (listing) => {
+      if (body.acceptContract !== true) {
+        return { ok: false, error: "Tienes que revisar y aceptar el contrato de esta reserva.", status: 400 };
+      }
+      if (actor.owner) {
+        return { name: typeof body.signName === "string" ? body.signName.trim() : "", userId: user.id, ip: requestIp(req) };
+      }
+      // Quien colabora no firma por sí mismo: se usa la firma por adelantado del anfitrión.
+      const settings = defaultListingContract(listing.contract);
+      if (!settings.hostAcknowledged && !memberCan(user.id, actor.hostId, "contracts", listing.id)) {
+        return {
+          ok: false,
           error:
             "El anfitrión tiene que firmar por adelantado el contrato de este anuncio (en Contratos) o darte el rol «Firmar contratos» para que puedas aceptar.",
-        },
-        { status: 409 }
-      );
-    }
-    signName = settings.hostLegalName || findUserById(actor.hostId)?.fullName || "";
-  }
-  if (signName.length < 3) {
-    return NextResponse.json(
-      { error: "Firma el contrato con tu nombre completo." },
-      { status: 400 }
-    );
-  }
-
-  const proposed = {
-    ...booking,
-    status: "AWAITING_DETAILS" as const,
-    nights,
-    ...pricing,
-    hostAdjustedListingId,
-    hostAdjustedCheckIn,
-    hostAdjustedCheckOut,
-  };
-  const occ = await mysqlApplyBookingOccupancy(proposed);
-  if (occ === "overlap") {
-    return NextResponse.json(
-      { error: "Esas fechas ya tienen otra solicitud o reserva activa." },
-      { status: 409 }
-    );
-  }
-  if (occ === "error") {
-    return NextResponse.json(
-      { error: "No se pudieron reservar esas noches. Intenta de nuevo." },
-      { status: 500 }
-    );
-  }
-
-  const next = acceptBookingByHost(id, {
-    nights,
-    ...pricing,
-    paidStayMxn: booking.paidAt ? paidStayOf(booking) : undefined,
-    hostAdjustedListingId,
-    hostAdjustedCheckIn,
-    hostAdjustedCheckOut,
-  });
-
-  // Si subió el total queda un cobro pendiente; si bajó, se devuelve la diferencia.
-  const money = next ? await reconcileBookingTotal(next.id) : { booking: next, dueMxn: 0, refundedMxn: 0 };
-
-  const withContract = next
-    ? syncContractWithBooking(next.id, {
-        role: "host",
+          status: 409,
+        };
+      }
+      return {
+        name: settings.hostLegalName || findUserById(actor.hostId)?.fullName || "",
         userId: user.id,
         ip: requestIp(req),
-        signName,
-        signedBy: actor.owner ? undefined : collaboratorName,
-      }) ?? money.booking ?? next
-    : next;
-  const delivered = withContract ? deliverAfterHostAccept(withContract) : withContract;
-  if (delivered) notifyGuestBookingDecision(delivered, true, money.dueMxn);
-
+        signedBy: collaboratorName,
+      };
+    },
+  });
+  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   return NextResponse.json({
     ok: true,
-    booking: delivered,
-    balanceDueMxn: money.dueMxn,
-    refundedMxn: money.refundedMxn,
+    booking: r.booking,
+    balanceDueMxn: r.balanceDueMxn,
+    refundedMxn: r.refundedMxn,
   });
 }

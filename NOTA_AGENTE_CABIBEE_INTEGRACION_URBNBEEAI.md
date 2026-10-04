@@ -375,7 +375,57 @@ Alternativa al POST `/ai`: el webhook firmado que ya mandas a `/v1/webhooks/even
   - En cualquier otro caso, sólo `address.approximate` (colonia, ciudad, estado) y que la dirección exacta se comparte al confirmar la reserva.
   - `arrival_guide` (wifi, cómo entrar) sólo con reserva confirmada, siempre.
 
-**Limpiezas:** `GET /hosts/:hostId/cleanings?from=&to=&listingId=&status=` → `{id, listing_id, booking_id, date, next_check_in, status: pending|done|cancelled, assigned_to: host|team_member|null, guest_name, note, done_at, photos}`. Las reservaciones siguen en `GET /hosts/:hostId/bookings`.
+**Limpiezas:** `GET /hosts/:hostId/cleanings?from=&to=&listingId=&status=` → `{id, listing_id, booking_id, date, next_check_in, status: pending|done|cancelled, assigned_to: host|team_member|null, guest_name, note, done_at, photos}`. Las reservaciones siguen en `GET /hosts/:hostId/bookings`. Desde 2026-10-04 cada limpieza trae también `assignee_id` y la respuesta trae `cleaners` (§9.7).
+
+### 9.7 Permisos del agente (lado Cabibee listo 2026-10-04)
+
+**Qué pidió el founder:** al conectar, el anfitrión de Cabibee elige qué puede hacer el agente (aceptar reservas, firmar contratos, limpiezas, etc.).
+
+**Dónde los elige:**
+- En la pantalla de «Permitir» del flujo de conexión (§8.1).
+- Después, cuando quiera, en Integraciones. Los cambios aplican al momento.
+- Al desconectar se borran; la próxima conexión empieza con los de omisión.
+
+**Claves** (las mismas en toda la API):
+
+| Clave | Qué deja hacer | Por omisión |
+|---|---|---|
+| `listings` | Ver anuncios, disponibilidad, cotizar. No se puede apagar. | sí |
+| `messages` | Chat de §9.6: recibir `message.created`, leer conversaciones, contestar, cambiar el modo IA, `chat-channel`. | sí |
+| `booking_links` | `POST /listings/:id/booking-link`, `POST /booking-leads`, y ver sólo las reservas que nacieron de sus ligas (`GET /bookings?ref=`, `/bookings/:id` con `ref`, `guest-requirements`). | sí |
+| `bookings_view` | Ver todas las reservas del anfitrión (`GET /hosts/:hostId/bookings`, `/bookings/:id`). | sí |
+| `bookings_decide` | **Nuevo:** aceptar o rechazar solicitudes pendientes. Prende `bookings_view`. | no |
+| `contracts_sign` | **Nuevo:** firmar contratos en nombre del anfitrión. Prende `bookings_view`. | no |
+| `cleanings_view` | `GET /hosts/:hostId/cleanings`. | sí |
+| `cleanings_manage` | **Nuevo:** agregar, asignar, marcar hecha o cancelar limpiezas. Prende `cleanings_view`. | no |
+
+**Cómo los lees:**
+- `GET /v1/host/:hostId` → `permissions {clave: bool}` y `permissions_updated_at`.
+- `POST /v1/hosts/link` también los devuelve.
+- Webhook nuevo **`host.permissions_changed`** (mismo sobre y firma de §9.4) con `data {permissions, updated_at}` cada vez que el anfitrión los cambia.
+- Sin permiso → **403** `{code: "permission_denied", permission: "<clave>"}`. No reintentes; dile al anfitrión que lo prenda en Cabibee → Integraciones.
+
+**Lo que deja de llegar sin permiso:**
+- Sin `messages`: no llegan `message.created` ni `conversation.ai_changed`, y la IA sale `available:false` en todas las conversaciones.
+- Sin `bookings_view` (y sin `booking_links` para esa reserva): no llegan los `booking.*` de esa reserva.
+
+**Rutas nuevas 🔒** (Bearer + `X-Beeagent-Customer-Id` + vínculo + permiso). Todas aceptan `Idempotency-Key`.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| POST | `/hosts/:hostId/bookings/:bookingId/accept` | `bookings_decide` | Acepta la solicitud **tal como la pidió el huésped** (sin cambiar fechas). Mismas reglas que el botón del anfitrión: noches libres, motor activo, pago registrado; el contrato queda firmado. Responde `{ok, booking, balance_due, refunded, currency}`. |
+| POST | `/hosts/:hostId/bookings/:bookingId/reject` | `bookings_decide` | Rechaza. Si estaba pagada, primero se le devuelve al huésped (y el pase de membresía). `{ok, booking, refund}`. |
+| POST | `/hosts/:hostId/bookings/:bookingId/sign` | `contracts_sign` | Firma el contrato pendiente del anfitrión. Si ya estaba firmado → `200 already_signed:true`. Sin contrato → `409 no_contract`. |
+| POST | `/hosts/:hostId/cleanings` | `cleanings_manage` | Limpieza extra: `{listing_id, date, note?, assignee_id?}` → `201 {cleaning}`. |
+| PATCH | `/hosts/:hostId/cleanings/:cleaningId` | `cleanings_manage` | `{status?: "done"\|"pending"\|"cancelled", note?, assignee_id?: "host"\|id\|null}` → `{cleaning}`. Si el anfitrión pide foto para cerrar, `done` sin foto → 400. |
+
+**Firma al aceptar:** el agente firma con el nombre legal del contrato del anuncio y en la bitácora del contrato queda «Agente IA de urbnbeeai firmó en nombre del anfitrión». Puede aceptar si tiene `contracts_sign`, **o** si el anfitrión ya firmó por adelantado el contrato de ese anuncio. Si no → **409 `host_signature_required`**.
+
+**Errores de aceptar/rechazar** (`code`): `not_pending`, `not_paid`, `engine_off`, `listing_unavailable`, `blocked`, `overlap`, `refund_failed`, `host_signature_required`.
+
+**El anfitrión se entera:** cada aceptación, rechazo o firma del agente le manda un aviso en Cabibee («Tu agente IA aceptó una reserva», etc.).
+
+**Regla para el bot:** aceptar, rechazar o firmar son decisiones del anfitrión que él delegó. Hazlo sólo cuando su configuración en urbnbeeai lo pida (por ejemplo, «acepta solicitudes que cumplan X»). Nunca porque un huésped lo pida en el chat.
 
 ---
 
@@ -395,6 +445,7 @@ Alternativa al POST `/ai`: el webhook firmado que ya mandas a `/v1/webhooks/even
 | C9 | API v2 (§9.1, §9.2). | C3, C8 |
 | C10 | Webhooks salientes (§9.4). | C9 + receptor del lado urbnbeeai |
 | C11 | Chat del anuncio ↔ central de chat de urbnbeeai y botón de IA (§9.6). Lado Cabibee listo 2026-10-03. | Canal entrante del lado urbnbeeai |
+| C12 | Permisos del agente que elige el anfitrión y acciones nuevas (aceptar, rechazar, firmar, limpiezas) (§9.7). Lado Cabibee listo 2026-10-04. | Que urbnbeeai lea `permissions` |
 
 C2 se puede hacer en cualquier momento y es chica: conviene sacarla pronto.
 
@@ -412,6 +463,7 @@ C2 se puede hacer en cualquier momento y es chica: conviene sacarla pronto.
 
 | Fecha | Fase | Qué quedó / qué cambió | Cómo se probó |
 |---|---|---|---|
+| 2026-10-04 | **Para urbnbeeai: permisos del agente** | **Decisión del founder:** el anfitrión elige qué puede hacer el agente: al conectar (pantalla «Permitir») y después en Integraciones. Contrato completo en §9.7.<br>- **Por omisión:** chat, ligas, ver reservas y ver limpiezas. Aceptar/rechazar, firmar contratos y organizar limpiezas empiezan **apagados**.<br>- Sin permiso, la API responde `403 permission_denied` con la clave que falta.<br>- `GET /host/:hostId` trae `permissions`; webhook nuevo `host.permissions_changed`.<br>- **Rutas nuevas:** `POST /hosts/:hostId/bookings/:id/{accept,reject,sign}`, `POST /hosts/:hostId/cleanings`, `PATCH /hosts/:hostId/cleanings/:id`.<br><br>**Falta de tu lado:**<br>1. leer `permissions` al vincular y escuchar `host.permissions_changed`;<br>2. no ofrecer en urbnbeeai acciones que el anfitrión no permitió, y tratar `permission_denied` como «pídele al anfitrión que lo prenda»;<br>3. si quieres que el agente acepte o rechace, la regla la pone el anfitrión en urbnbeeai, nunca el huésped. | `tsc`, `next build`. 59 casos con anfitrión vinculado: 403 por cada permiso, webhook de cambio, aceptar sin firma → 409, con firma o firma por adelantado → aceptada y firmada por el agente, rechazo, idempotencia, limpiezas, chat apagado sin webhooks, sólo ligas, conectar con permisos y desconectar. Suites anteriores sin fallas. |
 | 2026-10-04 | **Para urbnbeeai: dirección exacta** | **Decisión del founder:** todo anuncio tiene la dirección exacta en el sistema, aunque el público sólo vea la aproximada antes de reservar (la aproximada es sólo para el anuncio). Cabibee exige calle, número exterior y, en departamentos, número interior para publicar. `GET /listings/:id` trae `address.full`, `address.unit`, `address.complete`, `address.exact_address_public` y `address.approximate` (§9.6).<br><br>**Regla para el chat de urbnbeeai:** el agente dice la dirección exacta **sólo** si hay una reserva confirmada de ese huésped en ese anuncio (`GET /bookings?ref=` o `GET /hosts/:hostId/bookings`), **o** si `address.exact_address_public = true`. Si no, sólo la zona (`address.approximate`) y que la dirección exacta llega al confirmar. La guía de llegada (wifi, acceso) sólo con reserva confirmada. | `tsc`, `next build`. Prueba de socio: publicar sin dirección → 400; `address.full` con interior; `exact_address_public` según lo que elige el anfitrión. |
 | 2026-10-03 | **Para urbnbeeai: precios** | **Decisión del founder:** de ahora en adelante urbnbeeai **sólo modifica el precio de su conexión con Cabibee** (la tool `tool_host`, hoy $100/mes). **No modifica los precios de los productos de Cabibee** (membresías del huésped, planes del anfitrión, motor de reservas, anuncio destacado, Tienda). Cabibee ya decide sus precios sólo de su lado: su sincronización con `pricing_catalog` está apagada (`CATALOG_SYNC_ENABLED = false`) y su `/admin/pricing` ya no escribe en urbnbeeai. Pedido para urbnbeeai:<br>- quitar o bloquear la edición de los SKUs `provider = cabibee` en su admin y en el `PATCH /v1/admin/catalog`;<br>- que sus vendedores no fijen precio ni piso a productos de Cabibee.<br>Esto reemplaza D6–D8 para los productos de Cabibee (§1). | Sin cambio de código en Cabibee: ya era así. |
 | 2026-10-03 | C11 (lado Cabibee) | **El chat de Cabibee ya se puede conectar a tu central de chat.** Contrato completo en §9.6:<br>- webhooks `message.created` y `conversation.ai_changed`;<br>- API de conversaciones, respuesta del agente (`via:"ai"`), modo IA por conversación (`ai_replies_enabled`, con `if_match_updated_at`) y adjuntos;<br>- `PUT /hosts/:hostId/chat-channel {enabled:true}` cuando ya lo recibas.<br>En Cabibee el anfitrión tiene el mismo botón «Desactivar IA» por conversación que en urbnbeeai.<br><br>**Datos nuevos del anuncio:** dirección completa con lat/lng, guía de llegada, horarios, amenidades, limpieza, y **preguntas frecuentes + información general** que el anfitrión escribe para su agente (`ai_faq`, `ai_notes`). Nuevo `GET /hosts/:hostId/cleanings`.<br><br>**Falta de tu lado:**<br>1. un canal entrante «Cabibee» en tu central de chat que reciba `message.created`;<br>2. que el agente conteste con `POST .../messages` sólo si `ai_replies_enabled`;<br>3. que tu interruptor de IA de esas conversaciones llame `POST .../ai` y respete `conversation.ai_changed`;<br>4. que el agente use `ai_faq`/`ai_notes`/`address`/`arrival_guide` del anuncio, y la guía y la calle sólo con reserva confirmada;<br>5. `PUT chat-channel {enabled:true}`. | `tsc`, `eslint`, `next build`. Prueba local con secreto de socio y anfitrión vinculado: webhooks firmados recibidos en un receptor de prueba, respuestas de la API, 409 con IA apagada, idempotencia, conflicto, adjuntos, permisos. |

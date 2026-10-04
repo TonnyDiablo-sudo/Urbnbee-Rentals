@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { BotPermissionsPicker } from "@/components/host/bot-permissions-picker";
+import type { BotPermissions } from "@/lib/beeagent-permission-defs";
 import { numberLocale } from "@/lib/i18n";
 
 type Status = {
@@ -11,6 +13,7 @@ type Status = {
   signupUrl: string;
   startUrl: string;
   agentStatus?: { active: boolean; customerAgentId?: string } | null;
+  permissions: BotPermissions;
 };
 
 export function IntegrationsClient() {
@@ -21,6 +24,38 @@ export function IntegrationsClient() {
   const [codeExpires, setCodeExpires] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [permSaving, setPermSaving] = useState(false);
+  const [permSaved, setPermSaved] = useState(false);
+
+  async function savePermissions(next: BotPermissions) {
+    if (!status) return;
+    const prev = status.permissions;
+    setStatus({ ...status, permissions: next });
+    setPermSaving(true);
+    setPermSaved(false);
+    setErr(null);
+    try {
+      const res = await fetch("/api/host/integrations/beeagent", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permissions: next }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setStatus((s) => (s ? { ...s, permissions: prev } : s));
+        setErr(typeof j.error === "string" ? j.error : "No se pudieron guardar los permisos.");
+        return;
+      }
+      setStatus((s) => (s ? { ...s, permissions: j.permissions as BotPermissions } : s));
+      setPermSaved(true);
+    } catch {
+      setStatus((s) => (s ? { ...s, permissions: prev } : s));
+      setErr("Error de red.");
+    } finally {
+      setPermSaving(false);
+    }
+  }
 
   const load = useCallback(async () => {
     const res = await fetch("/api/host/integrations/beeagent", { credentials: "include" });
@@ -145,6 +180,25 @@ export function IntegrationsClient() {
               </a>
               .
             </p>
+          </div>
+        )}
+
+        {status && (
+          <div className="mt-8 border-t border-[#eee] pt-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-sm font-medium text-[#484848]">{t("¿Qué puede hacer tu agente?")}</p>
+              <span className="text-xs text-[#888]" aria-live="polite">
+                {permSaving ? t("Guardando…") : permSaved ? t("Guardado") : ""}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-[#888]">
+              {status.linked
+                ? t("Los cambios aplican al momento; urbnbeeai recibe el aviso.")
+                : t("Se aplican cuando conectes tu agente.")}
+            </p>
+            <div className="mt-3">
+              <BotPermissionsPicker value={status.permissions} onChange={(next) => void savePermissions(next)} disabled={permSaving} />
+            </div>
           </div>
         )}
 

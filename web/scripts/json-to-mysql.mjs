@@ -393,6 +393,7 @@ try {
     ["push-subscriptions", "push-subscriptions.json"],
     ["beeagent-booking-links", "beeagent-booking-links.json"],
     ["beeagent-agent-status", "beeagent-agent-status.json"],
+    ["beeagent-permissions", "beeagent-permissions.json"],
     ["outbound-webhooks", "outbound-webhooks.json"],
   ];
   for (const [key, file] of blobs) {

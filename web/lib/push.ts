@@ -203,6 +203,23 @@ export function notifyBookingConfirmed(booking: BookingRecord): void {
   }
 }
 
+/** El agente de urbnbeeai hizo algo con una reserva en nombre del anfitrión. */
+export function notifyHostBotBookingAction(booking: BookingRecord, action: "accepted" | "rejected" | "signed"): void {
+  notifyUser(booking.hostId, {
+    kind: action === "rejected" ? "request" : "booking",
+    title:
+      action === "accepted"
+        ? "Tu agente IA aceptó una reserva"
+        : action === "rejected"
+          ? "Tu agente IA rechazó una solicitud"
+          : "Tu agente IA firmó un contrato",
+    body: "{name} · {listing}",
+    vars: { name: booking.guestName, listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId) },
+    url: action === "rejected" ? "/host" : "/host/calendario",
+    tag: `b:${booking.id}`,
+  });
+}
+
 export function notifyHostDifferencePaid(booking: BookingRecord, amountMxn: number): void {
   notifyUser(booking.hostId, {
     kind: "payment",

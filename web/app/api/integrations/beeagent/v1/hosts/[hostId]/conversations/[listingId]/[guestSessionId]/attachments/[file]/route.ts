@@ -12,7 +12,7 @@ type Ctx = { params: Promise<{ hostId: string; listingId: string; guestSessionId
 /** Foto o nota de voz del chat, para que el agente la vea o la transcriba. */
 export async function GET(req: NextRequest, ctx: Ctx) {
   const { hostId, listingId, guestSessionId, file } = await ctx.params;
-  const gate = requirePartnerLinkedHost(req, hostId);
+  const gate = requirePartnerLinkedHost(req, hostId, "messages");
   if (!gate.ok) return gate.response;
   if (!resolvePartnerConversation(hostId, listingId, guestSessionId)) {
     return partnerJson({ error: "Conversación no encontrada.", code: "not_found" }, req, { status: 404 });

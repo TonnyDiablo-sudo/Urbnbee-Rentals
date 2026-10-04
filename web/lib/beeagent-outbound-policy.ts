@@ -14,6 +14,7 @@ export type OutboundEventName =
   | "booking.expired"
   | "host.entitlements_changed"
   | "host.unlinked"
+  | "host.permissions_changed"
   | "message.created"
   | "conversation.ai_changed";
 

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   }
   const link = getBeeagentBookingLink(ref);
   if (!link) return partnerJson({ error: "Liga no encontrada o expirada." }, req, { status: 404 });
-  const gate = requirePartnerLinkedHost(req, link.hostId);
+  const gate = requirePartnerLinkedHost(req, link.hostId, ["bookings_view", "booking_links"]);
   if (!gate.ok) return gate.response;
 
   const origin = publicOriginFromRequest(req);

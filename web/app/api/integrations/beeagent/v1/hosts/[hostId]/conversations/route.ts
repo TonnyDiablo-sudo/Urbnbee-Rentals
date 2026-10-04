@@ -13,7 +13,7 @@ type Ctx = { params: Promise<{ hostId: string }> };
 /** Conversaciones del chat de los anuncios del anfitrión, la más reciente primero. ?since= (ISO) filtra por actividad. */
 export async function GET(req: NextRequest, ctx: Ctx) {
   const { hostId } = await ctx.params;
-  const gate = requirePartnerLinkedHost(req, hostId);
+  const gate = requirePartnerLinkedHost(req, hostId, "messages");
   if (!gate.ok) return gate.response;
 
   const since = req.nextUrl.searchParams.get("since")?.trim() ?? "";

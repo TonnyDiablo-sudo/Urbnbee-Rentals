@@ -6,6 +6,7 @@ import {
   verifyPartnerBearer,
   partnerAuthErrorResponse,
 } from "@/lib/beeagent-partner";
+import { BOT_PERMISSION_KEYS, DEFAULT_BOT_PERMISSIONS } from "@/lib/beeagent-permission-defs";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 
 export const runtime = "nodejs";
@@ -24,6 +25,12 @@ export async function GET(req: NextRequest) {
       api_version: "v2",
       baseUrl: root,
       corsOrigins: "URBNBEE_PARTNER_ORIGINS (default urbnbeeai.com + www)",
+      permissions: {
+        keys: BOT_PERMISSION_KEYS,
+        defaults: DEFAULT_BOT_PERMISSIONS,
+        where: "GET /v1/host/:hostId → permissions; webhook host.permissions_changed",
+        denied: "403 { code: \"permission_denied\", permission }",
+      },
       endpoints: {
         health: { method: "GET", path: `${root}/health`, auth: "none" },
         host: {
@@ -114,9 +121,34 @@ export async function GET(req: NextRequest) {
           auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
         },
         hostCleanings: {
-          method: "GET",
+          method: "GET|POST",
           path: `${root}/v1/hosts/:hostId/cleanings?from=&to=&listingId=&status=`,
           auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+          permission: "GET cleanings_view · POST cleanings_manage",
+        },
+        hostCleaning: {
+          method: "PATCH",
+          path: `${root}/v1/hosts/:hostId/cleanings/:cleaningId`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+          permission: "cleanings_manage",
+        },
+        bookingAccept: {
+          method: "POST",
+          path: `${root}/v1/hosts/:hostId/bookings/:bookingId/accept`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+          permission: "bookings_decide (+ contracts_sign o contrato firmado por adelantado)",
+        },
+        bookingReject: {
+          method: "POST",
+          path: `${root}/v1/hosts/:hostId/bookings/:bookingId/reject`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+          permission: "bookings_decide",
+        },
+        bookingSign: {
+          method: "POST",
+          path: `${root}/v1/hosts/:hostId/bookings/:bookingId/sign`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+          permission: "contracts_sign",
         },
         chatChannel: {
           method: "GET|PUT",

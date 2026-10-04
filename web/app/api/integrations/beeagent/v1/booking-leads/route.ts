@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const gate = requirePartnerLinkedHost(req, hostId);
+  const gate = requirePartnerLinkedHost(req, hostId, "booking_links");
   if (!gate.ok) return gate.response;
 
   const host = findUserById(hostId);

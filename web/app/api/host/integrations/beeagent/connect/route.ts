@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createLinkCodeForHost } from "@/lib/beeagent-host-link-store";
+import { enqueuePermissionsChanged } from "@/lib/beeagent-outbound";
 import { parseAllowedConnectReturnUrl } from "@/lib/beeagent-partner";
+import { setBotPermissions } from "@/lib/beeagent-permissions";
 import { getSessionUser } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
@@ -18,6 +20,11 @@ export async function POST(req: NextRequest) {
       { error: "return_url no permitido.", code: "return_url_rejected" },
       { status: 400 }
     );
+  }
+
+  if (body.permissions && typeof body.permissions === "object") {
+    const saved = setBotPermissions(user.id, body.permissions);
+    enqueuePermissionsChanged(user.id, saved.permissions, saved.updatedAt);
   }
 
   const { code, expiresAt } = createLinkCodeForHost(user.id);

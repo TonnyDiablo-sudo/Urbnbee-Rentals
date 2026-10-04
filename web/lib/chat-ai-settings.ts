@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { getBeeagentAgentStatus } from "@/lib/beeagent-agent-status";
 import { getBeeagentLinkForHost } from "@/lib/beeagent-host-link-store";
+import { botCan } from "@/lib/beeagent-permissions";
 import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
@@ -65,7 +66,7 @@ export function parseCabibeeConversationKey(key: string): { listingId: string; g
 }
 
 export function chatAiAvailable(hostId: string): boolean {
-  return Boolean(getBeeagentLinkForHost(hostId) && getBeeagentAgentStatus(hostId)?.active);
+  return Boolean(getBeeagentLinkForHost(hostId) && getBeeagentAgentStatus(hostId)?.active && botCan(hostId, "messages"));
 }
 
 export function chatChannelReady(hostId: string): boolean {

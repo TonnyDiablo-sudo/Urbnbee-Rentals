@@ -2,17 +2,22 @@
 
 import { useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { BotPermissionsPicker } from "@/components/host/bot-permissions-picker";
+import type { BotPermissions } from "@/lib/beeagent-permission-defs";
 
 export function ConnectClient({
   returnUrl,
   state,
+  initialPermissions,
 }: {
   returnUrl: string;
   state: string;
+  initialPermissions: BotPermissions;
 }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState(initialPermissions);
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 py-10">
@@ -22,6 +27,13 @@ export function ConnectClient({
           "urbnbeeai quiere ver tus anuncios, disponibilidad y reservas para que tu agente IA atienda a tus huéspedes. La contraseña se queda en Cabibee."
         )}
       </p>
+      <div>
+        <h2 className="text-sm font-semibold text-[#484848]">{t("¿Qué puede hacer tu agente?")}</h2>
+        <p className="mt-1 text-xs text-[#888]">{t("Lo puedes cambiar cuando quieras en Integraciones.")}</p>
+        <div className="mt-3">
+          <BotPermissionsPicker value={permissions} onChange={setPermissions} disabled={busy} />
+        </div>
+      </div>
       {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{t(err)}</p>}
       <div className="flex flex-col gap-3 sm:flex-row">
         <button
@@ -35,7 +47,7 @@ export function ConnectClient({
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ returnUrl, state }),
+                body: JSON.stringify({ returnUrl, state, permissions }),
               });
               const data = await res.json().catch(() => ({}));
               if (!res.ok) {
