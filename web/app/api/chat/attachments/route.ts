@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
 import { attachmentPreview, attachmentView, storeChatAttachment } from "@/lib/chat-attachments";
 import { publicNameOf, shareABooking } from "@/lib/display-name";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest) {
     body: caption,
     attachment: stored.attachment,
   });
+  bridgeChatMessage(msg);
 
   const preview = caption || attachmentPreview(stored.attachment.kind);
   if (as === "guest") {

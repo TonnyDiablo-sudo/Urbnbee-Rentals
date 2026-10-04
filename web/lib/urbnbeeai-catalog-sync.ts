@@ -204,9 +204,7 @@ export async function savePlanToCatalog(
   },
   adminEmail: string
 ): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
-  if (!catalogSyncOn()) {
-    return { ok: false, error: "Falta CABIBEE_TO_URBNBEEAI_API_SECRET en Cabibee y en urbnbeeai.", status: 503 };
-  }
+  if (!catalogSyncOn()) return { ok: true };
   const res = await patchAdminCatalog(
     code,
     {

@@ -113,6 +113,44 @@ export async function GET(req: NextRequest) {
           path: `${root}/v1/hosts/:hostId/agent-status`,
           auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
         },
+        hostCleanings: {
+          method: "GET",
+          path: `${root}/v1/hosts/:hostId/cleanings?from=&to=&listingId=&status=`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+        },
+        chatChannel: {
+          method: "GET|PUT",
+          path: `${root}/v1/hosts/:hostId/chat-channel`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+          note: "PUT {enabled:true} cuando la central de chat de urbnbeeai ya recibe el chat de Cabibee.",
+        },
+        conversations: {
+          method: "GET",
+          path: `${root}/v1/hosts/:hostId/conversations`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+        },
+        conversation: {
+          method: "GET",
+          path: `${root}/v1/hosts/:hostId/conversations/:listingId/:guestSessionId`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+        },
+        conversationReply: {
+          method: "POST",
+          path: `${root}/v1/hosts/:hostId/conversations/:listingId/:guestSessionId/messages`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+          note: "Sólo con la IA encendida en esa conversación (409 ai_disabled).",
+        },
+        conversationAi: {
+          method: "GET|POST",
+          path: `${root}/v1/hosts/:hostId/conversations/:listingId/:guestSessionId/ai`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+          note: "POST {ai_replies_enabled, if_match_updated_at?}",
+        },
+        conversationAttachment: {
+          method: "GET",
+          path: `${root}/v1/hosts/:hostId/conversations/:listingId/:guestSessionId/attachments/:file`,
+          auth: "Bearer + X-Beeagent-Customer-Id + vínculo",
+        },
         webhookEvents: {
           method: "POST",
           path: `${root}/v1/webhooks/events`,

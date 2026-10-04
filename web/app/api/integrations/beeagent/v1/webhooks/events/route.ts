@@ -9,7 +9,9 @@ import {
   getBeeagentLinkForCustomer,
   getBeeagentLinkForHost,
 } from "@/lib/beeagent-host-link-store";
+import { parseCabibeeConversationKey, setChatAi } from "@/lib/chat-ai-settings";
 import { applyHostEntitlement } from "@/lib/host-entitlements";
+import { getListingById } from "@/lib/marketplace-store";
 import { isHostSku, type HostEntitlementStatus } from "@/lib/host-entitlement-types";
 
 export const runtime = "nodejs";
@@ -50,7 +52,7 @@ export async function POST(req: NextRequest) {
   const byHost = hostId ? getBeeagentLinkForHost(hostId) : undefined;
   const byCustomer = customerId ? getBeeagentLinkForCustomer(customerId) : undefined;
   const link = byHost ?? byCustomer;
-  if (event === "agent.status_changed" || event === "entitlements.changed") {
+  if (event === "agent.status_changed" || event === "entitlements.changed" || event === "conversation.ai_changed") {
     if (!link || (hostId && link.hostId !== hostId) || (customerId && link.beeagentCustomerId !== customerId)) {
       return partnerJson({ error: "Workspace no vinculado.", code: "not_linked" }, req, { status: 403 });
     }
@@ -70,6 +72,28 @@ export async function POST(req: NextRequest) {
       customerAgentId: typeof data.customer_agent_id === "string" ? data.customer_agent_id : undefined,
     });
     return partnerJson({ ok: true, applied: event, agent_status: status }, req);
+  }
+
+  if (event === "conversation.ai_changed") {
+    const data = (payload.data ?? payload) as Record<string, unknown>;
+    const conv = parseCabibeeConversationKey(
+      typeof payload.conversation_key === "string" ? payload.conversation_key : String(data.conversation_key ?? "")
+    );
+    const listing = conv ? getListingById(conv.listingId) : undefined;
+    if (!conv || !listing || listing.hostId !== link.hostId || typeof data.ai_replies_enabled !== "boolean") {
+      return partnerJson({ error: "conversation_key o ai_replies_enabled inválidos." }, req, { status: 400 });
+    }
+    const r = setChatAi({
+      hostId: link.hostId,
+      listingId: conv.listingId,
+      guestSessionId: conv.guestSessionId,
+      enabled: data.ai_replies_enabled,
+      by: "urbnbeeai",
+    });
+    return partnerJson(
+      { ok: r.ok, applied: r.ok ? event : undefined, code: r.ok ? undefined : r.reason, ai_replies_enabled: r.state.enabled, updated_at: r.state.updatedAt },
+      req
+    );
   }
 
   if (event === "entitlements.changed") {

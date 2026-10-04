@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
 import { attachmentView } from "@/lib/chat-attachments";
 import { nameForViewer, publicNameOf, shareABooking } from "@/lib/display-name";
 import { findUserById, getListingById } from "@/lib/marketplace-store";
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   const guestSessionId = guestSessionIdForUser(sessionUser.id);
   map[listingId] = guestSessionId;
 
-  appendMessage({
+  const msg = appendMessage({
     listingId,
     hostId: listing.hostId,
     guestSessionId,
@@ -127,6 +128,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     guestEmail,
     body: text,
   });
+  bridgeChatMessage(msg);
   notifyHostNewMessage({ hostId: listing.hostId, listingId, guestSessionId, guestName, body: text });
 
   const res = NextResponse.json({ ok: true });

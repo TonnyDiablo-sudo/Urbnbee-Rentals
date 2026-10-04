@@ -32,6 +32,7 @@ Todo lo que dice "hoy" se verificó contra el commit `764ec29` (2026-09-28). Si 
 | D6 | **Los precios viven en urbnbeeai** (`pricing_catalog`). Cabibee los lee y su admin los edita por API (§7). |
 | D7 | Cada producto tiene dos precios: **techo = precio público** (lo ve todo mundo) y **piso = solo lo ven los vendedores**. El vendedor de urbnbeeai arma paquetes con productos de urbnbeeai y de Cabibee, dentro de la banda. |
 | D8 | **Admin de Cabibee** edita solo productos de Cabibee. **Admin de urbnbeeai** edita todos. El último que edita sobrescribe. |
+| D6–D8 ⚠️ | **Cambio del founder (2026-10-03), reemplaza D6–D8 para los productos de Cabibee:** urbnbeeai **sólo** modifica el precio de su propia conexión con Cabibee (la tool, `tool_host`). **No** modifica precios de productos de Cabibee (membresías, motor de reservas, Tienda): esos los decide sólo Cabibee. Ver §12, 2026-10-03. |
 | D9 | La tool "Cabibee" del bot (**$100/mes** por omisión) es **producto de urbnbeeai**: su precio lo edita solo el admin de urbnbeeai. |
 | D10 | La conexión de cuentas nunca pide la contraseña de Cabibee dentro de urbnbeeai (§8). |
 
@@ -334,6 +335,45 @@ Detalles que importan de tu lado:
 
 Hoy `components/listing/ai-chat-widget.tsx` → `POST /api/listings/[id]/chat` usa OpenAI propio. Cuando el host tenga `agent-status.active = true`, el widget debe mandar los mensajes al agente del anfitrión en urbnbeeai. El endpoint público de urbnbeeai todavía no existe; se define en una nota posterior. **No lo empieces todavía.**
 
+El chat **huésped ↔ anfitrión** (los mensajes del anuncio, `Mensajes` en la app) ya quedó conectado del lado de Cabibee: ver §9.6.
+
+### 9.6 Chat de Cabibee ↔ central de chat de urbnbeeai (C11, lado Cabibee listo 2026-10-03)
+
+**Qué pidió el founder:** que el chat de Cabibee llegue a la central de chat de urbnbeeai, que el agente lo conteste, y que en Cabibee exista el mismo botón de «desactivar IA» por conversación que hay en urbnbeeai.
+
+**Clave de conversación:** `conversation_key = "cabibee:{listingId}:{guestSessionId}"` (va en el sobre del webhook y en todas las respuestas).
+
+**Webhooks salientes nuevos** (mismo sobre, firma y reintentos que §9.4; `booking_id`/`ref` van `null`):
+
+| Evento | Cuándo | `data` |
+|---|---|---|
+| `message.created` | Cada mensaje del chat de un anuncio cuyo anfitrión está vinculado (huésped o anfitrión; texto, foto o nota de voz). No se reenvían los que manda urbnbeeai. | `listing_id`, `guest_session_id`, `message {id, sender: guest\|host, via: null\|"ai", body, guest_name, created_at, attachment: null\|{kind: image\|audio, mime, bytes, duration_sec, path}}`, `available`, `ai_replies_enabled`, `updated_at` |
+| `conversation.ai_changed` | El anfitrión prendió o apagó la IA desde Cabibee. | `listing_id`, `guest_session_id`, `changed_by: "host"`, `available`, `ai_replies_enabled`, `updated_at` |
+
+`attachment.path` es relativo a la base de Cabibee (`https://cabibee.com`); se descarga con el mismo Bearer + `X-Beeagent-Customer-Id`.
+
+**API nueva 🔒** (Bearer + `X-Beeagent-Customer-Id` + vínculo; base `/api/integrations/beeagent/v1`):
+
+| Método | Ruta | Para qué |
+|---|---|---|
+| GET / PUT | `/hosts/:hostId/chat-channel` | `PUT {enabled:true}` cuando tu central ya recibe y contesta el chat de Cabibee de ese anfitrión. **Hasta entonces la IA empieza apagada** en cada conversación (el anfitrión la puede prender a mano). Con el canal encendido, las conversaciones nuevas empiezan con la IA prendida, igual que en urbnbeeai. |
+| GET | `/hosts/:hostId/conversations?since=` | Lista de conversaciones con el último mensaje y `ai_replies_enabled`. Sirve para la carga inicial. |
+| GET | `/hosts/:hostId/conversations/:listingId/:guestSessionId` | Historial completo. |
+| POST | `/hosts/:hostId/conversations/:listingId/:guestSessionId/messages` | El agente contesta a nombre del anfitrión: `{body, client_message_id?}`. El mensaje queda con `via:"ai"`, al huésped le llega aviso y el anfitrión lo ve marcado «Respondido por IA». Con la IA apagada → **409 `ai_disabled`** (o `agent_unavailable` si el agente no está activo): no contestes. `client_message_id` repetido → 200 `duplicate:true`, no duplica. |
+| GET / POST | `/hosts/:hostId/conversations/:listingId/:guestSessionId/ai` | Leer o cambiar el modo IA: `POST {ai_replies_enabled, if_match_updated_at?}`. Si `if_match_updated_at` no coincide → 409 `conflict` con el estado actual. |
+| GET | `/hosts/:hostId/conversations/:listingId/:guestSessionId/attachments/:file` | Foto o nota de voz (para verla o transcribirla). |
+
+Alternativa al POST `/ai`: el webhook firmado que ya mandas a `/v1/webhooks/events` acepta `event: "conversation.ai_changed"` con `conversation_key` y `data.ai_replies_enabled`.
+
+**El modo IA es por conversación y hay una sola verdad en Cabibee.** El anfitrión lo cambia en cualquiera de los dos lados: si lo cambia en urbnbeeai, llama `POST .../ai`; si lo cambia en Cabibee, te llega `conversation.ai_changed`. Sólo existe mientras `agent-status.active = true`; con el agente apagado `available = false` y la IA no contesta.
+
+**Lo que ve el anfitrión en Cabibee** (app → Mensajes → conversación): botón «IA activa / IA apagada» arriba. Con la IA activa la caja de texto se bloquea con «Tu agente de urbnbeeai está contestando esta conversación» y el botón «Desactivar IA y escribir yo», como en tu compositor. En la lista de mensajes sale la etiqueta «IA».
+
+**Datos del anuncio para el agente** (ya en `GET /listings?hostId=` y `GET /listings/:id`): además de lo de antes, `description`, `address {line, zone, city, county, state, country, lat, lng, public_precision}`, `bedrooms`, `bathrooms`, `amenities`, `min_nights`/`max_nights`, `weekend_price`, `cleaning_fee`, `cleaning_service_on`, `check_in_time`, `check_out_time`, `arrival_guide {share_only_with_confirmed_guests: true, check_in_method, directions, wifi_name, wifi_password, house_manual, checkout_instructions}`, **`ai_faq [{question, answer}]`** y **`ai_notes`** (los escribe el anfitrión en la pestaña «Agente IA» de su anuncio; el anuncio público no los muestra), `updated_at`.
+- Con `public_precision: "approximate"` la calle y `arrival_guide` sólo se le dan a un huésped con reserva confirmada.
+
+**Limpiezas:** `GET /hosts/:hostId/cleanings?from=&to=&listingId=&status=` → `{id, listing_id, booking_id, date, next_check_in, status: pending|done|cancelled, assigned_to: host|team_member|null, guest_name, note, done_at, photos}`. Las reservaciones siguen en `GET /hosts/:hostId/bookings`.
+
 ---
 
 ## 10. Orden de trabajo sugerido (fases)
@@ -351,7 +391,7 @@ Hoy `components/listing/ai-chat-widget.tsx` → `POST /api/listings/[id]/chat` u
 | C8 | Seguridad de la API (vínculo obligatorio, `provision` sin auto-enlace) y conexión por redirección (§2.4, §8). | C1 |
 | C9 | API v2 (§9.1, §9.2). | C3, C8 |
 | C10 | Webhooks salientes (§9.4). | C9 + receptor del lado urbnbeeai |
-| C11 | Chat del listing al agente (§9.5). | Nota posterior |
+| C11 | Chat del anuncio ↔ central de chat de urbnbeeai y botón de IA (§9.6). Lado Cabibee listo 2026-10-03. | Canal entrante del lado urbnbeeai |
 
 C2 se puede hacer en cualquier momento y es chica: conviene sacarla pronto.
 
@@ -369,6 +409,8 @@ C2 se puede hacer en cualquier momento y es chica: conviene sacarla pronto.
 
 | Fecha | Fase | Qué quedó / qué cambió | Cómo se probó |
 |---|---|---|---|
+| 2026-10-03 | **Para urbnbeeai: precios** | **Decisión del founder:** de ahora en adelante urbnbeeai **sólo modifica el precio de su conexión con Cabibee** (la tool `tool_host`, hoy $100/mes). **No modifica los precios de los productos de Cabibee** (membresías del huésped, planes del anfitrión, motor de reservas, anuncio destacado, Tienda). Cabibee ya decide sus precios sólo de su lado: su sincronización con `pricing_catalog` está apagada (`CATALOG_SYNC_ENABLED = false`) y su `/admin/pricing` ya no escribe en urbnbeeai. Pedido para urbnbeeai:<br>- quitar o bloquear la edición de los SKUs `provider = cabibee` en su admin y en el `PATCH /v1/admin/catalog`;<br>- que sus vendedores no fijen precio ni piso a productos de Cabibee.<br>Esto reemplaza D6–D8 para los productos de Cabibee (§1). | Sin cambio de código en Cabibee: ya era así. |
+| 2026-10-03 | C11 (lado Cabibee) | **El chat de Cabibee ya se puede conectar a tu central de chat.** Contrato completo en §9.6:<br>- webhooks `message.created` y `conversation.ai_changed`;<br>- API de conversaciones, respuesta del agente (`via:"ai"`), modo IA por conversación (`ai_replies_enabled`, con `if_match_updated_at`) y adjuntos;<br>- `PUT /hosts/:hostId/chat-channel {enabled:true}` cuando ya lo recibas.<br>En Cabibee el anfitrión tiene el mismo botón «Desactivar IA» por conversación que en urbnbeeai.<br><br>**Datos nuevos del anuncio:** dirección completa con lat/lng, guía de llegada, horarios, amenidades, limpieza, y **preguntas frecuentes + información general** que el anfitrión escribe para su agente (`ai_faq`, `ai_notes`). Nuevo `GET /hosts/:hostId/cleanings`.<br><br>**Falta de tu lado:**<br>1. un canal entrante «Cabibee» en tu central de chat que reciba `message.created`;<br>2. que el agente conteste con `POST .../messages` sólo si `ai_replies_enabled`;<br>3. que tu interruptor de IA de esas conversaciones llame `POST .../ai` y respete `conversation.ai_changed`;<br>4. que el agente use `ai_faq`/`ai_notes`/`address`/`arrival_guide` del anuncio, y la guía y la calle sólo con reserva confirmada;<br>5. `PUT chat-channel {enabled:true}`. | `tsc`, `eslint`, `next build`. Prueba local con secreto de socio y anfitrión vinculado: webhooks firmados recibidos en un receptor de prueba, respuestas de la API, 409 con IA apagada, idempotencia, conflicto, adjuntos, permisos. |
 | 2026-09-30 | urbnbeeai U3 ✅ | **Conectar por redirección ya está del lado de urbnbeeai.** Botón «Conectar Cabibee» → tu `/host/settings/integrations/connect?return_url=&state=`. `return_url` = `https://www.urbnbeeai.com/integrations/cabibee/callback`. El `state` va firmado en cookie (15 min). Al volver, se llama `POST /v1/hosts/link` con el código. `/integrations/cabibee/start` es la pantalla de «Activar agente IA» (login + elegir agente). Desconectar llama `DELETE /v1/hosts/:hostId/link` y antes `POST .../agent-status` `{active:false}`. Vincular o prender/apagar la tool manda `agent-status`. El código pegado a mano sigue de respaldo. | `tsc --noEmit`. Casos de firma del `state` (mismo nonce / nonce ajeno / cookie rota). Falta QA en navegador contra tu C8 en prod. |
 | 2026-09-30 | C7 | Precios desde `pricing_catalog` de urbnbeeai. `/admin/precios` → `/admin/pricing`: GET/PATCH al catálogo (Bearer + `X-Cabibee-Admin-Email`). JSON solo caché + `stripeProductId`. Caché 5 min, último valor si falla. Piso solo en admin. Checkout sigue con `price_data` del catálogo. Incluye `booking_engine`. Sin C11. Q1–Q3 abiertas. | `tsc --noEmit`. GET público 200 (6 SKUs). GET admin 200 (con `floor_price`). Parse: plan público sin piso. |
 | 2026-09-29 | QA | Pago host: `verify-session` lee la sesión en el Stripe que cobró (anfitrión o Cabibee). `/viajes` en cabibee.com redirige a confirmar. Quote/request sin cargo de plataforma si el host cobra en su Stripe (misma regla que Checkout; Q1 sigue abierto). Reserva existente no pide membresía otra vez (`usedMembershipPass` / ya existe). Cerré `bkg_90c494ed5dcedf50a67d` con la sesión ya cobrada; no reembolsé ni volví a cobrar. | `tsc`. `verify-session` en prod → CONFIRMED/paid + C10. `/viajes?session_id=` → confirm. |

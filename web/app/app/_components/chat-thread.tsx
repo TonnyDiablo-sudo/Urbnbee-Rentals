@@ -19,6 +19,8 @@ export type ChatMessage = {
   createdAt: string;
   pending?: boolean;
   attachment?: ChatAttachmentClient;
+  /** "ai": lo contestó el agente de urbnbeeai. */
+  via?: "ai";
 };
 
 export type SendAttachment = (file: Blob, meta: { caption: string; durationSec?: number }) => Promise<string | null>;
@@ -49,6 +51,8 @@ export function ChatThread({
   closedNotice,
   initial,
   sendAttachment,
+  composerLock,
+  showVia,
 }: {
   /** Fotos y notas de voz; sin esto el chat es sólo texto. */
   sendAttachment?: SendAttachment;
@@ -65,6 +69,10 @@ export function ChatThread({
   headerRight?: React.ReactNode;
   /** Si viene, la conversación se muestra pero ya no se puede escribir. */
   closedNotice?: string;
+  /** Si viene, reemplaza la caja de texto (p. ej. mientras la IA contesta). */
+  composerLock?: React.ReactNode;
+  /** Marca los mensajes que contestó la IA (sólo lo ve el anfitrión). */
+  showVia?: boolean;
 }) {
   const t = useT();
   const lang = useLang();
@@ -209,6 +217,7 @@ export function ChatThread({
                         m.attachment?.kind === "image" ? "px-2 pb-0.5" : ""
                       }`}
                     >
+                      {m.via === "ai" && showVia ? `${t("Respondido por IA")} · ` : ""}
                       {m.pending ? t("Enviando…") : timeLabel(m.createdAt, lang)}
                     </p>
                   </div>
@@ -227,6 +236,10 @@ export function ChatThread({
         >
           {closedNotice}
         </p>
+      ) : composerLock ? (
+        <div className="border-t border-[#ebebeb] bg-white px-4 pt-3" style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}>
+          {composerLock}
+        </div>
       ) : (
       <form
         onSubmit={submit}

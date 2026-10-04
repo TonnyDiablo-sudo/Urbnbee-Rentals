@@ -9,6 +9,7 @@ import { getLang } from "@/lib/i18n/server";
 import { translateIncoming } from "@/lib/listing-localize";
 import { getListingById } from "@/lib/marketplace-store";
 import { attachmentView } from "@/lib/chat-attachments";
+import { getChatAi } from "@/lib/chat-ai-settings";
 import type { ChatAttachmentView } from "@/lib/host-inbox-types";
 
 export async function GET(req: NextRequest) {
@@ -34,7 +35,9 @@ export async function GET(req: NextRequest) {
       createdAt: string;
       guestName: string;
       attachment?: ChatAttachmentView;
+      via?: "ai";
     }[];
+    aiOn: boolean;
   };
 
   const threads: ThreadOut[] = [];
@@ -73,7 +76,9 @@ export async function GET(req: NextRequest) {
         createdAt: m.createdAt,
         guestName: m.sender === "guest" ? guestName : "",
         attachment: attachmentView(m),
+        via: m.via,
       })),
+      aiOn: getChatAi(scope.hostId, listingId, guestSessionId).enabled,
     });
   }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { getListingById } from "@/lib/marketplace-store";
 import { appendMessage } from "@/lib/host-inbox-store";
+import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
 import { sanitizeBodyText } from "@/lib/host-inbox-sanitize";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { notifyGuestHostReply } from "@/lib/push";
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No encontrado." }, { status: 404 });
   }
 
-  appendMessage({
+  const msg = appendMessage({
     listingId,
     hostId: listing.hostId,
     guestSessionId,
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
     guestName: "",
     body: text,
   });
+  bridgeChatMessage(msg);
   notifyGuestHostReply({ listingId, guestSessionId, body: text });
 
   return NextResponse.json({ ok: true });

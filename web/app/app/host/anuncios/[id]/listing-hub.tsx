@@ -11,6 +11,14 @@ import { COUNTRY_OPTIONS, isMexico, MX_STATE_LIST } from "@/lib/geo-places";
 import { sizedImage } from "@/lib/image-url";
 import { taxActive, type HostTaxSettings } from "@/lib/stay-tax";
 import type { ListingCategory } from "@/lib/mock-data";
+import {
+  AGENT_FAQ_A_MAX,
+  AGENT_FAQ_MAX,
+  AGENT_FAQ_Q_MAX,
+  AGENT_FAQ_SUGGESTIONS,
+  AGENT_NOTES_MAX,
+  type AgentFaqItem,
+} from "@/lib/listing-agent-info";
 import { IconChevron, IconClose, IconExternal, IconPlus } from "../../../_components/icons";
 import { WebLink } from "../../../_components/site-origin";
 import { TopBar } from "../../../_components/top-bar";
@@ -37,7 +45,12 @@ type PanelId =
   | "directions"
   | "wifi"
   | "manual"
-  | "checkout";
+  | "checkout"
+  | "faq"
+  | "agentNotes";
+
+const BEEAGENT_URL = "/api/host/integrations/beeagent";
+type BeeagentInfo = { linked: boolean; agentStatus: { active: boolean } | null };
 
 const money = (n: number) => `$${Math.round(n).toLocaleString("es-MX")}`;
 
@@ -109,7 +122,8 @@ export function ListingHub({ listingId }: { listingId: string }) {
   const fromList = peekCached<{ listings?: HostListing[] }>(HOST_URLS.listings)?.listings?.find((l) => l.id === listingId);
   const listing = detail.data?.listing ?? fromList ?? null;
   const missing = detail.error && !listing;
-  const [tab, setTab] = useState<"space" | "arrival">("space");
+  const beeagent = useCached<BeeagentInfo>(BEEAGENT_URL).data;
+  const [tab, setTab] = useState<"space" | "arrival" | "agent">("space");
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [pricesOpen, setPricesOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -219,10 +233,11 @@ export function ListingHub({ listingId }: { listingId: string }) {
       </button>
 
       <div className="px-5 pt-4">
-        <div className="grid grid-cols-2 rounded-xl bg-[#f1f1f1] p-1">
+        <div className={`grid ${beeagent?.linked ? "grid-cols-3" : "grid-cols-2"} rounded-xl bg-[#f1f1f1] p-1`}>
           {[
             { id: "space" as const, label: "Tu espacio" },
             { id: "arrival" as const, label: "Guía de llegada" },
+            ...(beeagent?.linked ? [{ id: "agent" as const, label: "Agente IA" }] : []),
           ].map((o) => (
             <button
               key={o.id}
@@ -325,6 +340,33 @@ export function ListingHub({ listingId }: { listingId: string }) {
             href={`/host/contratos?anuncio=${encodeURIComponent(listing.id)}`}
           />
         </ul>
+      ) : tab === "agent" && beeagent?.linked ? (
+        <>
+          <p className="mx-5 mt-4 rounded-2xl bg-[#fdf6d8] px-4 py-3 text-sm leading-relaxed text-[#5c4a0a]">
+            {t("Tu agente de urbnbeeai lee esto para contestar a tus huéspedes. Ya ve la dirección, el precio, la limpieza, las reglas, la guía de llegada, tus reservaciones y tus limpiezas.")}
+          </p>
+          {beeagent.agentStatus?.active === false && (
+            <p className="mx-5 mt-3 rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#484848]">
+              {t("Tu agente está pausado en urbnbeeai: no contesta hasta que lo actives allá.")}
+            </p>
+          )}
+          <ul className="mt-2 divide-y divide-[#f0f0f0] px-5">
+            <Row
+              label={t("Preguntas frecuentes")}
+              value={
+                listing.agentFaq?.length
+                  ? t(listing.agentFaq.length === 1 ? "1 pregunta" : "{n} preguntas", { n: listing.agentFaq.length })
+                  : t("Agrega lo que siempre te preguntan")
+              }
+              onClick={() => setPanel("faq")}
+            />
+            <Row
+              label={t("Información general")}
+              value={listing.agentNotes || t("Estacionamiento, qué hay cerca, cómo tratas a tus huéspedes…")}
+              onClick={() => setPanel("agentNotes")}
+            />
+          </ul>
+        </>
       ) : (
         <>
           <p className="mx-5 mt-4 rounded-2xl bg-[#fdf6d8] px-4 py-3 text-sm text-[#5c4a0a]">
@@ -450,6 +492,8 @@ const PANEL_TITLE: Record<PanelId, string> = {
   wifi: "Wifi",
   manual: "Manual de la casa",
   checkout: "Instrucciones de salida",
+  faq: "Preguntas frecuentes",
+  agentNotes: "Información general",
 };
 
 /** Pantalla completa para editar una sección; guarda sólo lo de esa sección. */
@@ -490,6 +534,8 @@ function PanelBody({
     creditCheckPayer: listing.creditCheckPayer === "host" ? "host" : "guest",
     chargeTax: listing.chargeTax !== false,
     arrival: { ...(listing.arrivalGuide ?? {}) } as ArrivalGuide,
+    agentFaq: (listing.agentFaq ?? []).map((f) => ({ ...f })) as AgentFaqItem[],
+    agentNotes: listing.agentNotes ?? "",
   }));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -537,6 +583,10 @@ function PanelBody({
         };
       case "taxes":
         return { chargeTax: draft.chargeTax };
+      case "faq":
+        return { agentFaq: draft.agentFaq.map((f) => ({ q: f.q.trim(), a: f.a.trim() })).filter((f) => f.q && f.a) };
+      case "agentNotes":
+        return { agentNotes: draft.agentNotes.trim() };
       default:
         return { arrivalGuide: draft.arrival };
     }
@@ -545,6 +595,10 @@ function PanelBody({
   const save = async () => {
     if (id === "title" && draft.title.trim().length < 4) {
       setErr("El título necesita al menos 4 letras.");
+      return;
+    }
+    if (id === "faq" && draft.agentFaq.some((f) => f.q.trim() && !f.a.trim())) {
+      setErr("Cada pregunta necesita su respuesta.");
       return;
     }
     setBusy(true);
@@ -771,6 +825,93 @@ function PanelBody({
                 />
               </label>
             </>
+          )}
+
+          {id === "faq" && (
+            <>
+              <p className="text-sm leading-relaxed text-[#717171]">
+                {t("Lo que tus huéspedes siempre preguntan, con tu respuesta. Tu agente de urbnbeeai contesta con esto; el anuncio no lo muestra.")}
+              </p>
+              {draft.agentFaq.map((f, i) => (
+                <div key={i} className="space-y-2 rounded-2xl border border-[#ebebeb] p-3">
+                  <div className="flex items-start gap-2">
+                    <input
+                      value={f.q}
+                      maxLength={AGENT_FAQ_Q_MAX}
+                      onChange={(e) => set("agentFaq", draft.agentFaq.map((x, j) => (j === i ? { ...x, q: e.target.value } : x)))}
+                      placeholder={t("Pregunta")}
+                      aria-label={t("Pregunta")}
+                      className={`${inputCls} mt-0 font-medium`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => set("agentFaq", draft.agentFaq.filter((_, j) => j !== i))}
+                      className="flex h-12 w-10 shrink-0 items-center justify-center text-[#999]"
+                      aria-label={t("Quitar pregunta")}
+                    >
+                      <IconClose />
+                    </button>
+                  </div>
+                  <textarea
+                    value={f.a}
+                    maxLength={AGENT_FAQ_A_MAX}
+                    rows={3}
+                    onChange={(e) => set("agentFaq", draft.agentFaq.map((x, j) => (j === i ? { ...x, a: e.target.value } : x)))}
+                    placeholder={t("Tu respuesta")}
+                    aria-label={t("Tu respuesta")}
+                    className={`${inputCls} mt-0`}
+                  />
+                </div>
+              ))}
+              {draft.agentFaq.length < AGENT_FAQ_MAX && (
+                <button
+                  type="button"
+                  onClick={() => set("agentFaq", [...draft.agentFaq, { q: "", a: "" }])}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#bbb] py-3 text-[15px] font-semibold text-[#222]"
+                >
+                  <IconPlus /> {t("Agregar pregunta")}
+                </button>
+              )}
+              {(() => {
+                const taken = new Set(draft.agentFaq.map((f) => f.q.trim()));
+                const ideas = AGENT_FAQ_SUGGESTIONS.filter((s) => !taken.has(t(s)));
+                if (ideas.length === 0 || draft.agentFaq.length >= AGENT_FAQ_MAX) return null;
+                return (
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-[#222]">{t("Ideas")}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {ideas.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => set("agentFaq", [...draft.agentFaq, { q: t(s), a: "" }])}
+                          className="rounded-full border border-[#ddd] px-3 py-1.5 text-sm text-[#444]"
+                        >
+                          + {t(s)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
+          )}
+
+          {id === "agentNotes" && (
+            <label className="block text-sm font-medium text-[#222]">
+              {t("Todo lo que tu agente debe saber de tu negocio y que no está en otra sección.")}
+              <textarea
+                value={draft.agentNotes}
+                maxLength={AGENT_NOTES_MAX}
+                rows={12}
+                onChange={(e) => set("agentNotes", e.target.value)}
+                placeholder={t("Ej.: Estacionamiento gratis en la calle. A 2 cuadras hay un OXXO y una farmacia. Si llegan después de las 22:00, avisar con un día de anticipación. Hablamos inglés y español.")}
+                className={inputCls}
+              />
+              <span className="mt-1 block text-right text-xs text-[#999]">
+                {draft.agentNotes.length}/{AGENT_NOTES_MAX}
+              </span>
+            </label>
           )}
 
           {id === "booking" && (

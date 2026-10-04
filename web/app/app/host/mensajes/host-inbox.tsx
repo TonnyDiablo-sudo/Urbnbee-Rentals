@@ -23,7 +23,10 @@ export type HostThread = {
     original?: string;
     createdAt: string;
     attachment?: ChatAttachmentView;
+    via?: "ai";
   }[];
+  /** El agente de urbnbeeai contesta esta conversación. */
+  aiOn?: boolean;
 };
 
 export function hostThreadHref(t: { listingId: string; guestSessionId: string }) {
@@ -94,9 +97,12 @@ export function HostInbox() {
                     {new Date(th.lastAt).toLocaleDateString(numberLocale(lang), { day: "numeric", month: "short" })}
                   </span>
                 </div>
-                <p className="truncate text-xs text-[#999]">{th.listingTitle}</p>
+                <p className="flex items-center gap-1.5 text-xs text-[#999]">
+                  <span className="truncate">{th.listingTitle}</span>
+                  {th.aiOn && <span className="shrink-0 rounded-full bg-[#fdf6d8] px-1.5 py-px text-[10px] font-bold text-[#5c4a0a]">{t("IA")}</span>}
+                </p>
                 <p className={`mt-0.5 line-clamp-2 text-sm ${unread ? "text-[#222]" : "text-[#717171]"}`}>
-                  {last?.sender === "host" ? `${t("Tú:")} ` : ""}
+                  {last?.sender === "host" ? `${t(last.via === "ai" ? "IA:" : "Tú:")} ` : ""}
                   {last?.body || (last?.attachment ? t(last.attachment.kind === "image" ? "📷 Foto" : "🎤 Nota de voz") : "")}
                 </p>
               </div>

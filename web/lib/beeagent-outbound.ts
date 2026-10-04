@@ -61,6 +61,7 @@ function envelope(input: {
   hostId: string;
   customerId: number;
   booking?: BookingRecord;
+  conversationKey?: string;
   data: unknown;
 }) {
   return {
@@ -71,7 +72,7 @@ function envelope(input: {
     beeagent_customer_id: input.customerId,
     booking_id: input.booking?.id ?? null,
     ref: input.booking?.beeagentRef ?? null,
-    conversation_key: input.booking?.conversationKey ?? null,
+    conversation_key: input.conversationKey ?? input.booking?.conversationKey ?? null,
     data: input.data,
   };
 }
@@ -158,6 +159,31 @@ export function enqueueEntitlementsChanged(hostId: string, entitlements: HostEnt
         })),
       },
     }),
+    status: "pending",
+    attempts: 0,
+    nextAttemptAt: occurredAt,
+    createdAt: occurredAt,
+  });
+}
+
+/** Eventos del chat del anuncio (huésped ↔ anfitrión) para la central de chat de urbnbeeai. */
+export function enqueueChatOutbound(
+  event: Extract<OutboundEventName, "message.created" | "conversation.ai_changed">,
+  hostId: string,
+  conversationKey: string,
+  data: unknown
+): void {
+  const link = getBeeagentLinkForHost(hostId);
+  if (!link) return;
+  const occurredAt = nowIso();
+  const id = eventId();
+  persistAndKick({
+    eventId: id,
+    event,
+    hostId,
+    beeagentCustomerId: link.beeagentCustomerId,
+    occurredAt,
+    payload: envelope({ eventId: id, event, occurredAt, hostId, customerId: link.beeagentCustomerId, conversationKey, data }),
     status: "pending",
     attempts: 0,
     nextAttemptAt: occurredAt,

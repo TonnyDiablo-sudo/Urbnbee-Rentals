@@ -1,5 +1,6 @@
 import type { ArrivalGuide } from "@/lib/arrival-guide";
 import type { ListingContractSettings } from "@/lib/booking-contract-templates";
+import type { AgentFaqItem } from "@/lib/listing-agent-info";
 import type { ListingPricing } from "@/lib/listing-pricing";
 import type { ListingCategory } from "@/lib/mock-data";
 import type { ListingDetail } from "@/lib/listing-detail-data";
@@ -107,6 +108,10 @@ export type HostListingRecord = {
   rules: ListingDetail["rules"];
   /** Reglas propias del anfitrión, en texto libre (públicas y en el contrato). */
   houseRules?: string;
+  /** Preguntas frecuentes para el agente de IA del anfitrión (urbnbeeai). No se muestran en el anuncio. */
+  agentFaq?: AgentFaqItem[];
+  /** Información general para el agente: estacionamiento, qué hay cerca, trato con el huésped… */
+  agentNotes?: string;
   blockedDates: string[];
   /** Platform badges — new host listings start unverified */
   verified: boolean;

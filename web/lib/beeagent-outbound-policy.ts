@@ -13,7 +13,9 @@ export type OutboundEventName =
   | "booking.refunded"
   | "booking.expired"
   | "host.entitlements_changed"
-  | "host.unlinked";
+  | "host.unlinked"
+  | "message.created"
+  | "conversation.ai_changed";
 
 export type OutboundDelivery = "delivered" | "drop" | "retry";
 

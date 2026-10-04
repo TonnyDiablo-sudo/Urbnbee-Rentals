@@ -15,6 +15,7 @@ type Msg = {
   createdAt: string;
   guestName: string;
   attachment?: ChatAttachmentClient;
+  via?: "ai";
 };
 
 type Thread = {
@@ -156,7 +157,7 @@ export default function HostMessagesPage() {
                             }`}
                           >
                             <span className="text-[10px] font-bold uppercase opacity-70">
-                              {m.sender === "host" ? t("Tú") : m.guestName || t("Huésped")}
+                              {m.sender === "host" ? t(m.via === "ai" ? "Respondido por IA" : "Tú") : m.guestName || t("Huésped")}
                             </span>
                             {m.attachment && (
                               <div className="mt-1">

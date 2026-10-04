@@ -9,6 +9,7 @@ import { getSessionUser } from "@/lib/session";
 import { deleteProofsForListing } from "@/lib/address-proof-store";
 import { sanitizeArrivalGuide } from "@/lib/arrival-guide";
 import { sanitizeListingContract } from "@/lib/booking-contract-templates";
+import { sanitizeAgentFaq, sanitizeAgentNotes } from "@/lib/listing-agent-info";
 import { sanitizePricing } from "@/lib/listing-pricing";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import type { ListingCategory } from "@/lib/mock-data";
@@ -91,6 +92,8 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     };
   }
   if (body.houseRules !== undefined) patch.houseRules = String(body.houseRules ?? "").slice(0, 2000);
+  if (body.agentFaq !== undefined) patch.agentFaq = sanitizeAgentFaq(body.agentFaq);
+  if (body.agentNotes !== undefined) patch.agentNotes = sanitizeAgentNotes(body.agentNotes);
   if (typeof body.published === "boolean") patch.published = body.published;
 
   // La insignia de verificado no se autoasigna: la concede Stripe Identity o el equipo.
