@@ -96,7 +96,7 @@ export function HowItWorks({ exploreHref, bookHref, storeHref }: { exploreHref: 
         ))}
       </div>
 
-      <section className="mt-10">
+      <section id="servicios" className="mt-10 scroll-mt-24">
         <h2 className="text-xl font-semibold">{t("Servicios opcionales de la Tienda")}</h2>
         <p className="mt-1.5 text-[15px] leading-relaxed text-[#555]">
           {t(

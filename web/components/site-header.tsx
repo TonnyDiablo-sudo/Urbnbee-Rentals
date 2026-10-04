@@ -11,7 +11,7 @@ const nav = [
   { href: "/alojamientos", label: "Alojamientos" },
   { href: "/membresia", label: "Membresía" },
   { href: "/nosotros", label: "Nosotros" },
-  { href: "/servicios", label: "Servicios" },
+  { href: "/como-funciona#servicios", label: "Servicios" },
   { href: "/blog", label: "Blog" },
   { href: "/contacto", label: "Contacto" },
 ];
