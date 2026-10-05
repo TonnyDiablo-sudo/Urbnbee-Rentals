@@ -61,7 +61,7 @@ export async function moderateReview(opts: {
     const reason = String(res.data.reason ?? "").trim().slice(0, 240);
     return {
       verdict: "reject",
-      reason: reason || t("Tu reseña no cumple las reglas de la comunidad. Escríbela sin insultos ni datos personales."),
+      reason: reason || t("Tu reseña no pasó la revisión del equipo Cabibee. Puedes escribirla de nuevo."),
       model: res.model,
     };
   }

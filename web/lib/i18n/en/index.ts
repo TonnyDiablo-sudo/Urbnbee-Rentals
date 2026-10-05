@@ -28,6 +28,7 @@ import { longStay } from "./long-stay";
 import { reviewsPhoneMail } from "./reviews-phone-mail";
 import { monthlyCharge } from "./monthly-charge";
 import { verificationRecheck } from "./verification-recheck";
+import { teamTools } from "./team-tools";
 
 /** Clave: el texto exacto en español que aparece en el código. */
 export const EN: Record<string, string> = {
@@ -61,4 +62,5 @@ export const EN: Record<string, string> = {
   ...reviewsPhoneMail,
   ...monthlyCharge,
   ...verificationRecheck,
+  ...teamTools,
 };

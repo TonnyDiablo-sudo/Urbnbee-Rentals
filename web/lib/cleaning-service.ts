@@ -1,5 +1,6 @@
 import "server-only";
 import { analyticsDayKey, shiftDayKey } from "@/lib/analytics-day";
+import { attendanceEnabled } from "@/lib/attendance-flag";
 import type { BookingRecord } from "@/lib/booking-types";
 import { listAllBookings, listBookingsForHost } from "@/lib/bookings-store";
 import { randomBytes } from "crypto";
@@ -276,6 +277,7 @@ export function hostCleaningView(hostId: string) {
     tasks: visibleTasks(listCleaningTasksForHost(hostId), 120),
     today: analyticsDayKey(),
     recentSince: shiftDayKey(analyticsDayKey(), -14),
+    attendanceEnabled: attendanceEnabled(),
   };
 }
 
@@ -476,7 +478,7 @@ export function updateCleaningByActor(
 
 /** Lo que ve quien limpia: sus tareas en cada equipo. */
 export function cleanerTasksView(user: { id: string; email: string }) {
-  const groups: { hostId: string; hostName: string; requirePhoto: boolean; tasks: CleaningTaskView[] }[] = [];
+  const groups: { hostId: string; hostName: string; requirePhoto: boolean; attendanceEnabled: boolean; tasks: CleaningTaskView[] }[] = [];
   for (const m of listMembershipsForUser(user.id, user.email)) {
     if (m.status !== "active" || !memberEffectiveRoles(m).includes("cleaning")) continue;
     refreshCleaning(m.hostId);
@@ -486,6 +488,7 @@ export function cleanerTasksView(user: { id: string; email: string }) {
       hostId: m.hostId,
       hostName: (host && publicNameOf(host)) || "Anfitrión",
       requirePhoto: getCleaningSettings(m.hostId).requirePhoto,
+      attendanceEnabled: attendanceEnabled(),
       tasks: visibleTasks(mine),
     });
   }

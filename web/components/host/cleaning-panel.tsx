@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { CleaningCalendar } from "@/components/host/cleaning-calendar";
 import { CleaningTaskCard, type CleaningTaskItem } from "@/components/host/cleaning-task-card";
+import { AttendanceHistory } from "@/components/host/attendance-history";
+import { SuppliesPanel } from "@/components/host/supplies-panel";
 
 type Settings = { assignMode: "auto" | "manual"; requirePhoto: boolean };
 
@@ -18,6 +20,7 @@ type View = {
   tasks: CleaningTaskItem[];
   today: string;
   recentSince: string;
+  attendanceEnabled: boolean;
 };
 
 const covers = (c: View["cleaners"][number], listingId: string) => c.listingIds === "all" || c.listingIds.includes(listingId);
@@ -92,6 +95,8 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
         {[
           ["#calendario", t("Calendario")],
           ["#limpiezas", t("Limpiezas")],
+          ["#insumos", t("Insumos")],
+          ...(data.attendanceEnabled ? [["#asistencia", t("Entradas y salidas")]] : []),
           ["#anuncios", t("Anuncios y quién limpia")],
           ["#como", t("Cómo trabajas")],
           ["#extra", t("Limpieza extra")],
@@ -142,6 +147,7 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
                 chatPath={hostChatPath(task)}
                 chatLabel={t("Chat con {name}", { name: task.assigneeLabel })}
                 onChanged={load}
+                attendance={data.attendanceEnabled && task.assignee === "host"}
                 cleaners={data.cleaners.filter((c) => covers(c, task.listingId))}
                 onAssign={(assignee) => void send(`/api/cleaning/${task.id}`, "PATCH", { assignee })}
                 onDone={(d) => void send(`/api/cleaning/${task.id}`, "PATCH", { done: d })}
@@ -153,6 +159,17 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
           </ul>
         )}
       </section>
+
+      <SuppliesPanel />
+
+      {data.attendanceEnabled ? (
+        <AttendanceHistory cleaners={data.cleaners} />
+      ) : (
+        <p className="rounded-2xl border border-dashed border-[#ddd] bg-white px-5 py-4 text-sm text-[#555]">
+          📍 <strong>{t("Próximamente incluido")}:</strong>{" "}
+          {t("quien limpia marcará su entrada y salida desde el alojamiento, y verás el historial de cada persona por día.")}
+        </p>
+      )}
 
       <section id="como" className="scroll-mt-20 rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[#222]">{t("Cómo trabajas")}</h2>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { TeamChat } from "@/components/team/team-chat";
 
 type Role = "cleaning" | "bookings" | "contracts" | "messages";
 const ROLES: { id: Role; label: string; hint: string }[] = [
@@ -315,6 +316,8 @@ export function TeamPanel({ storeHref = "/tienda" }: { storeHref?: string }) {
           {busy ? t("Enviando…") : t("Enviar invitación")}
         </button>
       </form>
+
+      <TeamChat />
     </div>
   );
 }

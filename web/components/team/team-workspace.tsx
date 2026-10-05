@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { CleaningTaskCard, type CleaningTaskItem } from "@/components/host/cleaning-task-card";
+import { SuppliesPanel } from "@/components/host/supplies-panel";
+import { TeamChat } from "@/components/team/team-chat";
 
 type Role = "cleaning" | "bookings" | "contracts" | "messages";
 const ROLE_LABEL: Record<Role, string> = {
@@ -274,9 +276,11 @@ function CleaningBlock({
   requirePhoto,
   hostName,
   reload,
+  attendance,
 }: {
   tasks: CleaningTaskItem[];
   requirePhoto: boolean;
+  attendance: boolean;
   hostName: string;
   reload: () => Promise<void>;
 }) {
@@ -312,6 +316,7 @@ function CleaningBlock({
               onChanged={reload}
               onDone={(done) => void patch(task.id, { done })}
               onNote={(note) => void patch(task.id, { note })}
+              attendance={attendance}
             />
           ))}
         </ul>
@@ -324,15 +329,22 @@ function CleaningBlock({
 export function TeamWorkspace() {
   const t = useT();
   const [teams, setTeams] = useState<Team[] | null>(null);
-  const [cleaning, setCleaning] = useState<Record<string, { requirePhoto: boolean; tasks: CleaningTaskItem[] }>>({});
+  const [cleaning, setCleaning] = useState<
+    Record<string, { requirePhoto: boolean; attendanceEnabled: boolean; tasks: CleaningTaskItem[] }>
+  >({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const loadCleaning = useCallback(async () => {
     const r = await jsonCall("/api/team/cleaning");
     if (!r.ok) return;
-    const groups = (r.j.groups as { hostId: string; requirePhoto: boolean; tasks: CleaningTaskItem[] }[]) ?? [];
-    setCleaning(Object.fromEntries(groups.map((g) => [g.hostId, { requirePhoto: g.requirePhoto, tasks: g.tasks }])));
+    const groups =
+      (r.j.groups as { hostId: string; requirePhoto: boolean; attendanceEnabled?: boolean; tasks: CleaningTaskItem[] }[]) ?? [];
+    setCleaning(
+      Object.fromEntries(
+        groups.map((g) => [g.hostId, { requirePhoto: g.requirePhoto, attendanceEnabled: Boolean(g.attendanceEnabled), tasks: g.tasks }])
+      )
+    );
   }, []);
 
   const load = useCallback(async () => {
@@ -419,12 +431,15 @@ export function TeamWorkspace() {
               requirePhoto={cleaning[team.hostId]?.requirePhoto ?? false}
               hostName={team.hostName}
               reload={loadCleaning}
+              attendance={cleaning[team.hostId]?.attendanceEnabled ?? false}
             />
           )}
+          {team.roles.includes("cleaning") && <SuppliesPanel hostId={team.hostId} />}
           {team.roles.includes("bookings") && (
             <BookingsBlock hostId={team.hostId} canSign={team.roles.includes("contracts")} />
           )}
           {team.roles.includes("messages") && <MessagesBlock hostId={team.hostId} />}
+          <TeamChat hostId={team.hostId} />
         </section>
       ))}
     </div>

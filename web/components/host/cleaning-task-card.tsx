@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { AttendanceButtons } from "@/components/host/attendance-buttons";
 
 export type CleaningTaskItem = {
   id: string;
@@ -52,7 +53,10 @@ export function CleaningTaskCard({
   onNote,
   onChanged,
   showAssignee = false,
+  attendance = false,
 }: {
+  /** Mostrar «Marcar entrada / salida» con ubicación. */
+  attendance?: boolean;
   task: CleaningTaskItem;
   busy: boolean;
   requirePhoto?: boolean;
@@ -140,6 +144,8 @@ export function CleaningTaskCard({
           {done ? t("Hecha") : t("Marcar hecha")}
         </label>
       </div>
+
+      {attendance && <AttendanceButtons taskId={task.id} />}
 
       {needsPhoto && <p className="mt-2 text-xs text-amber-700">{t("El anfitrión pide al menos una foto para marcarla como hecha.")}</p>}
 

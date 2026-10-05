@@ -12,7 +12,10 @@ type Status = { linked: boolean; startUrl?: string; agentStatus?: { active: bool
 const PERKS = [
   "Contesta los mensajes de tus anuncios al instante, de día y de noche, en el idioma del huésped.",
   "Resuelve las preguntas repetitivas: la clave del wifi, cómo llegar, a qué hora es el check-in, la tienda o farmacia más cercana, dónde estacionarse.",
-  "Coordina tus limpiezas: avisa a quien le toca y confirma cuando el espacio queda listo.",
+  "Cobra por ti: manda el enlace de pago y da seguimiento hasta que el huésped paga.",
+  "Coordina tus estancias y tus limpiezas: avisa a quien le toca y confirma cuando el espacio queda listo.",
+  "Filtra entre quien de verdad quiere reservar y quien sólo pregunta, para que tú atiendas a los que sí.",
+  "Te avisa de lo importante: una emergencia dentro de tu alojamiento o cualquier cosa que tenga que atender una persona.",
   "Usa tus anuncios, fechas, reservas y guía de llegada de Cabibee; tú puedes tomar la conversación cuando quieras.",
 ];
 
