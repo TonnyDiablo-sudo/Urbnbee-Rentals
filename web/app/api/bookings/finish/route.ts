@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureBookingContract, guestAcceptBookingContract } from "@/lib/booking-contract";
+import { notifyHostContractToSign } from "@/lib/booking-reopen";
 import { findBookingByToken } from "@/lib/bookings-store";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { findUserById } from "@/lib/marketplace-store";
@@ -85,6 +86,9 @@ export async function POST(req: NextRequest) {
   });
   if (!updated) {
     return NextResponse.json({ error: "No se pudieron guardar los datos." }, { status: 409 });
+  }
+  if (updated.status === "AWAITING_PAYMENT" && !updated.contract?.hostAcceptedAt && !booking.contract.guestAcceptedAt) {
+    notifyHostContractToSign(updated);
   }
 
   return NextResponse.json({

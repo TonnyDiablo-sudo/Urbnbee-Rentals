@@ -88,7 +88,28 @@ export type BookingContractRecord = {
   acceptedSha256?: string;
   /** Versiones reemplazadas por un cambio de fechas, anuncio o montos; conservan sus firmas. */
   previousVersions?: BookingContractPreviousVersion[];
+  /** Fecha límite de pago impresa en la cláusula de vigencia. Sin esto, contrato anterior a la cláusula. */
+  paymentDueAt?: string;
+  /** Sellos del sistema. Sólo se agregan; nunca se borran. */
+  stamps?: ContractStamp[];
   events: BookingContractEvent[];
+};
+
+export type ContractStamp = {
+  id: string;
+  kind: "payment_received" | "payment_rejected" | "voided";
+  at: string;
+  amountMxn?: number;
+  /** stripe, demo o el método manual. */
+  method?: string;
+  /** Referencia del cobro (PaymentIntent, sesión…). */
+  ref?: string;
+  /** Pago rechazado: nuevo plazo para pagar. */
+  dueAt?: string;
+  reason?: string;
+  /** Sólo los de pago rechazado se cierran, cuando el pago entra dentro del plazo. */
+  clearedAt?: string;
+  clearedByStampId?: string;
 };
 
 export type BookingContractPreviousVersion = {
@@ -101,4 +122,5 @@ export type BookingContractPreviousVersion = {
   guestAcceptedName?: string;
   acceptedSha256?: string;
   changes: string[];
+  stamps?: ContractStamp[];
 };

@@ -23,6 +23,8 @@ import { enqueueBookingOutbound } from "@/lib/beeagent-outbound";
 import type { BookingRecord } from "@/lib/booking-types";
 import { attachDepositIfNeeded } from "@/lib/booking-deposit";
 import { confirmBookingAfterGuestContract } from "@/lib/booking-machine";
+import { paymentClauseLines, stampLines } from "@/lib/booking-contract-stamps";
+import { paymentDueOf } from "@/lib/booking-payment-window";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { findUserById, getHostProfile, getListingById } from "@/lib/marketplace-store";
 import { platformBookingFeeMxn } from "@/lib/platform-fees";
@@ -203,6 +205,7 @@ export function ensureBookingContract(
     hostAcceptedByUserId: actor.userId,
     hostAcceptedName: hostSigns ? hostName.slice(0, 160) : undefined,
     hostAcceptedIp: hostSigns ? actor.ip : undefined,
+    paymentDueAt: booking.status === "AWAITING_PAYMENT" && !booking.paidAt ? paymentDueOf(booking) : undefined,
     events: [
       event(
         actor.role,
@@ -299,6 +302,7 @@ export function syncContractWithBooking(
             guestAcceptedName: prev.guestAcceptedName,
             acceptedSha256: prev.acceptedSha256,
             changes,
+            stamps: prev.stamps,
           },
         ]
       : prev.previousVersions;
@@ -309,6 +313,8 @@ export function syncContractWithBooking(
     generatedAt: at,
     snapshot: fresh,
     previousVersions: archived,
+    paymentDueAt: prev.paymentDueAt,
+    stamps: prev.stamps,
     hostAcceptedAt: hostSigns ? at : undefined,
     hostAcceptedByUserId: hostSigns ? actor.userId : undefined,
     hostAcceptedName: hostSigns ? signName : undefined,
@@ -517,6 +523,13 @@ function signatureAndHistoryLines(c: BookingContractRecord, hostName: string, mo
             v.guestAcceptedAt
               ? `  Firmada por el huésped (${v.guestAcceptedName ?? s.guestName}) el ${stamp(v.guestAcceptedAt)}${v.acceptedSha256 ? ` · SHA-256 ${v.acceptedSha256}` : ""}`
               : "  Sin firma del huésped",
+            ...(v.stamps ?? []).map((st) =>
+              st.kind === "payment_received"
+                ? `  [SELLO] Pago recibido ${stamp(st.at)}`
+                : st.kind === "payment_rejected"
+                  ? `  [SELLO] Pago rechazado ${stamp(st.at)}${st.clearedAt ? " (cerrado)" : ""}`
+                  : `  [SELLO] Anulada por falta de pago ${stamp(st.at)}`
+            ),
           ]),
           "",
         ]
@@ -597,11 +610,13 @@ export function contractPlainLines(c: BookingContractRecord): string[] {
     "",
     ...j.clauses.flatMap((cl) => [cl.title, cl.text, ""]),
     ...(extra ? ["CLÁUSULAS ADICIONALES DEL ANFITRIÓN", extra, ""] : []),
+    ...paymentClauseLines(c),
     "LEY APLICABLE Y TRIBUNALES",
     j.governingLaw,
     j.courts,
     "",
     ...signatureAndHistoryLines(c, hostName, money),
+    ...stampLines(c),
     ...eventLines(c),
   ].filter((line, i, arr) => !(line === "" && arr[i - 1] === ""));
 }
@@ -661,6 +676,7 @@ function legacyContractPlainLines(c: BookingContractRecord): string[] {
     "CANCELACIÓN",
     s.cancellationPolicy,
     "",
+    ...paymentClauseLines(c),
     "FIRMAS",
     c.hostAcceptedAt
       ? `Anfitrión (${c.hostAcceptedName ?? hostName}): ${c.hostAcceptedAt.slice(0, 19).replace("T", " ")} UTC${c.hostAcceptedIp ? ` · IP ${c.hostAcceptedIp}` : ""}`
@@ -683,6 +699,7 @@ function legacyContractPlainLines(c: BookingContractRecord): string[] {
           "",
         ]
       : []),
+    ...stampLines(c),
     s.facilitatorNote,
     "",
     "BITÁCORA",

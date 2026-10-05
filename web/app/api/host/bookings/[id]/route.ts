@@ -11,6 +11,7 @@ import {
 import { LISTING_ENGINE_OFF_ERROR, listingAcceptsBookings } from "@/lib/booking-engine-slots";
 import { defaultListingContract } from "@/lib/booking-contract-templates";
 import { acceptPendingBooking, rejectPendingBooking } from "@/lib/booking-host-decision";
+import { archiveExpiredBooking, notifyGuestCanPay, reopenExpiredBooking } from "@/lib/booking-reopen";
 import { findUserById } from "@/lib/marketplace-store";
 import { bookingActor, memberCan } from "@/lib/team-access";
 import { publicNameOf } from "@/lib/display-name";
@@ -38,6 +39,8 @@ type PatchBody = {
   hostAdjustedListingId?: string;
   acceptContract?: boolean;
   signName?: string;
+  checkIn?: string;
+  checkOut?: string;
   /** Si se cobran los impuestos del anfitrión en esta reserva. */
   chargeTax?: boolean;
 };
@@ -217,11 +220,36 @@ export async function PATCH(
       ip: requestIp(req),
       signedBy: signsForHost ? collaboratorName : undefined,
     });
+    if (signed) notifyGuestCanPay(signed);
     return NextResponse.json({ ok: true, booking: signed });
   }
 
+  if (action === "reopen") {
+    if (!actor.owner && !signsForHost) {
+      return NextResponse.json(
+        { error: "Para reabrir y firmar en nombre del anfitrión necesitas el rol «Firmar contratos»." },
+        { status: 403 }
+      );
+    }
+    const r = await reopenExpiredBooking(booking.id, "host", {
+      checkIn: typeof body.checkIn === "string" ? body.checkIn.trim() : undefined,
+      checkOut: typeof body.checkOut === "string" ? body.checkOut.trim() : undefined,
+      userId: user.id,
+      ip: requestIp(req),
+      signName: signsForHost ? hostSignName() : typeof body.signName === "string" ? body.signName : undefined,
+    });
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+    return NextResponse.json({ ok: true, booking: r.booking });
+  }
+
+  if (action === "archive") {
+    const r = archiveExpiredBooking(booking.id, "host");
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+    return NextResponse.json({ ok: true, booking: r.booking });
+  }
+
   if (action !== "accept") {
-    return NextResponse.json({ error: "Acción no válida (accept | reject | sign)." }, { status: 400 });
+    return NextResponse.json({ error: "Acción no válida (accept | reject | sign | reopen | archive)." }, { status: 400 });
   }
 
   const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);

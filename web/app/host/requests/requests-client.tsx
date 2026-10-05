@@ -51,6 +51,10 @@ type BookingRow = {
   guestReviewOfListing?: StayReviewRecord;
   screening?: ScreeningPublicView | null;
   canRequestScreening?: boolean;
+  canReopen?: boolean;
+  archivedAt?: string;
+  paymentDueAt?: string;
+  paymentFailedAt?: string;
 };
 
 const statusLabel: Record<string, string> = {
@@ -62,7 +66,7 @@ const statusLabel: Record<string, string> = {
   REJECTED: "Rechazada",
   CANCELLED: "Cancelada",
   COMPLETED: "Completada",
-  EXPIRED: "Expirada (sin pago)",
+  EXPIRED: "Anulada (no se pagó a tiempo)",
 };
 
 export function HostRequestsClient() {
@@ -129,7 +133,7 @@ export function HostRequestsClient() {
         {bookings.length === 0 && !loadErr && (
           <p className="text-sm text-[#888]">{t("Aún no hay solicitudes de reserva.")}</p>
         )}
-        {bookings.map((b) => {
+        {bookings.filter((b) => !b.archivedAt).map((b) => {
           const pending = b.status === "PENDING" || b.status === "PENDING_HOST";
           const awaitingPay = b.status === "AWAITING_PAYMENT";
           return (
@@ -235,8 +239,25 @@ export function HostRequestsClient() {
                   onDone={() => void load()}
                 />
               )}
-              {!pending && b.contract && !b.contract.hostAcceptedAt && (
+              {awaitingPay && b.paymentDueAt && (
+                <p
+                  className={`mt-4 rounded px-3 py-2 text-xs ${
+                    b.paymentFailedAt ? "bg-red-50 text-red-800" : "bg-[#fdf6d8] text-[#6b5308]"
+                  }`}
+                >
+                  {t(
+                    b.paymentFailedAt
+                      ? "Se rechazó el pago. El huésped tiene hasta el {when} para volver a pagar; si no, el contrato se anula."
+                      : "El huésped tiene hasta el {when} para pagar. Ambos firman antes; el contrato surte efectos con el pago.",
+                    { when: new Date(b.paymentDueAt).toLocaleString(numberLocale(lang), { dateStyle: "medium", timeStyle: "short" }) }
+                  )}
+                </p>
+              )}
+              {!pending && b.status !== "EXPIRED" && b.contract && !b.contract.hostAcceptedAt && (
                 <HostSignOnly bookingId={b.id} acting={acting} setActing={setActing} onDone={() => void load()} />
+              )}
+              {b.status === "EXPIRED" && (
+                <HostExpiredActions booking={b} acting={acting} setActing={setActing} onDone={() => void load()} />
               )}
               {!pending && b.contract && (
                 <HostContractText bookingId={b.id} />
@@ -550,6 +571,103 @@ function HostContractText({ bookingId }: { bookingId: string }) {
     >
       {lines.join("\n")}
     </pre>
+  );
+}
+
+function HostExpiredActions({
+  booking,
+  acting,
+  setActing,
+  onDone,
+}: {
+  booking: BookingRow;
+  acting: string | null;
+  setActing: (id: string | null) => void;
+  onDone: () => void;
+}) {
+  const t = useT();
+  const [checkIn, setCheckIn] = useState((booking.hostAdjustedCheckIn ?? booking.checkIn).slice(0, 10));
+  const [checkOut, setCheckOut] = useState((booking.hostAdjustedCheckOut ?? booking.checkOut).slice(0, 10));
+  const [signName, setSignName] = useState("");
+  if (!booking.canReopen) return null;
+
+  async function send(body: Record<string, unknown>, fallback: string) {
+    setActing(booking.id);
+    try {
+      const res = await fetch(`/api/host/bookings/${booking.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(t(typeof data.error === "string" ? data.error : fallback));
+        return;
+      }
+      onDone();
+    } finally {
+      setActing(null);
+    }
+  }
+
+  return (
+    <div className="mt-4 border-t pt-4" style={{ borderColor: "#ebebeb" }}>
+      <p className="text-sm font-medium text-[#484848]">{t("El contrato se anuló porque no se pagó a tiempo")}</p>
+      <p className="mt-1 text-xs text-[#888]">
+        {t("Reábrela con las mismas fechas u otras: se genera un contrato nuevo (el anulado queda archivado) y el huésped tiene un nuevo plazo para firmar y pagar.")}
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <label>
+          <span className="text-xs text-[#888]">{t("Entrada")}</span>
+          <input
+            type="date"
+            value={checkIn}
+            onChange={(e) => setCheckIn(e.target.value)}
+            className="mt-1 w-full rounded border px-2 py-2 text-sm"
+            style={{ borderColor: "#ebebeb" }}
+          />
+        </label>
+        <label>
+          <span className="text-xs text-[#888]">{t("Salida")}</span>
+          <input
+            type="date"
+            value={checkOut}
+            onChange={(e) => setCheckOut(e.target.value)}
+            className="mt-1 w-full rounded border px-2 py-2 text-sm"
+            style={{ borderColor: "#ebebeb" }}
+          />
+        </label>
+        <label>
+          <span className="text-xs text-[#888]">{t("Tu nombre legal (firma)")}</span>
+          <input
+            value={signName}
+            onChange={(e) => setSignName(e.target.value)}
+            className="mt-1 w-full rounded border px-2 py-2 text-sm"
+            style={{ borderColor: "#ebebeb" }}
+          />
+        </label>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-3">
+        <button
+          type="button"
+          disabled={acting === booking.id || !checkIn || !checkOut}
+          className="rounded bg-[#dcb81e] px-5 py-2 text-sm font-semibold text-black disabled:opacity-50"
+          onClick={() => void send({ action: "reopen", checkIn, checkOut, signName: signName.trim() }, "No se pudo reabrir.")}
+        >
+          {t("Reabrir con contrato nuevo")}
+        </button>
+        <button
+          type="button"
+          disabled={acting === booking.id}
+          className="rounded border border-[#ebebeb] px-5 py-2 text-sm font-medium text-[#484848] disabled:opacity-50"
+          onClick={() => {
+            if (confirm(t("¿Archivar esta reserva? Ya no se podrá reabrir."))) void send({ action: "archive" }, "No se pudo archivar.");
+          }}
+        >
+          {t("Archivar")}
+        </button>
+      </div>
+    </div>
   );
 }
 

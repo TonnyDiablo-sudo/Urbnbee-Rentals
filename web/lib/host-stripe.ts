@@ -6,6 +6,8 @@ import { allowSimulatedBookingPayment } from "@/lib/stripe-server";
 export const HOST_WEBHOOK_EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
   "checkout.session.completed",
   "checkout.session.async_payment_succeeded",
+  "checkout.session.async_payment_failed",
+  "charge.dispute.created",
 ];
 
 /** HOST_STRIPE_API_URL only exists so tests can point the host's Stripe at a local mock. */
@@ -93,6 +95,28 @@ export async function createHostWebhook(
     return { ok: true, secret: ep.secret, id: ep.id };
   } catch (e) {
     return { ok: false, error: errText(e, "No se pudo crear el webhook.") };
+  }
+}
+
+const webhookEventsChecked = new Set<string>();
+
+/** Webhooks creados antes de que existieran algunos eventos: se les agregan sin cambiar el signing secret. */
+export async function ensureHostWebhookEvents(hostId: string): Promise<void> {
+  const secrets = getHostPaymentSecrets(hostId);
+  if (!secrets?.webhookEndpointId || webhookEventsChecked.has(secrets.webhookEndpointId)) return;
+  webhookEventsChecked.add(secrets.webhookEndpointId);
+  try {
+    const stripe = stripeFor(secrets.stripeSecretKey);
+    const ep = await stripe.webhookEndpoints.retrieve(secrets.webhookEndpointId);
+    if (ep.enabled_events.includes("*")) return;
+    const missing = HOST_WEBHOOK_EVENTS.filter((e) => !ep.enabled_events.includes(e));
+    if (!missing.length) return;
+    await stripe.webhookEndpoints.update(ep.id, {
+      enabled_events: [...ep.enabled_events, ...missing] as Stripe.WebhookEndpointUpdateParams.EnabledEvent[],
+    });
+  } catch (e) {
+    webhookEventsChecked.delete(secrets.webhookEndpointId);
+    console.warn("[host-stripe] webhook events", hostId, errText(e, ""));
   }
 }
 

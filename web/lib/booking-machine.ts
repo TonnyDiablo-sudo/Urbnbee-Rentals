@@ -9,25 +9,28 @@ import type {
   PayConfirmation,
 } from "@/lib/booking-types";
 import { enqueueBookingOutbound } from "@/lib/beeagent-outbound";
+import { addContractStamp } from "@/lib/booking-contract-stamps";
 import { mysqlApplyBookingOccupancy } from "@/lib/booking-nights";
+import { PAYMENT_WINDOW_MS, paymentDueOf, paymentWindowClosed, paymentWindowEnd } from "@/lib/booking-payment-window";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
 import { scheduleMysql } from "@/lib/mysql-sync";
-import { notifyBookingConfirmed } from "@/lib/push";
+import { notifyBookingConfirmed, notifyUser } from "@/lib/push";
 
-/** Sin pagar en 48 h → EXPIRED y se sueltan las noches. */
-export const UNPAID_EXPIRE_MS = 48 * 60 * 60 * 1000;
+/** Sin pagar dentro del plazo → EXPIRED (contrato anulado) y se sueltan las noches. */
+export const UNPAID_EXPIRE_MS = PAYMENT_WINDOW_MS;
 
+/** Volver a AWAITING_PAYMENT sólo pasa si el pago se rechaza, o al reabrir una reserva anulada. */
 const ALLOWED: Record<BookingStatus, BookingStatus[]> = {
-  AWAITING_PAYMENT: ["PENDING_HOST", "CONFIRMED", "EXPIRED", "CANCELLED"],
-  PENDING: ["AWAITING_DETAILS", "REJECTED", "CANCELLED", "PENDING_HOST"],
-  PENDING_HOST: ["AWAITING_DETAILS", "REJECTED", "CANCELLED"],
-  AWAITING_DETAILS: ["CONFIRMED", "CANCELLED"],
-  CONFIRMED: ["COMPLETED", "CANCELLED"],
+  AWAITING_PAYMENT: ["PENDING_HOST", "AWAITING_DETAILS", "CONFIRMED", "EXPIRED", "CANCELLED"],
+  PENDING: ["AWAITING_DETAILS", "REJECTED", "CANCELLED", "PENDING_HOST", "AWAITING_PAYMENT"],
+  PENDING_HOST: ["AWAITING_DETAILS", "REJECTED", "CANCELLED", "AWAITING_PAYMENT"],
+  AWAITING_DETAILS: ["CONFIRMED", "CANCELLED", "AWAITING_PAYMENT"],
+  CONFIRMED: ["COMPLETED", "CANCELLED", "AWAITING_PAYMENT"],
   REJECTED: [],
   CANCELLED: [],
   COMPLETED: [],
-  EXPIRED: [],
+  EXPIRED: ["AWAITING_PAYMENT"],
 };
 
 export function canonicalBookingStatus(status: BookingStatus): BookingStatus {
@@ -140,24 +143,96 @@ export function markBookingPaid(
     return prev;
   }
   if (canonicalBookingStatus(prev.status) !== "AWAITING_PAYMENT") return undefined;
+  if (paymentWindowClosed(prev)) return undefined;
 
   const listing = getListingById(prev.listingId);
-  const to: BookingStatus = listing?.bookingApprovalMode === "instant" ? "CONFIRMED" : "PENDING_HOST";
+  // Si el pago se había rechazado, la reserva vuelve a donde estaba (ya aceptada o confirmada).
+  const to: BookingStatus =
+    prev.resumeStatusAfterPay ?? (listing?.bookingApprovalMode === "instant" ? "CONFIRMED" : "PENDING_HOST");
   const at = opts?.payConfirmation?.at ?? nowIso();
   const payConfirmation: PayConfirmation = opts?.payConfirmation ?? { at, by: "stripe", method: "stripe" };
-  const next = transitionBooking(bookingId, to, {
+  const moved = transitionBooking(bookingId, to, {
     actor: opts?.actor ?? "system",
-    reason: payConfirmation.by === "host" ? "manual_payment_confirmed" : "payment_received",
+    reason: prev.resumeStatusAfterPay
+      ? "payment_retried"
+      : payConfirmation.by === "host"
+        ? "manual_payment_confirmed"
+        : "payment_received",
     paymentStatus: "paid",
-    contractStatus: to === "CONFIRMED" ? contractStatusOf(prev) : "pending",
+    contractStatus: to === "CONFIRMED" || prev.resumeStatusAfterPay ? contractStatusOf(prev) : "pending",
     patch: {
       paidAt: at,
       payConfirmation,
+      resumeStatusAfterPay: undefined,
+      paymentFailedAt: undefined,
       stripeCheckoutSessionId: opts?.stripeCheckoutSessionId ?? prev.stripeCheckoutSessionId,
       stripePaymentIntentId: opts?.stripePaymentIntentId ?? prev.stripePaymentIntentId,
     },
   });
+  const next = moved
+    ? (addContractStamp(bookingId, {
+        kind: "payment_received",
+        amountMxn: prev.estimatedTotalMxn,
+        method: opts?.stripeCheckoutSessionId === "simulated" ? "demo" : payConfirmation.method === "stripe" ? "tarjeta" : payConfirmation.method,
+        ref: opts?.stripePaymentIntentId ?? opts?.stripeCheckoutSessionId,
+      }) ?? moved)
+    : moved;
   if (next) enqueueBookingOutbound("booking.paid", next);
+  return next;
+}
+
+/**
+ * El pago se rechazó o se revirtió (contracargo, pago diferido que falló).
+ * Se imprime el sello de pago rechazado y se abre un plazo nuevo para pagar; si no se paga, se anula.
+ */
+export function markBookingPaymentFailed(
+  bookingId: string,
+  opts: { reason: string; ref?: string }
+): BookingRecord | undefined {
+  const prev = getBookingById(bookingId);
+  if (!prev) return undefined;
+  const status = canonicalBookingStatus(prev.status);
+  if (status === "AWAITING_PAYMENT" && !prev.paidAt) {
+    if (prev.contract?.stamps?.some((s) => s.kind === "payment_rejected" && !s.clearedAt && s.ref === opts.ref)) return prev;
+    return addContractStamp(bookingId, { kind: "payment_rejected", reason: opts.reason, ref: opts.ref, dueAt: paymentDueOf(prev) });
+  }
+  if (!prev.paidAt || !["PENDING_HOST", "AWAITING_DETAILS", "CONFIRMED"].includes(status)) return prev;
+  const dueAt = paymentWindowEnd(prev.hostAdjustedCheckIn ?? prev.checkIn);
+  const moved = transitionBooking(bookingId, "AWAITING_PAYMENT", {
+    actor: "system",
+    reason: "payment_failed",
+    paymentStatus: "failed",
+    patch: {
+      paidAt: undefined,
+      payConfirmation: undefined,
+      stripeCheckoutSessionId: undefined,
+      resumeStatusAfterPay: status,
+      paymentFailedAt: nowIso(),
+      paymentDueAt: dueAt,
+    },
+  });
+  if (!moved) return prev;
+  const next = addContractStamp(bookingId, { kind: "payment_rejected", reason: opts.reason, ref: opts.ref, dueAt }) ?? moved;
+  const listingTitle = getListingById(next.hostAdjustedListingId ?? next.listingId)?.title || "tu reserva";
+  const when = new Date(dueAt).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Mexico_City" });
+  if (next.guestUserId) {
+    notifyUser(next.guestUserId, {
+      kind: "payment",
+      title: "Se rechazó el pago de tu reserva",
+      body: "{listing}: vuelve a pagar antes del {when} o la reserva se anula.",
+      vars: { listing: listingTitle, when },
+      url: `/contrato/${next.token}?pay=1`,
+      tag: `payfail:${next.id}`,
+    });
+  }
+  notifyUser(next.hostId, {
+    kind: "payment",
+    title: "Se rechazó el pago de una reserva",
+    body: "{listing}: el huésped tiene hasta el {when} para volver a pagar; si no, se anula.",
+    vars: { listing: listingTitle, when },
+    url: "/host/requests",
+    tag: `payfail:${next.id}`,
+  });
   return next;
 }
 
@@ -234,15 +309,15 @@ export function confirmBookingAfterGuestContract(bookingId: string): BookingReco
 export function expireUnpaidIfDue(booking: BookingRecord, now = Date.now()): BookingRecord {
   if (canonicalBookingStatus(booking.status) !== "AWAITING_PAYMENT") return booking;
   if (paymentStatusOf(booking) === "paid" || booking.paidAt) return booking;
-  const created = new Date(booking.createdAt).getTime();
-  if (!Number.isFinite(created) || now - created < UNPAID_EXPIRE_MS) return booking;
-  return (
-    transitionBooking(booking.id, "EXPIRED", {
-      actor: "system",
-      reason: "unpaid_timeout",
-      paymentStatus: "unpaid",
-    }) ?? booking
-  );
+  if (!paymentWindowClosed(booking, now)) return booking;
+  const expired = transitionBooking(booking.id, "EXPIRED", {
+    actor: "system",
+    reason: booking.resumeStatusAfterPay ? "payment_failed_timeout" : "unpaid_timeout",
+    paymentStatus: booking.resumeStatusAfterPay ? "failed" : "unpaid",
+    patch: { resumeStatusAfterPay: undefined },
+  });
+  if (!expired) return booking;
+  return addContractStamp(booking.id, { kind: "voided" }) ?? expired;
 }
 
 export function completeStayIfDue(booking: BookingRecord, stayEnded: boolean): BookingRecord {

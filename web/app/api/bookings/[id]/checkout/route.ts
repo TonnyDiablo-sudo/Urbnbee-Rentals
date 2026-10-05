@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureBookingContract } from "@/lib/booking-contract";
+import { expireUnpaidIfDue } from "@/lib/booking-machine";
+import { paymentDueOf } from "@/lib/booking-payment-window";
+import { notifyHostContractToSign } from "@/lib/booking-reopen";
 import { getBookingById, patchBookingRecord } from "@/lib/bookings-store";
 import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 import { cabibeeMeta } from "@/lib/stripe-app-meta";
 import { recordBookingTransaction } from "@/lib/booking-transactions";
-import { getHostStripe } from "@/lib/host-stripe";
+import { ensureHostWebhookEvents, getHostStripe } from "@/lib/host-stripe";
 import { allowSimulatedBookingPayment } from "@/lib/stripe-server";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 import { appReturnPath } from "@/lib/app-return-path";
@@ -19,9 +22,16 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
 
   const { id } = await ctx.params;
-  let booking = getBookingById(id);
-  if (!booking || booking.guestUserId !== user.id) {
+  const found = getBookingById(id);
+  if (!found || found.guestUserId !== user.id) {
     return NextResponse.json({ error: "Reserva no encontrada." }, { status: 404 });
+  }
+  let booking = expireUnpaidIfDue(found);
+  if (booking.status === "EXPIRED") {
+    return NextResponse.json(
+      { error: "Se venció el plazo para pagar y el contrato quedó anulado. Puedes reabrir la reserva para generar uno nuevo." },
+      { status: 409 }
+    );
   }
   if (booking.status !== "AWAITING_PAYMENT") {
     return NextResponse.json({ error: "Esta reserva no está pendiente de pago." }, { status: 409 });
@@ -39,6 +49,27 @@ export async function POST(req: NextRequest, ctx: Ctx) {
       { status: 409 }
     );
   }
+  if (!booking.contract.hostAcceptedAt) {
+    notifyHostContractToSign(booking);
+    return NextResponse.json(
+      {
+        error: "El anfitrión todavía no firma el contrato. Le avisamos; en cuanto firme podrás pagar.",
+        needsHostSignature: true,
+      },
+      { status: 409 }
+    );
+  }
+  const dueMs = Date.parse(paymentDueOf(booking));
+  if (Date.now() >= dueMs) {
+    return NextResponse.json(
+      { error: "Se venció el plazo para pagar. En unos minutos el contrato queda anulado y podrás reabrir la reserva." },
+      { status: 409 }
+    );
+  }
+  void ensureHostWebhookEvents(booking.hostId);
+  const sessionExpiresAt = Math.floor(
+    Math.min(Math.max(dueMs, Date.now() + 31 * 60 * 1000), Date.now() + 23.5 * 60 * 60 * 1000) / 1000
+  );
 
   const body = await req.json().catch(() => ({}));
   const cancelPath =
@@ -79,6 +110,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      expires_at: sessionExpiresAt,
       line_items: [
         {
           quantity: 1,

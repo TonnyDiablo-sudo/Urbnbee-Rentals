@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { contractPlainLines, ensureBookingContract } from "@/lib/booking-contract";
 import { bookingBalanceDueMxn, paidStayOf } from "@/lib/booking-adjustments";
+import { openPaymentRejection } from "@/lib/booking-contract-stamps";
 import { applyBookingLifecycle } from "@/lib/booking-deposit";
+import { paymentDueOf } from "@/lib/booking-payment-window";
+import { canReopenBooking } from "@/lib/booking-reopen";
 import { findBookingByToken } from "@/lib/bookings-store";
 import { getLang } from "@/lib/i18n/server";
 import { translatedContractLines } from "@/lib/listing-localize";
@@ -50,6 +53,11 @@ export async function GET(req: NextRequest) {
       payProof: booking.payProof ?? null,
       balanceDueMxn: bookingBalanceDueMxn(booking),
       paidStayMxn: booking.paidAt ? paidStayOf(booking) : 0,
+      paymentDueAt: booking.status === "AWAITING_PAYMENT" ? paymentDueOf(booking) : null,
+      paymentFailed: booking.status === "AWAITING_PAYMENT" && Boolean(booking.paymentFailedAt || (booking.contract && openPaymentRejection(booking.contract))),
+      canReopen: canReopenBooking(booking),
+      archivedAt: booking.archivedAt ?? null,
+      stamps: (booking.contract?.stamps ?? []).map((s) => ({ kind: s.kind, at: s.at, clearedAt: s.clearedAt ?? null, amountMxn: s.amountMxn ?? null })),
       contract: booking.contract
         ? {
             generated: true,

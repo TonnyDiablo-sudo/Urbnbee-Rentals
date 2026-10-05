@@ -73,6 +73,10 @@ export function ReservationSheet({
           payProof={booking.payProof}
         />
 
+        {(booking.status === "AWAITING_PAYMENT" || (booking.status === "EXPIRED" && booking.canReopen)) && (
+          <ContractPayBox key={`${booking.id}-${booking.status}`} booking={booking} onDone={onClose} />
+        )}
+
         {CREDIT_CHECK_ENABLED && booking.guestUserId && !CLOSED_STATUSES.has(booking.status) && (
           <ScreeningBox bookingId={booking.id} />
         )}
@@ -103,6 +107,134 @@ export function ReservationSheet({
 }
 
 const CLOSED_STATUSES = new Set(["REJECTED", "CANCELLED", "EXPIRED", "COMPLETED"]);
+
+/** Contrato pendiente de pago: plazo, firma del anfitrión y, si se anuló, reabrir o archivar. */
+function ContractPayBox({ booking, onDone }: { booking: HostBooking; onDone: () => void }) {
+  const t = useT();
+  const lang = useLang();
+  const stay = stayOf(booking);
+  const expired = booking.status === "EXPIRED";
+  const needsSign = !expired && !booking.contract?.hostAcceptedAt;
+  const [checkIn, setCheckIn] = useState(stay.checkIn.slice(0, 10));
+  const [checkOut, setCheckOut] = useState(stay.checkOut.slice(0, 10));
+  const [signName, setSignName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const when = booking.paymentDueAt
+    ? new Date(booking.paymentDueAt).toLocaleString(lang === "en" ? "en-US" : "es-MX", { dateStyle: "medium", timeStyle: "short" })
+    : "";
+
+  const send = async (body: Record<string, unknown>, fallback: string) => {
+    setBusy(true);
+    setErr(null);
+    const res = await fetch(`/api/host/bookings/${encodeURIComponent(booking.id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => null);
+    const j = res ? await res.json().catch(() => ({})) : {};
+    setBusy(false);
+    if (!res?.ok) {
+      setErr(typeof j.error === "string" ? j.error : fallback);
+      return;
+    }
+    setDone(body.action === "archive" ? "Reserva archivada." : body.action === "reopen" ? "Reserva reabierta con contrato nuevo. Avisamos al huésped." : "Contrato firmado. Avisamos al huésped para que pague.");
+  };
+
+  if (done) {
+    return (
+      <div className="space-y-3 rounded-2xl border border-[#ebebeb] p-4">
+        <p className="text-sm text-[#222]">{t(done)}</p>
+        <button type="button" onClick={onDone} className="w-full rounded-xl border border-[#222] py-2.5 text-sm font-semibold text-[#222]">
+          {t("Cerrar")}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-[#ebebeb] p-4">
+      <p className="text-[15px] font-semibold text-[#222]">
+        {expired ? t("El contrato se anuló porque no se pagó a tiempo") : t("Contrato y pago")}
+      </p>
+      {!expired && when && (
+        <p className={`text-sm ${booking.paymentFailedAt ? "text-red-700" : "text-[#717171]"}`}>
+          {t(
+            booking.paymentFailedAt
+              ? "Se rechazó el pago. El huésped tiene hasta el {when} para volver a pagar; si no, el contrato se anula."
+              : "El huésped tiene hasta el {when} para pagar. Ambos firman antes; el contrato surte efectos con el pago.",
+            { when }
+          )}
+        </p>
+      )}
+      {expired && (
+        <>
+          <p className="text-sm text-[#717171]">
+            {t("Reábrela con las mismas fechas u otras: se genera un contrato nuevo (el anulado queda archivado) y el huésped tiene un nuevo plazo para firmar y pagar.")}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="date"
+              value={checkIn}
+              onChange={(e) => setCheckIn(e.target.value)}
+              aria-label={t("Llegada")}
+              className="rounded-xl border border-[#ddd] px-3 py-2 text-sm"
+            />
+            <input
+              type="date"
+              value={checkOut}
+              onChange={(e) => setCheckOut(e.target.value)}
+              aria-label={t("Salida")}
+              className="rounded-xl border border-[#ddd] px-3 py-2 text-sm"
+            />
+          </div>
+        </>
+      )}
+      {(needsSign || expired) && (
+        <input
+          value={signName}
+          onChange={(e) => setSignName(e.target.value)}
+          placeholder={t("Tu nombre legal (firma)")}
+          className="w-full rounded-xl border border-[#ddd] px-3 py-2 text-sm"
+        />
+      )}
+      {err && <p className="text-sm text-red-600">{t(err)}</p>}
+      {needsSign && (
+        <button
+          type="button"
+          disabled={busy || signName.trim().length < 3}
+          onClick={() => void send({ action: "sign", signName: signName.trim() }, "No se pudo firmar.")}
+          className="w-full rounded-xl bg-[#dcb81e] py-2.5 text-sm font-semibold text-black disabled:opacity-50"
+        >
+          {t("Firmar contrato")}
+        </button>
+      )}
+      {expired && (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            disabled={busy || !checkIn || !checkOut}
+            onClick={() => void send({ action: "reopen", checkIn, checkOut, signName: signName.trim() }, "No se pudo reabrir.")}
+            className="rounded-xl bg-[#dcb81e] py-2.5 text-sm font-semibold text-black disabled:opacity-50"
+          >
+            {t("Reabrir con contrato nuevo")}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (window.confirm(t("¿Archivar esta reserva? Ya no se podrá reabrir."))) void send({ action: "archive" }, "No se pudo archivar.");
+            }}
+            className="rounded-xl border border-[#222] py-2.5 text-sm font-semibold text-[#222] disabled:opacity-50"
+          >
+            {t("Archivar")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Manda (o vuelve a mandar) los datos de llegada por el chat y por correo. */
 function ArrivalMessageBox({ bookingId, sentAt: initialSentAt }: { bookingId: string; sentAt?: string }) {

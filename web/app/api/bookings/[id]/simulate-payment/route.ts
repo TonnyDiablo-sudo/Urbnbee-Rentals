@@ -36,6 +36,9 @@ export async function POST(_req: Request, ctx: Ctx) {
       { status: 409 }
     );
   }
+  if (!booking.contract.hostAcceptedAt) {
+    return NextResponse.json({ error: "El anfitrión todavía no firma el contrato. Le avisamos; en cuanto firme podrás pagar." }, { status: 409 });
+  }
 
   const next = markBookingPaid(booking.id, { stripeCheckoutSessionId: "simulated" });
   if (!next) {

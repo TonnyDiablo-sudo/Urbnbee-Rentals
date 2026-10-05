@@ -109,6 +109,14 @@ export type BookingRecord = {
   payConfirmation?: PayConfirmation;
   /** Comprobante que subió el huésped en un pago manual. */
   payProof?: PayProof;
+  /** Hasta cuándo se puede pagar; después se anula. Sin esto, 48 h desde `createdAt`. */
+  paymentDueAt?: string;
+  /** El pago se rechazó o revirtió: a qué estado vuelve si se paga a tiempo. */
+  resumeStatusAfterPay?: BookingStatus;
+  paymentFailedAt?: string;
+  /** Una de las partes la archivó tras anularse: ya no se puede reabrir. */
+  archivedAt?: string;
+  archivedBy?: "host" | "guest";
 };
 
 export type PayProof = {

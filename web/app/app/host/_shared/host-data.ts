@@ -34,6 +34,12 @@ export type HostBooking = {
   arrivalMessageSentAt?: string;
   /** Terminó la estancia y el anfitrión todavía no califica al huésped. */
   canReview?: boolean;
+  contract?: { hostAcceptedAt?: string; guestAcceptedAt?: string };
+  /** Anulada por falta de pago y todavía se puede reabrir con un contrato nuevo. */
+  canReopen?: boolean;
+  archivedAt?: string;
+  paymentDueAt?: string;
+  paymentFailedAt?: string;
 };
 
 export function todayIso(): string {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBeeagentBookingLink } from "@/lib/beeagent-booking-links";
 import { enqueueBookingOutbound } from "@/lib/beeagent-outbound";
 import { ensureBookingContract } from "@/lib/booking-contract";
+import { paymentWindowEnd } from "@/lib/booking-payment-window";
 import {
   BOOKING_EMAIL_ERROR,
   BOOKING_PHONE_ERROR,
@@ -174,6 +175,7 @@ export async function POST(req: NextRequest) {
     ...bookingTaxFields(quote),
     chargeTax: quote.taxAvailable ? quote.chargesTax : undefined,
     status: "AWAITING_PAYMENT",
+    paymentDueAt: paymentWindowEnd(checkIn),
     usedMembershipPass: usedMembershipPass || undefined,
     beeagentRef: link && link.listingId === listingId ? link.ref : undefined,
     conversationKey: link && link.listingId === listingId ? link.conversationKey : undefined,

@@ -29,6 +29,7 @@ import { reviewsPhoneMail } from "./reviews-phone-mail";
 import { monthlyCharge } from "./monthly-charge";
 import { verificationRecheck } from "./verification-recheck";
 import { teamTools } from "./team-tools";
+import { contractPayment } from "./contract-payment";
 
 /** Clave: el texto exacto en español que aparece en el código. */
 export const EN: Record<string, string> = {
@@ -63,4 +64,5 @@ export const EN: Record<string, string> = {
   ...monthlyCharge,
   ...verificationRecheck,
   ...teamTools,
+  ...contractPayment,
 };
