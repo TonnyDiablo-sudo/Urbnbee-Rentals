@@ -64,6 +64,11 @@ const TAGS = [
     title: "Dirección verificada («Ubicación verificada»)",
     text: "El anfitrión subió un recibo del alojamiento (luz, agua, internet, predial o renta) a su nombre y con la dirección del anuncio, y lo revisamos. El nombre del recibo tiene que ser el del anfitrión del anuncio y la dirección la del anuncio. Te dice que el lugar existe, que está donde dice el anuncio y que quien lo renta es quien dice. Este listón aumenta la seguridad y la confianza de quien reserva: es tu mejor defensa contra anuncios falsos.",
   },
+  {
+    icon: "🔒",
+    title: "Motor de reservas («Reserva protegida por contrato»)",
+    text: "El anuncio se reserva con el motor de reservas de Cabibee: pagas en línea con tarjeta, los dos firman el contrato antes de llegar y todo queda registrado en tu cuenta. El anfitrión tiene su identidad verificada y la dirección del anuncio se revisa con un recibo. Es la forma más segura de reservar en Cabibee.",
+  },
 ];
 
 const ENGINE_WHY = [

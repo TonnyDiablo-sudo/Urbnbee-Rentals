@@ -2,6 +2,7 @@
 
 import { useT } from "@/components/i18n-provider";
 import { ScrollReveal } from "@/components/scroll-reveal";
+import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 
 const points = [
   {
@@ -14,17 +15,21 @@ const points = [
     title: "Identidad de los dos lados",
     body: "Anfitrión y huésped pueden comprobar su identidad. Antes de cerrar, sabes con quién estás tratando.",
   },
+  ...(CREDIT_CHECK_ENABLED
+    ? [
+        {
+          n: "",
+          title: "Historial crediticio, si se pide",
+          body: "El anfitrión puede pedir una revisión de crédito de quien solicita. La paga quien acuerden. No es obligatoria para publicar ni para escribirse.",
+        },
+      ]
+    : []),
   {
-    n: "3",
-    title: "Historial crediticio, si se pide",
-    body: "El anfitrión puede pedir una revisión de crédito de quien solicita. La paga quien acuerden. No es obligatoria para publicar ni para escribirse.",
-  },
-  {
-    n: "4",
+    n: "",
     title: "Herramientas, solo si las quieren",
     body: "Contrato, depósito y ayuda para el pago. Cabibee no cobra la estancia ni le pone un precio encima: el hospedaje se paga entre ustedes. Estas herramientas solo dejan el acuerdo por escrito y más seguro.",
   },
-];
+].map((p, i) => ({ ...p, n: String(i + 1) }));
 
 export function WhoWeAre() {
   const t = useT();

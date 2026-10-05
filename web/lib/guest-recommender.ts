@@ -38,7 +38,9 @@ const CATEGORY_OF_TYPE: Record<Exclude<RecommendPrefs["type"], "">, string> = {
   cabanas: "Cabañas",
 };
 
-export type Recommendation = { card: AppListingCard; score: number; reasons: string[] };
+/** `text` es clave de i18n; `term` es otra clave que va traducida en {x}. */
+export type RecommendReason = { text: string; vars?: Record<string, string | number>; term?: string };
+export type Recommendation = { card: AppListingCard; score: number; reasons: RecommendReason[] };
 
 export function recommendListings(prefs: RecommendPrefs, limit = 8): Recommendation[] {
   const out: Recommendation[] = [];
@@ -46,36 +48,39 @@ export function recommendListings(prefs: RecommendPrefs, limit = 8): Recommendat
     const d = getListingDetail(card.slug);
     if (!d) continue;
     const text = `${d.title} ${d.description} ${d.city} ${d.zone} ${d.amenities.join(" ")}`;
-    const reasons: string[] = [];
+    const reasons: RecommendReason[] = [];
     let score = 0;
 
     if (prefs.place) {
       if (!matchesBrowseQuery(`${d.title} ${d.city} ${d.zone} ${d.county}`, prefs.place)) continue;
       score += 30;
-      reasons.push(`En ${[d.zone, d.city].filter((x) => x && x !== "—").join(", ")}`);
+      reasons.push({ text: "En {place}", vars: { place: [d.zone, d.city].filter((x) => x && x !== "—").join(", ") } });
     }
 
     if (prefs.guests > 0) {
       if (d.guests < prefs.guests) continue;
       score += d.guests - prefs.guests <= 2 ? 15 : 8;
-      reasons.push(`Caben ${d.guests} huéspedes`);
+      reasons.push({ text: "Caben {n} huéspedes", vars: { n: d.guests } });
     }
 
     if (prefs.budget > 0) {
       if (d.pricePerNight > prefs.budget * 1.15) continue;
       if (d.pricePerNight <= prefs.budget) {
         score += 20;
-        reasons.push(`$${d.pricePerNight.toLocaleString("es-MX")} por noche, dentro de tu presupuesto`);
+        reasons.push({
+          text: "{price} por noche, dentro de tu presupuesto",
+          vars: { price: `$${d.pricePerNight.toLocaleString("es-MX")}` },
+        });
       } else {
         score += 5;
-        reasons.push("Un poco arriba de tu presupuesto");
+        reasons.push({ text: "Un poco arriba de tu presupuesto" });
       }
     }
 
     if (prefs.type) {
       if (d.category === CATEGORY_OF_TYPE[prefs.type]) {
         score += 15;
-        reasons.push(d.category.replace(/s$/, ""));
+        reasons.push({ text: { casas: "Casa", departamentos: "Departamento", habitaciones: "Habitación", cabanas: "Cabaña" }[prefs.type] });
       } else {
         score -= 10;
       }
@@ -83,9 +88,9 @@ export function recommendListings(prefs: RecommendPrefs, limit = 8): Recommendat
 
     if (prefs.vibe && VIBE[prefs.vibe].test(text)) {
       score += 12;
-      reasons.push(
-        { playa: "Cerca del mar", ciudad: "Bien ubicado en la ciudad", naturaleza: "Rodeado de naturaleza", vinedos: "Zona de viñedos" }[prefs.vibe]
-      );
+      reasons.push({
+        text: { playa: "Cerca del mar", ciudad: "Bien ubicado en la ciudad", naturaleza: "Rodeado de naturaleza", vinedos: "Zona de viñedos" }[prefs.vibe],
+      });
     }
 
     let mustHits = 0;
@@ -96,7 +101,7 @@ export function recommendListings(prefs: RecommendPrefs, limit = 8): Recommendat
       if (ok) {
         mustHits++;
         score += 8;
-        reasons.push(`Tiene ${must.label.toLowerCase()}`);
+        reasons.push({ text: "Tiene {x}", term: must.label });
       } else {
         score -= 6;
       }
@@ -105,7 +110,7 @@ export function recommendListings(prefs: RecommendPrefs, limit = 8): Recommendat
 
     if (card.identityVerified) {
       score += 6;
-      reasons.push("Anfitrión con identidad verificada");
+      reasons.push({ text: "Anfitrión con identidad verificada" });
     }
     if (card.rating > 0) score += card.rating;
     if (card.bookable) score += 3;

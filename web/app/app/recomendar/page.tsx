@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getT } from "@/lib/i18n/server";
+import { getLang, getT } from "@/lib/i18n/server";
+import { localizeCards } from "@/lib/listing-localize";
 import { RECOMMEND_MUSTS, recommendListings, type RecommendPrefs } from "@/lib/guest-recommender";
 import { AppListingCardView } from "../_components/listing-card";
 import { TopBar } from "../_components/top-bar";
@@ -63,7 +64,9 @@ export default async function RecommendPage({ searchParams }: { searchParams: Pr
   const q = await searchParams;
   const t = await getT();
   const prefs = parsePrefs(q);
-  const results = q.ver === "1" ? recommendListings(prefs) : null;
+  const raw = q.ver === "1" ? recommendListings(prefs) : null;
+  const cards = raw ? await localizeCards(raw.map((r) => r.card), await getLang()) : [];
+  const results = raw?.map((r, i) => ({ ...r, card: cards[i] ?? r.card })) ?? null;
 
   return (
     <>
@@ -179,8 +182,8 @@ export default async function RecommendPage({ searchParams }: { searchParams: Pr
                 {r.reasons.length > 0 && (
                   <ul className="mt-2 flex flex-wrap gap-1.5">
                     {r.reasons.map((reason) => (
-                      <li key={reason} className="rounded-full bg-[#fdf6d8] px-2.5 py-1 text-[12px] text-[#5c4a0a]">
-                        {t(reason)}
+                      <li key={reason.text} className="rounded-full bg-[#fdf6d8] px-2.5 py-1 text-[12px] text-[#5c4a0a]">
+                        {t(reason.text, reason.term ? { x: t(reason.term).toLowerCase() } : reason.vars)}
                       </li>
                     ))}
                   </ul>

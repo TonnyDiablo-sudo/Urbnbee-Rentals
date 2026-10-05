@@ -140,6 +140,10 @@ export const alarmsPromo: Record<string, string> = {
   "Media estancia": "Mid-stay",
   "Te dejamos fotos o audios en el chat de tu reserva en Cabibee.": "We left you photos or audio in your booking chat on Cabibee.",
 
+  "Motor de reservas («Reserva protegida por contrato»)": "Booking engine (\"Protected booking by contract\")",
+  "El anuncio se reserva con el motor de reservas de Cabibee: pagas en línea con tarjeta, los dos firman el contrato antes de llegar y todo queda registrado en tu cuenta. El anfitrión tiene su identidad verificada y la dirección del anuncio se revisa con un recibo. Es la forma más segura de reservar en Cabibee.":
+    "The listing is booked through Cabibee's booking engine: you pay online by card, both of you sign the contract before arrival, and everything is saved in your account. The host's identity is verified and the listing's address is checked with a utility bill. It's the safest way to book on Cabibee.",
+
   // Precio original y con descuento en la Tienda
   "Precio original": "Original price",
   "Con descuento": "On sale",
@@ -150,4 +154,37 @@ export const alarmsPromo: Record<string, string> = {
     "Example: a $100 product shows a crossed-out original price of ${orig} and $100 on sale.",
   "Si cambias el porcentaje, cambia también el texto del aviso y de los listones para que digan lo mismo.":
     "If you change the percentage, also update the banner and ribbon text so they match.",
+
+  // Recomendador (app)
+  "Me da igual": "Any",
+  "🏖️ Playa": "🏖️ Beach",
+  "🏙️ Ciudad": "🏙️ City",
+  "🌲 Naturaleza": "🌲 Nature",
+  "🍷 Viñedos": "🍷 Vineyards",
+  "Hasta $800": "Up to $800",
+  "Hasta $1,500": "Up to $1,500",
+  "Hasta $2,500": "Up to $2,500",
+  "Hasta $4,000": "Up to $4,000",
+  "En {place}": "In {place}",
+  "Caben {n} huéspedes": "Fits {n} guests",
+  "{price} por noche, dentro de tu presupuesto": "{price} per night, within your budget",
+  "Un poco arriba de tu presupuesto": "A bit above your budget",
+  "Cerca del mar": "Close to the sea",
+  "Bien ubicado en la ciudad": "Well located in the city",
+  "Rodeado de naturaleza": "Surrounded by nature",
+  "Zona de viñedos": "Wine country",
+  "Tiene {x}": "Has {x}",
+  "Anfitrión con identidad verificada": "Host with verified identity",
+  Cabaña: "Cabin",
+  Cocina: "Kitchen",
+
+  // 404
+  "No encontramos esta página": "We couldn't find this page",
+  "Puede que el enlace esté mal escrito o que la página ya no exista.":
+    "The link may be mistyped, or the page may no longer exist.",
+  "Ir al inicio": "Go to home",
+
+  // Aprobación sin buró
+  "Cuando aceptas, el huésped recibe el contrato y cómo pagarte.":
+    "When you accept, the guest gets the contract and how to pay you.",
 };

@@ -1068,7 +1068,13 @@ function PanelBody({
             <div className="space-y-2">
               {(
                 [
-                  ["approval", "Tú apruebas cada solicitud", "Cuando aceptas, el huésped recibe el contrato, cómo pagarte y, si lo pediste, la liga del historial crediticio."],
+                  [
+                    "approval",
+                    "Tú apruebas cada solicitud",
+                    CREDIT_CHECK_ENABLED
+                      ? "Cuando aceptas, el huésped recibe el contrato, cómo pagarte y, si lo pediste, la liga del historial crediticio."
+                      : "Cuando aceptas, el huésped recibe el contrato y cómo pagarte.",
+                  ],
                   ["instant", "Reservación inmediata", "Si paga con Stripe y el pago se confirma, la reserva queda aceptada sola. Tú no apruebas nada."],
                 ] as const
               ).map(([v, label, hint]) => (

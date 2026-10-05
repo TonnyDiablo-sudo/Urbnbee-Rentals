@@ -76,7 +76,11 @@ function CartIcon({ className = "h-5 w-5" }: { className?: string }) {
 /** Listón diagonal en la esquina de la tarjeta. No cambia lo que se cobra. */
 export function PromoRibbon({ text }: { text: string }) {
   return (
-    <div className="pointer-events-none absolute -right-11 top-4 w-40 rotate-45 bg-[#dcb81e] py-1 text-center text-[10px] font-bold uppercase leading-tight tracking-wide text-black shadow">
+    <div
+      className={`pointer-events-none absolute -right-11 top-4 w-40 rotate-45 bg-[#dcb81e] py-1 text-center font-bold uppercase leading-tight tracking-wide text-black shadow ${
+        Array.from(text).length <= 6 ? "text-[13px]" : "text-[10px]"
+      }`}
+    >
       <span className="block truncate px-6">{text}</span>
     </div>
   );

@@ -38,9 +38,17 @@ function interpolate(text: string, vars?: TVars): string {
  * El texto en español es la clave. Si no hay traducción al inglés se muestra el español,
  * así una cadena olvidada nunca deja la pantalla vacía.
  */
+/** Etiquetas compuestas como «Verificación de identidad · 6 meses» se traducen por partes. */
+function lookupEn(text: string): string | undefined {
+  const hit = EN[text];
+  if (hit !== undefined || !text.includes(" · ")) return hit;
+  const parts = text.split(" · ");
+  return parts.every((p) => EN[p] !== undefined) ? parts.map((p) => EN[p]).join(" · ") : undefined;
+}
+
 export function makeT(lang: Lang): TFn {
   if (lang === "es") return (text, vars) => interpolate(text, vars);
-  return (text, vars) => interpolate(EN[text] ?? text, vars);
+  return (text, vars) => interpolate(lookupEn(text) ?? text, vars);
 }
 
 /** Formato de números/moneda según idioma. */

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { urbnbeeaiUrl } from "@/lib/urbnbeeai-links";
 import { BotPermissionsPicker } from "@/components/host/bot-permissions-picker";
 import type { BotPermissions } from "@/lib/beeagent-permission-defs";
 import { numberLocale } from "@/lib/i18n";
@@ -111,8 +112,9 @@ export function IntegrationsClient() {
     }
   }
 
-  const startUrl = status?.startUrl ?? "https://www.urbnbeeai.com/integrations/cabibee/start";
-  const signupUrl = status?.signupUrl ?? "https://www.urbnbeeai.com/signup";
+  const urlLang = lang === "en" ? "en" : "es";
+  const startUrl = urbnbeeaiUrl(status?.startUrl ?? "https://www.urbnbeeai.com/integrations/cabibee/start", urlLang);
+  const signupUrl = urbnbeeaiUrl(status?.signupUrl ?? "https://www.urbnbeeai.com/signup", urlLang);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

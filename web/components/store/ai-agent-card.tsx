@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { WebLink } from "@/app/app/_components/site-origin";
-import { useT } from "@/components/i18n-provider";
+import { useLang, useT } from "@/components/i18n-provider";
+import { URBNBEEAI_RENTALS_CASE, urbnbeeaiUrl } from "@/lib/urbnbeeai-links";
 
-const URBNBEEAI_SITE = "https://www.urbnbeeai.com/casos#alojamientos";
 const DEFAULT_START = "https://www.urbnbeeai.com/integrations/cabibee/start";
 
 type Status = { linked: boolean; startUrl?: string; agentStatus?: { active: boolean } | null };
@@ -21,6 +21,7 @@ const PERKS = [
 
 export function AiAgentCard() {
   const t = useT();
+  const lang = useLang() === "en" ? "en" : "es";
   const [s, setS] = useState<Status | null>(null);
 
   useEffect(() => {
@@ -79,14 +80,14 @@ export function AiAgentCard() {
           </WebLink>
         ) : (
           <a
-            href={s?.startUrl || DEFAULT_START}
+            href={urbnbeeaiUrl(s?.startUrl || DEFAULT_START, lang)}
             className="inline-flex items-center justify-center rounded-xl bg-[#dcb81e] px-5 py-2.5 text-sm font-semibold text-black"
           >
             {t("Probar 30 días gratis con urbnbeeai")}
           </a>
         )}
         <a
-          href={URBNBEEAI_SITE}
+          href={urbnbeeaiUrl(URBNBEEAI_RENTALS_CASE, lang)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center rounded-xl border border-[#222] px-5 py-2.5 text-sm font-semibold text-[#222]"

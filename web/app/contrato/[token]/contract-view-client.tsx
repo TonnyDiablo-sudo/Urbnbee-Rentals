@@ -142,7 +142,7 @@ export function ContractViewClient({ token, wantPay }: { token: string; wantPay?
     <div className="mx-auto max-w-2xl px-4 py-12">
       <p className="text-xs font-semibold uppercase tracking-wide text-[#aaa]">{t("Contrato")}</p>
       <h1 className="mt-1 text-2xl font-semibold text-[#484848]">
-        {c?.templateTitle ?? t("Contrato de reserva")}
+        {t(c?.templateTitle ?? "Contrato de reserva")}
       </h1>
       <p className="mt-2 text-sm text-[#888]">
         {booking.listingTitle} · {t("código")}{" "}

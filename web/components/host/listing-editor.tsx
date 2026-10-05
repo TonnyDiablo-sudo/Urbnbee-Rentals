@@ -1118,7 +1118,9 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 <span>
                   <span className="font-medium text-[#484848]">{t("Validar cada solicitud")}</span>
                   <span className="mt-1 block text-xs text-[#888]">
-                    {t("Cuando aceptas, el huésped recibe el contrato, cómo pagarte y, si lo pediste, la liga del historial crediticio.")}
+                    {CREDIT_CHECK_ENABLED
+                      ? t("Cuando aceptas, el huésped recibe el contrato, cómo pagarte y, si lo pediste, la liga del historial crediticio.")
+                      : t("Cuando aceptas, el huésped recibe el contrato y cómo pagarte.")}
                   </span>
                 </span>
               </label>

@@ -311,11 +311,11 @@ export function MembresiaPanel() {
                   key={p.code}
                   className="flex flex-col rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm"
                 >
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{p.label}</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{t(p.label)}</p>
                   <p className="mt-3 text-2xl font-semibold text-[#222]">{formatAmount(p, locale)}</p>
                   <p className="mt-1 text-xs text-[#888]">{billingCaption(p, t, locale)}</p>
                   {p.description && (
-                    <p className="mt-3 text-sm leading-relaxed text-[#484848]">{p.description}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-[#484848]">{t(p.description)}</p>
                   )}
                   <button
                     type="button"

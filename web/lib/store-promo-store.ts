@@ -9,7 +9,8 @@ import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 export const PROMO_RIBBON_MAX = 18;
 export const PROMO_BANNER_MAX = 140;
 
-export const DEFAULT_RIBBON_TEXT = "50% de descuento";
+export const DEFAULT_RIBBON_TEXT = "-50%";
+const OLD_RIBBON_TEXTS = new Set(["50% de descuento"]);
 export const DEFAULT_BANNER_TEXT =
   "Precios de promoción: todo está al 50% de descuento. Aprovecha antes de que suban los precios.";
 
@@ -56,9 +57,11 @@ function load(): StorePromo {
   return cache;
 }
 
-/** Listón de un producto: encendido por defecto con el texto de 50% de descuento. */
+/** Listón de un producto: encendido por defecto con «-50%». */
 export function ribbonFor(family: MembershipPlanFamily): PromoRibbon {
-  return load().ribbons[family] ?? { on: true, text: DEFAULT_RIBBON_TEXT };
+  const r = load().ribbons[family];
+  if (!r) return { on: true, text: DEFAULT_RIBBON_TEXT };
+  return OLD_RIBBON_TEXTS.has(r.text) ? { ...r, text: DEFAULT_RIBBON_TEXT } : r;
 }
 
 export function storePromo(): { banner: PromoRibbon; ribbons: Record<string, PromoRibbon>; discountPct: number } {
