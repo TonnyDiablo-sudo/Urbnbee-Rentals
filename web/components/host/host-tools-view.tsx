@@ -236,7 +236,7 @@ export function HostToolsView({ hostId, t, lang, surface }: { hostId: string; t:
             ? statusOf(addressRow, true)
             : covered.size > 0
               ? { on: true, text: t("Incluida en el motor") }
-              : { on: false, text: t("Sin contratar") }
+              : { on: false, text: t("Viene con el motor de reservas") }
         }
         usage={addressSlots > 0 ? t("{n} anuncios con verificación de domicilio pagada.", { n: addressSlots }) : undefined}
         manage={PATHS.address[surface]}

@@ -1,4 +1,5 @@
-import { addressProofSlots } from "@/lib/address-proof-access";
+import { engineListingsMissingAddress } from "@/lib/address-proof-access";
+import { listingsNeedingAddress } from "@/lib/address-reminders";
 import { engineHostReady } from "@/lib/booking-engine-slots";
 import { purchaseHasPhone } from "@/lib/purchase-guard";
 import type { NextRequest } from "next/server";
@@ -52,7 +53,8 @@ export async function GET(req: NextRequest) {
       us: enginePlans("us"),
     },
     acceptsBookings: hostAcceptsBookings(user.id) && engineHostReady(user.id),
-    addressProofActive: addressProofSlots(user.id) > 0,
+    addressMissing: engineListingsMissingAddress(user.id).length,
+    addressToUpload: listingsNeedingAddress(user.id).length,
     entitlements: entitlementsPublicView(user.id),
     listingsTotal: listings.length,
     listingsWithBadge: summary.ribbon ? listings.length : 0,

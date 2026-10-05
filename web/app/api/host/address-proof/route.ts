@@ -12,6 +12,7 @@ import {
 } from "@/lib/address-proof-store";
 import { getListingById, listListingsForHost } from "@/lib/marketplace-store";
 import { addressCoveredListingIds } from "@/lib/address-proof-access";
+import { defaultListingContract } from "@/lib/booking-contract-templates";
 import { ADDRESS_PROOF_GEOLOCATION_ENABLED } from "@/lib/feature-flags";
 import { notifyUser } from "@/lib/push";
 import { getSessionUser } from "@/lib/session";
@@ -108,8 +109,9 @@ export async function POST(req: Request) {
   }
 
   const proof = saveAddressProof({ listing, buffer, mime, ext, deviceLocation: deviceLocationFrom(form) });
-  const hostName = user.fullName || "";
-  const review = await reviewAddressProof({ declaredAddress: proof.addressSnapshot, hostName, buffer, mime });
+  const legalName = defaultListingContract(listing.contract).hostLegalName?.trim() || "";
+  const hostNames = [...new Set([user.fullName?.trim() || "", legalName].filter(Boolean))];
+  const review = await reviewAddressProof({ declaredAddress: proof.addressSnapshot, hostNames, buffer, mime });
 
   let updated: AddressProof | undefined;
   if (!review.ok) {
@@ -126,7 +128,10 @@ export async function POST(req: Request) {
       ai: review.ai,
       reviewedBy: "ai",
       reviewedAt: new Date().toISOString(),
-      hostMessage: "El comprobante no coincide con la dirección del anuncio o no es válido. Sube otro.",
+      hostMessage:
+        review.ai.nameMatch === "none"
+          ? "El comprobante no está a tu nombre. Sube uno con tu nombre y la dirección del anuncio."
+          : "El comprobante no coincide con la dirección del anuncio o no es válido. Sube otro.",
     });
   } else {
     updated = updateAddressProof(proof.id, {

@@ -72,7 +72,9 @@ export function EngineListingsPanel({ storeHref = "/tienda" }: { storeHref?: str
                 {[l.city, l.published ? t("Publicado") : t("Borrador")].filter(Boolean).join(" · ")}
               </p>
               {l.on && !l.addressReady && (
-                <p className="text-xs text-[#a15c00]">{t("Falta la dirección verificada: no recibe reservas hasta tenerla.")}</p>
+                <p className="text-xs text-[#a15c00]">
+                  {t("Sube el recibo de su dirección para que aparezca el listón «Ubicación verificada». Sí recibe reservas mientras tanto.")}
+                </p>
               )}
             </div>
             <label className="flex shrink-0 items-center gap-2 text-sm">

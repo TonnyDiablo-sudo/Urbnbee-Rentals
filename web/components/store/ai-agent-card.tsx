@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { WebLink } from "@/app/app/_components/site-origin";
 import { useT } from "@/components/i18n-provider";
 
-const URBNBEEAI_SITE = "https://www.urbnbeeai.com";
+const URBNBEEAI_SITE = "https://www.urbnbeeai.com/casos#alojamientos";
 const DEFAULT_START = "https://www.urbnbeeai.com/integrations/cabibee/start";
 
 type Status = { linked: boolean; startUrl?: string; agentStatus?: { active: boolean } | null };
@@ -91,7 +91,7 @@ export function AiAgentCard() {
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center rounded-xl border border-[#222] px-5 py-2.5 text-sm font-semibold text-[#222]"
         >
-          {t("¿Qué es urbnbeeai? Ver urbnbeeai.com")}
+          {t("¿Qué es urbnbeeai? Ver caso de alojamientos")}
         </a>
       </div>
       <p className="mt-2 text-xs text-[#888]">

@@ -45,10 +45,9 @@ const SERVICES = [
     title: "Verificación de identidad",
     text: "Validación de identificación oficial con selfie. Una sola por persona: sirve como anfitrión y como huésped, y da la etiqueta «Miembro verificado».",
   },
-  { title: "Ubicación verificada", text: "Comprobamos que la dirección del anuncio existe y que la propiedad es tuya o la administras." },
   {
     title: "Motor de reservas",
-    text: "El huésped reserva y paga en línea, firma el contrato y todo queda registrado. Para usarlo, el anfitrión contrata también su verificación de identidad y la de dirección.",
+    text: "El huésped reserva y paga en línea, firma el contrato y todo queda registrado. Incluye la verificación de dirección de cada anuncio (listón «Ubicación verificada»). Para usarlo, el anfitrión contrata también su verificación de identidad.",
   },
   { title: "Limpieza", text: "Limpiezas automáticas según tus reservas, con asignación y fotos al terminar." },
   { title: "Colaboradores", text: "Da acceso a tu equipo con roles: mensajes, reservas, limpieza o firma de contratos." },
@@ -63,12 +62,13 @@ const TAGS = [
   {
     icon: "📍",
     title: "Dirección verificada («Ubicación verificada»)",
-    text: "El anfitrión subió un comprobante de domicilio del alojamiento y lo revisamos. Te dice que el lugar existe, que está donde dice el anuncio y que quien lo renta tiene relación con él. Es tu mejor defensa contra anuncios falsos.",
+    text: "El anfitrión subió un recibo del alojamiento (luz, agua, internet, predial o renta) a su nombre y con la dirección del anuncio, y lo revisamos. El nombre del recibo tiene que ser el del anfitrión del anuncio y la dirección la del anuncio. Te dice que el lugar existe, que está donde dice el anuncio y que quien lo renta es quien dice. Este listón aumenta la seguridad y la confianza de quien reserva: es tu mejor defensa contra anuncios falsos.",
   },
 ];
 
 const ENGINE_WHY = [
-  "Los dos lados están verificados: el huésped con identificación y selfie, y el anfitrión con su identidad y la dirección del anuncio. Sin esas dos verificaciones, un anuncio no puede usar el motor.",
+  "Los dos lados están verificados: el huésped con identificación y selfie, y el anfitrión con su identidad. Sin la identidad del anfitrión, un anuncio no puede usar el motor.",
+  "La verificación de dirección viene incluida en el motor. Si el anuncio muestra «Ubicación verificada», el recibo a nombre del anfitrión con esa dirección ya se revisó.",
   "El pago se hace con tarjeta a la cuenta de Stripe del anfitrión y queda registrado; nada de depósitos a cuentas desconocidas.",
   "El contrato se firma en línea antes de llegar y queda guardado para los dos.",
   "La dirección exacta, el código de entrada y el wifi se comparten sólo con la reserva confirmada.",

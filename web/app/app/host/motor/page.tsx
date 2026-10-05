@@ -20,7 +20,9 @@ export default async function AppHostEnginePage() {
       </Suspense>
       <div className="space-y-6 px-5 pb-10 pt-2">
         <EngineListingsPanel />
-        <AddressProofPanel surface="app" />
+        <div id="direccion" className="scroll-mt-20">
+          <AddressProofPanel surface="app" />
+        </div>
       </div>
     </>
   );

@@ -189,6 +189,7 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                         <dt className="text-xs text-gray-400">{t("Documento")}</dt>
                         <dd className="text-gray-900">
                           {r.ai.documentType} · {r.ai.issueDate ?? t("sin fecha")} · {t("titular:")} {r.ai.holderName ?? "—"}
+                          {r.ai.nameMatch && ` (${t("nombre: {match}", { match: r.ai.nameMatch })})`}
                         </dd>
                       </div>
                       <div>

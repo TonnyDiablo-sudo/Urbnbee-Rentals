@@ -21,6 +21,8 @@ export type AddressProofAi = {
   addressOnDocument?: string;
   issueDate?: string;
   addressMatch: "exact" | "partial" | "none";
+  /** El titular del comprobante contra el anfitrión del anuncio (faltaba en revisiones anteriores). */
+  nameMatch?: "exact" | "partial" | "none";
   recent: boolean;
   tamperingSigns: boolean;
   confidence: number;

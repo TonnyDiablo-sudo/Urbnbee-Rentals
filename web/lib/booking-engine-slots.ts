@@ -3,7 +3,7 @@ import { getHostEntitlement } from "@/lib/host-entitlements-store";
 import { HOST_SKU_BOOKING_ENGINE } from "@/lib/host-entitlement-types";
 import { getListingById, listListingsForHost, updateListing } from "@/lib/marketplace-store";
 import type { HostListingRecord } from "@/lib/marketplace-types";
-import { listingShowsLocationBadge } from "@/lib/address-proof-access";
+import { isListingLocationVerified } from "@/lib/address-proof-store";
 import { hostAcceptsBookings, identityPlanActive, isHostIdentityVerified } from "@/lib/verification-store";
 
 /** Anuncios que puede tener con motor: "all" en suscripciones anteriores al cobro por anuncio. */
@@ -31,17 +31,16 @@ export function engineListingIds(hostId: string): Set<string> {
 
 export const ENGINE_NEEDS_IDENTITY =
   "El motor de reservas necesita tu verificación de identidad contratada y aprobada. Se compra aparte en la Tienda.";
-export const ENGINE_NEEDS_ADDRESS =
-  "El motor de reservas necesita que este anuncio tenga la verificación de dirección contratada y aprobada. Se compra aparte en la Tienda.";
-
-/** El motor no viene con verificaciones: identidad del anfitrión y dirección del anuncio se pagan y aprueban aparte. */
+/**
+ * La identidad del anfitrión se paga y aprueba aparte. La verificación de dirección viene incluida:
+ * sin comprobante el anuncio sí recibe reservas, sólo no muestra la insignia de ubicación verificada.
+ */
 export function engineHostReady(hostId: string): boolean {
   return identityPlanActive(hostId) && isHostIdentityVerified(hostId);
 }
 
 export function engineReadyProblem(listing: HostListingRecord): string | null {
   if (!engineHostReady(listing.hostId)) return ENGINE_NEEDS_IDENTITY;
-  if (!listingShowsLocationBadge(listing)) return ENGINE_NEEDS_ADDRESS;
   return null;
 }
 
@@ -58,7 +57,7 @@ export function listingAcceptsBookings(listingId: string): boolean {
 }
 
 export const LISTING_ENGINE_OFF_ERROR =
-  "Este anuncio no puede procesar reservas. Necesita el motor de reservas activo, tu identidad verificada y la dirección del anuncio verificada; revísalo en Reservas en línea o en la Tienda.";
+  "Este anuncio no puede procesar reservas. Necesita el motor de reservas activo y tu identidad verificada; revísalo en Reservas en línea o en la Tienda.";
 
 export function setListingEngine(
   hostId: string,
@@ -97,7 +96,7 @@ export function engineSummary(hostId: string) {
       city: l.city,
       published: l.published,
       on: on.has(l.id),
-      addressReady: listingShowsLocationBadge(l),
+      addressReady: isListingLocationVerified(l),
     })),
   };
 }

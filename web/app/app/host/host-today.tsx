@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { revalidate, useCached } from "../_components/cached-fetch";
 import { useLang, useT } from "@/components/i18n-provider";
+import { AddressBadgeReminder } from "@/components/host/address-badge-reminder";
 import { TONE_CLS, fmtDay, fmtMxn, hostStatusOf } from "../_components/booking-status";
 import { IconChevron } from "../_components/icons";
 import { PushPrompt } from "../_components/push";
@@ -40,6 +41,7 @@ type Status = {
   identityVerified: boolean;
   ribbon: boolean;
   listingsTotal: number;
+  addressToUpload?: number;
 };
 
 type Thread = { listingId: string; guestSessionId: string; lastAt: string; messages: { sender: string }[] };
@@ -102,6 +104,8 @@ export function HostToday() {
   return (
     <div className="space-y-6 px-5 pb-8">
       {err && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(err)}</p>}
+
+      <AddressBadgeReminder count={status?.addressToUpload ?? 0} href="/host/motor#direccion" />
 
       <div className="grid grid-cols-3 gap-2.5">
         <Stat label={t("Por responder")} value={pending.length} highlight={pending.length > 0} />

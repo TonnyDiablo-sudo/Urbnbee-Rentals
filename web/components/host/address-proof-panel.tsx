@@ -95,7 +95,7 @@ export function AddressProofPanel({ surface }: { surface: "app" | "web" }) {
       <h2 className="text-base font-semibold text-[#222]">📍 {t("Ubicación verificada")}</h2>
       <p className="mt-1 text-sm leading-relaxed text-[#717171]">
         {t(
-          "Sube un recibo reciente donde se vea la dirección del alojamiento: luz, agua, gas, teléfono, internet, predial, estado de cuenta o contrato de renta. Puede estar a nombre de otra persona. Lo revisa una IA y, si hay dudas, una persona del equipo. El documento nunca se muestra a nadie."
+          "Sube un recibo reciente a tu nombre donde se vea la dirección del alojamiento: luz, agua, gas, teléfono, internet, predial, estado de cuenta o contrato de renta. El nombre debe ser el tuyo (el del anfitrión del anuncio) y la dirección la del anuncio. Lo revisa nuestro equipo y el documento nunca se muestra a nadie."
         )}
       </p>
 
@@ -164,7 +164,7 @@ export function AddressProofPanel({ surface }: { surface: "app" | "web" }) {
             </div>
             {r.locationVerified && r.covered === false && (
               <p className="mt-2 text-xs text-amber-800">
-                {t("Comprobante aprobado. La insignia se muestra cuando el anuncio tiene la verificación de domicilio pagada.")}{" "}
+                {t("Comprobante aprobado. La insignia se muestra cuando el anuncio tiene el motor de reservas (la verificación de dirección viene incluida).")}{" "}
                 <a href="/tienda" className="font-semibold underline">
                   {t("Ir a la Tienda")}
                 </a>

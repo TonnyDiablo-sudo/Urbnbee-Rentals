@@ -325,7 +325,6 @@ export const appHelpLegal: Record<string, string> = {
   "Pruébalo 30 días gratis. Después decides si sigues con un plan de urbnbeeai.": "Try it free for 30 days. Then decide whether to continue with an urbnbeeai plan.",
   "Administrar mi agente": "Manage my agent",
   "Probar 30 días gratis con urbnbeeai": "Try 30 days free with urbnbeeai",
-  "¿Qué es urbnbeeai? Ver urbnbeeai.com": "What is urbnbeeai? Visit urbnbeeai.com",
   "urbnbeeai es un servicio aparte de Cabibee; su prueba y sus planes se contratan con urbnbeeai.": "urbnbeeai is a service separate from Cabibee; its trial and plans are with urbnbeeai.",
   "Ver foto": "View photo",
   "Foto": "Photo",

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AddressBadgeReminder } from "@/components/host/address-badge-reminder";
+import { listingsNeedingAddress } from "@/lib/address-reminders";
 import { getT } from "@/lib/i18n/server";
 import { listListingsForHost } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
@@ -22,6 +24,8 @@ export default async function HostDashboardPage() {
           {t("Gestiona tus propiedades y datos de contacto.")}
         </p>
       </div>
+
+      <AddressBadgeReminder count={listingsNeedingAddress(user.id).length} href="/host/verificacion" />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm">

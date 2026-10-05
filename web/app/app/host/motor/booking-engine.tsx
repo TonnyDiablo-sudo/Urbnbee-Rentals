@@ -21,7 +21,8 @@ type Status = {
   billingCountry: BillingCountry | null;
   emailVerified: boolean;
   hasPhone: boolean;
-  addressProofActive: boolean;
+  /** Anuncios con motor a los que les falta el comprobante de dirección aprobado. */
+  addressMissing: number;
   hostCurrentPeriodEnd?: string;
   enginePlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
   catalogPlansByRegion?: { mx: CatalogPlan[]; us: CatalogPlan[] };
@@ -100,7 +101,7 @@ export function BookingEngine() {
         <p className={`mt-1 text-sm leading-relaxed ${data.acceptsBookings ? "text-white/75" : ""}`}>
           {data.acceptsBookings
             ? t("Los huéspedes se identifican, pagan y firman contrato en Cabibee.")
-            : t("Publicar y chatear es gratis. Para recibir reservas necesitas tu Stripe, tu identidad verificada, la dirección del anuncio verificada y el motor de reservas.")}
+            : t("Publicar y chatear es gratis. Para recibir reservas necesitas tu Stripe, tu identidad verificada y el motor de reservas.")}
         </p>
       </div>
 
@@ -168,28 +169,6 @@ export function BookingEngine() {
 
       <Step
         n={3}
-        title={t("Verificación de dirección")}
-        done={data.addressProofActive}
-        hint={data.addressProofActive ? t("Contratada") : t("Obligatoria para usar el motor. Se paga por anuncio.")}
-      >
-        {data.addressProofActive ? (
-          <p className="text-sm text-[#555]">
-            {t("Sube el comprobante de domicilio de cada anuncio. Un anuncio recibe reservas sólo cuando su dirección está aprobada.")}
-          </p>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-[#555]">
-              {t("Subes un comprobante de domicilio del alojamiento y lo revisamos. El huésped sabe que el lugar existe y está donde dices.")}
-            </p>
-            <Link href="/tienda" className="block rounded-xl border border-[#222] py-3 text-center text-sm font-semibold text-[#222]">
-              {t("Contratar en la Tienda")}
-            </Link>
-          </div>
-        )}
-      </Step>
-
-      <Step
-        n={4}
         title={t("Motor de reservas")}
         done={engineOn}
         hint={engineOn ? (until ? t("Activo hasta el {d}", { d: until }) : t("Activo")) : t("Se paga por anuncio.")}
@@ -202,24 +181,46 @@ export function BookingEngine() {
               <li>{t("El huésped se identifica con identificación oficial y selfie antes de reservar.")}</li>
               <li>{t("Paga con tarjeta en tu Stripe y la reserva se confirma sola.")}</li>
               <li>{t("Se genera el contrato y lo firman en línea.")}</li>
-              <li>{t("Requiere tu verificación de identidad y la verificación de dirección del anuncio (pasos 2 y 3): así los dos lados están verificados.")}</li>
+              <li>{t("Requiere tu verificación de identidad (paso 2). La verificación de dirección de cada anuncio viene incluida.")}</li>
               <li>{t("Tú y tu huésped se califican al terminar la estancia; nuestro equipo revisa las reseñas.")}</li>
             </ul>
             {plans.length > 0 ? (
               <PlanPicker
                 plans={plans}
-                busy={busy || !prereqsOk || !data.identityPlanActive || !data.addressProofActive}
+                busy={busy || !prereqsOk || !data.identityPlanActive}
                 onPick={(c) => void buy(c)}
                 demo={!data.stripeConfigured}
               />
             ) : (
               <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#555]">{t("Todavía no hay planes del motor de reservas a la venta.")}</p>
             )}
-            {(!data.identityPlanActive || !data.addressProofActive) && (
-              <p className="text-xs text-[#a15c00]">{t("Primero contrata los pasos 2 y 3.")}</p>
-            )}
+            {!data.identityPlanActive && <p className="text-xs text-[#a15c00]">{t("Primero contrata el paso 2.")}</p>}
           </div>
         )}
+      </Step>
+
+      <Step
+        n={4}
+        title={t("Verificación de dirección")}
+        done={engineOn && data.addressMissing === 0}
+        hint={
+          !engineOn
+            ? t("Incluida en el motor de reservas.")
+            : data.addressMissing > 0
+              ? t("Falta en {n} anuncios", { n: data.addressMissing })
+              : t("Lista")
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-[#555]">
+            {t("Sube un recibo a tu nombre con la dirección del anuncio (luz, agua, internet, predial, renta…) y lo revisamos. Tu anuncio muestra el listón «Ubicación verificada», que le da más seguridad y confianza a quien reserva. Sin él sí recibes reservas, sólo no aparece el listón.")}
+          </p>
+          {engineOn && data.addressMissing > 0 && (
+            <a href="#direccion" className="block rounded-xl bg-[#dcb81e] py-3 text-center text-sm font-semibold text-black">
+              {t("Subir comprobantes")}
+            </a>
+          )}
+        </div>
       </Step>
 
       <Link
@@ -228,7 +229,7 @@ export function BookingEngine() {
       >
         <span>
           {t("Ver más productos en la Tienda")}
-          <span className="block text-sm font-normal text-[#717171]">{t("Limpieza, colaboradores, anuncio destacado, verificación de domicilio…")}</span>
+          <span className="block text-sm font-normal text-[#717171]">{t("Limpieza, colaboradores, anuncio destacado…")}</span>
         </span>
         <span aria-hidden>›</span>
       </Link>
@@ -306,7 +307,7 @@ function StripeCard({ engineOn }: { engineOn: boolean }) {
           <span className="block text-emerald-800/80">
             {engineOn
               ? t("Las estancias se cobran en tu cuenta.")
-              : t("Listo. Para que tus anuncios reciban reservas faltan tu identidad, la dirección del anuncio y el motor de reservas (pasos 2 a 4).")}
+              : t("Listo. Para que tus anuncios reciban reservas faltan tu identidad y el motor de reservas (pasos 2 y 3).")}
           </span>
         </span>
         <span aria-hidden>›</span>

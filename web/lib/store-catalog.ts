@@ -45,7 +45,8 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
     "El huésped paga con cualquier tarjeta de crédito o débito (Visa, Mastercard, American Express, Discover, JCB y UnionPay), Apple Pay o Google Pay.",
     "El dinero cae directo a tu propia cuenta, sin intermediarios y al momento, y la reserva se confirma sola al pagar.",
     "Contrato entre tú y tu huésped, firmado en línea y adaptado a la ley de tu estado y ciudad.",
-    "Requiere que contrates aparte tu verificación de identidad y la verificación de dirección de cada anuncio: así el huésped reserva seguro.",
+    "Requiere tu verificación de identidad (se contrata aparte): así el huésped reserva seguro.",
+    "Incluye la verificación de dirección de cada anuncio: subes un recibo a tu nombre con la dirección del anuncio y lo revisamos. Con ella tu anuncio muestra el listón «Ubicación verificada», que le da más seguridad y confianza a quien reserva. Sin ella sí recibes reservas, sólo no aparece el listón.",
     "Bloqueo automático de fechas y calendario.",
     "Recordatorios por correo a ti y a tu huésped antes de la llegada, y para dejarse reseña al terminar.",
   ],
@@ -67,10 +68,9 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
     "Le quitas el acceso cuando quieras desde tu panel de colaboradores.",
   ],
   address_proof: [
-    "Se paga por anuncio.",
-    "Subes un comprobante de domicilio y lo revisamos.",
+    "Ya viene incluida en el motor de reservas; este plan aparte es de antes y cubre anuncios sin motor.",
+    "Subes un recibo a tu nombre con la dirección del anuncio y lo revisamos.",
     "Tu anuncio muestra la insignia «Ubicación verificada».",
-    "Es obligatoria para usar el motor de reservas en ese anuncio.",
     "Mientras la pagues, cada mes volvemos a revisar la dirección contra datos oficiales. Si dejas de pagar, se quita la insignia. Si la revisión pide confirmarla de nuevo, te pediremos otro comprobante.",
   ],
   featured_listing: [
@@ -167,6 +167,8 @@ export function storeItemsFor(user: UserRecord, region: VerificationRegion): Sto
     const family = MEMBERSHIP_PLAN_FAMILY[p.code];
     // La identidad se vende una sola vez por persona, como «Verificación de identidad».
     if (family === "host_verification") continue;
+    // Viene incluida en el motor; sólo la ve quien la compró aparte antes, para administrarla.
+    if (family === "address_proof" && !byFamily.has(family) && !ownedFor(user, family, p.code)) continue;
     const months = p.billing.kind === "subscription" ? p.billing.intervalCount : 0;
     const term: StoreTerm = {
       code: p.code,

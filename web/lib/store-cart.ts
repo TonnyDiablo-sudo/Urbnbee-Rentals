@@ -1,6 +1,5 @@
 import "server-only";
 import type Stripe from "stripe";
-import { addressProofSlots } from "@/lib/address-proof-access";
 import { featuredPlanAmount, featuredPurchaseProblem, isFeaturedPlan } from "@/lib/featured-demand";
 import { getHostEntitlement } from "@/lib/host-entitlements-store";
 import { hostEntitlementAllowsAccess } from "@/lib/host-entitlement-types";
@@ -38,17 +37,18 @@ export function catalogPurchaseProblem(
     const families = new Set(alsoBuying.map((c) => MEMBERSHIP_PLAN_FAMILY[c]));
     const identity =
       identityPlanActive(user.id) || families.has("guest_membership") || families.has("host_verification");
-    const address = addressProofSlots(user.id) > 0 || families.has("address_proof");
-    if (!identity || !address) {
+    if (!identity) {
       return {
-        error:
-          !identity && !address
-            ? "El motor de reservas requiere la verificación de identidad y la verificación de dirección. Agrégalas a tu carrito o cómpralas antes."
-            : !identity
-              ? "El motor de reservas requiere la verificación de identidad. Agrégala a tu carrito o cómprala antes."
-              : "El motor de reservas requiere la verificación de dirección de tus anuncios. Agrégala a tu carrito o cómprala antes.",
+        error: "El motor de reservas requiere la verificación de identidad. Agrégala a tu carrito o cómprala antes.",
         status: 412,
       };
+    }
+  }
+  if (MEMBERSHIP_PLAN_FAMILY[code] === "address_proof" && user.role !== "admin") {
+    const sku = primarySkuForPlan(code);
+    const owned = sku ? getHostEntitlement(user.id, sku) : undefined;
+    if (!owned || owned.status === "cancelled") {
+      return { error: "La verificación de dirección ya viene incluida en el motor de reservas.", status: 410 };
     }
   }
   const plan = getMembershipPlan(code);
