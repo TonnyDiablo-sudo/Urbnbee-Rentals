@@ -132,7 +132,7 @@ export function IntegrationsClient() {
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900">
             <p className="font-semibold">{t("Cuenta vinculada")}</p>
             <p className="mt-1">
-              Workspace #{status.beeagentCustomerId}
+              {t("Espacio de trabajo #{id}", { id: String(status.beeagentCustomerId) })}
               {status.linkedAt && (
                 <span className="text-emerald-800/80">
                   {" "}

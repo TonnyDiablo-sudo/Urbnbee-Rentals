@@ -82,6 +82,9 @@ export function listingPartnerView(listing: HostListingRecord) {
       directions: ag.directions ?? null,
       wifi_name: ag.wifiName ?? null,
       wifi_password: ag.wifiPassword ?? null,
+      /** null si no hay código o si el anfitrión no deja que el agente lo comparta. */
+      access_code: listing.agentCanShareAccessCode !== false ? (ag.accessCode ?? null) : null,
+      access_code_shareable: listing.agentCanShareAccessCode !== false,
       house_manual: ag.houseManual ?? null,
       checkout_instructions: ag.checkoutInstructions ?? null,
     },

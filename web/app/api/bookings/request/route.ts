@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBeeagentBookingLink } from "@/lib/beeagent-booking-links";
 import { enqueueBookingOutbound } from "@/lib/beeagent-outbound";
 import { ensureBookingContract } from "@/lib/booking-contract";
-import { getListingById } from "@/lib/marketplace-store";
+import {
+  BOOKING_EMAIL_ERROR,
+  BOOKING_PHONE_ERROR,
+  normalizeBookingEmail,
+  normalizeBookingPhone,
+} from "@/lib/booking-contact";
+import { getListingById, updateUser } from "@/lib/marketplace-store";
 import {
   hasOverlappingActiveBooking,
   insertBookingLocked,
@@ -56,6 +62,22 @@ export async function POST(req: NextRequest) {
 
   if (!listingId || !checkIn || !checkOut) {
     return NextResponse.json({ error: "Faltan fechas o alojamiento." }, { status: 400 });
+  }
+
+  const guestEmail = normalizeBookingEmail(body.guestEmail);
+  if (!guestEmail) {
+    return NextResponse.json({ error: BOOKING_EMAIL_ERROR, field: "guestEmail" }, { status: 400 });
+  }
+  const guestPhone = normalizeBookingPhone(body.guestPhone);
+  if (!guestPhone) {
+    return NextResponse.json({ error: BOOKING_PHONE_ERROR, field: "guestPhone" }, { status: 400 });
+  }
+  if (!user.phone?.trim()) {
+    try {
+      updateUser(user.id, { phone: guestPhone });
+    } catch {
+      /* el teléfono del perfil es opcional; la reserva sigue */
+    }
   }
 
   const listing = getListingById(listingId);
@@ -140,9 +162,9 @@ export async function POST(req: NextRequest) {
     listingId,
     hostId: listing.hostId,
     guestUserId: user.id,
-    guestEmail: user.email,
-    guestName: user.fullName?.trim() || user.email,
-    guestPhone: user.phone,
+    guestEmail,
+    guestName: user.fullName?.trim() || guestEmail,
+    guestPhone,
     checkIn,
     checkOut,
     nights,

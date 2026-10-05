@@ -285,7 +285,7 @@ export function StripeConnectPanel() {
             </p>
             <p className="mt-2 break-all rounded-lg bg-[#111] px-3 py-2 font-mono text-[#dcb81e]">{status.webhookUrl}</p>
             <label className="mt-3 block text-sm font-medium text-[#484848]">
-              Webhook signing secret
+              {t("Clave secreta de firma del webhook")}
               <input
                 type="password"
                 autoComplete="off"

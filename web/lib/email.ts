@@ -1,6 +1,7 @@
 import "server-only";
 import nodemailer from "nodemailer";
 import { getMailboxAuth, markMailboxError, markMailboxOk, type MailboxId } from "@/lib/mailboxes-store";
+import { isLang, makeT, type Lang, type TFn } from "@/lib/i18n";
 import { NOREPLY_EMAIL, SUPPORT_EMAIL, SUPPORT_FROM } from "@/lib/support-contact";
 
 export type EmailMessage = {
@@ -158,8 +159,24 @@ export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
 
+/** Idioma de los correos de un usuario: el último con el que usó el sitio. */
+export function userLang(user: { lang?: string } | null | undefined, fallback: Lang = "es"): Lang {
+  const lang = user?.lang;
+  return isLang(lang) ? lang : fallback;
+}
+
+export function emailT(lang: Lang): TFn {
+  return makeT(lang);
+}
+
 /** Plantilla común: título, párrafos y botón opcional. Los textos ya deben venir escapados. */
-export function emailLayout(opts: { title: string; paragraphs: string[]; button?: { href: string; label: string } }): string {
+export function emailLayout(opts: {
+  title: string;
+  paragraphs: string[];
+  button?: { href: string; label: string };
+  lang?: Lang;
+}): string {
+  const t = makeT(opts.lang ?? "es");
   const body = opts.paragraphs.map((p) => `<p style="margin:0 0 14px">${p}</p>`).join("");
   const button = opts.button
     ? `<p style="margin:22px 0"><a href="${opts.button.href}" style="background:#dcb81e;color:#000;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600">${opts.button.label}</a></p>`
@@ -167,5 +184,5 @@ export function emailLayout(opts: { title: string; paragraphs: string[]; button?
   return `<div style="font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5;color:#222;max-width:520px">
 <h2 style="font-size:20px;margin:0 0 16px">${opts.title}</h2>${body}${button}
 <p style="margin:24px 0 0;font-size:12px;color:#888">Cabibee · ${SUPPORT_EMAIL}</p>
-<p style="margin:6px 0 0;font-size:11px;color:#aaa">Este aviso lo manda ${NOREPLY_EMAIL}. Si contestas, te leemos en ${SUPPORT_EMAIL}.</p></div>`;
+<p style="margin:6px 0 0;font-size:11px;color:#aaa">${t("Este aviso lo manda {from}. Si contestas, te leemos en {support}.", { from: NOREPLY_EMAIL, support: SUPPORT_EMAIL })}</p></div>`;
 }

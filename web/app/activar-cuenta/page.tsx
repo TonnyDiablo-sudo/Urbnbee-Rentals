@@ -2,9 +2,13 @@ import { redirect } from "next/navigation";
 import { AccountSecurityForm } from "@/components/account/account-security-form";
 import { SiteHeader } from "@/components/site-header";
 import { accountSecurityProps } from "@/lib/account-security-data";
+import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 
-export const metadata = { title: "Activa tu cuenta · Cabibee" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("Activa tu cuenta") };
+}
 
 export default async function ActivateAccountPage() {
   const user = await getSessionUser();

@@ -12,7 +12,7 @@ import { listingHasEngine } from "@/lib/booking-engine-slots";
 import type { BookingRecord } from "@/lib/booking-types";
 import { getBookingById, listAllBookings, patchBookingRecord } from "@/lib/bookings-store";
 import { publicNameOf } from "@/lib/display-name";
-import { emailLayout, escapeHtml, sendEmail } from "@/lib/email";
+import { emailLayout, emailT, escapeHtml, sendEmail, userLang } from "@/lib/email";
 import { appendMessage, guestSessionIdForUser } from "@/lib/host-inbox-store";
 import { listingFullAddress } from "@/lib/listing-address";
 import { pricingToday } from "@/lib/listing-pricing";
@@ -48,10 +48,11 @@ export function renderArrivalMessage(listing: HostListingRecord, booking: Bookin
 
 function guestEmailOf(b: BookingRecord): string | null {
   const user = b.guestUserId ? findUserById(b.guestUserId) : undefined;
-  if (user?.placeholderEmail) return null;
-  const email = (user?.email || b.guestEmail || "").trim();
-  if (!email || isPlaceholderEmail(email) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
-  return email;
+  const valid = (e: string | undefined) => {
+    const v = (e ?? "").trim();
+    return v && !isPlaceholderEmail(v) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? v : "";
+  };
+  return valid(b.guestEmail) || (user?.placeholderEmail ? "" : valid(user?.email)) || null;
 }
 
 export type ArrivalSendResult =
@@ -108,13 +109,15 @@ export async function sendArrivalMessage(bookingId: string, opts: { manual: bool
   let emailed = false;
   const to = guestEmailOf(b);
   if (to) {
-    const subject = `Datos de llegada · ${listing.title}`;
+    const lang = userLang(b.guestUserId ? findUserById(b.guestUserId) : undefined);
+    const subject = emailT(lang)("Datos de llegada · {listing}", { listing: listing.title });
     emailed = await sendEmail({
       mailbox: "noreply",
       to,
       subject,
       text,
       html: emailLayout({
+        lang,
         title: escapeHtml(subject),
         paragraphs: text.split(/\n{2,}/).map((p) => escapeHtml(p).replace(/\n/g, "<br>")),
       }),

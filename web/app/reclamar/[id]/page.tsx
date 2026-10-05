@@ -6,7 +6,10 @@ import { getT } from "@/lib/i18n/server";
 import { isListingUnclaimed } from "@/lib/listing-claim-status";
 import { getListingById } from "@/lib/marketplace-store";
 
-export const metadata = { title: "Reclamar anuncio · Cabibee" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("Reclamar anuncio") };
+}
 
 export default async function ClaimListingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

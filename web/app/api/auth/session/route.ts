@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { getSessionUser } from "@/lib/session";
 import { hasAcceptedTerms, TERMS_VERSION } from "@/lib/terms";
 
@@ -14,6 +15,7 @@ export async function GET() {
       role: user.role,
       fullName: user.fullName,
       phone: user.phone,
+      emailIsPlaceholder: isPlaceholderEmail(user.email),
       termsAccepted: hasAcceptedTerms(user),
       termsVersion: TERMS_VERSION,
     },

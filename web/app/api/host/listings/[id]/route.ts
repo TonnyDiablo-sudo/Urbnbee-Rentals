@@ -94,6 +94,10 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   }
   if (body.pricing !== undefined) patch.pricing = sanitizePricing(body.pricing);
   if (body.arrivalGuide !== undefined) patch.arrivalGuide = sanitizeArrivalGuide(body.arrivalGuide);
+  if (typeof body.agentCanShareAccessCode === "boolean") patch.agentCanShareAccessCode = body.agentCanShareAccessCode;
+  else if (body.agentCanShareAccessCode !== undefined) {
+    return NextResponse.json({ error: "agentCanShareAccessCode debe ser true o false." }, { status: 400 });
+  }
   if (body.arrivalMessage !== undefined) patch.arrivalMessage = sanitizeArrivalMessage(body.arrivalMessage);
   if (body.rules && typeof body.rules === "object") {
     patch.rules = {

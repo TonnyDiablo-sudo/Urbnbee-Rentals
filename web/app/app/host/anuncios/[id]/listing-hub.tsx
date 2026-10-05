@@ -213,11 +213,19 @@ export function ListingHub({ listingId }: { listingId: string }) {
         title={listing.title}
         back="/host/anuncios"
         right={
-          listing.published ? (
-            <Link href={`/alojamiento/${listing.slug}`} className="rounded-full px-3 py-1.5 text-sm font-semibold text-[#222] underline">
-              {t("Ver")}
+          <div className="flex items-center">
+            <Link
+              href={`/host/anuncios/${encodeURIComponent(listing.id)}/rapido`}
+              className="rounded-full px-3 py-1.5 text-sm font-semibold text-[#222] underline"
+            >
+              {t("Edición rápida")}
             </Link>
-          ) : undefined
+            {listing.published && (
+              <Link href={`/alojamiento/${listing.slug}`} className="rounded-full px-3 py-1.5 text-sm font-semibold text-[#222] underline">
+                {t("Ver")}
+              </Link>
+            )}
+          </div>
         }
       />
 
@@ -584,6 +592,7 @@ function PanelBody({
     creditCheckPayer: listing.creditCheckPayer === "host" ? "host" : "guest",
     chargeTax: listing.chargeTax !== false,
     arrival: { ...(listing.arrivalGuide ?? {}) } as ArrivalGuide,
+    agentCanShareAccessCode: listing.agentCanShareAccessCode !== false,
     arrivalMessage: arrivalMessageOf(listing.arrivalMessage) as ArrivalMessageSettings,
     agentFaq: (listing.agentFaq ?? []).map((f) => ({ ...f })) as AgentFaqItem[],
     agentNotes: listing.agentNotes ?? "",
@@ -616,7 +625,7 @@ function PanelBody({
           bathroomType: draft.bathrooms > 0 ? draft.bathroomType : null,
         };
       case "checkin":
-        return { arrivalGuide: draft.arrival, selfCheckIn: draft.selfCheckIn };
+        return { arrivalGuide: draft.arrival, selfCheckIn: draft.selfCheckIn, agentCanShareAccessCode: draft.agentCanShareAccessCode };
       case "arrivalMessage":
         return { arrivalMessage: draft.arrivalMessage };
       case "description":
@@ -1146,6 +1155,15 @@ function PanelBody({
                   placeholder={t("Ej.: Puerta 4821#, caja de llaves 0912")}
                   className={inputCls}
                 />
+              </label>
+              <label className="flex items-start gap-3 text-sm text-[#222]">
+                <input
+                  type="checkbox"
+                  checked={draft.agentCanShareAccessCode}
+                  onChange={(e) => set("agentCanShareAccessCode", e.target.checked)}
+                  className="mt-0.5 h-5 w-5 shrink-0"
+                />
+                {t("El asistente de IA puede dar el código de entrada a huéspedes con reserva confirmada")}
               </label>
               <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#484848]">
                 {t("Se le comparte al huésped sólo cuando reserva y paga con el Motor de reservas.")}

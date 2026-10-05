@@ -41,6 +41,8 @@ export type UserRecord = {
   termsVersion?: string;
   termsAcceptedAt?: string;
   emailVerifiedAt?: string;
+  /** Último idioma con el que usó el sitio; los correos salen en este idioma. */
+  lang?: "es" | "en";
   emailVerifyTokenHash?: string;
   emailVerifyExpiresAt?: string;
   /** Sesiones emitidas antes de esto ya no valen (cambio o recuperación de contraseña). */
@@ -126,6 +128,8 @@ export type HostListingRecord = {
   /** Fin de semana, descuentos por duración y estancia mínima/máxima. */
   pricing?: ListingPricing;
   arrivalGuide?: ArrivalGuide;
+  /** El agente de IA puede dar `arrivalGuide.accessCode` a huéspedes con reserva confirmada. Por defecto true. */
+  agentCanShareAccessCode?: boolean;
   /** Mensaje con los datos de llegada que se le manda al huésped de una reserva del motor. */
   arrivalMessage?: ArrivalMessageSettings;
   photos: string[];

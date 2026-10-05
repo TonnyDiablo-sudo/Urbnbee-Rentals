@@ -9,6 +9,12 @@ import {
   type StayDiscountKind,
 } from "@/lib/listing-pricing";
 import { computeStayTax, type HostTaxSettings } from "@/lib/stay-tax";
+import {
+  BOOKING_EMAIL_ERROR,
+  BOOKING_PHONE_ERROR,
+  normalizeBookingEmail,
+  normalizeBookingPhone,
+} from "@/lib/booking-contact";
 
 const DISCOUNT_LABEL: Record<StayDiscountKind, string> = {
   monthly: "Descuento mensual ({n}%)",
@@ -175,6 +181,8 @@ export function AvailabilityCalendar({
     email: string;
   } | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [bookingBusy, setBookingBusy] = useState(false);
   const [bookingErr, setBookingErr] = useState<string | null>(null);
   const [needsVerificationGate, setNeedsVerificationGate] = useState(false);
@@ -200,6 +208,8 @@ export function AvailabilityCalendar({
             fullName: data.user.fullName ?? "",
             email: data.user.email ?? "",
           });
+          setContactEmail((v) => v || (data.user.emailIsPlaceholder ? "" : (data.user.email ?? "")));
+          setContactPhone((v) => v || (typeof data.user.phone === "string" ? data.user.phone : ""));
         } else if (!cancelled) {
           setSessionUser(null);
         }
@@ -411,6 +421,36 @@ export function AvailabilityCalendar({
               <span className="font-medium">{sessionUser.fullName?.trim() || sessionUser.email}</span>
             </p>
           )}
+          {!sessionLoading && sessionUser && (
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-[#484848]">
+                {t("Correo electrónico")}
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  className="mt-1 w-full rounded border px-3 py-2 text-sm font-normal outline-none focus:border-[#dcb81e]"
+                  style={{ borderColor: "#ddd" }}
+                />
+              </label>
+              <label className="block text-xs font-semibold text-[#484848]">
+                {t("Teléfono (WhatsApp)")}
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={contactPhone}
+                  placeholder="+52 55 1234 5678"
+                  onChange={(e) => setContactPhone(e.target.value)}
+                  className="mt-1 w-full rounded border px-3 py-2 text-sm font-normal outline-none focus:border-[#dcb81e]"
+                  style={{ borderColor: "#ddd" }}
+                />
+              </label>
+              <p className="text-xs text-[#888]">{t("El anfitrión los usa para contactarte sobre esta reserva y van en el contrato.")}</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -503,6 +543,16 @@ export function AvailabilityCalendar({
             setBookingErr("Inicia sesión o regístrate para continuar.");
             return;
           }
+          const guestEmail = normalizeBookingEmail(contactEmail);
+          if (!guestEmail) {
+            setBookingErr(BOOKING_EMAIL_ERROR);
+            return;
+          }
+          const guestPhone = normalizeBookingPhone(contactPhone);
+          if (!guestPhone) {
+            setBookingErr(BOOKING_PHONE_ERROR);
+            return;
+          }
           setBookingBusy(true);
           try {
             const res = await fetch("/api/bookings/request", {
@@ -514,6 +564,8 @@ export function AvailabilityCalendar({
                 checkIn: localISO(checkin),
                 checkOut: localISO(checkout),
                 ref: bookingRef || undefined,
+                guestEmail,
+                guestPhone,
               }),
             });
             const data = await res.json().catch(() => ({}));

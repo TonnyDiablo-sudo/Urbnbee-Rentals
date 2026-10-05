@@ -274,7 +274,7 @@ export function TeamPanel({ storeHref = "/tienda" }: { storeHref?: string }) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="correo@ejemplo.com"
+          placeholder={t("correo@ejemplo.com")}
           className="mt-3 w-full rounded-xl border border-[#ddd] px-3 py-2.5 text-[15px] text-[#222] outline-none focus:border-[#222]"
         />
         <div className="mt-4">

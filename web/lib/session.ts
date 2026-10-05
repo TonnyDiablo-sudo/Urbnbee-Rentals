@@ -2,7 +2,8 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "crypto";
 import { cookies, headers } from "next/headers";
 import type { SessionPayload, UserRecord, UserRole } from "@/lib/marketplace-types";
-import { findUserById } from "@/lib/marketplace-store";
+import { getLang } from "@/lib/i18n/server";
+import { findUserById, updateUserAuth } from "@/lib/marketplace-store";
 
 const COOKIE_NAME = "cb_session";
 /**
@@ -87,6 +88,12 @@ export async function getSessionUser(): Promise<UserRecord | null> {
   if (user.passwordChangedAt) {
     const issuedAtMs = (s.exp - MAX_AGE_SEC) * 1000;
     if (issuedAtMs < Date.parse(user.passwordChangedAt) - 1000) return null;
+  }
+  try {
+    const lang = await getLang();
+    if (user.lang !== lang) return updateUserAuth(user.id, { lang }) ?? user;
+  } catch {
+    /* fuera de una petición no hay cookies */
   }
   return user;
 }

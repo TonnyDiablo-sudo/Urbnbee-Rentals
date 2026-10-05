@@ -14,14 +14,18 @@ import { siteHostListings } from "./site-host-listings";
 import { siteListing } from "./site-listing";
 import { appToolsStore } from "./app-tools-store";
 import { appWishlists } from "./app-wishlists";
+import { auditFill } from "./audit-fill";
 import { appHelpLegal } from "./app-help-legal";
 import { appReports } from "./app-reports";
 import { billingAccount } from "./billing-account";
 import { listingSetup } from "./listing-setup";
 import { trustMedia } from "./trust-media";
+import { listingQuick } from "./listing-quick";
+import { emails } from "./emails";
 
-/** Clave: el texto exacto en espaÃ±ol que aparece en el cÃ³digo. */
+/** Clave: el texto exacto en español que aparece en el código. */
 export const EN: Record<string, string> = {
+  ...auditFill,
   ...common,
   ...appCore,
   ...appGuest,
@@ -43,4 +47,6 @@ export const EN: Record<string, string> = {
   ...billingAccount,
   ...listingSetup,
   ...trustMedia,
+  ...listingQuick,
+  ...emails,
 };

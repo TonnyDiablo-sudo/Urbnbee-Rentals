@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { sendVerificationEmail } from "@/lib/email-verification";
+import { getLang } from "@/lib/i18n/server";
 import { createUser, findUserByEmail, updateUserAuth } from "@/lib/marketplace-store";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 import { createSession } from "@/lib/session";
@@ -42,7 +43,11 @@ export async function POST(req: NextRequest) {
       phone,
       role,
     });
-    updateUserAuth(user.id, { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date().toISOString() });
+    updateUserAuth(user.id, {
+      termsVersion: TERMS_VERSION,
+      termsAcceptedAt: new Date().toISOString(),
+      lang: await getLang(),
+    });
 
     await createSession({ id: user.id, email: user.email, role: user.role });
     void sendVerificationEmail(user.id, publicOriginFromRequest(req));

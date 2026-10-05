@@ -119,9 +119,9 @@ export function buildContractSnapshot(
     hostEmail: hostProfile?.email || host?.email || "",
     hostPhone: hostProfile?.phone || host?.phone || "",
     guestName: cleanName(guest?.fullName, booking.guestName),
-    guestEmail: guest?.email || booking.guestEmail,
+    guestEmail: booking.guestEmail || guest?.email || "",
     guestPhone:
-      guest?.phone || booking.guestPhone || (booking.guestUserId ? getHostProfile(booking.guestUserId)?.phone : "") || "",
+      booking.guestPhone || guest?.phone || (booking.guestUserId ? getHostProfile(booking.guestUserId)?.phone : "") || "",
     guestAddress: guest?.addressLine || "",
     checkIn,
     checkOut,

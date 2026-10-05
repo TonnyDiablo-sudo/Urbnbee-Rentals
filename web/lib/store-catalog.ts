@@ -25,12 +25,14 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
     "En México: INE o pasaporte. En Estados Unidos: licencia de manejo, State ID o pasaporte.",
     "Como huésped: reservas ilimitadas mientras esté activa.",
     "Como anfitrión: listón «Miembro verificado» en todos tus anuncios.",
+    "Reseñas de ida y vuelta: cuando reservas con el motor de reservas de Cabibee, tú calificas al anfitrión y él te califica a ti. Un moderador automático quita insultos y datos personales.",
     "Entre más largo el plazo, más barato por mes.",
   ],
   host_verification: [
     "Te identificas con una identificación oficial y una selfie. Lo revisa Stripe Identity.",
     "En México: INE o pasaporte. En Estados Unidos: licencia de manejo, State ID o pasaporte.",
     "Listón «Miembro verificado» en todos tus anuncios.",
+    "Reseñas de ida y vuelta: en las reservas hechas con el motor de reservas de Cabibee, tú calificas al huésped y él te califica a ti. Un moderador automático quita insultos y datos personales.",
     "Tus anuncios se destacan frente a los no verificados.",
     "Entre más largo el plazo, más barato por mes.",
   ],
@@ -41,6 +43,7 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
     "Contrato entre tú y tu huésped, firmado en línea y adaptado a la ley de tu estado y ciudad.",
     "Incluye tu verificación de identidad como anfitrión: es obligatoria para que el huésped reserve seguro.",
     "Bloqueo automático de fechas y calendario.",
+    "Recordatorios por correo a ti y a tu huésped antes de la llegada, y para dejarse reseña al terminar.",
     "La dirección exacta, el código de entrada y el wifi se comparten sólo con la reserva confirmada.",
   ],
   cleaning_tool: [

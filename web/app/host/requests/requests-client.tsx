@@ -21,6 +21,7 @@ type BookingRow = {
   token: string;
   guestName: string;
   guestEmail: string;
+  guestPhone?: string;
   paidAt?: string;
   stripeCheckoutSessionId?: string;
   payInstruction?: PayInstruction | null;
@@ -141,7 +142,23 @@ export function HostRequestsClient() {
                 <div>
                   <p className="font-semibold text-[#484848]">{b.effectiveListingTitle ?? b.listingTitle}</p>
                   <p className="mt-1 text-[#888]">
-                    {b.guestName} · {b.guestEmail}
+                    {b.guestName}
+                    {b.guestEmail && (
+                      <>
+                        {" · "}
+                        <a href={`mailto:${b.guestEmail}`} className="underline">
+                          {b.guestEmail}
+                        </a>
+                      </>
+                    )}
+                    {b.guestPhone && (
+                      <>
+                        {" · "}
+                        <a href={`tel:${b.guestPhone.replace(/[^\d+]/g, "")}`} className="underline">
+                          {b.guestPhone}
+                        </a>
+                      </>
+                    )}
                   </p>
                   <p className="mt-2 text-[#3a3a3a]">
                     {t("Solicitado: {checkIn} → {checkOut} ({n} noches)", {

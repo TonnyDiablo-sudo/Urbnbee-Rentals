@@ -1258,11 +1258,12 @@ function ArrivalTab({
 }: {
   listing: HostListingRecord;
   hostName: string;
-  onSave: (patch: { arrivalGuide?: ArrivalGuide; arrivalMessage?: ArrivalMessageSettings }) => void;
+  onSave: (patch: { arrivalGuide?: ArrivalGuide; arrivalMessage?: ArrivalMessageSettings; agentCanShareAccessCode?: boolean }) => void;
 }) {
   const t = useT();
   const [guide, setGuide] = useState<ArrivalGuide>(() => ({ ...(listing.arrivalGuide ?? {}) }));
   const [message, setMessage] = useState<ArrivalMessageSettings>(() => arrivalMessageOf(listing.arrivalMessage));
+  const [agentCode, setAgentCode] = useState(listing.agentCanShareAccessCode !== false);
   const setG = (k: keyof ArrivalGuide, v: string) => setGuide((g) => ({ ...g, [k]: v }));
   const input = "w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]";
   const area = (k: keyof ArrivalGuide, label: string, placeholder: string) => (
@@ -1298,6 +1299,10 @@ function ArrivalTab({
             onChange={(e) => setG("accessCode", e.target.value)}
           />
         </Field>
+        <label className="-mt-2 flex items-start gap-2 text-sm text-[#484848]">
+          <input type="checkbox" checked={agentCode} onChange={(e) => setAgentCode(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" />
+          {t("El asistente de IA puede dar el código de entrada a huéspedes con reserva confirmada")}
+        </label>
         {area("directions", "Cómo llegar", "Cómo llegar, dónde estacionarse, qué timbre tocar…")}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nombre de la red">
@@ -1311,7 +1316,7 @@ function ArrivalTab({
         {area("checkoutInstructions", "Instrucciones de salida", "Ej.: Deja las llaves en la caja, saca la basura y apaga el aire.")}
         <button
           type="button"
-          onClick={() => onSave({ arrivalGuide: guide })}
+          onClick={() => onSave({ arrivalGuide: guide, agentCanShareAccessCode: agentCode })}
           className="rounded-full px-5 py-2.5 text-sm font-semibold text-black shadow transition hover:brightness-95"
           style={{ backgroundColor: "#dcb81e" }}
         >

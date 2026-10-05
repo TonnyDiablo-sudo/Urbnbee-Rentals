@@ -1,7 +1,8 @@
 import "server-only";
 import webpush from "web-push";
 import type { BookingRecord } from "@/lib/booking-types";
-import { getListingById } from "@/lib/marketplace-store";
+import { isLang, makeT } from "@/lib/i18n";
+import { findUserById, getListingById } from "@/lib/marketplace-store";
 import { addNotification, type NotificationKind } from "@/lib/notifications-store";
 import { removeSubscription, subscriptionsForUser } from "@/lib/push-store";
 
@@ -80,11 +81,6 @@ type NotifyInput = {
   tag?: string;
 };
 
-function fill(text: string, vars?: Record<string, string | number>): string {
-  if (!vars) return text;
-  return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
-}
-
 /** Guarda el aviso en el centro de notificaciones y además lo manda como push. */
 export function notifyUser(userId: string, n: NotifyInput): void {
   if (!userId) return;
@@ -102,9 +98,11 @@ export function notifyUser(userId: string, n: NotifyInput): void {
   } catch (e) {
     console.warn("[notifications] add failed:", e);
   }
+  const lang = findUserById(userId)?.lang;
+  const t = makeT(isLang(lang) ? lang : "es");
   void sendPushToUser(userId, {
-    title: fill(n.title, n.vars),
-    body: n.rawBody ? n.body : fill(n.body, n.vars),
+    title: t(n.title, n.vars),
+    body: n.rawBody ? n.body : t(n.body, n.vars),
     url: n.url,
     tag: n.tag,
   });

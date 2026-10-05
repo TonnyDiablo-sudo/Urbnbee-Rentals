@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getLang } from "@/lib/i18n/server";
 import { consumePasswordReset, requestPasswordReset } from "@/lib/password-reset";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 
 /** Pedir el enlace. Siempre responde igual para no revelar si el correo existe. */
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as { email?: string };
-  await requestPasswordReset(String(body.email ?? ""), publicOriginFromRequest(req));
+  await requestPasswordReset(String(body.email ?? ""), publicOriginFromRequest(req), await getLang());
   return NextResponse.json({
     ok: true,
     message: "Si esa cuenta existe y tiene un correo real, te mandamos el enlace. Revisa también el spam.",

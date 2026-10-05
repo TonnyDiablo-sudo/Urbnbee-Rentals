@@ -3,7 +3,8 @@ import { createHash, randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { notifyPasswordChanged } from "@/lib/account-notices";
-import { emailLayout, escapeHtml, sendEmail } from "@/lib/email";
+import { emailLayout, emailT, escapeHtml, sendEmail, userLang } from "@/lib/email";
+import type { Lang } from "@/lib/i18n";
 import { findUserByEmail, listAllUsers, updateUserAuth } from "@/lib/marketplace-store";
 import { SUPPORT_EMAIL } from "@/lib/support-contact";
 
@@ -18,7 +19,7 @@ function hash(token: string) {
  * Manda el enlace de recuperación. No revela si el correo existe.
  * No se manda a correos internos de cuentas creadas por asociados.
  */
-export async function requestPasswordReset(emailRaw: string, origin: string): Promise<void> {
+export async function requestPasswordReset(emailRaw: string, origin: string, requestLang: Lang = "es"): Promise<void> {
   const email = emailRaw.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || isPlaceholderEmail(email)) return;
   const user = findUserByEmail(email);
@@ -32,19 +33,24 @@ export async function requestPasswordReset(emailRaw: string, origin: string): Pr
     passwordResetExpiresAt: new Date(Date.now() + TTL_MS).toISOString(),
   });
   const link = `${origin.replace(/:\/\/app\./i, "://")}/recuperar/nueva?token=${token}`;
+  const lang = userLang(user, requestLang);
+  const t = emailT(lang);
+  const intro = t("Pediste restablecer la contraseña de tu cuenta de Cabibee. El enlace vence en 1 hora.");
+  const notYou = t("Si no fuiste tú, ignora este correo o escríbenos a {support}.", { support: SUPPORT_EMAIL });
   const sent = await sendEmail({
     mailbox: "noreply",
     to: user.email,
-    subject: "Restablece tu contraseña de Cabibee",
-    text: `Hola ${user.fullName}, pediste restablecer la contraseña de tu cuenta de Cabibee.\n${link}\n\nEl enlace vence en 1 hora. Si no fuiste tú, ignora este correo o escríbenos a ${SUPPORT_EMAIL}.`,
+    subject: t("Restablece tu contraseña de Cabibee"),
+    text: `${t("Hola {name},", { name: user.fullName })} ${intro}\n${link}\n\n${notYou}`,
     html: emailLayout({
-      title: "Restablece tu contraseña",
+      lang,
+      title: t("Restablece tu contraseña"),
       paragraphs: [
-        `Hola ${escapeHtml(user.fullName)},`,
-        "Pediste restablecer la contraseña de tu cuenta de Cabibee. El enlace vence en 1 hora.",
-        `<span style="color:#888">Si no fuiste tú, ignora este correo o escríbenos a ${SUPPORT_EMAIL}.</span>`,
+        t("Hola {name},", { name: escapeHtml(user.fullName) }),
+        intro,
+        `<span style="color:#888">${notYou}</span>`,
       ],
-      button: { href: link, label: "Elegir contraseña nueva" },
+      button: { href: link, label: t("Elegir contraseña nueva") },
     }),
   });
   if (sent) updateUserAuth(user.id, { passwordResetRequestedAt: new Date().toISOString() });
@@ -72,6 +78,6 @@ export async function consumePasswordReset(
     mustChangePassword: undefined,
     ...(user.provisionedBy && !user.claimedAt ? { claimedAt: new Date().toISOString() } : {}),
   });
-  void notifyPasswordChanged({ email: user.email, fullName: user.fullName, viaReset: true });
+  void notifyPasswordChanged({ email: user.email, fullName: user.fullName, viaReset: true, lang: userLang(user) });
   return { ok: true };
 }

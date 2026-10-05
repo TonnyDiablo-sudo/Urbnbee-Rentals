@@ -424,6 +424,7 @@ type UserAuthPatch = Partial<
     | "passwordResetExpiresAt"
     | "passwordResetRequestedAt"
     | "billingCountry"
+    | "lang"
   >
 >;
 

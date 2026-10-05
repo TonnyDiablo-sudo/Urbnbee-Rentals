@@ -1,10 +1,15 @@
+"use client";
+
+import { useT } from "@/components/i18n-provider";
+
 export default function AppLoading() {
+  const t = useT();
   return (
     <div
       className="animate-pulse px-5"
       style={{ paddingTop: "calc(20px + env(safe-area-inset-top))" }}
       role="status"
-      aria-label="Cargando"
+      aria-label={t("Cargando")}
     >
       <div className="h-8 w-40 rounded-lg bg-[#eee]" />
       <div className="mt-5 h-12 w-full rounded-full bg-[#f0f0f0]" />

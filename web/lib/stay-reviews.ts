@@ -5,6 +5,8 @@ import { publicNameOf } from "@/lib/display-name";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import type { Review } from "@/lib/listing-detail-data";
 import { notifyGuestNewReview, notifyHostNewReview } from "@/lib/push";
+import type { Lang } from "@/lib/i18n";
+import { moderateReview } from "@/lib/review-moderation";
 import {
   findStayReview,
   insertStayReview,
@@ -28,13 +30,14 @@ export function reviewsForBooking(bookingId: string): {
   };
 }
 
-export function createStayReview(opts: {
+export async function createStayReview(opts: {
   booking: BookingRecord;
   authorUserId: string;
   kind: StayReviewKind;
   rating: number;
   comment: string;
-}): { review?: StayReviewRecord; error?: string; status?: number } {
+  lang?: Lang;
+}): Promise<{ review?: StayReviewRecord; error?: string; status?: number; moderated?: boolean }> {
   const { booking, authorUserId, kind, rating, comment } = opts;
   if (!stayReviewEligible(booking)) {
     return { error: "La reseña se abre cuando termina la estancia.", status: 409 };
@@ -60,6 +63,14 @@ export function createStayReview(opts: {
   const text = comment.replace(/[<>]/g, "").trim().slice(0, 2000);
   if (text.length < 10) {
     return { error: "Escribe al menos 10 caracteres.", status: 400 };
+  }
+
+  const check = await moderateReview({ kind, rating: stars, comment: text, lang: opts.lang ?? "es" });
+  if (check.verdict === "reject") {
+    return { error: check.reason ?? "Tu reseña no cumple las reglas de la comunidad.", status: 422, moderated: true };
+  }
+  if (findStayReview(booking.id, kind)) {
+    return { error: "Ya dejaste tu reseña de esta estancia.", status: 409 };
   }
 
   const listingId = booking.hostAdjustedListingId ?? booking.listingId;

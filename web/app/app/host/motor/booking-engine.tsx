@@ -118,6 +118,7 @@ export function BookingEngine() {
               <li>{t("Paga con tarjeta en tu Stripe y la reserva se confirma sola.")}</li>
               <li>{t("Se genera el contrato y lo firman en línea.")}</li>
               <li>{t("Incluye tu verificación de identidad como anfitrión, obligatoria para la seguridad del huésped.")}</li>
+              <li>{t("Tú y tu huésped se califican al terminar la estancia; un moderador automático revisa las reseñas.")}</li>
             </ul>
             <CountryPicker value={data.billingCountry} onSaved={() => void load()} />
             {!data.emailVerified && <VerifyEmailBox />}

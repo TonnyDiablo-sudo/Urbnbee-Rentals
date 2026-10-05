@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { notifyEmailChanged, notifyPasswordChanged } from "@/lib/account-notices";
 import { isPlaceholderEmail } from "@/lib/associate-provision";
+import { userLang } from "@/lib/email";
 import { sendVerificationEmail } from "@/lib/email-verification";
 import { getHostProfile, updateUserAuth, upsertHostProfile } from "@/lib/marketplace-store";
 import { publicOriginFromRequest } from "@/lib/public-origin";
@@ -85,10 +86,10 @@ export async function POST(req: NextRequest) {
     await createSession({ id: updated.id, email: updated.email, role: updated.role });
   }
   if (emailChanged) {
-    void notifyEmailChanged({ oldEmail: user.email, newEmail: updated.email, fullName: updated.fullName });
+    void notifyEmailChanged({ oldEmail: user.email, newEmail: updated.email, fullName: updated.fullName, lang: userLang(updated) });
   }
   if (newPassword) {
-    void notifyPasswordChanged({ email: updated.email, fullName: updated.fullName });
+    void notifyPasswordChanged({ email: updated.email, fullName: updated.fullName, lang: userLang(updated) });
   }
 
   let verificationSent = false;
