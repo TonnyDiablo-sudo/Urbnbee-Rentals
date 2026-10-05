@@ -156,19 +156,33 @@ export function VerifyEmailButton({ className = "" }: { className?: string }) {
   );
 }
 
-export function VerifyEmailBox({ email, placeholder }: { email?: string; placeholder?: boolean }) {
+export function VerifyEmailBox({
+  email,
+  placeholder,
+  purpose = "buy",
+}: {
+  email?: string;
+  placeholder?: boolean;
+  /** "stats": el aviso de estadísticas, donde no se compra nada. */
+  purpose?: "buy" | "stats";
+}) {
   const t = useT();
+  const stats = purpose === "stats";
   if (placeholder) {
     return (
       <div className="rounded-2xl border border-[#f0d77a] bg-[#fdf6d8] p-4 text-sm text-[#5c4a0a]">
         <p className="font-semibold">{t("Pon tu correo personal")}</p>
-        <p className="mt-1">{t("Tu cuenta la creó un asociado con un correo interno. Para comprar, pon tu correo en tu perfil y confírmalo.")}</p>
+        <p className="mt-1">
+          {stats
+            ? t("Tu cuenta la creó un asociado con un correo interno. Para ver tus estadísticas, pon tu correo en tu perfil y confírmalo.")
+            : t("Tu cuenta la creó un asociado con un correo interno. Para comprar, pon tu correo en tu perfil y confírmalo.")}
+        </p>
       </div>
     );
   }
   return (
     <div className="rounded-2xl border border-[#f0d77a] bg-[#fdf6d8] p-4 text-sm text-[#5c4a0a]">
-      <p className="font-semibold">{t("Confirma tu correo para poder comprar")}</p>
+      <p className="font-semibold">{stats ? t("Confirma tu correo") : t("Confirma tu correo para poder comprar")}</p>
       <p className="mt-1">
         {email
           ? t("Te mandamos un enlace a {email} desde noreply@cabibee.com. Si no te llegó, revisa spam o pide otro.", { email })

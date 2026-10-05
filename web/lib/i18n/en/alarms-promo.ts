@@ -29,6 +29,9 @@ export const alarmsPromo: Record<string, string> = {
 
   "Puedes apagar estas alarmas en tu centro de alarmas.": "You can turn these alerts off in your alert center.",
   "Ver insumos": "See supplies",
+  "Confirma tu correo": "Confirm your email",
+  "Tu cuenta la creó un asociado con un correo interno. Para ver tus estadísticas, pon tu correo en tu perfil y confírmalo.":
+    "Your account was created by a partner with an internal email. To see your stats, add your email in your profile and confirm it.",
 
   Promociones: "Promotions",
   "Promociones de la Tienda": "Store promotions",

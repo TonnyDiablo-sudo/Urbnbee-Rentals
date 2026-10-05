@@ -14,7 +14,7 @@ export function StatsEmailGate({ email, placeholder }: { email?: string; placeho
           {t("Vistas, contactos y sugerencias de tus anuncios aparecen aquí en cuanto confirmes tu correo. Así sabemos que la cuenta es tuya.")}
         </p>
       </div>
-      <VerifyEmailBox email={email} placeholder={placeholder} />
+      <VerifyEmailBox email={email} placeholder={placeholder} purpose="stats" />
     </div>
   );
 }
