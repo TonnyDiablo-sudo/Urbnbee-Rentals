@@ -2,7 +2,7 @@ import "server-only";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
-import type { StayReviewKind, StayReviewRecord } from "@/lib/stay-review-types";
+import { isPublishedReview, type StayReviewKind, type StayReviewRecord } from "@/lib/stay-review-types";
 import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
@@ -57,7 +57,7 @@ export function listStayReviews(): StayReviewRecord[] {
 export function listListingStayReviews(listingId: string): StayReviewRecord[] {
   syncIfStale();
   return rows
-    .filter((r) => r.listingId === listingId && r.kind === "guest_to_listing")
+    .filter((r) => r.listingId === listingId && r.kind === "guest_to_listing" && isPublishedReview(r))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
@@ -85,4 +85,25 @@ export function insertStayReview(
   rows.push(row);
   persist();
   return row;
+}
+
+export function patchStayReview(
+  id: string,
+  patch: Partial<Pick<StayReviewRecord, "status" | "statusReason" | "reviewAttempts" | "reviewedAt" | "reviewedBy">>
+): StayReviewRecord | undefined {
+  syncIfStale();
+  const i = rows.findIndex((r) => r.id === id);
+  if (i < 0) return undefined;
+  rows[i] = { ...rows[i], ...patch };
+  persist();
+  return rows[i];
+}
+
+/** Una reseña rechazada se puede volver a escribir: se borra la anterior. */
+export function removeStayReview(id: string): void {
+  syncIfStale();
+  const i = rows.findIndex((r) => r.id === id);
+  if (i < 0) return;
+  rows.splice(i, 1);
+  persist();
 }

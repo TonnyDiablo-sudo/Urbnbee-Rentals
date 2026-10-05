@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { StayReviewRecord } from "@/lib/stay-review-types";
 import { useT } from "@/components/i18n-provider";
+import { ReviewStatusNote } from "@/components/review-status-note";
 
 function Stars({
   value,
@@ -73,6 +74,7 @@ export function BookingReviewPanel({
         <div className="mt-3">
           <Stars value={myReview.rating} />
           <p className="mt-2 text-[#3a3a3a]">{myReview.comment}</p>
+          <ReviewStatusNote status={myReview.status} reason={myReview.statusReason} className="mt-2" />
         </div>
       )}
 
@@ -88,7 +90,7 @@ export function BookingReviewPanel({
         </div>
       )}
 
-      {canReview && !myReview && (
+      {canReview && (!myReview || myReview.status === "rejected") && (
         <form
           className="mt-3 space-y-3"
           onSubmit={async (e) => {

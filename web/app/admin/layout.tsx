@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AdminLogoutButton } from "@/components/admin-logout-button";
+import { LangSwitch } from "@/components/lang-switch";
+import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 import { listUserReports } from "@/lib/user-reports-store";
 import { listAddressProofs } from "@/lib/address-proof-store";
@@ -11,6 +13,7 @@ const NAV = [
   { href: "/admin/estadisticas", label: "Estadísticas", icon: "📈" },
   { href: "/admin/users", label: "Usuarios", icon: "👥" },
   { href: "/admin/reportes", label: "Reportes y sugerencias", icon: "🚩" },
+  { href: "/admin/resenas", label: "Reseñas", icon: "⭐" },
   { href: "/admin/correo", label: "Correo", icon: "✉️" },
   { href: "/admin/pricing", label: "Precios", icon: "💲" },
   { href: "/admin/blog-bot", label: "Blog (LLM)", icon: "✍️" },
@@ -25,6 +28,7 @@ export default async function AdminLayout({
   if (!user || user.role !== "admin") {
     redirect("/login");
   }
+  const t = await getT();
   const pendingReports = listUserReports().filter((r) => r.status === "open" || r.status === "in_review").length;
   const pendingReview =
     listAddressProofs().filter((p) => p.status === "review").length + listClaimRequests().filter((c) => c.status === "open").length;
@@ -38,11 +42,12 @@ export default async function AdminLayout({
             <p className="text-sm font-bold text-amber-600">Cabibee · Admin</p>
           </div>
           <div className="flex items-center gap-3 text-xs">
+            <LangSwitch />
             <Link href="/host/dashboard" className="text-amber-700">
-              Anfitrión
+              {t("Anfitrión")}
             </Link>
             <Link href="/" className="text-gray-500">
-              ← Sitio
+              {t("← Sitio")}
             </Link>
             <AdminLogoutButton compact />
           </div>
@@ -55,7 +60,7 @@ export default async function AdminLayout({
               className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700"
             >
               <span>{item.icon}</span>
-              {item.label}
+              {t(item.label)}
               {item.href === "/admin/reportes" && pendingReports > 0 && (
                 <span className="rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">{pendingReports}</span>
               )}
@@ -67,7 +72,7 @@ export default async function AdminLayout({
               className="flex shrink-0 items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800"
             >
               <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{pendingReview}</span>
-              Por revisar
+              {t("Por revisar")}
             </Link>
           )}
         </nav>
@@ -79,7 +84,7 @@ export default async function AdminLayout({
             <span className="text-xl">🐝</span>
             <div>
               <p className="text-sm font-bold text-amber-600 leading-none">Cabibee</p>
-              <p className="text-[10px] text-gray-400 leading-tight mt-0.5">Panel de administración</p>
+              <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{t("Panel de administración")}</p>
             </div>
           </div>
         </div>
@@ -94,7 +99,7 @@ export default async function AdminLayout({
               <span className="text-base group-hover:scale-110 transition-transform">
                 {item.icon}
               </span>
-              {item.label}
+              {t(item.label)}
               {item.href === "/admin/reportes" && pendingReports > 0 && (
                 <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
                   {pendingReports}
@@ -108,7 +113,7 @@ export default async function AdminLayout({
               className="mt-2 flex items-center gap-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 hover:bg-amber-100"
             >
               <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{pendingReview}</span>
-              Comprobantes y reclamos por revisar
+              {t("Comprobantes y reclamos por revisar")}
             </Link>
           )}
         </nav>
@@ -123,16 +128,17 @@ export default async function AdminLayout({
               href="/host/dashboard"
               className="text-[11px] text-amber-600/80 hover:text-amber-700 transition-colors"
             >
-              Anfitrión
+              {t("Anfitrión")}
             </Link>
             <span className="text-gray-200">|</span>
             <Link
               href="/"
               className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
             >
-              ← Sitio
+              {t("← Sitio")}
             </Link>
           </div>
+          <LangSwitch className="mt-2" />
           <AdminLogoutButton />
         </div>
       </aside>

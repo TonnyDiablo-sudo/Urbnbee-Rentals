@@ -4,6 +4,7 @@ import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { sendVerificationEmail } from "@/lib/email-verification";
 import { getLang } from "@/lib/i18n/server";
 import { createUser, findUserByEmail, updateUserAuth } from "@/lib/marketplace-store";
+import { normalizeLegitPhone, PHONE_ERROR } from "@/lib/phone-validation";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 import { createSession } from "@/lib/session";
 import type { UserRole } from "@/lib/marketplace-types";
@@ -15,11 +16,14 @@ export async function POST(req: NextRequest) {
     const email = String(body.email ?? "").trim();
     const password = String(body.password ?? "");
     const fullName = String(body.fullName ?? "").trim();
-    const phone = body.phone ? String(body.phone).trim() : undefined;
+    const phone = normalizeLegitPhone(body.phone);
     const intent = body.intent === "host" ? "host" : "guest";
 
     if (!email || !password || !fullName) {
       return NextResponse.json({ error: "Completa correo, nombre y contraseña." }, { status: 400 });
+    }
+    if (!phone) {
+      return NextResponse.json({ error: PHONE_ERROR }, { status: 400 });
     }
     if (body.acceptTerms !== true) {
       return NextResponse.json({ error: "Debes aceptar los Términos y condiciones de uso." }, { status: 400 });

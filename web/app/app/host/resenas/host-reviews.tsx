@@ -3,10 +3,11 @@
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { ReviewStatusNote } from "@/components/review-status-note";
 import { fmtDay } from "../../_components/booking-status";
 import { Sheet } from "../../_components/sheet";
 
-type Review = { rating: number; comment: string; createdAt?: string };
+type Review = { rating: number; comment: string; createdAt?: string; status?: string; statusReason?: string };
 type Stay = {
   id: string;
   guestName: string;
@@ -91,6 +92,7 @@ export function HostReviews() {
             {t("Tu reseña del huésped")} · <Stars value={s.myReview.rating} />
           </p>
           <p className="mt-0.5 text-[13px] text-[#555]">{s.myReview.comment}</p>
+          <ReviewStatusNote status={s.myReview.status} reason={s.myReview.statusReason} className="mt-2" />
         </div>
       )}
       {s.canReview && (
@@ -134,7 +136,11 @@ export function HostReviews() {
             onDone={(review) => {
               setStays((prev) => prev?.map((x) => (x.id === reviewing.id ? { ...x, canReview: false, myReview: review } : x)) ?? prev);
               setReviewing(null);
-              setNotice("¡Gracias! Le avisamos al huésped de tu reseña.");
+              setNotice(
+                review.status === "pending"
+                  ? "Gracias. Tu reseña está siendo revisada por nuestro equipo y se publicará en cuanto quede aprobada."
+                  : "¡Gracias! Le avisamos al huésped de tu reseña."
+              );
             }}
           />
         )}
@@ -165,7 +171,7 @@ function GuestReviewForm({ stay, onDone }: { stay: Stay; onDone: (r: Review) => 
       setErr(typeof data.error === "string" ? data.error : "No se pudo guardar. Intenta de nuevo.");
       return;
     }
-    onDone({ rating, comment: comment.trim() });
+    onDone({ rating, comment: comment.trim(), status: data.pending ? "pending" : "published" });
   }
 
   return (

@@ -9,9 +9,13 @@ import {
   DEFAULT_EARLY_BIRD_DAYS,
   DEFAULT_LAST_MINUTE_DAYS,
   MAX_SEASONAL_PROMOS,
+  longStayFormValues,
+  longStayFromForm,
   nightPrice,
   type ListingPricing,
+  type LongStayMonths,
 } from "@/lib/listing-pricing";
+import { LongStayDiscountFields } from "@/components/host/long-stay-discount-fields";
 import { sizedImage } from "@/lib/image-url";
 import { Sheet } from "../../_components/sheet";
 import {
@@ -523,6 +527,15 @@ export function PriceSettings({
   const [promos, setPromos] = useState<{ from: string; to: string; pct: string; label: string }[]>(() =>
     (p.seasonal ?? []).map((s) => ({ from: s.from, to: s.to, pct: String(s.pct), label: s.label ?? "" }))
   );
+  const [longStay, setLongStay] = useState<Record<LongStayMonths, string>>(() => longStayFormValues(p));
+  const longStayBlock = (
+    <LongStayDiscountFields
+      values={longStay}
+      onChange={(m, v) => setLongStay((s) => ({ ...s, [m]: v }))}
+      highlight={monthlyMode}
+      inputClassName={inputCls}
+    />
+  );
   const setPromo = (i: number, k: "from" | "to" | "pct" | "label", v: string) =>
     setPromos((list) => list.map((s, j) => (j === i ? { ...s, [k]: v } : s)));
   const [busy, setBusy] = useState(false);
@@ -560,6 +573,7 @@ export function PriceSettings({
         lastMinutePct: f.lastPct,
         lastMinuteDays: f.lastDays,
         seasonal: filled.map((s) => ({ from: s.from, to: s.to, pct: s.pct, label: s.label })),
+        longStayDiscounts: longStayFromForm(longStay),
         minNights: f.minNights,
         maxNights: f.maxNights,
       },
@@ -618,8 +632,10 @@ export function PriceSettings({
         {field("cleaning", "Limpieza (MXN)", "Se cobra una vez por reserva.")}
 
         <h3 className="pt-2 text-base font-semibold text-[#222]">{t("Descuentos")}</h3>
+        {monthlyMode && longStayBlock}
         {field("weekly", "Descuento por 7 noches o más (%)", "Descuento semanal.", "%")}
         {field("monthly", "Descuento por 28 noches o más (%)", "Descuento mensual.", "%")}
+        {!monthlyMode && longStayBlock}
         <div className="grid grid-cols-2 gap-3">
           {field("earlyPct", "Reserva anticipada", undefined, "%")}
           {field("earlyDays", "Días de anticipación")}

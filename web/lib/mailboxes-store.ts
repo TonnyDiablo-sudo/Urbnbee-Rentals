@@ -14,6 +14,8 @@ export type MailboxPublic = {
   connected: boolean;
   /** Cuenta de Google con la que inicia sesión, si el buzón es un alias de otra. */
   loginUser?: string;
+  provider?: "zoho" | "gmail" | "other";
+  smtpHost?: string;
   connectedAt?: string;
   lastOkAt?: string;
   lastError?: string;
@@ -120,6 +122,8 @@ export function listMailboxesPublic(): MailboxPublic[] {
       email: MAILBOX_META[id].email,
       connected: readable,
       loginUser: box && box.user !== box.email ? box.user : undefined,
+      provider: !box?.host ? undefined : box.host.includes("zoho") ? "zoho" : box.host.includes("gmail") ? "gmail" : "other",
+      smtpHost: box?.host,
       connectedAt: box?.connectedAt,
       lastOkAt: box?.lastOkAt,
       lastError: box?.passEnc && !readable ? "La clave guardada ya no se puede leer (cambió SESSION_SECRET). Vuelve a conectar." : box?.lastError,

@@ -28,5 +28,5 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (result.error) {
     return NextResponse.json({ error: result.error }, { status: result.status ?? 409 });
   }
-  return NextResponse.json({ ok: true, review: result.review });
+  return NextResponse.json({ ok: true, review: result.review, pending: result.pending ?? false, message: result.message });
 }

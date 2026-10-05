@@ -40,7 +40,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           fullName,
           email,
-          phone: phone || undefined,
+          phone,
           password,
           intent: accountType === "host" ? "host" : "guest",
           acceptTerms,
@@ -123,9 +123,12 @@ export default function RegisterPage() {
             />
           </label>
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Teléfono (opcional)")}</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Teléfono")}</span>
             <input
               type="tel"
+              required
+              autoComplete="tel"
+              placeholder={t("Con lada, ej. 55 1234 5678")}
               className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
+import { useT } from "@/components/i18n-provider";
 
 const MAX_IMAGES = 10;
 const MAX_MB = 8;
@@ -9,6 +10,7 @@ const MAX_MB = 8;
 type Preview = { file: File; url: string };
 
 export function CaptureForm({ hostId }: { hostId?: string }) {
+  const t = useT();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<Preview[]>([]);
@@ -30,7 +32,7 @@ export function CaptureForm({ hostId }: { hostId?: string }) {
 
   async function submit() {
     if (!previews.length) {
-      setErr("Sube al menos una captura.");
+      setErr(t("Sube al menos una captura."));
       return;
     }
     setBusy(true);
@@ -43,7 +45,7 @@ export function CaptureForm({ hostId }: { hostId?: string }) {
     const j = res ? await res.json().catch(() => ({})) : {};
     setBusy(false);
     if (!res?.ok || !j.draft?.id) {
-      setErr(typeof j.error === "string" ? j.error : "No se pudo analizar.");
+      setErr(typeof j.error === "string" ? t(j.error, j.errorVars) : t("No se pudo analizar."));
       return;
     }
     router.push(`/asociados/borradores/${j.draft.id}`);
@@ -67,9 +69,9 @@ export function CaptureForm({ hostId }: { hostId?: string }) {
         }}
         className="cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-white p-8 text-center hover:border-amber-400"
       >
-        <p className="text-sm font-medium text-gray-700">Arrastra, pega (Ctrl+V) o haz clic para elegir capturas</p>
+        <p className="text-sm font-medium text-gray-700">{t("Arrastra, pega (Ctrl+V) o haz clic para elegir capturas")}</p>
         <p className="mt-1 text-xs text-gray-400">
-          Hasta {MAX_IMAGES} imágenes · JPEG, PNG o WebP · máx. {MAX_MB} MB c/u
+          {t("Hasta {max} imágenes · JPEG, PNG o WebP · máx. {mb} MB c/u", { max: MAX_IMAGES, mb: MAX_MB })}
         </p>
         <input
           ref={inputRef}
@@ -100,7 +102,7 @@ export function CaptureForm({ hostId }: { hostId?: string }) {
                 }
                 className="absolute right-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white"
               >
-                Quitar
+                {t("Quitar")}
               </button>
             </li>
           ))}
@@ -108,12 +110,12 @@ export function CaptureForm({ hostId }: { hostId?: string }) {
       )}
 
       <label className="block text-sm font-medium text-gray-700">
-        Notas para la IA (opcional)
+        {t("Notas para la IA (opcional)")}
         <textarea
           rows={3}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Ej. el precio es por fin de semana; el dueño se llama Juan Pérez."
+          placeholder={t("Ej. el precio es por fin de semana; el dueño se llama Juan Pérez.")}
           className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
       </label>
@@ -126,7 +128,7 @@ export function CaptureForm({ hostId }: { hostId?: string }) {
         onClick={() => void submit()}
         className="rounded-lg bg-amber-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
       >
-        {busy ? "Analizando con IA… (puede tardar un minuto)" : "Analizar"}
+        {busy ? t("Analizando con IA… (puede tardar un minuto)") : t("Analizar")}
       </button>
     </div>
   );

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
 import type { AdminUserRow } from "@/lib/admin-data";
+import { numberLocale, type TFn } from "@/lib/i18n";
 import { ProductChip, UserPreview } from "./user-preview";
 
 const ROLE_BADGE: Record<string, string> = {
@@ -60,19 +62,14 @@ const EMPTY: Filters = {
   sort: "newest",
 };
 
-function fmx(n: number) {
-  if (n === 0) return "—";
-  return `$${n.toLocaleString("es-MX", { maximumFractionDigits: 0 })}`;
-}
-
-export function relTime(iso: string | undefined): string {
-  if (!iso) return "nunca";
+export function relTime(iso: string | undefined, t: TFn, locale: string): string {
+  if (!iso) return t("nunca");
   const diff = Date.now() - Date.parse(iso);
-  if (diff < 60_000) return "ahora";
-  if (diff < 3_600_000) return `hace ${Math.floor(diff / 60_000)} min`;
-  if (diff < DAY) return `hace ${Math.floor(diff / 3_600_000)} h`;
-  if (diff < 30 * DAY) return `hace ${Math.floor(diff / DAY)} d`;
-  return new Date(iso).toLocaleDateString("es-MX");
+  if (diff < 60_000) return t("ahora");
+  if (diff < 3_600_000) return t("hace {n} min", { n: Math.floor(diff / 60_000) });
+  if (diff < DAY) return t("hace {n} h", { n: Math.floor(diff / 3_600_000) });
+  if (diff < 30 * DAY) return t("hace {n} d", { n: Math.floor(diff / DAY) });
+  return new Date(iso).toLocaleDateString(locale);
 }
 
 function norm(s: string) {
@@ -156,7 +153,12 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
   );
 }
 
+const COLUMNS = ["", "Usuario", "Rol", "Última actividad", "Anuncios", "Reservas", "Mensajes", "Dinero", "Productos", "Registro", ""];
+
 export function UsersExplorer({ users, initialPending = false }: { users: AdminUserRow[]; initialPending?: boolean }) {
+  const t = useT();
+  const locale = numberLocale(useLang());
+  const fmx = (n: number) => (n === 0 ? "—" : `$${n.toLocaleString(locale, { maximumFractionDigits: 0 })}`);
   const [f, setF] = useState<Filters>(() => ({ ...EMPTY, pending: initialPending }));
   const [now] = useState(() => Date.now());
   const [open, setOpen] = useState<Set<string>>(() => new Set());
@@ -208,10 +210,17 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("Usuarios")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            {users.length} en total · {counts.host} anfitriones · {counts.guest} huéspedes · {counts.active7} activos esta semana
-            {counts.reported > 0 && <span className="text-red-600"> · {counts.reported} con reportes abiertos</span>}
+            {t("{total} en total · {hosts} anfitriones · {guests} huéspedes · {active} activos esta semana", {
+              total: users.length,
+              hosts: counts.host,
+              guests: counts.guest,
+              active: counts.active7,
+            })}
+            {counts.reported > 0 && (
+              <span className="text-red-600"> · {t("{count} con reportes abiertos", { count: counts.reported })}</span>
+            )}
           </p>
         </div>
         <button
@@ -219,7 +228,7 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
           onClick={exportCsv}
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          Exportar CSV ({rows.length})
+          {t("Exportar CSV ({count})", { count: rows.length })}
         </button>
       </div>
 
@@ -228,86 +237,89 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
           <input
             value={f.q}
             onChange={(e) => set("q", e.target.value)}
-            placeholder="Buscar por nombre, correo, teléfono, ID o ciudad…"
+            placeholder={t("Buscar por nombre, correo, teléfono, ID o ciudad…")}
             className="min-w-[260px] flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
           />
           <select value={f.role} onChange={(e) => set("role", e.target.value as Filters["role"])} className={sel}>
-            <option value="">Todos los roles</option>
-            <option value="guest">Huéspedes</option>
-            <option value="host">Anfitriones</option>
-            <option value="admin">Admins</option>
+            <option value="">{t("Todos los roles")}</option>
+            <option value="guest">{t("Huéspedes")}</option>
+            <option value="host">{t("Anfitriones")}</option>
+            <option value="admin">{t("Admins")}</option>
           </select>
           <select value={f.activity} onChange={(e) => set("activity", e.target.value as Filters["activity"])} className={sel}>
-            <option value="">Cualquier actividad</option>
-            <option value="7">Activos últimos 7 días</option>
-            <option value="30">Activos últimos 30 días</option>
-            <option value="idle30">Inactivos +30 días</option>
-            <option value="never">Sin actividad</option>
+            <option value="">{t("Cualquier actividad")}</option>
+            <option value="7">{t("Activos últimos 7 días")}</option>
+            <option value="30">{t("Activos últimos 30 días")}</option>
+            <option value="idle30">{t("Inactivos +30 días")}</option>
+            <option value="never">{t("Sin actividad")}</option>
           </select>
           <select value={f.sort} onChange={(e) => set("sort", e.target.value as Filters["sort"])} className={sel}>
-            <option value="newest">Más nuevos</option>
-            <option value="oldest">Más antiguos</option>
-            <option value="active">Actividad reciente</option>
-            <option value="paid">Más pagado (huésped)</option>
-            <option value="earned">Más cobrado (anfitrión)</option>
-            <option value="bookings">Más reservas</option>
-            <option value="listings">Más anuncios</option>
-            <option value="messages">Más mensajes</option>
-            <option value="name">Nombre A–Z</option>
+            <option value="newest">{t("Más nuevos")}</option>
+            <option value="oldest">{t("Más antiguos")}</option>
+            <option value="active">{t("Actividad reciente")}</option>
+            <option value="paid">{t("Más pagado (huésped)")}</option>
+            <option value="earned">{t("Más cobrado (anfitrión)")}</option>
+            <option value="bookings">{t("Más reservas")}</option>
+            <option value="listings">{t("Más anuncios")}</option>
+            <option value="messages">{t("Más mensajes")}</option>
+            <option value="name">{t("Nombre A–Z")}</option>
           </select>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select value={f.membership} onChange={(e) => set("membership", e.target.value as Filters["membership"])} className={sel}>
-            <option value="">Membresía: todas</option>
-            <option value="active">Con membresía</option>
-            <option value="none">Sin membresía</option>
+            <option value="">{t("Membresía: todas")}</option>
+            <option value="active">{t("Con membresía")}</option>
+            <option value="none">{t("Sin membresía")}</option>
           </select>
           <select value={f.kyc} onChange={(e) => set("kyc", e.target.value as Filters["kyc"])} className={sel}>
-            <option value="">Identidad: todas</option>
-            <option value="verified">Identidad verificada</option>
-            <option value="not_verified">Sin verificar</option>
+            <option value="">{t("Identidad: todas")}</option>
+            <option value="verified">{t("Identidad verificada")}</option>
+            <option value="not_verified">{t("Sin verificar")}</option>
           </select>
           <select value={f.ribbon} onChange={(e) => set("ribbon", e.target.value as Filters["ribbon"])} className={sel}>
-            <option value="">Listón: todos</option>
-            <option value="yes">Con listón</option>
-            <option value="no">Sin listón</option>
+            <option value="">{t("Listón: todos")}</option>
+            <option value="yes">{t("Con listón")}</option>
+            <option value="no">{t("Sin listón")}</option>
           </select>
           <select value={f.product} onChange={(e) => set("product", e.target.value)} className={sel}>
-            <option value="">Productos: todos</option>
-            <option value="any">Con algún producto</option>
-            <option value="none">Sin productos</option>
+            <option value="">{t("Productos: todos")}</option>
+            <option value="any">{t("Con algún producto")}</option>
+            <option value="none">{t("Sin productos")}</option>
             {productOptions.map(([key, o]) => (
               <option key={key} value={key}>
-                {o.label} ({o.n})
+                {t(o.label)} ({o.n})
               </option>
             ))}
           </select>
           <label className="flex flex-wrap items-center gap-1 text-xs text-gray-500">
-            Registro del
+            {t("Registro del")}
             <input type="date" value={f.from} onChange={(e) => set("from", e.target.value)} className={`${sel} min-w-0`} />
-            al
+            {t("al")}
             <input type="date" value={f.to} onChange={(e) => set("to", e.target.value)} className={`${sel} min-w-0`} />
           </label>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Chip on={f.hasListings} onClick={() => set("hasListings", !f.hasListings)}>Con anuncios</Chip>
-          <Chip on={f.hasBookings} onClick={() => set("hasBookings", !f.hasBookings)}>Con reservas</Chip>
-          <Chip on={f.hasMessages} onClick={() => set("hasMessages", !f.hasMessages)}>Con conversaciones</Chip>
+          <Chip on={f.hasListings} onClick={() => set("hasListings", !f.hasListings)}>{t("Con anuncios")}</Chip>
+          <Chip on={f.hasBookings} onClick={() => set("hasBookings", !f.hasBookings)}>{t("Con reservas")}</Chip>
+          <Chip on={f.hasMessages} onClick={() => set("hasMessages", !f.hasMessages)}>{t("Con conversaciones")}</Chip>
           <Chip on={f.pending} onClick={() => set("pending", !f.pending)}>
-            Pendientes por revisar{counts.pending > 0 ? ` (${counts.pending})` : ""}
+            {t("Pendientes por revisar")}
+            {counts.pending > 0 ? ` (${counts.pending})` : ""}
           </Chip>
-          <Chip on={f.reported} onClick={() => set("reported", !f.reported)}>Con reportes abiertos</Chip>
-          <Chip on={f.associate} onClick={() => set("associate", !f.associate)}>Asociados (alta con IA)</Chip>
+          <Chip on={f.reported} onClick={() => set("reported", !f.reported)}>{t("Con reportes abiertos")}</Chip>
+          <Chip on={f.associate} onClick={() => set("associate", !f.associate)}>{t("Asociados (alta con IA)")}</Chip>
           {dirty && (
             <button type="button" onClick={() => setF({ ...EMPTY, sort: f.sort })} className="ml-auto text-xs text-amber-700 hover:underline">
-              Limpiar filtros
+              {t("Limpiar filtros")}
             </button>
           )}
         </div>
       </div>
 
       <p className="mb-2 text-xs text-gray-400">
-        {rows.length === users.length ? `${rows.length} usuarios` : `${rows.length} de ${users.length} usuarios`}
+        {rows.length === users.length
+          ? t("{count} usuarios", { count: rows.length })
+          : t("{count} de {total} usuarios", { count: rows.length, total: users.length })}
       </p>
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
@@ -315,14 +327,14 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                {["", "Usuario", "Rol", "Última actividad", "Anuncios", "Reservas", "Mensajes", "Dinero", "Productos", "Registro", ""].map((h, i) => (
+                {COLUMNS.map((h, i) => (
                   <th
                     key={i}
                     className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 ${
                       i >= 4 && i <= 6 ? "text-center" : i === 7 ? "text-right" : ""
                     }`}
                   >
-                    {h}
+                    {h && t(h)}
                   </th>
                 ))}
               </tr>
@@ -331,7 +343,7 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={11} className="px-4 py-10 text-center text-gray-400">
-                    Ningún usuario coincide con los filtros.
+                    {t("Ningún usuario coincide con los filtros.")}
                   </td>
                 </tr>
               )}
@@ -342,7 +354,7 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
                     <button
                       type="button"
                       onClick={() => toggle(u.id)}
-                      title={open.has(u.id) ? "Ocultar actividad" : "Ver datos, actividad y productos"}
+                      title={open.has(u.id) ? t("Ocultar actividad") : t("Ver datos, actividad y productos")}
                       className="flex h-6 w-6 items-center justify-center rounded border border-gray-200 text-xs text-gray-500 hover:border-amber-400 hover:text-amber-700"
                     >
                       {open.has(u.id) ? "▾" : "▸"}
@@ -350,7 +362,7 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
                   </td>
                   <td className="px-4 py-3">
                     <Link href={`/admin/users/${u.id}`} className="font-medium text-gray-900 hover:text-amber-700">
-                      {u.fullName || "(sin nombre)"}
+                      {u.fullName || t("(sin nombre)")}
                     </Link>
                     <p className="mt-0.5 text-xs text-gray-400">{u.email}</p>
                     {(u.place || pendingOf(u) > 0) && (
@@ -358,17 +370,23 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
                         {u.place && <span className="text-gray-400">📍 {u.place}</span>}
                         {u.openReportsAgainst > 0 && (
                           <Link href={`/admin/users/${u.id}?tab=reports`} className="ml-2 rounded bg-red-100 px-1.5 py-0.5 font-medium text-red-700">
-                            {u.openReportsAgainst} reporte{u.openReportsAgainst !== 1 ? "s" : ""}
+                            {u.openReportsAgainst === 1
+                              ? t("1 reporte")
+                              : t("{count} reportes", { count: u.openReportsAgainst })}
                           </Link>
                         )}
                         {u.pendingAddressProofs > 0 && (
                           <Link href={`/admin/users/${u.id}?tab=listings`} className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-800">
-                            {u.pendingAddressProofs} comprobante{u.pendingAddressProofs !== 1 ? "s" : ""} por revisar
+                            {u.pendingAddressProofs === 1
+                              ? t("1 comprobante por revisar")
+                              : t("{count} comprobantes por revisar", { count: u.pendingAddressProofs })}
                           </Link>
                         )}
                         {u.openListingClaims > 0 && (
                           <Link href={`/admin/users/${u.id}?tab=listings`} className="ml-2 rounded bg-orange-100 px-1.5 py-0.5 font-medium text-orange-800">
-                            {u.openListingClaims} reclamo{u.openListingClaims !== 1 ? "s" : ""} de anuncio
+                            {u.openListingClaims === 1
+                              ? t("1 reclamo de anuncio")
+                              : t("{count} reclamos de anuncio", { count: u.openListingClaims })}
                           </Link>
                         )}
                       </p>
@@ -380,19 +398,22 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
                     </span>
                     {u.associate && (
                       <p className="mt-1 text-[10px] text-purple-600">
-                        asociado{u.provisionedAccounts > 0 ? ` · ${u.provisionedAccounts} altas` : ""}
+                        {t("asociado")}
+                        {u.provisionedAccounts > 0 ? ` · ${t("{count} altas", { count: u.provisionedAccounts })}` : ""}
                       </p>
                     )}
-                    {u.provisionedById && <p className="mt-1 text-[10px] text-purple-500">alta con IA</p>}
+                    {u.provisionedById && <p className="mt-1 text-[10px] text-purple-500">{t("alta con IA")}</p>}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500" title={u.lastActiveAt} suppressHydrationWarning>
-                    {relTime(u.lastActiveAt)}
+                    {relTime(u.lastActiveAt, t, locale)}
                   </td>
                   <td className="px-4 py-3 text-center text-gray-700">
                     {u.listingsCount > 0 ? (
                       <span>
                         {u.listingsCount}
-                        {u.listingsPublished > 0 && <span className="ml-1 text-xs text-gray-400">({u.listingsPublished} pub.)</span>}
+                        {u.listingsPublished > 0 && (
+                          <span className="ml-1 text-xs text-gray-400">{t("({count} pub.)", { count: u.listingsPublished })}</span>
+                        )}
                       </span>
                     ) : (
                       <span className="text-gray-300">—</span>
@@ -401,9 +422,9 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
                   <td className="px-4 py-3 text-center text-xs text-gray-700">
                     {u.bookingsAsGuest + u.bookingsAsHost > 0 ? (
                       <span>
-                        {u.bookingsAsGuest > 0 && <span title="Como huésped">🧳 {u.bookingsAsGuest}</span>}
+                        {u.bookingsAsGuest > 0 && <span title={t("Como huésped")}>🧳 {u.bookingsAsGuest}</span>}
                         {u.bookingsAsGuest > 0 && u.bookingsAsHost > 0 && " · "}
-                        {u.bookingsAsHost > 0 && <span title="Como anfitrión">🏠 {u.bookingsAsHost}</span>}
+                        {u.bookingsAsHost > 0 && <span title={t("Como anfitrión")}>🏠 {u.bookingsAsHost}</span>}
                       </span>
                     ) : (
                       <span className="text-gray-300">—</span>
@@ -411,8 +432,8 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
                   </td>
                   <td className="px-4 py-3 text-center text-xs text-gray-700">
                     {u.threads > 0 ? (
-                      <span title={`${u.messagesSent} mensajes enviados en ${u.threads} conversaciones`}>
-                        {u.messagesSent} <span className="text-gray-400">/ {u.threads} hilos</span>
+                      <span title={t("{messages} mensajes enviados en {threads} conversaciones", { messages: u.messagesSent, threads: u.threads })}>
+                        {u.messagesSent} <span className="text-gray-400">{t("/ {count} hilos", { count: u.threads })}</span>
                       </span>
                     ) : (
                       <span className="text-gray-300">—</span>
@@ -420,13 +441,13 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right text-xs text-gray-700">
                     {u.totalPaidMxn > 0 && (
-                      <p title="Pagado como huésped">
+                      <p title={t("Pagado como huésped")}>
                         🧳 <span className="font-medium">{fmx(u.totalPaidMxn)}</span>
                       </p>
                     )}
                     {u.platformFeePaidMxn > 0 && <p className="text-[11px] text-amber-600">+{fmx(u.platformFeePaidMxn)} fee</p>}
                     {u.hostRevenueMxn > 0 && (
-                      <p title="Cobrado como anfitrión">
+                      <p title={t("Cobrado como anfitrión")}>
                         🏠 <span className="font-medium">{fmx(u.hostRevenueMxn)}</span>
                       </p>
                     )}
@@ -440,17 +461,17 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
                       {u.products.length > 3 && <span className="text-[10px] text-gray-400">+{u.products.length - 3}</span>}
                       {u.products.length === 0 && u.verificationStatus !== "none" && (
                         <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${VERIF_BADGE[u.verificationStatus] ?? "bg-gray-50 text-gray-400"}`}>
-                          membresía {u.verificationStatus}
+                          {t("membresía {status}", { status: u.verificationStatus })}
                         </span>
                       )}
                       {u.products.length === 0 && u.verificationStatus === "none" && <span className="text-gray-300">—</span>}
                     </div>
-                    {u.kycStatus === "verified" && <p className="mt-0.5 text-[10px] text-green-600">ID verificada</p>}
+                    {u.kycStatus === "verified" && <p className="mt-0.5 text-[10px] text-green-600">{t("ID verificada")}</p>}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-400">{new Date(u.createdAt).toLocaleDateString("es-MX")}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-400">{new Date(u.createdAt).toLocaleDateString(locale)}</td>
                   <td className="px-4 py-3">
                     <Link href={`/admin/users/${u.id}`} className="whitespace-nowrap text-xs text-amber-600 hover:underline">
-                      Ver →
+                      {t("Ver →")}
                     </Link>
                   </td>
                 </tr>

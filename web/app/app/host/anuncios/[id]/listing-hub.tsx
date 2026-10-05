@@ -292,6 +292,7 @@ export function ListingHub({ listingId }: { listingId: string }) {
               p.weekendPrice ? t("fin de semana {price}", { price: money(p.weekendPrice) }) : null,
               p.weeklyDiscountPct ? t("{n}% semanal", { n: p.weeklyDiscountPct }) : null,
               p.monthlyDiscountPct ? t("{n}% mensual", { n: p.monthlyDiscountPct }) : null,
+              ...(p.longStayDiscounts ?? []).map((d) => t("{n}% por {months} meses", { n: d.pct, months: d.months })),
               p.earlyBirdPct ? t("{n}% anticipada", { n: p.earlyBirdPct }) : null,
               p.lastMinutePct ? t("{n}% última hora", { n: p.lastMinutePct }) : null,
               p.seasonal?.length

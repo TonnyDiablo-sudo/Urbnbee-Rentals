@@ -22,6 +22,10 @@ import { listingSetup } from "./listing-setup";
 import { trustMedia } from "./trust-media";
 import { listingQuick } from "./listing-quick";
 import { emails } from "./emails";
+import { admin } from "./admin";
+import { associates } from "./associates";
+import { longStay } from "./long-stay";
+import { reviewsPhoneMail } from "./reviews-phone-mail";
 
 /** Clave: el texto exacto en español que aparece en el código. */
 export const EN: Record<string, string> = {
@@ -49,4 +53,8 @@ export const EN: Record<string, string> = {
   ...trustMedia,
   ...listingQuick,
   ...emails,
+  ...admin,
+  ...associates,
+  ...longStay,
+  ...reviewsPhoneMail,
 };

@@ -6,6 +6,7 @@ import {
 import { listingHasEngine } from "@/lib/booking-engine-slots";
 import { getHostPaymentPublic } from "@/lib/host-payment-store";
 import { exactAddressProblem, listingFullAddress } from "@/lib/listing-address";
+import { longStayNights } from "@/lib/listing-pricing";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 
 export const PARTNER_CURRENCY = "MXN";
@@ -71,6 +72,15 @@ export function listingPartnerView(listing: HostListingRecord) {
     cleaning_service_on: listing.cleaningOn === true,
     price_per_night: listing.pricePerNight,
     weekend_price: p.weekendPrice ?? null,
+    /**
+     * Descuentos por estancias de varios meses (un mes = 30 noches). No se acumulan con
+     * los demás descuentos: la cotización aplica sólo el mayor que cumpla `min_nights`.
+     */
+    long_stay_discounts: (p.longStayDiscounts ?? []).map((d) => ({
+      months: d.months,
+      min_nights: longStayNights(d.months),
+      percent: d.pct,
+    })),
     rules: listing.rules,
     house_rules: listing.houseRules?.trim() || null,
     check_in_time: ag.checkInTime ?? null,

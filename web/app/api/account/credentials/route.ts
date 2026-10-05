@@ -5,6 +5,7 @@ import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { userLang } from "@/lib/email";
 import { sendVerificationEmail } from "@/lib/email-verification";
 import { getHostProfile, updateUserAuth, upsertHostProfile } from "@/lib/marketplace-store";
+import { normalizeLegitPhone, PHONE_ERROR } from "@/lib/phone-validation";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 import { createSession, getSessionUser } from "@/lib/session";
 
@@ -27,6 +28,11 @@ export async function POST(req: NextRequest) {
   }
   if (isPlaceholderEmail(email)) {
     return NextResponse.json({ error: "Pon tu correo personal, no el usuario temporal." }, { status: 400 });
+  }
+  const rawPhone = typeof body.phone === "string" ? body.phone.trim() : "";
+  const phone = rawPhone ? normalizeLegitPhone(rawPhone) : null;
+  if ((user.mustChangePassword && !phone) || (rawPhone && !phone)) {
+    return NextResponse.json({ error: PHONE_ERROR }, { status: 400 });
   }
   if (user.mustChangePassword && newPassword.length < 8) {
     return NextResponse.json({ error: "Crea una contraseña nueva de al menos 8 caracteres." }, { status: 400 });
@@ -65,6 +71,7 @@ export async function POST(req: NextRequest) {
             passwordResetExpiresAt: undefined,
           }
         : {}),
+      ...(phone ? { phone } : {}),
       mustChangePassword: undefined,
       ...(user.provisionedBy && !user.claimedAt ? { claimedAt: new Date().toISOString() } : {}),
     });
@@ -81,6 +88,9 @@ export async function POST(req: NextRequest) {
     if (!profile?.email || profile.email === user.email || isPlaceholderEmail(profile.email)) {
       upsertHostProfile(user.id, { email });
     }
+  }
+  if (phone && !getHostProfile(user.id)?.phone) {
+    upsertHostProfile(user.id, { phone });
   }
   if (emailChanged || newPassword) {
     await createSession({ id: updated.id, email: updated.email, role: updated.role });

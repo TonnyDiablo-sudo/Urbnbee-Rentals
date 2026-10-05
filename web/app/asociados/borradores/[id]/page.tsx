@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDraft, listDraftsForAssociate } from "@/lib/associate-drafts-store";
 import { findDuplicates } from "@/lib/associate-duplicates";
+import { getT } from "@/lib/i18n/server";
 import { listUsersProvisionedBy } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 import { ReviewForm } from "./review-form";
@@ -13,13 +14,14 @@ export default async function DraftReviewPage({ params }: { params: Promise<{ id
   if (!draft || (draft.associateId !== user.id && user.role !== "admin")) notFound();
 
   if (draft.status !== "pending") {
+    const t = await getT();
     return (
       <div className="mx-auto max-w-xl rounded-xl border border-gray-200 bg-white p-6">
         <p className="text-sm text-gray-700">
-          Este borrador ya se {draft.status === "published" ? "publicó" : "descartó"}.
+          {draft.status === "published" ? t("Este borrador ya se publicó.") : t("Este borrador ya se descartó.")}
         </p>
         <Link href="/asociados" className="mt-3 inline-block text-sm text-amber-600 underline">
-          ← Volver
+          {t("← Volver")}
         </Link>
       </div>
     );

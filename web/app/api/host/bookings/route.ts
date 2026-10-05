@@ -24,13 +24,13 @@ export async function GET(req: NextRequest) {
     const listing = getListingById(b.listingId);
     const adjId = b.hostAdjustedListingId ?? b.listingId;
     const adjListing = adjId !== b.listingId ? getListingById(adjId) : listing;
-    const reviews = reviewsForBooking(b.id);
+    const reviews = reviewsForBooking(b.id, "host");
     const screening = getScreeningByBooking(b.id);
     return {
       ...b,
       listingTitle: listing?.title ?? "Alojamiento",
       effectiveListingTitle: (b.hostAdjustedListingId ? adjListing : listing)?.title ?? listing?.title,
-      canReview: stayReviewEligible(b) && !reviews.hostToGuest,
+      canReview: stayReviewEligible(b) && (!reviews.hostToGuest || reviews.hostToGuest.status === "rejected"),
       myReview: reviews.hostToGuest,
       guestReviewOfListing: reviews.guestToListing,
       screening: screening ? screeningHostView(screening) : null,

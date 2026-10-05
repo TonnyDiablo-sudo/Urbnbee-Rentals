@@ -2,15 +2,30 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
 import type { AdminAddressProofRow, AdminListingClaimRow, AdminUserDetail } from "@/lib/admin-user-detail";
+import { numberLocale } from "@/lib/i18n";
 
-const when = (iso: string) => new Date(iso).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+function useWhen() {
+  const locale = numberLocale(useLang());
+  return {
+    locale,
+    when: (iso: string) => new Date(iso).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" }),
+  };
+}
 
 const PROOF_STATUS: Record<AdminAddressProofRow["status"], [string, string]> = {
   review: ["Por revisar", "bg-amber-100 text-amber-800"],
   pending: ["Procesando", "bg-gray-100 text-gray-600"],
   approved: ["Aprobado", "bg-green-100 text-green-800"],
   rejected: ["Rechazado", "bg-red-100 text-red-700"],
+};
+
+const PROOF_INLINE: Record<AdminAddressProofRow["status"], string> = {
+  review: "Comprobante por revisar",
+  pending: "Comprobante procesando",
+  approved: "Comprobante aprobado",
+  rejected: "Comprobante rechazado",
 };
 
 const CLAIM_RESOLUTION: Record<NonNullable<AdminListingClaimRow["resolution"]>, string> = {
@@ -28,10 +43,12 @@ export function openClaims(d: AdminUserDetail): number {
 }
 
 export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: () => void }) {
+  const t = useT();
+  const { when } = useWhen();
   const [busy, setBusy] = useState<string | null>(null);
 
   async function proofAction(id: string, action: "approve" | "reject") {
-    const message = action === "reject" ? (prompt("Mensaje para el anfitrión (opcional):") ?? undefined) : undefined;
+    const message = action === "reject" ? (prompt(t("Mensaje para el anfitrión (opcional):")) ?? undefined) : undefined;
     setBusy(id);
     await fetch("/api/admin/address-proofs", {
       method: "PATCH",
@@ -43,7 +60,7 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
   }
 
   async function claimAction(c: AdminListingClaimRow, action: "delete_listing" | "handed_over" | "dismiss") {
-    if (action === "delete_listing" && !confirm(`¿Borrar «${c.listingTitle}»? No se puede deshacer.`)) return;
+    if (action === "delete_listing" && !confirm(t("¿Borrar «{title}»? No se puede deshacer.", { title: c.listingTitle }))) return;
     setBusy(c.id);
     await fetch("/api/admin/claims", {
       method: "PATCH",
@@ -55,26 +72,27 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
   }
 
   const verified = d.listings.filter((l) => l.locationVerified).length;
+  const yesNo = (v: boolean) => (v ? t("sí") : t("no"));
 
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="mb-1 text-sm font-semibold text-gray-700">Anuncios ({d.listings.length})</h2>
+        <h2 className="mb-1 text-sm font-semibold text-gray-700">{t("Anuncios ({count})", { count: d.listings.length })}</h2>
         <p className="mb-3 text-xs text-gray-400">
-          {verified} de {d.listings.length} con ubicación verificada por comprobante de domicilio.
+          {t("{verified} de {total} con ubicación verificada por comprobante de domicilio.", { verified, total: d.listings.length })}
         </p>
         {d.listings.length === 0 ? (
-          <p className="text-sm text-gray-400">No tiene anuncios.</p>
+          <p className="text-sm text-gray-400">{t("No tiene anuncios.")}</p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs text-gray-500">
-                  <th className="px-4 py-2 font-medium">Anuncio</th>
-                  <th className="px-4 py-2 font-medium">Estado</th>
-                  <th className="px-4 py-2 font-medium">Ubicación</th>
-                  <th className="px-4 py-2 text-right font-medium">Vistas 30d</th>
-                  <th className="px-4 py-2 text-right font-medium">Contactos 30d</th>
+                  <th className="px-4 py-2 font-medium">{t("Anuncio")}</th>
+                  <th className="px-4 py-2 font-medium">{t("Estado")}</th>
+                  <th className="px-4 py-2 font-medium">{t("Ubicación")}</th>
+                  <th className="px-4 py-2 text-right font-medium">{t("Vistas 30d")}</th>
+                  <th className="px-4 py-2 text-right font-medium">{t("Contactos 30d")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -87,15 +105,15 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                       {l.city && <span className="ml-1 text-xs text-gray-400">· {l.city}</span>}
                     </td>
                     <td className="px-4 py-2 text-xs">
-                      {l.published ? <span className="text-green-700">Publicado</span> : <span className="text-gray-400">Borrador</span>}
+                      {l.published ? <span className="text-green-700">{t("Publicado")}</span> : <span className="text-gray-400">{t("Borrador")}</span>}
                     </td>
                     <td className="px-4 py-2 text-xs">
                       {l.locationVerified ? (
-                        <span className="text-green-700">✓ Verificada</span>
+                        <span className="text-green-700">{t("✓ Verificada")}</span>
                       ) : l.proofStatus ? (
-                        <span className="text-gray-500">Comprobante {PROOF_STATUS[l.proofStatus][0].toLowerCase()}</span>
+                        <span className="text-gray-500">{t(PROOF_INLINE[l.proofStatus])}</span>
                       ) : (
-                        <span className="text-gray-400">Sin comprobante</span>
+                        <span className="text-gray-400">{t("Sin comprobante")}</span>
                       )}
                     </td>
                     <td className="px-4 py-2 text-right">{l.views30}</td>
@@ -109,10 +127,10 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
       </section>
 
       <section>
-        <h2 className="mb-1 text-sm font-semibold text-gray-700">Comprobantes de domicilio ({d.addressProofs.length})</h2>
-        <p className="mb-3 text-xs text-gray-400">La IA aprueba o rechaza sola los casos claros; los dudosos quedan aquí por revisar.</p>
+        <h2 className="mb-1 text-sm font-semibold text-gray-700">{t("Comprobantes de domicilio ({count})", { count: d.addressProofs.length })}</h2>
+        <p className="mb-3 text-xs text-gray-400">{t("La IA aprueba o rechaza sola los casos claros; los dudosos quedan aquí por revisar.")}</p>
         {d.addressProofs.length === 0 ? (
-          <p className="text-sm text-gray-400">No ha subido comprobantes.</p>
+          <p className="text-sm text-gray-400">{t("No ha subido comprobantes.")}</p>
         ) : (
           <div className="space-y-3">
             {d.addressProofs.map((r) => (
@@ -131,34 +149,36 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                     <p className="text-xs text-gray-500">{when(r.createdAt)}</p>
                   </div>
                   <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${PROOF_STATUS[r.status][1]}`}>
-                    {PROOF_STATUS[r.status][0]}
-                    {r.reviewedBy === "ai" ? " por IA" : ""}
+                    {t(PROOF_STATUS[r.status][0])}
+                    {r.reviewedBy === "ai" ? ` ${t("por IA")}` : ""}
                   </span>
                 </div>
                 <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                   <div>
-                    <dt className="text-xs text-gray-400">Dirección del anuncio</dt>
+                    <dt className="text-xs text-gray-400">{t("Dirección del anuncio")}</dt>
                     <dd className="text-gray-900">{r.addressSnapshot}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-400">Dirección en el documento</dt>
+                    <dt className="text-xs text-gray-400">{t("Dirección en el documento")}</dt>
                     <dd className="text-gray-900">{r.ai?.addressOnDocument ?? "—"}</dd>
                   </div>
                   {r.deviceLocation && (
                     <div>
-                      <dt className="text-xs text-gray-400">Ubicación del teléfono</dt>
+                      <dt className="text-xs text-gray-400">{t("Ubicación del teléfono")}</dt>
                       <dd className={r.deviceDistanceM != null && r.deviceDistanceM > 500 ? "text-red-700" : "text-gray-900"}>
                         {r.deviceDistanceM != null
-                          ? `a ${r.deviceDistanceM >= 1000 ? `${(r.deviceDistanceM / 1000).toFixed(1)} km` : `${r.deviceDistanceM} m`} del anuncio`
-                          : "anuncio sin punto en el mapa"}{" "}
-                        · precisión ±{r.deviceLocation.accuracyM} m ·{" "}
+                          ? t("a {distance} del anuncio", {
+                              distance: r.deviceDistanceM >= 1000 ? `${(r.deviceDistanceM / 1000).toFixed(1)} km` : `${r.deviceDistanceM} m`,
+                            })
+                          : t("anuncio sin punto en el mapa")}{" "}
+                        · {t("precisión ±{meters} m", { meters: r.deviceLocation.accuracyM })} ·{" "}
                         <a
                           href={`https://www.google.com/maps?q=${r.deviceLocation.lat},${r.deviceLocation.lng}`}
                           target="_blank"
                           rel="noreferrer"
                           className="underline"
                         >
-                          ver mapa
+                          {t("ver mapa")}
                         </a>
                       </dd>
                     </div>
@@ -166,16 +186,20 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                   {r.ai && (
                     <>
                       <div>
-                        <dt className="text-xs text-gray-400">Documento</dt>
+                        <dt className="text-xs text-gray-400">{t("Documento")}</dt>
                         <dd className="text-gray-900">
-                          {r.ai.documentType} · {r.ai.issueDate ?? "sin fecha"} · titular: {r.ai.holderName ?? "—"}
+                          {r.ai.documentType} · {r.ai.issueDate ?? t("sin fecha")} · {t("titular:")} {r.ai.holderName ?? "—"}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-gray-400">IA ({r.ai.model})</dt>
+                        <dt className="text-xs text-gray-400">{t("IA ({model})", { model: r.ai.model })}</dt>
                         <dd className="text-gray-900">
-                          coincide: {r.ai.addressMatch} · reciente: {r.ai.recent ? "sí" : "no"} · alteración:{" "}
-                          {r.ai.tamperingSigns ? "posible" : "no"} · confianza {Math.round(r.ai.confidence * 100)}%
+                          {t("coincide: {match} · reciente: {recent} · alteración: {tampering} · confianza {confidence}%", {
+                            match: r.ai.addressMatch,
+                            recent: yesNo(r.ai.recent),
+                            tampering: r.ai.tamperingSigns ? t("posible") : t("no"),
+                            confidence: Math.round(r.ai.confidence * 100),
+                          })}
                         </dd>
                       </div>
                     </>
@@ -188,9 +212,15 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                     ))}
                   </ul>
                 ) : null}
-                {r.aiError && <p className="mt-2 text-sm text-red-600">Error de la IA: {r.aiError}</p>}
+                {r.aiError && (
+                  <p className="mt-2 text-sm text-red-600">
+                    {t("Error de la IA:")} {r.aiError}
+                  </p>
+                )}
                 {r.hostMessage && r.status === "rejected" && (
-                  <p className="mt-2 rounded bg-gray-50 px-2 py-1 text-xs text-gray-600">Mensaje al anfitrión: {r.hostMessage}</p>
+                  <p className="mt-2 rounded bg-gray-50 px-2 py-1 text-xs text-gray-600">
+                    {t("Mensaje al anfitrión:")} {r.hostMessage}
+                  </p>
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <a
@@ -199,7 +229,7 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                     rel="noreferrer"
                     className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    Ver comprobante
+                    {t("Ver comprobante")}
                   </a>
                   {r.status !== "approved" && (
                     <button
@@ -207,7 +237,7 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                       onClick={() => void proofAction(r.id, "approve")}
                       className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
                     >
-                      Aprobar
+                      {t("Aprobar")}
                     </button>
                   )}
                   {r.status !== "rejected" && (
@@ -216,7 +246,7 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                       onClick={() => void proofAction(r.id, "reject")}
                       className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                     >
-                      Rechazar
+                      {t("Rechazar")}
                     </button>
                   )}
                 </div>
@@ -227,19 +257,19 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
       </section>
 
       <section>
-        <h2 className="mb-1 text-sm font-semibold text-gray-700">Reclamos sobre sus anuncios ({d.listingClaims.length})</h2>
-        <p className="mb-3 text-xs text-gray-400">Personas que dicen ser dueñas del alojamiento o piden quitarlo.</p>
+        <h2 className="mb-1 text-sm font-semibold text-gray-700">{t("Reclamos sobre sus anuncios ({count})", { count: d.listingClaims.length })}</h2>
+        <p className="mb-3 text-xs text-gray-400">{t("Personas que dicen ser dueñas del alojamiento o piden quitarlo.")}</p>
         {d.listingClaims.length === 0 ? (
-          <p className="text-sm text-gray-400">Nadie ha reclamado sus anuncios.</p>
+          <p className="text-sm text-gray-400">{t("Nadie ha reclamado sus anuncios.")}</p>
         ) : (
           <div className="space-y-3">
             {d.listingClaims.map((c) => (
               <div key={c.id} className="rounded-xl border border-gray-200 bg-white p-4">
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className={`rounded px-2 py-0.5 font-medium ${c.status === "open" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>
-                    {c.status === "open" ? "Abierto" : c.resolution ? CLAIM_RESOLUTION[c.resolution] : "Cerrado"}
+                    {c.status === "open" ? t("Abierto") : c.resolution ? t(CLAIM_RESOLUTION[c.resolution]) : t("Cerrado")}
                   </span>
-                  <span className="font-semibold text-gray-800">{c.kind === "remove" ? "Pide quitar el anuncio" : "Reclama ser el dueño"}</span>
+                  <span className="font-semibold text-gray-800">{c.kind === "remove" ? t("Pide quitar el anuncio") : t("Reclama ser el dueño")}</span>
                   <span className="text-gray-500">
                     ·{" "}
                     {c.listingSlug ? (
@@ -247,7 +277,7 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                         {c.listingTitle}
                       </a>
                     ) : (
-                      `${c.listingTitle} (borrado)`
+                      t("{title} (borrado)", { title: c.listingTitle })
                     )}
                   </span>
                   <span className="ml-auto text-gray-400">{when(c.createdAt)}</span>
@@ -264,7 +294,7 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                         onClick={() => void claimAction(c, "delete_listing")}
                         className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                       >
-                        Borrar anuncio
+                        {t("Borrar anuncio")}
                       </button>
                     )}
                     <button
@@ -272,14 +302,14 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                       onClick={() => void claimAction(c, "handed_over")}
                       className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-50"
                     >
-                      Ya le entregué la cuenta
+                      {t("Ya le entregué la cuenta")}
                     </button>
                     <button
                       disabled={busy === c.id}
                       onClick={() => void claimAction(c, "dismiss")}
                       className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                     >
-                      Descartar
+                      {t("Descartar")}
                     </button>
                   </div>
                 )}
@@ -304,6 +334,8 @@ export function hasAssociateData(d: AdminUserDetail): boolean {
 }
 
 export function AssociateTab({ d }: { d: AdminUserDetail }) {
+  const t = useT();
+  const { locale } = useWhen();
   const a = d.associate;
   const claimed = a.accounts.filter((x) => x.claimed).length;
   const views = a.accounts.reduce((s, x) => s + x.views, 0);
@@ -314,30 +346,30 @@ export function AssociateTab({ d }: { d: AdminUserDetail }) {
     <div className="space-y-8">
       {a.provisionedBy && (
         <p className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-900">
-          Esta cuenta la dio de alta con IA el asociado{" "}
+          {t("Esta cuenta la dio de alta con IA el asociado")}{" "}
           <Link href={`/admin/users/${a.provisionedBy.id}`} className="font-semibold underline">
             {a.provisionedBy.name}
           </Link>
-          . {d.account.claimedAt ? "El dueño ya tomó control de ella." : "El dueño todavía no la reclama."}
+          . {d.account.claimedAt ? t("El dueño ya tomó control de ella.") : t("El dueño todavía no la reclama.")}
         </p>
       )}
 
       {(isAssociate || a.accounts.length > 0) && (
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-gray-700">Como asociado (alta de anfitriones con IA)</h2>
+            <h2 className="text-sm font-semibold text-gray-700">{t("Como asociado (alta de anfitriones con IA)")}</h2>
             {d.user.associate || d.user.role === "admin" ? (
               <a href="/asociados" target="_blank" rel="noreferrer" className="text-xs text-amber-700 hover:underline">
-                Abrir panel de asociados →
+                {t("Abrir panel de asociados →")}
               </a>
             ) : null}
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-            <Mini label="Cuentas creadas" value={a.accounts.length} />
-            <Mini label="Reclamadas por el dueño" value={claimed} />
-            <Mini label="Borradores por revisar" value={a.drafts.pending} />
-            <Mini label="Anuncios publicados" value={a.drafts.published} sub={`${a.drafts.discarded} descartados`} />
-            <Mini label="Vistas / contactos" value={`${views} / ${contacts}`} sub="de sus cuentas" />
+            <Mini label={t("Cuentas creadas")} value={a.accounts.length} />
+            <Mini label={t("Reclamadas por el dueño")} value={claimed} />
+            <Mini label={t("Borradores por revisar")} value={a.drafts.pending} />
+            <Mini label={t("Anuncios publicados")} value={a.drafts.published} sub={t("{count} descartados", { count: a.drafts.discarded })} />
+            <Mini label={t("Vistas / contactos")} value={`${views} / ${contacts}`} sub={t("de sus cuentas")} />
           </div>
 
           {a.accounts.length > 0 && (
@@ -345,12 +377,12 @@ export function AssociateTab({ d }: { d: AdminUserDetail }) {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs text-gray-500">
-                    <th className="px-4 py-2 font-medium">Anfitrión</th>
-                    <th className="px-4 py-2 font-medium">Correo</th>
-                    <th className="px-4 py-2 text-right font-medium">Anuncios</th>
-                    <th className="px-4 py-2 text-right font-medium">Vistas / contactos</th>
-                    <th className="px-4 py-2 font-medium">Estado</th>
-                    <th className="px-4 py-2 font-medium">Alta</th>
+                    <th className="px-4 py-2 font-medium">{t("Anfitrión")}</th>
+                    <th className="px-4 py-2 font-medium">{t("Correo")}</th>
+                    <th className="px-4 py-2 text-right font-medium">{t("Anuncios")}</th>
+                    <th className="px-4 py-2 text-right font-medium">{t("Vistas / contactos")}</th>
+                    <th className="px-4 py-2 font-medium">{t("Estado")}</th>
+                    <th className="px-4 py-2 font-medium">{t("Alta")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -367,9 +399,9 @@ export function AssociateTab({ d }: { d: AdminUserDetail }) {
                         {x.views} / {x.contacts}
                       </td>
                       <td className="px-4 py-2 text-xs">
-                        {x.claimed ? <span className="text-green-700">Reclamada</span> : <span className="text-gray-400">Sin reclamar</span>}
+                        {x.claimed ? <span className="text-green-700">{t("Reclamada")}</span> : <span className="text-gray-400">{t("Sin reclamar")}</span>}
                       </td>
-                      <td className="px-4 py-2 text-xs text-gray-400">{new Date(x.createdAt).toLocaleDateString("es-MX")}</td>
+                      <td className="px-4 py-2 text-xs text-gray-400">{new Date(x.createdAt).toLocaleDateString(locale)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -379,20 +411,20 @@ export function AssociateTab({ d }: { d: AdminUserDetail }) {
 
           {a.recentDrafts.length > 0 && (
             <div className="mt-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Últimos borradores importados</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t("Últimos borradores importados")}</p>
               <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
                 {a.recentDrafts.map((x) => (
                   <li key={x.id} className="flex items-center gap-3 px-4 py-2 text-sm">
-                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${DRAFT_STATUS[x.status][1]}`}>{DRAFT_STATUS[x.status][0]}</span>
-                    <span className="min-w-0 flex-1 truncate text-gray-800">{x.title}</span>
+                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${DRAFT_STATUS[x.status][1]}`}>{t(DRAFT_STATUS[x.status][0])}</span>
+                    <span className="min-w-0 flex-1 truncate text-gray-800">{t(x.title)}</span>
                     <span className="text-xs text-gray-400">{x.site}</span>
-                    <span className="text-xs text-gray-400">{new Date(x.createdAt).toLocaleDateString("es-MX")}</span>
+                    <span className="text-xs text-gray-400">{new Date(x.createdAt).toLocaleDateString(locale)}</span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
-          {!a.accounts.length && !a.recentDrafts.length && <p className="mt-3 text-sm text-gray-400">Todavía no ha dado de alta cuentas.</p>}
+          {!a.accounts.length && !a.recentDrafts.length && <p className="mt-3 text-sm text-gray-400">{t("Todavía no ha dado de alta cuentas.")}</p>}
         </section>
       )}
     </div>

@@ -12,4 +12,6 @@ export async function register() {
   startReviewReminderWorker();
   const { startArrivalMessageWorker } = await import("@/lib/arrival-message");
   startArrivalMessageWorker();
+  const { startReviewModerationWorker } = await import("@/lib/stay-reviews");
+  startReviewModerationWorker();
 }

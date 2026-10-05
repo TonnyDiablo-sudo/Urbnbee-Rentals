@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { getAdminOverview } from "@/lib/admin-data";
+import { numberLocale } from "@/lib/i18n";
+import { getLang, getT } from "@/lib/i18n/server";
 import { listMailboxesPublic } from "@/lib/mailboxes-store";
-
-function fmx(n: number) {
-  return `$${n.toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN`;
-}
 
 type StatCardProps = {
   label: string;
@@ -51,7 +49,10 @@ const STATUS_COLORS: Record<string, string> = {
   AWAITING_DETAILS: "bg-purple-100 text-purple-800",
 };
 
-export default function AdminOverviewPage() {
+export default async function AdminOverviewPage() {
+  const t = await getT();
+  const locale = numberLocale(await getLang());
+  const fmx = (n: number) => `$${n.toLocaleString(locale, { maximumFractionDigits: 0 })} MXN`;
   const d = getAdminOverview();
   const boxes = listMailboxesPublic();
   const missingMail = boxes.filter((b) => !b.connected);
@@ -60,9 +61,9 @@ export default function AdminOverviewPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Resumen de la plataforma</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("Resumen de la plataforma")}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Vista en tiempo real del estado de Cabibee.
+          {t("Vista en tiempo real del estado de Cabibee.")}
         </p>
       </div>
 
@@ -77,42 +78,44 @@ export default function AdminOverviewPage() {
         >
           <span>
             {noMail
-              ? "No hay ningún correo conectado: no salen confirmaciones, recuperación de contraseña ni copias de quejas."
-              : `Falta conectar ${missingMail.map((b) => b.email).join(" y ")}. Mientras, todo sale por el otro buzón.`}
+              ? t("No hay ningún correo conectado: no salen confirmaciones, recuperación de contraseña ni copias de quejas.")
+              : t("Falta conectar {emails}. Mientras, todo sale por el otro buzón.", {
+                  emails: missingMail.map((b) => b.email).join(t(" y ")),
+                })}
           </span>
-          <span className="font-semibold">Ir a Correo →</span>
+          <span className="font-semibold">{t("Ir a Correo →")}</span>
         </Link>
       )}
 
       {/* Users */}
       <section className="mb-8">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
-          Usuarios
+          {t("Usuarios")}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total" value={d.totalUsers} />
-          <StatCard label="Huéspedes" value={d.totalGuests} sub="role: guest" />
-          <StatCard label="Anfitriones" value={d.totalHosts} sub="role: host" />
-          <StatCard label="Administradores" value={d.totalAdmins} sub="role: admin" />
+          <StatCard label={t("Total")} value={d.totalUsers} />
+          <StatCard label={t("Huéspedes")} value={d.totalGuests} sub="role: guest" />
+          <StatCard label={t("Anfitriones")} value={d.totalHosts} sub="role: host" />
+          <StatCard label={t("Administradores")} value={d.totalAdmins} sub="role: admin" />
         </div>
       </section>
 
       {/* Listings */}
       <section className="mb-8">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
-          Alojamientos
+          {t("Alojamientos")}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total" value={d.totalListings} />
-          <StatCard label="Publicados" value={d.publishedListings} sub="visibles en el sitio" />
-          <StatCard label="Borradores" value={d.draftListings} sub="no publicados" />
+          <StatCard label={t("Total")} value={d.totalListings} />
+          <StatCard label={t("Publicados")} value={d.publishedListings} sub={t("visibles en el sitio")} />
+          <StatCard label={t("Borradores")} value={d.draftListings} sub={t("no publicados")} />
           <StatCard
-            label="Verificados"
+            label={t("Verificados")}
             value={d.verifiedListings}
             sub={
               d.unearnedBadges > 0
-                ? `${d.unearnedBadges} sin anfitrión verificado`
-                : "insignia respaldada"
+                ? t("{count} sin anfitrión verificado", { count: d.unearnedBadges })
+                : t("insignia respaldada")
             }
           />
         </div>
@@ -121,31 +124,31 @@ export default function AdminOverviewPage() {
       {/* Bookings */}
       <section className="mb-8">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
-          Reservas
+          {t("Reservas")}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total" value={d.totalBookings} />
-          <StatCard label="Pagadas" value={d.paidBookings} sub="sin contar devueltas" accent />
+          <StatCard label={t("Total")} value={d.totalBookings} />
+          <StatCard label={t("Pagadas")} value={d.paidBookings} sub={t("sin contar devueltas")} accent />
           <StatCard
-            label="Ingreso de estancias"
+            label={t("Ingreso de estancias")}
             value={fmx(d.totalStayRevenueMxn)}
-            sub="neto de reembolsos"
+            sub={t("neto de reembolsos")}
             accent
           />
           <StatCard
-            label="Comisión Cabibee"
+            label={t("Comisión Cabibee")}
             value={fmx(d.totalPlatformFeeMxn)}
-            sub="neto de reembolsos"
+            sub={t("neto de reembolsos")}
             accent
           />
         </div>
         {d.refundedBookings > 0 && (
           <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="Reembolsadas" value={d.refundedBookings} />
+            <StatCard label={t("Reembolsadas")} value={d.refundedBookings} />
             <StatCard
-              label="Devuelto a huéspedes"
+              label={t("Devuelto a huéspedes")}
               value={fmx(d.totalRefundedMxn)}
-              sub="rechazos del anfitrión"
+              sub={t("rechazos del anfitrión")}
             />
           </div>
         )}
@@ -153,11 +156,11 @@ export default function AdminOverviewPage() {
         {/* Status breakdown */}
         <div className="mt-4 bg-white border border-gray-200 rounded-xl p-5">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-            Reservas por estado
+            {t("Reservas por estado")}
           </p>
           <div className="flex flex-wrap gap-2">
             {Object.entries(d.bookingsByStatus).length === 0 && (
-              <p className="text-sm text-gray-400">Sin reservas todavía.</p>
+              <p className="text-sm text-gray-400">{t("Sin reservas todavía.")}</p>
             )}
             {Object.entries(d.bookingsByStatus).map(([status, count]) => (
               <span
@@ -166,7 +169,7 @@ export default function AdminOverviewPage() {
                   STATUS_COLORS[status] ?? "bg-gray-100 text-gray-700"
                 }`}
               >
-                {STATUS_LABELS[status] ?? status}
+                {STATUS_LABELS[status] ? t(STATUS_LABELS[status]) : status}
                 <span className="font-bold">{count}</span>
               </span>
             ))}
@@ -177,13 +180,13 @@ export default function AdminOverviewPage() {
       {/* Verification */}
       <section className="mb-8">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
-          Verificación de huéspedes
+          {t("Verificación de huéspedes")}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <StatCard
-            label="Suscripciones activas"
+            label={t("Suscripciones activas")}
             value={d.activeVerificationSubscriptions}
-            sub="active + trialing en Stripe"
+            sub={t("active + trialing en Stripe")}
             accent={d.activeVerificationSubscriptions > 0}
           />
         </div>

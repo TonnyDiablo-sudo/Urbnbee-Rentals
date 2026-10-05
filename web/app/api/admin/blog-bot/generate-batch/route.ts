@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
     errors,
     message:
       posts.length > 0
-        ? `${posts.length} artículo(s) guardados en data/blog-published-posts.json y visibles en el blog.`
+        ? "{count} artículo(s) guardados en data/blog-published-posts.json y visibles en el blog."
         : "No se generó ningún artículo.",
+    messageVars: { count: posts.length },
   });
 }

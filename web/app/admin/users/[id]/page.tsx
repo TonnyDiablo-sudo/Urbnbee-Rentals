@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useLang, useT } from "@/components/i18n-provider";
 import type { AdminUserRow } from "@/lib/admin-data";
 import type { AdminBookingRow } from "@/lib/admin-data";
 import type { AdminUserDetail } from "@/lib/admin-user-detail";
+import { numberLocale } from "@/lib/i18n";
 import { relTime } from "../users-explorer";
-import { ProductChip } from "../user-preview";
+import { ProductChip, productInfo } from "../user-preview";
 import { ActivityTab, ConversationsTab, ReportList, StatsTab } from "./user-tabs";
 import { AssociateTab, ListingsTab, hasAssociateData, openClaims, pendingProofs } from "./user-tabs-extra";
 
@@ -37,6 +39,8 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function AdminUserDetailPage() {
+  const t = useT();
+  const locale = numberLocale(useLang());
   const { id } = useParams<{ id: string }>();
   const [user, setUser] = useState<AdminUserRow | null>(null);
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
@@ -88,11 +92,11 @@ export default function AdminUserDetailPage() {
     });
     setRoleChanging(false);
     if (res.ok) {
-      setRoleMsg("Rol actualizado correctamente.");
+      setRoleMsg(t("Rol actualizado correctamente."));
       setUser((prev) => (prev ? { ...prev, role: newRole as AdminUserRow["role"] } : prev));
     } else {
       const err = await res.json().catch(() => ({}));
-      setRoleMsg((err as { error?: string }).error ?? "Error al cambiar el rol.");
+      setRoleMsg(t((err as { error?: string }).error ?? "Error al cambiar el rol."));
     }
   }
 
@@ -108,7 +112,7 @@ export default function AdminUserDetailPage() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setBadgeMsg((j as { error?: string }).error ?? "No se pudo guardar.");
+        setBadgeMsg(t((j as { error?: string }).error ?? "No se pudo guardar."));
         return;
       }
       const v = j.verification as
@@ -120,7 +124,7 @@ export default function AdminUserDetailPage() {
             source?: "identity" | "admin";
           }
         | undefined;
-      setBadgeMsg(`Listo. ${j.listingsUpdated ?? 0} alojamientos actualizados.`);
+      setBadgeMsg(t("Listo. {count} alojamientos actualizados.", { count: j.listingsUpdated ?? 0 }));
       setUser((prev) =>
         prev
           ? {
@@ -134,7 +138,7 @@ export default function AdminUserDetailPage() {
           : prev
       );
     } catch {
-      setBadgeMsg("Error de red.");
+      setBadgeMsg(t("Error de red."));
     } finally {
       setBadgeBusy(false);
     }
@@ -143,7 +147,7 @@ export default function AdminUserDetailPage() {
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
-        <p className="text-gray-400 animate-pulse">Cargando…</p>
+        <p className="text-gray-400 animate-pulse">{t("Cargando…")}</p>
       </div>
     );
   }
@@ -151,9 +155,9 @@ export default function AdminUserDetailPage() {
   if (!user || !detail) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
-        <p className="text-red-500">Usuario no encontrado.</p>
+        <p className="text-red-500">{t("Usuario no encontrado.")}</p>
         <Link href="/admin/users" className="text-amber-600 text-sm mt-2 block hover:underline">
-          ← Volver a usuarios
+          {t("← Volver a usuarios")}
         </Link>
       </div>
     );
@@ -182,6 +186,7 @@ export default function AdminUserDetailPage() {
     { id: "reports", label: "Reportes", badge: detail.reportsAgainst.length + detail.reportsBy.length, alert: openReports > 0 },
   ];
   const acct = detail.account;
+  const yesNo = (v: boolean) => (v ? t("sí") : t("no"));
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl">
@@ -190,7 +195,7 @@ export default function AdminUserDetailPage() {
           href="/admin/users"
           className="text-sm text-amber-600 hover:underline mb-4 inline-block"
         >
-          ← Usuarios
+          {t("← Usuarios")}
         </Link>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4">
@@ -205,21 +210,21 @@ export default function AdminUserDetailPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
                 {user.fullName}
-                {acct.alias && <span className="ml-2 text-sm font-normal text-gray-400">alias “{acct.alias}”</span>}
+                {acct.alias && <span className="ml-2 text-sm font-normal text-gray-400">{t("alias “{alias}”", { alias: acct.alias })}</span>}
               </h1>
               <p className="text-gray-500 text-sm mt-0.5">
                 {user.email}
                 {acct.emailVerifiedAt ? (
-                  <span className="ml-2 text-xs text-green-600">✓ verificado</span>
+                  <span className="ml-2 text-xs text-green-600">{t("✓ verificado")}</span>
                 ) : (
-                  <span className="ml-2 text-xs text-gray-400">sin verificar</span>
+                  <span className="ml-2 text-xs text-gray-400">{t("sin verificar")}</span>
                 )}
-                {acct.placeholderEmail && <span className="ml-2 text-xs text-purple-600">correo interno</span>}
+                {acct.placeholderEmail && <span className="ml-2 text-xs text-purple-600">{t("correo interno")}</span>}
               </p>
               <p className="text-gray-400 text-xs mt-0.5">
                 {acct.phone && <>📞 {acct.phone} · </>}
                 {detail.stats.place && <>📍 {detail.stats.place} · </>}
-                Última actividad <span suppressHydrationWarning>{relTime(user.lastActiveAt)}</span> · ID{" "}
+                {t("Última actividad")} <span suppressHydrationWarning>{relTime(user.lastActiveAt, t, locale)}</span> · ID{" "}
                 <code className="font-mono">{user.id}</code>
               </p>
               {acct.addressLine && <p className="text-gray-400 text-xs mt-0.5">🏠 {acct.addressLine}</p>}
@@ -235,7 +240,7 @@ export default function AdminUserDetailPage() {
             </span>
             {openReports > 0 && (
               <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                {openReports} reporte{openReports !== 1 ? "s" : ""} abierto{openReports !== 1 ? "s" : ""}
+                {openReports === 1 ? t("1 reporte abierto") : t("{count} reportes abiertos", { count: openReports })}
               </span>
             )}
           </div>
@@ -243,19 +248,19 @@ export default function AdminUserDetailPage() {
       </div>
 
       <nav className="mb-6 flex flex-wrap gap-1 border-b border-gray-200">
-        {tabs.map((t) => (
+        {tabs.map((tb) => (
           <button
-            key={t.id}
+            key={tb.id}
             type="button"
-            onClick={() => setTab(t.id)}
+            onClick={() => setTab(tb.id)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-              tab === t.id ? "border-amber-500 text-amber-700" : "border-transparent text-gray-500 hover:text-gray-800"
+              tab === tb.id ? "border-amber-500 text-amber-700" : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
           >
-            {t.label}
-            {t.badge !== undefined && t.badge > 0 && (
-              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${t.alert ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>
-                {t.badge}
+            {t(tb.label)}
+            {tb.badge !== undefined && tb.badge > 0 && (
+              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${tb.alert ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>
+                {tb.badge}
               </span>
             )}
           </button>
@@ -271,8 +276,8 @@ export default function AdminUserDetailPage() {
             setChatKey(key);
             setTab("chats");
           }}
-          onOpenTab={(t) => {
-            if (TABS.includes(t as Tab)) setTab(t as Tab);
+          onOpenTab={(name) => {
+            if (TABS.includes(name as Tab)) setTab(name as Tab);
           }}
         />
       )}
@@ -281,28 +286,28 @@ export default function AdminUserDetailPage() {
       {tab === "reports" && (
         <div className="space-y-8">
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-gray-700">Reportes en su contra ({detail.reportsAgainst.length})</h2>
-            <ReportList rows={detail.reportsAgainst} empty="Nadie ha reportado esta cuenta." />
+            <h2 className="mb-3 text-sm font-semibold text-gray-700">{t("Reportes en su contra ({count})", { count: detail.reportsAgainst.length })}</h2>
+            <ReportList rows={detail.reportsAgainst} empty={t("Nadie ha reportado esta cuenta.")} />
           </section>
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-gray-700">Lo que ha enviado ({detail.reportsBy.length})</h2>
-            <ReportList rows={detail.reportsBy} empty="No ha enviado reportes ni sugerencias." />
+            <h2 className="mb-3 text-sm font-semibold text-gray-700">{t("Lo que ha enviado ({count})", { count: detail.reportsBy.length })}</h2>
+            <ReportList rows={detail.reportsBy} empty={t("No ha enviado reportes ni sugerencias.")} />
           </section>
         </div>
       )}
 
       {tab === "summary" && (<>
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Productos y servicios</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">{t("Productos y servicios")}</h2>
         {user.products.length === 0 ? (
-          <p className="text-sm text-gray-400">No ha comprado nada ni tiene servicios activos.</p>
+          <p className="text-sm text-gray-400">{t("No ha comprado nada ni tiene servicios activos.")}</p>
         ) : (
           <ul className="space-y-1.5">
             {user.products.map((p) => (
               <li key={p.key} className="flex flex-wrap items-center gap-2 text-sm">
                 <ProductChip p={p} />
-                <span className="text-gray-600">{[p.detail, p.status].filter(Boolean).join(" · ")}</span>
-                {p.until && <span className="text-xs text-gray-400">vence {new Date(p.until).toLocaleDateString("es-MX")}</span>}
+                <span className="text-gray-600">{productInfo(p, t)}</span>
+                {p.until && <span className="text-xs text-gray-400">{t("vence {date}", { date: new Date(p.until).toLocaleDateString(locale) })}</span>}
               </li>
             ))}
           </ul>
@@ -312,38 +317,38 @@ export default function AdminUserDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
           <p className="text-2xl font-bold text-gray-900">{user.listingsCount}</p>
-          <p className="text-xs text-gray-400 mt-1">Alojamientos</p>
+          <p className="text-xs text-gray-400 mt-1">{t("Alojamientos")}</p>
           {user.listingsPublished > 0 && (
-            <p className="text-[11px] text-blue-500">{user.listingsPublished} publicados</p>
+            <p className="text-[11px] text-blue-500">{t("{count} publicados", { count: user.listingsPublished })}</p>
           )}
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
           <p className="text-2xl font-bold text-gray-900">{user.bookingsAsGuest}</p>
-          <p className="text-xs text-gray-400 mt-1">Reservas (huésped)</p>
+          <p className="text-xs text-gray-400 mt-1">{t("Reservas (huésped)")}</p>
           {user.bookingsPaid > 0 && (
-            <p className="text-[11px] text-green-600">{user.bookingsPaid} pagadas</p>
+            <p className="text-[11px] text-green-600">{t("{count} pagadas", { count: user.bookingsPaid })}</p>
           )}
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
           <p className="text-xl font-bold text-gray-900">
             {user.totalPaidMxn > 0
-              ? `$${user.totalPaidMxn.toLocaleString("es-MX", { maximumFractionDigits: 0 })}`
+              ? `$${user.totalPaidMxn.toLocaleString(locale, { maximumFractionDigits: 0 })}`
               : "—"}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Total pagado MXN</p>
+          <p className="text-xs text-gray-400 mt-1">{t("Total pagado MXN")}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
           <p className="text-sm font-bold text-gray-900">{user.verificationStatus}</p>
-          <p className="text-xs text-gray-400 mt-1">Verificación</p>
+          <p className="text-xs text-gray-400 mt-1">{t("Verificación")}</p>
           {user.hasStripeCustomer && (
-            <p className="text-[11px] text-amber-600 mt-0.5">Con cliente Stripe</p>
+            <p className="text-[11px] text-amber-600 mt-0.5">{t("Con cliente Stripe")}</p>
           )}
         </div>
       </div>
 
       {/* Role change */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Cambiar rol</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">{t("Cambiar rol")}</h2>
         <div className="flex items-center gap-3">
           <select
             value={newRole}
@@ -359,14 +364,14 @@ export default function AdminUserDetailPage() {
             disabled={roleChanging || newRole === user.role}
             className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {roleChanging ? "Guardando…" : "Guardar rol"}
+            {roleChanging ? t("Guardando…") : t("Guardar rol")}
           </button>
           {roleMsg && (
             <p className="text-sm text-gray-600">{roleMsg}</p>
           )}
         </div>
         <p className="text-xs text-gray-400 mt-2">
-          Registro: {new Date(user.createdAt).toLocaleString("es-MX")}
+          {t("Registro: {date}", { date: new Date(user.createdAt).toLocaleString(locale) })}
         </p>
         <div className="mt-4 flex items-center gap-3 border-t border-gray-100 pt-4">
           <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -383,15 +388,15 @@ export default function AdminUserDetailPage() {
                 if (res.ok) setUser((prev) => (prev ? { ...prev, associate } : prev));
               }}
             />
-            Asociado: puede dar de alta anfitriones con IA en /asociados
+            {t("Asociado: puede dar de alta anfitriones con IA en /asociados")}
           </label>
         </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8">
-        <h2 className="text-sm font-semibold text-gray-700 mb-2">Pase por reserva (cortesía)</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-2">{t("Pase por reserva (cortesía)")}</h2>
         <p className="text-sm text-gray-600 mb-3">
-          Pases sin usar: <strong>{user.bookingPassesRemaining}</strong>
+          {t("Pases sin usar:")} <strong>{user.bookingPassesRemaining}</strong>
         </p>
         <button
           onClick={async () => {
@@ -407,19 +412,19 @@ export default function AdminUserDetailPage() {
             if (res.ok) {
               const n = Number(j.bookingPassesRemaining ?? 0);
               setUser((prev) => (prev ? { ...prev, bookingPassesRemaining: n } : prev));
-              setPassMsg(`Pase acreditado. Quedan ${n}.`);
+              setPassMsg(t("Pase acreditado. Quedan {count}.", { count: n }));
             } else {
-              setPassMsg((j as { error?: string }).error ?? "No se pudo acreditar.");
+              setPassMsg(t((j as { error?: string }).error ?? "No se pudo acreditar."));
             }
           }}
           disabled={passBusy}
           className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-40"
         >
-          {passBusy ? "Acreditando…" : "Regalar 1 pase (sin cobro)"}
+          {passBusy ? t("Acreditando…") : t("Regalar 1 pase (sin cobro)")}
         </button>
         {passMsg && <p className="text-sm text-gray-600 mt-2">{passMsg}</p>}
         <p className="text-sm text-gray-600 mt-4 mb-2">
-          Identidad (KYC): <strong>{user.kycStatus}</strong>
+          {t("Identidad (KYC):")} <strong>{user.kycStatus}</strong>
         </p>
         <button
           onClick={async () => {
@@ -434,26 +439,28 @@ export default function AdminUserDetailPage() {
             setPassBusy(false);
             if (res.ok) {
               setUser((prev) => (prev ? { ...prev, kycStatus: "verified" } : prev));
-              setPassMsg("Identidad marcada como verificada (sin Stripe Identity).");
+              setPassMsg(t("Identidad marcada como verificada (sin Stripe Identity)."));
             } else {
-              setPassMsg((j as { error?: string }).error ?? "No se pudo verificar.");
+              setPassMsg(t((j as { error?: string }).error ?? "No se pudo verificar."));
             }
           }}
           disabled={passBusy || user.kycStatus === "verified"}
           className="px-4 py-2 rounded-lg text-sm font-medium border border-amber-500 text-amber-800 hover:bg-amber-50 disabled:opacity-40"
         >
-          Marcar identidad verificada
+          {t("Marcar identidad verificada")}
         </button>
       </div>
 
       {(user.role === "host" || user.role === "admin" || user.listingsCount > 0) && (
         <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8">
           <h2 className="text-sm font-semibold text-gray-700 mb-1">
-            Miembro verificado
+            {t("Miembro verificado")}
           </h2>
           <p className="text-xs text-gray-400 mb-3">
-            El listón pide identidad y membresía. Se refleja en los {user.listingsCount}{" "}
-            alojamientos. Sirve para probar sin Stripe y para retirar un sello dado por error.
+            {t(
+              "El listón pide identidad y membresía. Se refleja en los {count} alojamientos. Sirve para probar sin Stripe y para retirar un sello dado por error.",
+              { count: user.listingsCount }
+            )}
           </p>
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <span
@@ -461,11 +468,14 @@ export default function AdminUserDetailPage() {
                 user.hostRibbon ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
               }`}
             >
-              {user.hostRibbon ? "Listón visible" : "Sin listón"}
+              {user.hostRibbon ? t("Listón visible") : t("Sin listón")}
             </span>
             <span className="text-xs text-gray-400">
-              Identidad: {user.hostVerified ? "sí" : "no"} · Membresía:{" "}
-              {user.hostMembershipActive ? "sí" : "no"} · KYC {user.kycStatus}
+              {t("Identidad: {identity} · Membresía: {membership} · KYC {kyc}", {
+                identity: yesNo(user.hostVerified),
+                membership: yesNo(user.hostMembershipActive),
+                kyc: user.kycStatus,
+              })}
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -474,14 +484,14 @@ export default function AdminUserDetailPage() {
               disabled={badgeBusy}
               className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-40"
             >
-              {user.hostVerified ? "Quitar identidad" : "Conceder identidad"}
+              {user.hostVerified ? t("Quitar identidad") : t("Conceder identidad")}
             </button>
             <button
               onClick={() => void patchHostVerification({ membership: !user.hostMembershipActive })}
               disabled={badgeBusy}
               className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-800 text-white hover:bg-gray-900 disabled:opacity-40"
             >
-              {user.hostMembershipActive ? "Quitar membresía" : "Activar membresía"}
+              {user.hostMembershipActive ? t("Quitar membresía") : t("Activar membresía")}
             </button>
             {badgeMsg && <p className="text-sm text-gray-600">{badgeMsg}</p>}
           </div>
@@ -495,18 +505,18 @@ export default function AdminUserDetailPage() {
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-6">
           <div className="px-5 py-3 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-700">
-              Reservas como huésped ({guestBookings.length})
+              {t("Reservas como huésped ({count})", { count: guestBookings.length })}
             </h2>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left border-b border-gray-100">
-                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">Alojamiento</th>
-                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">Fechas</th>
-                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">Estado</th>
-                  <th className="px-4 py-2 text-xs text-gray-500 font-medium text-right">Total</th>
-                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">Contrato</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">{t("Alojamiento")}</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">{t("Fechas")}</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">{t("Estado")}</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium text-right">{t("Total")}</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">{t("Contrato")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -528,7 +538,7 @@ export default function AdminUserDetailPage() {
                       </span>
                     </td>
                     <td className="px-4 py-2 text-right text-gray-800 font-medium">
-                      ${b.totalChargeMxn.toLocaleString("es-MX", { maximumFractionDigits: 0 })}
+                      ${b.totalChargeMxn.toLocaleString(locale, { maximumFractionDigits: 0 })}
                     </td>
                     <td className="px-4 py-2 text-xs">
                       {b.hasContract ? (
@@ -555,19 +565,19 @@ export default function AdminUserDetailPage() {
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="px-5 py-3 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-700">
-              Reservas como anfitrión ({hostBookings.length})
+              {t("Reservas como anfitrión ({count})", { count: hostBookings.length })}
             </h2>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left border-b border-gray-100">
-                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">Alojamiento</th>
-                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">Huésped</th>
-                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">Fechas</th>
-                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">Estado</th>
-                  <th className="px-4 py-2 text-xs text-gray-500 font-medium text-right">Total</th>
-                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">Contrato</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">{t("Alojamiento")}</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">{t("Huésped")}</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">{t("Fechas")}</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">{t("Estado")}</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium text-right">{t("Total")}</th>
+                  <th className="px-4 py-2 text-xs text-gray-500 font-medium">{t("Contrato")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -590,7 +600,7 @@ export default function AdminUserDetailPage() {
                       </span>
                     </td>
                     <td className="px-4 py-2 text-right text-gray-800 font-medium">
-                      ${b.totalChargeMxn.toLocaleString("es-MX", { maximumFractionDigits: 0 })}
+                      ${b.totalChargeMxn.toLocaleString(locale, { maximumFractionDigits: 0 })}
                     </td>
                     <td className="px-4 py-2 text-xs">
                       {b.hasContract ? (
@@ -613,7 +623,7 @@ export default function AdminUserDetailPage() {
       )}
 
       {guestBookings.length === 0 && hostBookings.length === 0 && (
-        <p className="text-gray-400 text-sm">Este usuario no tiene reservas registradas.</p>
+        <p className="text-gray-400 text-sm">{t("Este usuario no tiene reservas registradas.")}</p>
       )}
       </>)}
     </div>

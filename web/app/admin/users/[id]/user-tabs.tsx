@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useLang, useT } from "@/components/i18n-provider";
 import type { AdminActivity, AdminConversation, AdminReportRow, AdminUserDetail } from "@/lib/admin-user-detail";
+import { numberLocale } from "@/lib/i18n";
 import { REPORT_STATUS_LABEL, reportKindLabel } from "@/lib/user-reports-types";
 import { relTime } from "../users-explorer";
 
@@ -18,8 +20,14 @@ const STATUS_ES: Record<string, string> = {
   EXPIRED: "Expirada",
 };
 
-const mxn = (n: number) => (n ? `$${n.toLocaleString("es-MX", { maximumFractionDigits: 0 })}` : "—");
-const when = (iso: string) => new Date(iso).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+function useFormat() {
+  const locale = numberLocale(useLang());
+  return {
+    locale,
+    mxn: (n: number) => (n ? `$${n.toLocaleString(locale, { maximumFractionDigits: 0 })}` : "—"),
+    when: (iso: string) => new Date(iso).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" }),
+  };
+}
 
 function Stat({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
   return (
@@ -32,16 +40,17 @@ function Stat({ label, value, sub }: { label: string; value: React.ReactNode; su
 }
 
 function StatusBars({ data }: { data: Partial<Record<string, number>> }) {
+  const t = useT();
   const entries = Object.entries(data).filter(([, n]) => (n ?? 0) > 0) as [string, number][];
   const max = Math.max(1, ...entries.map(([, n]) => n));
-  if (!entries.length) return <p className="text-sm text-gray-400">Sin reservas.</p>;
+  if (!entries.length) return <p className="text-sm text-gray-400">{t("Sin reservas.")}</p>;
   return (
     <ul className="space-y-1.5">
       {entries
         .sort((a, b) => b[1] - a[1])
         .map(([s, n]) => (
           <li key={s} className="flex items-center gap-3 text-sm">
-            <span className="w-40 shrink-0 text-gray-600">{STATUS_ES[s] ?? s}</span>
+            <span className="w-40 shrink-0 text-gray-600">{STATUS_ES[s] ? t(STATUS_ES[s]) : s}</span>
             <span className="h-2.5 rounded bg-amber-400" style={{ width: `${(n / max) * 60}%` }} />
             <span className="text-gray-700">{n}</span>
           </li>
@@ -51,6 +60,8 @@ function StatusBars({ data }: { data: Partial<Record<string, number>> }) {
 }
 
 export function StatsTab({ d }: { d: AdminUserDetail }) {
+  const t = useT();
+  const { locale, mxn } = useFormat();
   const { host, guest } = d.stats;
   const isHost = host.listings > 0 || host.bookingsReceived > 0 || host.threads > 0;
   const isGuest = guest.bookings > 0 || guest.threads > 0 || guest.wishlists > 0;
@@ -67,17 +78,24 @@ export function StatsTab({ d }: { d: AdminUserDetail }) {
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-gray-700">Uso de la plataforma</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-700">{t("Uso de la plataforma")}</h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Última visita" value={<span suppressHydrationWarning>{relTime(d.stats.lastSeenAt)}</span>} sub={d.stats.place} />
-          <Stat label="Páginas vistas (con sesión)" value={d.stats.pageViews} />
-          <Stat label="Conversaciones" value={host.threads + guest.threads} sub={`${host.threads} como anfitrión · ${guest.threads} como huésped`} />
-          <Stat label="Reportes" value={d.reportsAgainst.length} sub={`en su contra · ${d.reportsBy.length} enviados`} />
+          <Stat label={t("Última visita")} value={<span suppressHydrationWarning>{relTime(d.stats.lastSeenAt, t, locale)}</span>} sub={d.stats.place} />
+          <Stat label={t("Páginas vistas (con sesión)")} value={d.stats.pageViews} />
+          <Stat
+            label={t("Conversaciones")}
+            value={host.threads + guest.threads}
+            sub={t("{host} como anfitrión · {guest} como huésped", { host: host.threads, guest: guest.threads })}
+          />
+          <Stat label={t("Reportes")} value={d.reportsAgainst.length} sub={t("en su contra · {count} enviados", { count: d.reportsBy.length })} />
           {d.associate.accounts.length > 0 && (
             <Stat
-              label="Altas como asociado"
+              label={t("Altas como asociado")}
               value={d.associate.accounts.length}
-              sub={`${d.associate.accounts.filter((a) => a.claimed).length} reclamadas · ${d.associate.drafts.pending} borradores por revisar`}
+              sub={t("{claimed} reclamadas · {pending} borradores por revisar", {
+                claimed: d.associate.accounts.filter((a) => a.claimed).length,
+                pending: d.associate.drafts.pending,
+              })}
             />
           )}
         </div>
@@ -85,39 +103,50 @@ export function StatsTab({ d }: { d: AdminUserDetail }) {
 
       {isHost && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-gray-700">Como anfitrión</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-700">{t("Como anfitrión")}</h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="Anuncios" value={host.listings} sub={`${host.published} publicados`} />
-            <Stat label="Vistas de sus anuncios" value={host.views30} sub={`últimos 30 días · ${host.viewsTotal} en total`} />
-            <Stat label="Vieron su contacto" value={host.contacts30} sub={`últimos 30 días · ${host.contactsTotal} en total`} />
+            <Stat label={t("Anuncios")} value={host.listings} sub={t("{count} publicados", { count: host.published })} />
+            <Stat label={t("Vistas de sus anuncios")} value={host.views30} sub={t("últimos 30 días · {count} en total", { count: host.viewsTotal })} />
+            <Stat label={t("Vieron su contacto")} value={host.contacts30} sub={t("últimos 30 días · {count} en total", { count: host.contactsTotal })} />
             <Stat
-              label="Conversión vista → contacto"
+              label={t("Conversión vista → contacto")}
               value={host.viewsTotal ? `${Math.round((host.contactsTotal / host.viewsTotal) * 1000) / 10}%` : "—"}
             />
-            <Stat label="Reservas recibidas" value={host.bookingsReceived} sub={`${host.nightsHosted} noches pagadas`} />
-            <Stat label="Ingresos por estancias" value={mxn(host.revenueMxn)} sub="pagadas y no reembolsadas" />
-            <Stat label="Tasa de respuesta" value={responseRate === null ? "—" : `${responseRate}%`} sub={`${host.threadsAnswered} de ${host.threads} hilos · 1ª respuesta en ${replyLabel}`} />
+            <Stat label={t("Reservas recibidas")} value={host.bookingsReceived} sub={t("{count} noches pagadas", { count: host.nightsHosted })} />
+            <Stat label={t("Ingresos por estancias")} value={mxn(host.revenueMxn)} sub={t("pagadas y no reembolsadas")} />
             <Stat
-              label="Calificación"
+              label={t("Tasa de respuesta")}
+              value={responseRate === null ? "—" : `${responseRate}%`}
+              sub={t("{answered} de {total} hilos · 1ª respuesta en {time}", { answered: host.threadsAnswered, total: host.threads, time: replyLabel })}
+            />
+            <Stat
+              label={t("Calificación")}
               value={host.ratingAvg === null ? "—" : `${host.ratingAvg}★`}
-              sub={`${host.reviewsReceived} reseñas recibidas · ${host.reviewsWritten} escritas`}
+              sub={t("{received} reseñas recibidas · {written} escritas", { received: host.reviewsReceived, written: host.reviewsWritten })}
             />
             <Stat
-              label="Ubicación verificada"
+              label={t("Ubicación verificada")}
               value={`${d.listings.filter((l) => l.locationVerified).length} / ${d.listings.length}`}
-              sub={`${d.addressProofs.length} comprobantes subidos · ${d.addressProofs.filter((p) => p.status === "review").length} por revisar`}
+              sub={t("{uploaded} comprobantes subidos · {review} por revisar", {
+                uploaded: d.addressProofs.length,
+                review: d.addressProofs.filter((p) => p.status === "review").length,
+              })}
             />
             <Stat
-              label="Reclamos de sus anuncios"
+              label={t("Reclamos de sus anuncios")}
               value={d.listingClaims.length}
-              sub={`${d.listingClaims.filter((c) => c.status === "open").length} abiertos`}
+              sub={t("{count} abiertos", { count: d.listingClaims.filter((c) => c.status === "open").length })}
             />
             {d.associate.provisionedBy && (
-              <Stat label="Alta con IA" value="Sí" sub={`por ${d.associate.provisionedBy.name}${d.account.claimedAt ? " · ya reclamada" : " · sin reclamar"}`} />
+              <Stat
+                label={t("Alta con IA")}
+                value={t("Sí")}
+                sub={`${t("por {name}", { name: d.associate.provisionedBy.name })}${d.account.claimedAt ? ` · ${t("ya reclamada")}` : ` · ${t("sin reclamar")}`}`}
+              />
             )}
           </div>
           <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Reservas recibidas por estado</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t("Reservas recibidas por estado")}</p>
             <StatusBars data={host.bookingsByStatus} />
           </div>
           {d.listings.length > 0 && (
@@ -125,11 +154,11 @@ export function StatsTab({ d }: { d: AdminUserDetail }) {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs text-gray-500">
-                    <th className="px-4 py-2 font-medium">Anuncio</th>
-                    <th className="px-4 py-2 font-medium">Estado</th>
-                    <th className="px-4 py-2 text-right font-medium">Vistas 30d</th>
-                    <th className="px-4 py-2 text-right font-medium">Contactos 30d</th>
-                    <th className="px-4 py-2 font-medium">Actualizado</th>
+                    <th className="px-4 py-2 font-medium">{t("Anuncio")}</th>
+                    <th className="px-4 py-2 font-medium">{t("Estado")}</th>
+                    <th className="px-4 py-2 text-right font-medium">{t("Vistas 30d")}</th>
+                    <th className="px-4 py-2 text-right font-medium">{t("Contactos 30d")}</th>
+                    <th className="px-4 py-2 font-medium">{t("Actualizado")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -142,11 +171,11 @@ export function StatsTab({ d }: { d: AdminUserDetail }) {
                         {l.city && <span className="ml-1 text-xs text-gray-400">· {l.city}</span>}
                       </td>
                       <td className="px-4 py-2 text-xs">
-                        {l.published ? <span className="text-green-700">Publicado</span> : <span className="text-gray-400">Borrador</span>}
+                        {l.published ? <span className="text-green-700">{t("Publicado")}</span> : <span className="text-gray-400">{t("Borrador")}</span>}
                       </td>
                       <td className="px-4 py-2 text-right">{l.views30}</td>
                       <td className="px-4 py-2 text-right">{l.contacts30}</td>
-                      <td className="px-4 py-2 text-xs text-gray-400">{new Date(l.updatedAt).toLocaleDateString("es-MX")}</td>
+                      <td className="px-4 py-2 text-xs text-gray-400">{new Date(l.updatedAt).toLocaleDateString(locale)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -158,21 +187,21 @@ export function StatsTab({ d }: { d: AdminUserDetail }) {
 
       {(isGuest || !isHost) && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-gray-700">Como huésped</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-700">{t("Como huésped")}</h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="Reservas" value={guest.bookings} sub={`${guest.nights} noches pagadas`} />
-            <Stat label="Total pagado" value={mxn(guest.paidMxn)} sub="incluye cargo de plataforma" />
-            <Stat label="Mensajes enviados" value={guest.messagesSent} sub={`en ${guest.threads} conversaciones`} />
-            <Stat label="Favoritos" value={guest.savedListings} sub={`en ${guest.wishlists} listas`} />
-            <Stat label="Reseñas escritas" value={guest.reviewsWritten} />
+            <Stat label={t("Reservas")} value={guest.bookings} sub={t("{count} noches pagadas", { count: guest.nights })} />
+            <Stat label={t("Total pagado")} value={mxn(guest.paidMxn)} sub={t("incluye cargo de plataforma")} />
+            <Stat label={t("Mensajes enviados")} value={guest.messagesSent} sub={t("en {count} conversaciones", { count: guest.threads })} />
+            <Stat label={t("Favoritos")} value={guest.savedListings} sub={t("en {count} listas", { count: guest.wishlists })} />
+            <Stat label={t("Reseñas escritas")} value={guest.reviewsWritten} />
             <Stat
-              label="Calificación de anfitriones"
+              label={t("Calificación de anfitriones")}
               value={guest.ratingAvg === null ? "—" : `${guest.ratingAvg}★`}
-              sub={`${guest.reviewsReceived} reseñas recibidas`}
+              sub={t("{count} reseñas recibidas", { count: guest.reviewsReceived })}
             />
           </div>
           <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Reservas por estado</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t("Reservas por estado")}</p>
             <StatusBars data={guest.bookingsByStatus} />
           </div>
         </section>
@@ -182,6 +211,8 @@ export function StatsTab({ d }: { d: AdminUserDetail }) {
 }
 
 export function ConversationsTab({ d, initialKey }: { d: AdminUserDetail; initialKey?: string }) {
+  const t = useT();
+  const { locale } = useFormat();
   const [q, setQ] = useState("");
   const [role, setRole] = useState<"" | "host" | "guest">("");
   const [open, setOpen] = useState<string | null>(initialKey ?? d.conversations[0]?.key ?? null);
@@ -201,7 +232,7 @@ export function ConversationsTab({ d, initialKey }: { d: AdminUserDetail; initia
   }, [d.conversations, q, role]);
   const current = list.find((c) => c.key === open) ?? list[0];
 
-  if (!d.conversations.length) return <p className="text-sm text-gray-400">Este usuario no tiene conversaciones.</p>;
+  if (!d.conversations.length) return <p className="text-sm text-gray-400">{t("Este usuario no tiene conversaciones.")}</p>;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
@@ -209,7 +240,7 @@ export function ConversationsTab({ d, initialKey }: { d: AdminUserDetail; initia
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar en conversaciones…"
+          placeholder={t("Buscar en conversaciones…")}
           className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
         />
         <div className="flex gap-1 text-xs">
@@ -220,7 +251,7 @@ export function ConversationsTab({ d, initialKey }: { d: AdminUserDetail; initia
               onClick={() => setRole(r)}
               className={`rounded-full border px-3 py-1 ${role === r ? "border-amber-500 bg-amber-50 text-amber-800" : "border-gray-200 text-gray-600"}`}
             >
-              {r === "" ? "Todas" : r === "host" ? "Como anfitrión" : "Como huésped"}
+              {r === "" ? t("Todas") : r === "host" ? t("Como anfitrión") : t("Como huésped")}
             </button>
           ))}
         </div>
@@ -235,17 +266,17 @@ export function ConversationsTab({ d, initialKey }: { d: AdminUserDetail; initia
                 <p className="flex items-center justify-between gap-2 text-sm font-medium text-gray-900">
                   <span className="truncate">{c.counterpartName}</span>
                   <span className="shrink-0 text-[10px] font-normal text-gray-400" suppressHydrationWarning>
-                    {relTime(c.lastAt)}
+                    {relTime(c.lastAt, t, locale)}
                   </span>
                 </p>
                 <p className="truncate text-xs text-gray-500">{c.listingTitle}</p>
                 <p className="mt-0.5 text-[10px] text-gray-400">
-                  {c.role === "host" ? "Es su huésped" : "Es su anfitrión"} · {c.messageCount} mensajes
+                  {c.role === "host" ? t("Es su huésped") : t("Es su anfitrión")} · {t("{count} mensajes", { count: c.messageCount })}
                 </p>
               </button>
             </li>
           ))}
-          {list.length === 0 && <li className="px-3 py-6 text-center text-xs text-gray-400">Sin resultados.</li>}
+          {list.length === 0 && <li className="px-3 py-6 text-center text-xs text-gray-400">{t("Sin resultados.")}</li>}
         </ul>
       </div>
       {current && <Thread c={current} userName={d.user.fullName} highlight={q.trim()} />}
@@ -254,6 +285,8 @@ export function ConversationsTab({ d, initialKey }: { d: AdminUserDetail; initia
 }
 
 function Thread({ c, userName, highlight }: { c: AdminConversation; userName: string; highlight: string }) {
+  const t = useT();
+  const { locale, when } = useFormat();
   const userSender = c.role;
   return (
     <div id={`chat-${c.key}`} className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white">
@@ -269,7 +302,8 @@ function Thread({ c, userName, highlight }: { c: AdminConversation; userName: st
           )}
         </p>
         <p className="text-xs text-gray-500">
-          {c.listingTitle} · {c.counterpartEmail ?? "sin correo"} · desde {new Date(c.firstAt).toLocaleDateString("es-MX")}
+          {c.listingTitle} · {c.counterpartEmail ?? t("sin correo")} ·{" "}
+          {t("desde {date}", { date: new Date(c.firstAt).toLocaleDateString(locale) })}
         </p>
       </div>
       <div className="max-h-[560px] space-y-2 overflow-y-auto bg-gray-50 px-4 py-4">
@@ -284,12 +318,12 @@ function Thread({ c, userName, highlight }: { c: AdminConversation; userName: st
                 } ${hit ? "ring-2 ring-amber-500" : ""}`}
               >
                 {m.attachment && (
-                  <p className="text-xs text-gray-500">{m.attachment === "image" ? "📷 Foto" : "🎤 Nota de voz"}</p>
+                  <p className="text-xs text-gray-500">{m.attachment === "image" ? t("📷 Foto") : t("🎤 Nota de voz")}</p>
                 )}
                 {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                 <p className="mt-1 text-[10px] text-gray-400">
-                  {m.sender === "host" ? "Anfitrión" : "Huésped"}
-                  {m.via === "ai" ? " · IA" : ""} · {when(m.createdAt)}
+                  {m.sender === "host" ? t("Anfitrión") : t("Huésped")}
+                  {m.via === "ai" ? ` · ${t("IA")}` : ""} · {when(m.createdAt)}
                 </p>
               </div>
             </div>
@@ -321,16 +355,20 @@ export function ActivityTab({
   onOpenChat: (key: string) => void;
   onOpenTab: (tab: string) => void;
 }) {
+  const t = useT();
+  const { locale } = useFormat();
   const [kind, setKind] = useState<"" | AdminActivity["kind"]>("");
   const [q, setQ] = useState("");
   const kinds = useMemo(() => [...new Set(d.activity.map((a) => a.kind))], [d.activity]);
   const list = d.activity.filter(
-    (a) => (!kind || a.kind === kind) && (!q || `${a.title} ${a.detail ?? ""}`.toLowerCase().includes(q.toLowerCase()))
+    (a) =>
+      (!kind || a.kind === kind) &&
+      (!q || `${a.title} ${t(a.title)} ${a.detail ?? ""}`.toLowerCase().includes(q.toLowerCase()))
   );
 
   const byDay = new Map<string, AdminActivity[]>();
   for (const a of list) {
-    const day = new Date(a.when).toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const day = new Date(a.when).toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const arr = byDay.get(day) ?? [];
     arr.push(a);
     byDay.set(day, arr);
@@ -342,7 +380,7 @@ export function ActivityTab({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar en la actividad…"
+          placeholder={t("Buscar en la actividad…")}
           className="min-w-[220px] flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
         />
         <button
@@ -350,7 +388,7 @@ export function ActivityTab({
           onClick={() => setKind("")}
           className={`rounded-full border px-3 py-1 text-xs ${kind === "" ? "border-amber-500 bg-amber-50 text-amber-800" : "border-gray-200 text-gray-600"}`}
         >
-          Todo ({d.activity.length})
+          {t("Todo ({count})", { count: d.activity.length })}
         </button>
         {kinds.map((k) => (
           <button
@@ -359,11 +397,11 @@ export function ActivityTab({
             onClick={() => setKind(k)}
             className={`rounded-full border px-3 py-1 text-xs ${kind === k ? "border-amber-500 bg-amber-50 text-amber-800" : "border-gray-200 text-gray-600"}`}
           >
-            {KIND_META[k].icon} {KIND_META[k].label} ({d.activity.filter((a) => a.kind === k).length})
+            {KIND_META[k].icon} {t(KIND_META[k].label)} ({d.activity.filter((a) => a.kind === k).length})
           </button>
         ))}
       </div>
-      {list.length === 0 && <p className="text-sm text-gray-400">Sin actividad.</p>}
+      {list.length === 0 && <p className="text-sm text-gray-400">{t("Sin actividad.")}</p>}
       <div className="space-y-6">
         {[...byDay.entries()].map(([day, items]) => (
           <div key={day}>
@@ -376,11 +414,11 @@ export function ActivityTab({
                   <>
                     <span className="mt-0.5 text-base">{KIND_META[a.kind].icon}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-900">{a.title}</p>
-                      {a.detail && <p className="truncate text-xs text-gray-500">{a.detail}</p>}
+                      <p className="text-sm text-gray-900">{t(a.title)}</p>
+                      {a.detail && <p className="truncate text-xs text-gray-500">{t(a.detail)}</p>}
                     </div>
                     <span className="shrink-0 text-xs text-gray-400">
-                      {new Date(a.when).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(a.when).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </>
                 );
@@ -420,41 +458,52 @@ const REPORT_STATUS_BADGE: Record<string, string> = {
 };
 
 export function ReportList({ rows, empty }: { rows: AdminReportRow[]; empty: string }) {
+  const t = useT();
+  const { when } = useFormat();
   if (!rows.length) return <p className="text-sm text-gray-400">{empty}</p>;
   return (
     <ul className="space-y-2">
       {rows.map((r) => (
         <li key={r.id} className="rounded-xl border border-gray-200 bg-white p-4">
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className={`rounded px-2 py-0.5 font-medium ${REPORT_STATUS_BADGE[r.status]}`}>{REPORT_STATUS_LABEL[r.status]}</span>
-            <span className="font-semibold text-gray-800">{reportKindLabel(r.kind)}</span>
-            <span className="text-gray-500">· {r.category}</span>
+            <span className={`rounded px-2 py-0.5 font-medium ${REPORT_STATUS_BADGE[r.status]}`}>{t(REPORT_STATUS_LABEL[r.status])}</span>
+            <span className="font-semibold text-gray-800">{t(reportKindLabel(r.kind))}</span>
+            <span className="text-gray-500">· {t(r.category)}</span>
             <span className="ml-auto text-gray-400">{when(r.createdAt)}</span>
           </div>
           <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{r.message}</p>
           <p className="mt-2 text-xs text-gray-500">
-            De{" "}
+            {t("De")}{" "}
             <Link href={`/admin/users/${r.reporterId}`} className="text-amber-700 hover:underline">
               {r.reporterName}
             </Link>
             {r.targetUserId && (
               <>
                 {" "}
-                sobre{" "}
+                {t("sobre")}{" "}
                 <Link href={`/admin/users/${r.targetUserId}`} className="text-amber-700 hover:underline">
                   {r.targetName ?? r.targetUserId}
                 </Link>
               </>
             )}
-            {!r.targetUserId && r.targetLabel && <> sobre “{r.targetLabel}”</>}
+            {!r.targetUserId && r.targetLabel && (
+              <>
+                {" "}
+                {t("sobre")} “{r.targetLabel}”
+              </>
+            )}
             {r.listingTitle && <> · {r.listingTitle}</>}
           </p>
-          {r.adminNote && <p className="mt-2 rounded bg-gray-50 px-2 py-1 text-xs text-gray-600">Nota interna: {r.adminNote}</p>}
+          {r.adminNote && (
+            <p className="mt-2 rounded bg-gray-50 px-2 py-1 text-xs text-gray-600">
+              {t("Nota interna:")} {r.adminNote}
+            </p>
+          )}
         </li>
       ))}
       <li>
         <Link href="/admin/reportes" className="text-xs text-amber-700 hover:underline">
-          Gestionar en Reportes →
+          {t("Gestionar en Reportes →")}
         </Link>
       </li>
     </ul>

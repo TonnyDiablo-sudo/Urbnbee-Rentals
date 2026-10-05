@@ -122,13 +122,13 @@ export const auditFill: Record<string, string> = {
     "How was your stay at {listing}? Rate the host and help other travelers.",
   "Terminó la estancia de {guest} en {listing}. Califica al huésped para que otros anfitriones lo conozcan.":
     "{guest}'s stay at {listing} has ended. Rate the guest so other hosts can get to know them.",
-  "En Cabibee las reseñas son de ida y vuelta: sólo se pueden dejar en reservas hechas con el motor de reservas, y las revisa un moderador automático.":
-    "On Cabibee, reviews go both ways: they can only be left on bookings made through the booking engine, and an automated moderator checks them.",
+  "En Cabibee las reseñas son de ida y vuelta: sólo se pueden dejar en reservas hechas con el motor de reservas, y nuestro equipo las revisa antes de publicarlas.":
+    "On Cabibee, reviews go both ways: they can only be left on bookings made through the booking engine, and our team reviews them before they're published.",
   "¿Cómo te fue en {listing}?": "How did it go at {listing}?",
   "Califica a {guest}": "Rate {guest}",
   "Dejar mi reseña": "Leave my review",
-  "Tú y tu huésped se califican al terminar la estancia; un moderador automático revisa las reseñas.":
-    "You and your guest rate each other when the stay ends; an automated moderator checks the reviews.",
+  "Tú y tu huésped se califican al terminar la estancia; nuestro equipo revisa las reseñas.":
+    "You and your guest rate each other when the stay ends; our team reviews the reviews before they're published.",
   "Quita teléfonos, correos o redes sociales de tu reseña.": "Remove phone numbers, emails or social media from your review.",
   "Tu reseña no cumple las reglas de la comunidad. Escríbela sin insultos ni datos personales.":
     "Your review doesn't meet the community rules. Write it without insults or personal details.",

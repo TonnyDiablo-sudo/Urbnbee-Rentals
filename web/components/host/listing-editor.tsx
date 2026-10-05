@@ -14,7 +14,13 @@ import { AMENITY_GROUPS, AMENITY_OPTIONS } from "@/lib/amenity-options";
 import { ACCESS_CODE_MAX, type ArrivalGuide } from "@/lib/arrival-guide";
 import { arrivalMessageOf, type ArrivalMessageSettings } from "@/lib/arrival-message-template";
 import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
-import { MONTHLY_RENTAL_NIGHTS, type ListingPricing } from "@/lib/listing-pricing";
+import { LongStayDiscountFields } from "@/components/host/long-stay-discount-fields";
+import {
+  MONTHLY_RENTAL_NIGHTS,
+  longStayFormValues,
+  withLongStayPct,
+  type ListingPricing,
+} from "@/lib/listing-pricing";
 import { ArrivalMessageEditor } from "@/components/host/arrival-message-editor";
 import { ListingImportUsagePanel } from "@/components/host/listing-import-usage-panel";
 import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
@@ -1038,7 +1044,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
             </Field>
           </div>
           <div className="rounded-lg border border-[#ebebeb] p-4">
-            <p className="mb-3 text-sm font-medium text-[#484848]">{t("Descuentos por estancia larga")}</p>
+            <p className="mb-3 text-sm font-medium text-[#484848]">{t("Descuentos")}</p>
             <div className="grid gap-4 sm:grid-cols-3">
               {(
                 [
@@ -1064,6 +1070,23 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                   />
                 </Field>
               ))}
+            </div>
+            <div className="mt-4">
+              <LongStayDiscountFields
+                values={longStayFormValues(listing.pricing)}
+                onChange={(m, v) =>
+                  setListing({
+                    ...listing,
+                    pricing: {
+                      ...listing.pricing,
+                      longStayDiscounts: withLongStayPct(listing.pricing?.longStayDiscounts, m, Number(v) || 0),
+                    },
+                  })
+                }
+                onBlur={() => savePricing({ longStayDiscounts: listing.pricing?.longStayDiscounts ?? [] })}
+                highlight={listing.rentalMode === "monthly"}
+                inputClassName="mt-1 w-full rounded-lg border border-[#ddd] bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#dcb81e]"
+              />
             </div>
             <p className="mt-2 text-xs text-[#888]">
               {listing.rentalMode === "monthly"

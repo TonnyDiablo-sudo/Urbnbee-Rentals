@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { GuestPayNote } from "@/components/booking/pay-status";
 import { PayDifference } from "@/components/booking/pay-difference";
 import { useLang, useT } from "@/components/i18n-provider";
+import { ReviewStatusNote } from "@/components/review-status-note";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
 import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
 import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
@@ -32,7 +33,7 @@ type Trip = {
   listingCity?: string;
   arrival?: ArrivalGuide & { address?: string };
   canReview?: boolean;
-  myReview?: { rating: number; comment: string } | null;
+  myReview?: { rating: number; comment: string; status?: string; statusReason?: string } | null;
   hostReviewOfMe?: { rating: number; comment: string } | null;
   balanceDueMxn?: number;
   paidStayMxn?: number;
@@ -224,6 +225,7 @@ export function TripsList() {
                       {t("Tu reseña")} · <Stars value={trip.myReview.rating} />
                     </p>
                     <p className="mt-0.5 line-clamp-3 text-[13px] text-[#555]">{trip.myReview.comment}</p>
+                    <ReviewStatusNote status={trip.myReview.status} reason={trip.myReview.statusReason} className="mt-2" />
                   </div>
                 )}
                 {trip.hostReviewOfMe && (
@@ -318,7 +320,11 @@ export function TripsList() {
                 prev?.map((x) => (x.id === reviewing.id ? { ...x, canReview: false, myReview: review } : x)) ?? prev
               );
               setReviewing(null);
-              setNotice("¡Gracias! Tu reseña ya aparece en el anuncio.");
+              setNotice(
+                review.status === "pending"
+                  ? "Gracias. Tu reseña está siendo revisada por nuestro equipo y se publicará en cuanto quede aprobada."
+                  : "¡Gracias! Tu reseña ya aparece en el anuncio."
+              );
             }}
           />
         )}
@@ -338,7 +344,7 @@ function Stars({ value }: { value: number }) {
 
 const RATING_WORDS = ["", "Malo", "Regular", "Bien", "Muy bien", "Excelente"];
 
-function ReviewForm({ trip, onDone }: { trip: Trip; onDone: (r: { rating: number; comment: string }) => void }) {
+function ReviewForm({ trip, onDone }: { trip: Trip; onDone: (r: { rating: number; comment: string; status?: string }) => void }) {
   const t = useT();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -360,7 +366,7 @@ function ReviewForm({ trip, onDone }: { trip: Trip; onDone: (r: { rating: number
       setErr(typeof data.error === "string" ? data.error : "No se pudo guardar. Intenta de nuevo.");
       return;
     }
-    onDone({ rating, comment: comment.trim() });
+    onDone({ rating, comment: comment.trim(), status: data.pending ? "pending" : "published" });
   }
 
   return (

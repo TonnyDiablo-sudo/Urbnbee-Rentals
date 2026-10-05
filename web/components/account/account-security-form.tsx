@@ -10,6 +10,7 @@ export type AccountSecurityProps = {
   /** Vacío si el usuario actual es el interno que generó el asociado. */
   email: string;
   emailVerified: boolean;
+  phone: string;
   stats?: { listings: number; views: number; contacts: number };
   doneHref: string;
 };
@@ -17,11 +18,12 @@ export type AccountSecurityProps = {
 const inputCls = "mt-1 w-full rounded-xl border border-[#ccc] px-3.5 py-3 text-base outline-none focus:border-[#222]";
 const pwCls = "w-full rounded-xl border border-[#ccc] py-3 pl-3.5 pr-11 text-base outline-none focus:border-[#222]";
 
-export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, stats, doneHref }: AccountSecurityProps) {
+export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, phone: initialPhone, stats, doneHref }: AccountSecurityProps) {
   const t = useT();
   const router = useRouter();
   const activate = mode === "activate";
   const [email, setEmail] = useState(initialEmail);
+  const [phone, setPhone] = useState(initialPhone);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -42,7 +44,12 @@ export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, 
     const res = await fetch("/api/account/credentials", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, newPassword: newPassword || undefined, currentPassword: currentPassword || undefined }),
+      body: JSON.stringify({
+        email,
+        phone,
+        newPassword: newPassword || undefined,
+        currentPassword: currentPassword || undefined,
+      }),
     }).catch(() => null);
     const j = res ? await res.json().catch(() => ({})) : {};
     setBusy(false);
@@ -81,7 +88,7 @@ export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, 
         <div>
           <h1 className="text-[26px] font-bold text-[#222]">{t("Bienvenido a Cabibee")}</h1>
           <p className="mt-1.5 text-sm leading-relaxed text-[#717171]">
-            {t("Publicamos tu alojamiento gratis. Pon tu correo y una contraseña nueva para que la cuenta quede a tu nombre; después puedes editar o borrar tus anuncios cuando quieras.")}
+            {t("Publicamos tu alojamiento gratis. Pon tu correo, tu teléfono y una contraseña nueva para que la cuenta quede a tu nombre; después puedes editar o borrar tus anuncios cuando quieras.")}
           </p>
         </div>
       )}
@@ -123,6 +130,19 @@ export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, 
               )}
             </span>
           )}
+        </label>
+        <label className="block text-sm font-medium text-[#222]">
+          {t("Tu teléfono")}
+          <input
+            type="tel"
+            required={activate || Boolean(initialPhone)}
+            autoComplete="tel"
+            inputMode="tel"
+            placeholder={t("Con lada, ej. 55 1234 5678")}
+            className={inputCls}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
         </label>
         {!activate && (
           <label className="block text-sm font-medium text-[#222]">

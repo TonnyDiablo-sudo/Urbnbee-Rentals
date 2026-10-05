@@ -17,6 +17,7 @@ import {
 } from "@/lib/booking-contact";
 
 const DISCOUNT_LABEL: Record<StayDiscountKind, string> = {
+  long_stay: "Descuento por estancia de {months} meses o más ({n}%)",
   monthly: "Descuento mensual ({n}%)",
   weekly: "Descuento semanal ({n}%)",
   early_bird: "Reserva anticipada ({n}%)",
@@ -356,7 +357,7 @@ export function AvailabilityCalendar({
           )}
           {stay.discountMxn > 0 && stay.discountKind && (
             <div className="flex justify-between text-[#1e7a3a]">
-              <span>{t(DISCOUNT_LABEL[stay.discountKind], { n: stay.discountPct })}</span>
+              <span>{t(DISCOUNT_LABEL[stay.discountKind], { n: stay.discountPct, months: stay.discountMonths ?? 0 })}</span>
               <span>−${stay.discountMxn.toLocaleString("es-MX")}</span>
             </div>
           )}

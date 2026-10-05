@@ -52,7 +52,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         body: JSON.stringify(
           mode === "login"
             ? { email, password }
-            : { email, password, fullName, phone: phone || undefined, intent: asHost ? "host" : "guest", acceptTerms }
+            : { email, password, fullName, phone, intent: asHost ? "host" : "guest", acceptTerms }
         ),
       });
       const data = await res.json().catch(() => ({}));
@@ -112,9 +112,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           </label>
           {mode === "register" && (
             <label className="block text-sm font-medium text-[#222]">
-              {t("Teléfono")} <span className="font-normal text-[#999]">{t("(opcional)")}</span>
+              {t("Teléfono")}
               <input
                 type="tel"
+                required
+                placeholder={t("Con lada, ej. 55 1234 5678")}
                 autoComplete="tel"
                 inputMode="tel"
                 className={inputCls}

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const listing = getListingById(b.listingId);
     const effId = b.hostAdjustedListingId ?? b.listingId;
     const effListing = effId !== b.listingId ? getListingById(effId) : listing;
-    const reviews = reviewsForBooking(b.id);
+    const reviews = reviewsForBooking(b.id, "guest");
     const screening = getScreeningByBooking(b.id);
     // La dirección exacta y la guía sólo se comparten con la reserva confirmada.
     const confirmed = b.status === "CONFIRMED" || b.status === "COMPLETED";
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
           : undefined,
       balanceDueMxn: bookingBalanceDueMxn(b),
       paidStayMxn: b.paidAt ? paidStayOf(b) : 0,
-      canReview: stayReviewEligible(b) && !reviews.guestToListing,
+      canReview: stayReviewEligible(b) && (!reviews.guestToListing || reviews.guestToListing.status === "rejected"),
       myReview: reviews.guestToListing,
       hostReviewOfMe: reviews.hostToGuest,
       screening: screening ? screeningPublicView(screening) : null,

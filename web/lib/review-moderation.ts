@@ -3,7 +3,8 @@ import { makeT, type Lang } from "@/lib/i18n";
 import { callListingImportOpenAiJson } from "@/lib/listing-import-openai";
 
 export type ReviewModeration = {
-  verdict: "approve" | "reject";
+  /** `unavailable`: el filtro no respondió; la reseña queda en revisión hasta que lo haga. */
+  verdict: "approve" | "reject" | "unavailable";
   /** Explicación corta, en el idioma de quien escribió la reseña. */
   reason?: string;
   model?: string;
@@ -13,7 +14,7 @@ function reviewModerationModel(): string {
   return process.env.REVIEW_MODERATION_OPENAI_MODEL?.trim() || "gpt-4o-mini";
 }
 
-const SYSTEM = `Eres el moderador de reseñas de Cabibee, una plataforma de rentas. Huéspedes califican alojamientos y anfitriones califican huéspedes después de una estancia.
+const SYSTEM = `Eres parte del equipo de revisión de reseñas de Cabibee, una plataforma de rentas. Huéspedes califican alojamientos y anfitriones califican huéspedes después de una estancia.
 Las reseñas negativas y honestas SÍ se permiten (limpieza, ruido, trato, puntualidad, daños, reglas incumplidas).
 Rechaza ("reject") sólo si la reseña:
 - insulta, humilla o usa groserías dirigidas a una persona;
@@ -23,13 +24,14 @@ Rechaza ("reject") sólo si la reseña:
 - hace spam, publicidad, o pide tratos fuera de la plataforma;
 - no tiene que ver con la estancia.
 Todo lo demás es "approve". En caso de duda, "approve".
-Responde SOLO JSON: {"verdict": "approve"|"reject", "reason": string (en español, una frase corta dirigida a quien escribió, explicando qué cambiar; vacía si approve)}`;
+"reason": una frase corta dirigida a quien escribió, explicando qué cambiar, como la escribiría una persona del equipo de Cabibee. Nunca menciones inteligencia artificial, sistemas automáticos, filtros ni modelos. Vacía si approve.
+Responde SOLO JSON: {"verdict": "approve"|"reject", "reason": string}`;
 
 const CONTACT_RE = /(\+?\d[\d\s().-]{8,}\d)|([\w.+-]+@[\w-]+\.[\w.]+)|(wa\.me|whatsapp\.com|instagram\.com|facebook\.com|t\.me)\//i;
 
 /**
- * Revisa una reseña antes de publicarla. Si la IA no responde, deja pasar la reseña
- * salvo que traiga datos de contacto (eso se detecta sin IA).
+ * Revisa una reseña antes de publicarla. Los datos de contacto se detectan sin depender
+ * del servicio; si el servicio no responde, la reseña no se publica todavía.
  */
 export async function moderateReview(opts: {
   kind: "guest_to_listing" | "host_to_guest";
@@ -52,8 +54,8 @@ export async function moderateReview(opts: {
     reasoningEffort: "minimal",
   }).catch(() => null);
   if (!res || !res.ok) {
-    if (res && !res.ok) console.warn("[review moderation] sin IA:", res.error);
-    return { verdict: "approve" };
+    if (res && !res.ok) console.warn("[review moderation] sin respuesta:", res.error);
+    return { verdict: "unavailable" };
   }
   if (res.data.verdict === "reject") {
     const reason = String(res.data.reason ?? "").trim().slice(0, 240);
@@ -63,5 +65,6 @@ export async function moderateReview(opts: {
       model: res.model,
     };
   }
+  if (res.data.verdict !== "approve") return { verdict: "unavailable" };
   return { verdict: "approve", model: res.model };
 }

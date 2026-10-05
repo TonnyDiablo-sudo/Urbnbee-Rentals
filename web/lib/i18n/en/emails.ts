@@ -56,8 +56,8 @@ export const emails: Record<string, string> = {
     "How was your stay at {listing}? Rate your host and help other travelers.",
   "Terminó la estancia de {guest} en {listing}. Califica al huésped para que otros anfitriones lo conozcan.":
     "{guest}'s stay at {listing} has ended. Rate the guest so other hosts know them.",
-  "En Cabibee las reseñas son de ida y vuelta: sólo se pueden dejar en reservas hechas con el motor de reservas, y las revisa un moderador automático.":
-    "On Cabibee, reviews go both ways: they can only be left on bookings made with the booking engine, and an automatic moderator checks them.",
+  "En Cabibee las reseñas son de ida y vuelta: sólo se pueden dejar en reservas hechas con el motor de reservas, y nuestro equipo las revisa antes de publicarlas.":
+    "On Cabibee, reviews go both ways: they can only be left on bookings made with the booking engine, and our team reviews them before they're published.",
   "¿Cómo te fue en {listing}?": "How did it go at {listing}?",
   "Califica a {guest}": "Rate {guest}",
   "Deja tu reseña": "Leave your review",
@@ -68,12 +68,12 @@ export const emails: Record<string, string> = {
     "Your review breaks the community rules. Write it without insults or personal data.",
   "Tu reseña no cumple las reglas de la comunidad.": "Your review breaks the community rules.",
 
-  "Reseñas de ida y vuelta: cuando reservas con el motor de reservas de Cabibee, tú calificas al anfitrión y él te califica a ti. Un moderador automático quita insultos y datos personales.":
-    "Two-way reviews: when you book with Cabibee's booking engine, you rate the host and they rate you. An automatic moderator removes insults and personal data.",
-  "Reseñas de ida y vuelta: en las reservas hechas con el motor de reservas de Cabibee, tú calificas al huésped y él te califica a ti. Un moderador automático quita insultos y datos personales.":
-    "Two-way reviews: on bookings made with Cabibee's booking engine, you rate the guest and they rate you. An automatic moderator removes insults and personal data.",
+  "Reseñas de ida y vuelta: cuando reservas con el motor de reservas de Cabibee, tú calificas al anfitrión y él te califica a ti. Nuestro equipo revisa las reseñas para quitar insultos y datos personales.":
+    "Two-way reviews: when you book with Cabibee's booking engine, you rate the host and they rate you. Our team reviews them to remove insults and personal data.",
+  "Reseñas de ida y vuelta: en las reservas hechas con el motor de reservas de Cabibee, tú calificas al huésped y él te califica a ti. Nuestro equipo revisa las reseñas para quitar insultos y datos personales.":
+    "Two-way reviews: on bookings made with Cabibee's booking engine, you rate the guest and they rate you. Our team reviews them to remove insults and personal data.",
   "Recordatorios por correo a ti y a tu huésped antes de la llegada, y para dejarse reseña al terminar.":
     "Email reminders to you and your guest before arrival, and to review each other afterwards.",
-  "Tú y tu huésped se califican al terminar la estancia; un moderador automático revisa las reseñas.":
-    "You and your guest rate each other after the stay; an automatic moderator checks the reviews.",
+  "Tú y tu huésped se califican al terminar la estancia; nuestro equipo revisa las reseñas.":
+    "You and your guest rate each other after the stay; our team reviews the reviews before they're published.",
 };

@@ -4,7 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { AMENITY_GROUPS, AMENITY_OPTIONS } from "@/lib/amenity-options";
 import { ACCESS_CODE_MAX } from "@/lib/arrival-guide";
-import { MONTHLY_RENTAL_NIGHTS, type RentalMode } from "@/lib/listing-pricing";
+import { LongStayDiscountFields } from "@/components/host/long-stay-discount-fields";
+import {
+  MONTHLY_RENTAL_NIGHTS,
+  longStayFormValues,
+  longStayFromForm,
+  type LongStayMonths,
+  type RentalMode,
+} from "@/lib/listing-pricing";
 import { IconExternal, IconPlus } from "../../../_components/icons";
 import { WebLink } from "../../../_components/site-origin";
 import { TopBar } from "../../../_components/top-bar";
@@ -33,6 +40,7 @@ type Draft = {
   cleaningFee: number;
   weeklyDiscountPct: number;
   monthlyDiscountPct: number;
+  longStay: Record<LongStayMonths, string>;
   amenities: string[];
   accessCode: string;
   agentCanShareAccessCode: boolean;
@@ -63,6 +71,7 @@ function toDraft(l: Listing): Draft {
     cleaningFee: l.cleaningFee,
     weeklyDiscountPct: l.pricing?.weeklyDiscountPct ?? 0,
     monthlyDiscountPct: l.pricing?.monthlyDiscountPct ?? 0,
+    longStay: longStayFormValues(l.pricing),
     amenities: [...l.amenities],
     accessCode: ag.accessCode ?? "",
     agentCanShareAccessCode: l.agentCanShareAccessCode !== false,
@@ -150,7 +159,12 @@ export function QuickListingEditor({ listingId }: { listingId: string }) {
       ...(monthly ? { pricePerMonth: draft.pricePerMonth } : { pricePerNight: draft.pricePerNight }),
       cleaningFee: draft.cleaningFee,
       // El servidor reemplaza `pricing` completo: se manda lo guardado con los descuentos encima.
-      pricing: { ...(listing.pricing ?? {}), weeklyDiscountPct: draft.weeklyDiscountPct, monthlyDiscountPct: draft.monthlyDiscountPct },
+      pricing: {
+        ...(listing.pricing ?? {}),
+        weeklyDiscountPct: draft.weeklyDiscountPct,
+        monthlyDiscountPct: draft.monthlyDiscountPct,
+        longStayDiscounts: longStayFromForm(draft.longStay),
+      },
       amenities: draft.amenities,
       arrivalGuide: {
         ...(listing.arrivalGuide ?? {}),
@@ -424,6 +438,12 @@ export function QuickListingEditor({ listingId }: { listingId: string }) {
               />
             </label>
           </div>
+          <LongStayDiscountFields
+            values={draft.longStay}
+            onChange={(m, v) => set("longStay", { ...draft.longStay, [m]: v })}
+            highlight={draft.rentalMode === "monthly"}
+            inputClassName={inputCls}
+          />
           <p className="text-xs text-[#888]">
             {draft.rentalMode === "monthly"
               ? t("En renta mensual la estancia mínima es de al menos {n} noches.", { n: MONTHLY_RENTAL_NIGHTS })

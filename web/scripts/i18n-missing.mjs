@@ -9,7 +9,7 @@
  *   node scripts/i18n-missing.mjs --hardcoded  # además, texto JSX/atributos que no pasan por t()
  *
  * Las props de texto de componentes (<Field label="…">) se cuentan como claves: esos componentes
- * traducen adentro. Se omiten las rutas de INTERNAL (admin, asociados, API de socios, webhooks).
+ * traducen adentro. Se omiten las rutas de INTERNAL (API de socios, webhooks).
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -27,15 +27,9 @@ const lineOf = (src, index) => src.slice(0, index).split("\n").length;
 
 /** Herramientas internas (sólo en español) y APIs que no ve una persona: no se auditan. */
 const INTERNAL = [
-  /^app\/admin\//,
-  /^app\/asociados\//,
-  /^app\/claim-admin\//,
-  /^app\/api\/admin\//,
-  /^app\/api\/associate\//,
-  /^app\/api\/auth\/claim-admin\//,
   /^app\/api\/integrations\/beeagent\/v1\//,
   /^app\/api\/webhooks\//,
-  /^lib\/(admin-|associate-|blog-bot-|platform-analytics|mailboxes-store|beeagent-partner|beeagent-require-link)/,
+  /^lib\/(platform-analytics|mailboxes-store|beeagent-partner|beeagent-require-link)/,
 ];
 
 function loadDictionaries() {
@@ -133,7 +127,6 @@ function collect() {
 
   for (const file of uiFiles) {
     const src = readFileSync(file, "utf8");
-    const isAdmin = file.includes(`${sep}app${sep}admin${sep}`);
     const isApi = file.includes(`${sep}app${sep}api${sep}`);
     const isApiOrLib =
       file.includes(`${sep}app${sep}api${sep}`) || file.startsWith(join(ROOT, "lib") + sep) || /actions?\.ts$/.test(file);
@@ -158,7 +151,7 @@ function collect() {
       }
     }
 
-    if (file.endsWith(".tsx") && !isAdmin) {
+    if (file.endsWith(".tsx")) {
       for (const m of src.matchAll(jsxProp)) {
         const tag = src.slice(0, m.index).match(/<([\w.]+)[^<]*$/);
         if (!tag) continue;
@@ -187,7 +180,7 @@ function collect() {
       const lit = readLiteral(src, m.index + m[0].length);
       if (lit && looksSpanishText(lit.value)) add(file, lit.value, "error");
     }
-    if (file.endsWith(".tsx") && !isAdmin) {
+    if (file.endsWith(".tsx")) {
       for (const m of src.matchAll(stateSetter)) {
         const open = m.index + m[0].length - 1;
         const close = matchingBrace(src, open);
@@ -198,7 +191,7 @@ function collect() {
       }
     }
 
-    if (WITH_LABELS && !isAdmin && !isApi) {
+    if (WITH_LABELS && !isApi) {
       for (const m of src.matchAll(labelProp)) {
         const lit = readLiteral(src, m.index + m[0].length);
         if (lit && looksSpanishText(lit.value)) add(file, lit.value, "label");

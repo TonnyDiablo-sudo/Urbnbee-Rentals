@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useT } from "@/components/i18n-provider";
 import type { AssociateDraft, DraftContact } from "@/lib/associate-drafts-store";
 import type { DuplicateHit } from "@/lib/associate-duplicates";
 import type { ListingImportLlmPayload } from "@/lib/listing-import-types";
@@ -44,6 +45,7 @@ export function ReviewForm({
   accounts: Account[];
   nextDraftId?: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const [l, setL] = useState<ListingImportLlmPayload>(draft.listing);
   const [contact, setContact] = useState<DraftContact>(draft.contact);
@@ -84,7 +86,7 @@ export function ReviewForm({
     const j = res ? await res.json().catch(() => ({})) : {};
     setBusy(false);
     if (!res?.ok) {
-      setErr(typeof j.error === "string" ? j.error : "No se pudo publicar.");
+      setErr(typeof j.error === "string" ? t(j.error) : t("No se pudo publicar."));
       return;
     }
     setDone(j as Published);
@@ -92,7 +94,7 @@ export function ReviewForm({
   }
 
   async function discard() {
-    if (!confirm("¿Descartar este borrador?")) return;
+    if (!confirm(t("¿Descartar este borrador?"))) return;
     await fetch(`/api/associate/drafts/${draft.id}`, { method: "DELETE" });
     router.push(nextDraftId ? `/asociados/borradores/${nextDraftId}` : "/asociados");
     router.refresh();
@@ -106,26 +108,26 @@ export function ReviewForm({
     return (
       <div className="mx-auto max-w-2xl space-y-5">
         <div className="rounded-xl border border-green-200 bg-green-50 p-5">
-          <h1 className="text-lg font-semibold text-green-900">Publicado ✓</h1>
+          <h1 className="text-lg font-semibold text-green-900">{t("Publicado ✓")}</h1>
           <p className="mt-1 text-sm text-green-800">
-            {done.created ? "Se creó la cuenta del anfitrión y su anuncio ya está en Cabibee." : "El anuncio se agregó a la cuenta."}
+            {done.created ? t("Se creó la cuenta del anfitrión y su anuncio ya está en Cabibee.") : t("El anuncio se agregó a la cuenta.")}
           </p>
           <a href={`/listings/${done.listingSlug}`} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm text-green-900 underline">
-            Ver anuncio
+            {t("Ver anuncio")}
           </a>
         </div>
         {done.warnings.map((w) => (
           <p key={w} className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            {w}
+            {t(w)}
           </p>
         ))}
         {done.credentials && message && (
           <div className="rounded-xl border border-gray-200 bg-white p-5">
-            <p className="text-sm font-semibold text-gray-900">Acceso del anfitrión (solo se muestra ahora)</p>
-            <p className="mt-2 font-mono text-sm text-gray-800">Usuario: {done.credentials.email}</p>
-            <p className="font-mono text-sm text-gray-800">Contraseña: {done.credentials.password}</p>
+            <p className="text-sm font-semibold text-gray-900">{t("Acceso del anfitrión (solo se muestra ahora)")}</p>
+            <p className="mt-2 font-mono text-sm text-gray-800">{t("Usuario:")} {done.credentials.email}</p>
+            <p className="font-mono text-sm text-gray-800">{t("Contraseña:")} {done.credentials.password}</p>
             <p className="mt-3 text-xs text-gray-500">
-              Si la pierdes, genera otra desde la cuenta. Mensaje listo para mandarle:
+              {t("Si la pierdes, genera otra desde la cuenta. Mensaje listo para mandarle (en español):")}
             </p>
             <textarea readOnly rows={8} value={message} className="mt-1 w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm" />
             <button
@@ -136,24 +138,24 @@ export function ReviewForm({
               }}
               className="mt-2 rounded-lg bg-gray-900 px-4 py-2 text-sm text-white"
             >
-              {copied ? "Copiado ✓" : "Copiar mensaje"}
+              {copied ? t("Copiado ✓") : t("Copiar mensaje")}
             </button>
           </div>
         )}
         <div className="flex flex-wrap gap-3">
           <Link href={`/asociados/capturar?host=${done.hostId}`} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm">
-            + Otro anuncio para esta misma cuenta
+            {t("+ Otro anuncio para esta misma cuenta")}
           </Link>
           <Link href={`/asociados/cuentas/${done.hostId}`} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm">
-            Ver cuenta
+            {t("Ver cuenta")}
           </Link>
           {nextDraftId ? (
             <Link href={`/asociados/borradores/${nextDraftId}`} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white">
-              Siguiente borrador →
+              {t("Siguiente borrador →")}
             </Link>
           ) : (
             <Link href="/asociados" className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white">
-              Volver al inicio
+              {t("Volver al inicio")}
             </Link>
           )}
         </div>
@@ -165,30 +167,30 @@ export function ReviewForm({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Revisar anuncio</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">{t("Revisar anuncio")}</h1>
           <p className="mt-1 text-xs text-gray-400">
             {draft.source.url ? (
               <a href={draft.source.url} target="_blank" rel="noreferrer" className="underline">
                 {draft.source.site ?? draft.source.url}
               </a>
             ) : (
-              "Capturas de pantalla"
+              t("Capturas de pantalla")
             )}
             {draft.model ? ` · ${draft.model}` : ""}
           </p>
         </div>
         <button type="button" onClick={() => void discard()} className="text-sm text-gray-500 underline">
-          Descartar
+          {t("Descartar")}
         </button>
       </div>
 
       {duplicates.length > 0 && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-          <p className="text-sm font-semibold text-red-800">Posible duplicado</p>
+          <p className="text-sm font-semibold text-red-800">{t("Posible duplicado")}</p>
           <ul className="mt-1 space-y-1 text-sm text-red-700">
             {duplicates.map((d, i) => (
               <li key={i}>
-                {d.hostName} ({DUP_REASON[d.reason]})
+                {d.hostName} ({t(DUP_REASON[d.reason])})
                 {d.listingSlug && (
                   <>
                     {" · "}
@@ -206,24 +208,25 @@ export function ReviewForm({
       {draft.warnings.length > 0 && (
         <ul className="space-y-1 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           {draft.warnings.map((w) => (
-            <li key={w}>• {w}</li>
+            <li key={w}>• {t(w)}</li>
           ))}
         </ul>
       )}
 
       <section className="rounded-xl border border-gray-200 bg-white p-5">
         <h2 className="text-sm font-semibold text-gray-900">
-          Fotos ({photos.length}) <span className="font-normal text-gray-400">· la primera es la portada</span>
+          {t("Fotos ({count})", { count: photos.length })}{" "}
+          <span className="font-normal text-gray-400">{t("· la primera es la portada")}</span>
         </h2>
         {photos.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-500">Sin fotos. Se publicará con una imagen genérica.</p>
+          <p className="mt-2 text-sm text-gray-500">{t("Sin fotos. Se publicará con una imagen genérica.")}</p>
         ) : (
           <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
             {photos.map((p, i) => (
               <li key={p} className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-gray-200">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p} alt="" className="h-full w-full object-cover" />
-                {i === 0 && <span className="absolute left-1 top-1 rounded bg-amber-500 px-1.5 py-0.5 text-[10px] text-white">Portada</span>}
+                {i === 0 && <span className="absolute left-1 top-1 rounded bg-amber-500 px-1.5 py-0.5 text-[10px] text-white">{t("Portada")}</span>}
                 <div className="absolute inset-x-1 bottom-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
                   {i > 0 && (
                     <button
@@ -231,7 +234,7 @@ export function ReviewForm({
                       onClick={() => setPhotos((prev) => [p, ...prev.filter((x) => x !== p)])}
                       className="rounded bg-black/75 px-1.5 py-0.5 text-[10px] text-white"
                     >
-                      Portada
+                      {t("Portada")}
                     </button>
                   )}
                   <button
@@ -239,7 +242,7 @@ export function ReviewForm({
                     onClick={() => setPhotos((prev) => prev.filter((x) => x !== p))}
                     className="ml-auto rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] text-white"
                   >
-                    Quitar
+                    {t("Quitar")}
                   </button>
                 </div>
               </li>
@@ -248,7 +251,7 @@ export function ReviewForm({
         )}
         {removed.length > 0 && (
           <div className="mt-3">
-            <p className="text-xs text-gray-400">Quitadas (clic para regresar):</p>
+            <p className="text-xs text-gray-400">{t("Quitadas (clic para regresar):")}</p>
             <div className="mt-1 flex flex-wrap gap-2">
               {removed.map((p) => (
                 <button key={p} type="button" onClick={() => setPhotos((prev) => [...prev, p])}>
@@ -262,17 +265,17 @@ export function ReviewForm({
       </section>
 
       <section className="grid gap-4 rounded-xl border border-gray-200 bg-white p-5 sm:grid-cols-2">
-        <h2 className="text-sm font-semibold text-gray-900 sm:col-span-2">Anuncio</h2>
+        <h2 className="text-sm font-semibold text-gray-900 sm:col-span-2">{t("Anuncio")}</h2>
         <label className="text-sm text-gray-700 sm:col-span-2">
-          Título
+          {t("Título")}
           <input className={field} value={l.title ?? ""} onChange={(e) => set("title", e.target.value)} />
         </label>
         <label className="text-sm text-gray-700 sm:col-span-2">
-          Descripción
+          {t("Descripción")}
           <textarea rows={6} className={field} value={l.description ?? ""} onChange={(e) => set("description", e.target.value)} />
         </label>
         <label className="text-sm text-gray-700">
-          Tipo
+          {t("Tipo")}
           <select
             className={field}
             value={l.categoryKey ?? "casas"}
@@ -280,63 +283,65 @@ export function ReviewForm({
           >
             {CATEGORIES.map(([k, label]) => (
               <option key={k} value={k}>
-                {label}
+                {t(label)}
               </option>
             ))}
           </select>
         </label>
         <label className="text-sm text-gray-700">
-          Espacio
+          {t("Espacio")}
           <select className={field} value={l.spaceType ?? "Espacio completo"} onChange={(e) => set("spaceType", e.target.value)}>
             {["Espacio completo", "Habitación privada", "Habitación compartida"].map((s) => (
-              <option key={s}>{s}</option>
+              <option key={s} value={s}>
+                {t(s)}
+              </option>
             ))}
           </select>
         </label>
         <label className="text-sm text-gray-700">
-          Ciudad
+          {t("Ciudad")}
           <input className={field} value={l.city ?? ""} onChange={(e) => set("city", e.target.value)} />
         </label>
         <label className="text-sm text-gray-700">
-          Colonia / zona
+          {t("Colonia / zona")}
           <input className={field} value={l.zone ?? ""} onChange={(e) => set("zone", e.target.value)} />
         </label>
         <label className="text-sm text-gray-700">
-          Estado
+          {t("Estado / provincia")}
           <input className={field} value={l.state ?? ""} onChange={(e) => set("state", e.target.value)} />
         </label>
         <label className="text-sm text-gray-700">
-          Municipio
+          {t("Municipio")}
           <input className={field} value={l.county ?? ""} onChange={(e) => set("county", e.target.value)} />
         </label>
         <label className="text-sm text-gray-700">
-          Dirección (si se ve)
+          {t("Dirección (si se ve)")}
           <input className={field} value={l.addressLine ?? ""} onChange={(e) => set("addressLine", e.target.value)} />
         </label>
         <div className="grid grid-cols-3 gap-3 sm:col-span-2">
           <label className="text-sm text-gray-700">
-            Huéspedes
+            {t("Huéspedes")}
             <input type="number" min={1} className={field} value={l.guests ?? ""} onChange={(e) => setNum("guests", e.target.value)} />
           </label>
           <label className="text-sm text-gray-700">
-            Recámaras
+            {t("Recámaras")}
             <input type="number" min={0} className={field} value={l.bedrooms ?? ""} onChange={(e) => setNum("bedrooms", e.target.value)} />
           </label>
           <label className="text-sm text-gray-700">
-            Baños
+            {t("Baños")}
             <input type="number" min={0} step={0.5} className={field} value={l.bathrooms ?? ""} onChange={(e) => setNum("bathrooms", e.target.value)} />
           </label>
         </div>
         <label className="text-sm text-gray-700">
-          Precio por noche (MXN)
+          {t("Precio por noche (MXN)")}
           <input type="number" min={0} className={field} value={l.pricePerNight ?? ""} onChange={(e) => setNum("pricePerNight", e.target.value)} />
         </label>
         <label className="text-sm text-gray-700">
-          Limpieza (MXN)
+          {t("Limpieza (MXN)")}
           <input type="number" min={0} className={field} value={l.cleaningFee ?? ""} onChange={(e) => setNum("cleaningFee", e.target.value)} />
         </label>
         <label className="text-sm text-gray-700 sm:col-span-2">
-          Amenidades (separadas por coma)
+          {t("Amenidades (separadas por coma)")}
           <input
             className={field}
             value={(l.amenities ?? []).join(", ")}
@@ -366,16 +371,16 @@ export function ReviewForm({
                 checked={Boolean(l.rules?.[k])}
                 onChange={(e) => set("rules", { ...(l.rules ?? {}), [k]: e.target.checked })}
               />
-              {label}
+              {t(label)}
             </label>
           ))}
         </div>
       </section>
 
       <section className="grid gap-4 rounded-xl border border-gray-200 bg-white p-5 sm:grid-cols-2">
-        <h2 className="text-sm font-semibold text-gray-900 sm:col-span-2">Contacto que verán los huéspedes registrados</h2>
+        <h2 className="text-sm font-semibold text-gray-900 sm:col-span-2">{t("Contacto que verán los huéspedes registrados")}</h2>
         <label className="text-sm text-gray-700">
-          Teléfono
+          {t("Teléfono")}
           <input className={field} value={contact.phone ?? ""} onChange={(e) => setContact((c) => ({ ...c, phone: e.target.value }))} />
         </label>
         <label className="text-sm text-gray-700">
@@ -385,14 +390,14 @@ export function ReviewForm({
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-gray-900">¿De quién es la cuenta?</h2>
+        <h2 className="text-sm font-semibold text-gray-900">{t("¿De quién es la cuenta?")}</h2>
         <div className="mt-3 flex gap-2">
           <button
             type="button"
             onClick={() => setTargetKind("new")}
             className={`rounded-lg px-4 py-2 text-sm ${targetKind === "new" ? "bg-gray-900 text-white" : "border border-gray-300"}`}
           >
-            Cuenta nueva
+            {t("Cuenta nueva")}
           </button>
           <button
             type="button"
@@ -402,27 +407,27 @@ export function ReviewForm({
               targetKind === "existing" ? "bg-gray-900 text-white" : "border border-gray-300"
             }`}
           >
-            Agregar a una cuenta que ya creé
+            {t("Agregar a una cuenta que ya creé")}
           </button>
         </div>
         {targetKind === "new" ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="text-sm text-gray-700">
-              Nombre del anfitrión
+              {t("Nombre del anfitrión")}
               <input className={field} value={fullName} onChange={(e) => setFullName(e.target.value)} />
             </label>
             <label className="text-sm text-gray-700">
-              Correo real (opcional)
+              {t("Correo real (opcional)")}
               <input
                 type="email"
                 className={field}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Si lo dejas vacío se genera un usuario interno"
+                placeholder={t("Si lo dejas vacío se genera un usuario interno")}
               />
             </label>
             <p className="text-xs text-gray-500 sm:col-span-2">
-              Se genera una contraseña temporal. Al entrar por primera vez, el dueño pone su correo y su propia contraseña.
+              {t("Se genera una contraseña temporal. Al entrar por primera vez, el dueño pone su correo y su propia contraseña.")}
             </p>
           </div>
         ) : (
@@ -445,10 +450,10 @@ export function ReviewForm({
           onClick={() => void publish()}
           className="rounded-lg bg-amber-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
         >
-          {busy ? "Publicando…" : targetKind === "new" ? "Crear cuenta y publicar" : "Publicar en esa cuenta"}
+          {busy ? t("Publicando…") : targetKind === "new" ? t("Crear cuenta y publicar") : t("Publicar en esa cuenta")}
         </button>
         <Link href="/asociados" className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm">
-          Después
+          {t("Después")}
         </Link>
       </div>
     </div>

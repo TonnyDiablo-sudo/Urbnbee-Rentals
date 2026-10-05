@@ -98,7 +98,7 @@ export async function emailReviewReminder(b: BookingRecord, side: Side): Promise
     side === "guest"
       ? t("¿Qué tal tu estancia en {listing}? Califica al anfitrión y ayuda a otros viajeros.", vars)
       : t("Terminó la estancia de {guest} en {listing}. Califica al huésped para que otros anfitriones lo conozcan.", vars),
-    t("En Cabibee las reseñas son de ida y vuelta: sólo se pueden dejar en reservas hechas con el motor de reservas, y las revisa un moderador automático."),
+    t("En Cabibee las reseñas son de ida y vuelta: sólo se pueden dejar en reservas hechas con el motor de reservas, y nuestro equipo las revisa antes de publicarlas."),
   ];
   const url =
     side === "guest"

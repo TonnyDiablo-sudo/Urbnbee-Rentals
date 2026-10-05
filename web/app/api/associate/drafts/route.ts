@@ -33,16 +33,22 @@ export async function POST(req: NextRequest) {
     if (!(entry instanceof File) || entry.size === 0) continue;
     const mime = (entry.type || "").toLowerCase();
     if (!ALLOWED.has(mime)) {
-      return NextResponse.json({ error: `Formato no permitido: ${entry.name}. Usa JPEG, PNG o WebP.` }, { status: 400 });
+      return NextResponse.json(
+        { error: "Formato no permitido: {name}. Usa JPEG, PNG o WebP.", errorVars: { name: entry.name } },
+        { status: 400 }
+      );
     }
     if (entry.size > MAX_BYTES) {
-      return NextResponse.json({ error: `${entry.name} pesa más de 8 MB.` }, { status: 400 });
+      return NextResponse.json({ error: "{name} pesa más de 8 MB.", errorVars: { name: entry.name } }, { status: 400 });
     }
     screenshots.push({ mime: mime === "image/jpg" ? "image/jpeg" : mime, data: Buffer.from(await entry.arrayBuffer()) });
   }
   if (!screenshots.length) return NextResponse.json({ error: "Sube al menos una captura." }, { status: 400 });
   if (screenshots.length > MAX_SCREENSHOTS) {
-    return NextResponse.json({ error: `Máximo ${MAX_SCREENSHOTS} capturas por anuncio.` }, { status: 400 });
+    return NextResponse.json(
+      { error: "Máximo {max} capturas por anuncio.", errorVars: { max: MAX_SCREENSHOTS } },
+      { status: 400 }
+    );
   }
 
   const notes = String(form.get("notes") ?? "").trim().slice(0, 4000) || undefined;

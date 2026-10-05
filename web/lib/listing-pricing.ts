@@ -4,8 +4,8 @@
  *
  * Orden (como Airbnb): precio por fecha > precio de fin de semana > precio base;
  * luego las promociones de temporada (por noche) y al final un solo descuento
- * de estancia: el mayor entre duración (mensual 28+, semanal 7+), reserva
- * anticipada y última hora.
+ * de estancia: el mayor entre duración (estancia larga 3/6/12 meses, mensual 28+,
+ * semanal 7+), reserva anticipada y última hora.
  */
 export type SeasonalPromo = {
   /** Primera noche con descuento (YYYY-MM-DD). */
@@ -28,11 +28,21 @@ export type ListingPricing = {
   lastMinutePct?: number;
   lastMinuteDays?: number;
   seasonal?: SeasonalPromo[];
+  /** Descuentos opcionales por estancias de 3, 6 o 12 meses (un mes = 30 noches). */
+  longStayDiscounts?: LongStayDiscount[];
   minNights?: number;
   maxNights?: number;
 };
 
-export type StayDiscountKind = "monthly" | "weekly" | "early_bird" | "last_minute";
+export const LONG_STAY_MONTHS = [3, 6, 12] as const;
+export type LongStayMonths = (typeof LONG_STAY_MONTHS)[number];
+
+export type LongStayDiscount = {
+  months: LongStayMonths;
+  pct: number;
+};
+
+export type StayDiscountKind = "long_stay" | "monthly" | "weekly" | "early_bird" | "last_minute";
 
 export const DEFAULT_EARLY_BIRD_DAYS = 30;
 export const DEFAULT_LAST_MINUTE_DAYS = 7;
@@ -52,6 +62,25 @@ export const WEEKLY_NIGHTS = 7;
 export const MONTHLY_NIGHTS = 28;
 /** En renta mensual: el mes se cobra como 30 noches y es la estancia mínima. */
 export const MONTHLY_RENTAL_NIGHTS = 30;
+
+/** Noches que debe durar la estancia para un descuento de `months` meses: 3 → 90, 6 → 180, 12 → 360. */
+export function longStayNights(months: number): number {
+  return months * MONTHLY_RENTAL_NIGHTS;
+}
+
+/** El mayor descuento de estancia larga cuyo mínimo de noches cumple la estancia. */
+export function longStayDiscountFor(
+  p: ListingPricing | undefined,
+  nights: number
+): { pct: number; months: LongStayMonths } | null {
+  let best: { pct: number; months: LongStayMonths } | null = null;
+  for (const d of p?.longStayDiscounts ?? []) {
+    if (d.pct > 0 && nights >= longStayNights(d.months) && (!best || d.pct > best.pct)) {
+      best = { pct: d.pct, months: d.months };
+    }
+  }
+  return best;
+}
 
 export function isMonthlyRental(p: Pick<PricingInput, "rentalMode" | "pricePerMonth">): boolean {
   return p.rentalMode === "monthly" && (p.pricePerMonth ?? 0) > 0;
@@ -103,9 +132,9 @@ export function nightPrice(p: PricingInput, iso: string): number {
 export function lengthDiscountPct(p: PricingInput, nights: number): number {
   const monthly = p.pricing?.monthlyDiscountPct ?? 0;
   const weekly = p.pricing?.weeklyDiscountPct ?? 0;
-  if (nights >= MONTHLY_NIGHTS && monthly > 0) return monthly;
-  if (nights >= WEEKLY_NIGHTS && weekly > 0) return weekly;
-  return 0;
+  const longStay = longStayDiscountFor(p.pricing, nights)?.pct ?? 0;
+  const base = nights >= MONTHLY_NIGHTS && monthly > 0 ? monthly : nights >= WEEKLY_NIGHTS ? weekly : 0;
+  return Math.max(base, longStay);
 }
 
 /** Fecha de hoy en Ciudad de México (YYYY-MM-DD), igual en navegador y servidor. */
@@ -136,9 +165,11 @@ export function stayDiscountFor(
   nights: number,
   checkIn: string,
   today: string
-): { pct: number; kind: StayDiscountKind | null } {
+): { pct: number; kind: StayDiscountKind | null; months?: LongStayMonths } {
   const pr = p.pricing ?? {};
-  const options: { pct: number; kind: StayDiscountKind }[] = [];
+  const options: { pct: number; kind: StayDiscountKind; months?: LongStayMonths }[] = [];
+  const longStay = longStayDiscountFor(pr, nights);
+  if (longStay) options.push({ pct: longStay.pct, kind: "long_stay", months: longStay.months });
   if (nights >= MONTHLY_NIGHTS && (pr.monthlyDiscountPct ?? 0) > 0) {
     options.push({ pct: pr.monthlyDiscountPct!, kind: "monthly" });
   } else if (nights >= WEEKLY_NIGHTS && (pr.weeklyDiscountPct ?? 0) > 0) {
@@ -151,7 +182,7 @@ export function stayDiscountFor(
   if ((pr.lastMinutePct ?? 0) > 0 && ahead >= 0 && ahead <= (pr.lastMinuteDays ?? DEFAULT_LAST_MINUTE_DAYS)) {
     options.push({ pct: pr.lastMinutePct!, kind: "last_minute" });
   }
-  let best: { pct: number; kind: StayDiscountKind | null } = { pct: 0, kind: null };
+  let best: { pct: number; kind: StayDiscountKind | null; months?: LongStayMonths } = { pct: 0, kind: null };
   for (const o of options) if (o.pct > best.pct) best = o;
   return best;
 }
@@ -165,6 +196,8 @@ export type StayQuote = {
   /** Descuento de estancia (duración, anticipada o última hora). */
   discountPct: number;
   discountKind: StayDiscountKind | null;
+  /** Meses del descuento de estancia larga que aplicó (sólo si `discountKind` es "long_stay"). */
+  discountMonths?: LongStayMonths;
   discountMxn: number;
   /** Lo que cuestan las noches ya con descuento (sin limpieza). */
   staySubtotal: number;
@@ -199,12 +232,11 @@ export function quoteStay(
     cur.setDate(cur.getDate() + 1);
   }
   const seasonalDiscountMxn = Math.round(seasonalRaw);
-  const { pct: discountPct, kind: discountKind } = stayDiscountFor(
-    p,
-    nights,
-    checkIn,
-    opts.today ?? pricingToday()
-  );
+  const {
+    pct: discountPct,
+    kind: discountKind,
+    months: discountMonths,
+  } = stayDiscountFor(p, nights, checkIn, opts.today ?? pricingToday());
   const discountMxn = Math.round(((nightsSubtotal - seasonalDiscountMxn) * discountPct) / 100);
   return {
     nights,
@@ -212,6 +244,7 @@ export function quoteStay(
     seasonalDiscountMxn,
     discountPct,
     discountKind,
+    ...(discountMonths ? { discountMonths } : {}),
     discountMxn,
     staySubtotal: nightsSubtotal - seasonalDiscountMxn - discountMxn,
     sameRate: nights === 0 || min === max,
@@ -236,6 +269,15 @@ export function discountRows(p: ListingPricing | undefined, today: string = pric
   const rows: DiscountRow[] = [];
   if (p.weeklyDiscountPct) rows.push({ key: "Descuento por semana (7+ noches)", pct: p.weeklyDiscountPct });
   if (p.monthlyDiscountPct) rows.push({ key: "Descuento por mes (28+ noches)", pct: p.monthlyDiscountPct });
+  for (const d of [...(p.longStayDiscounts ?? [])].sort((a, b) => a.months - b.months)) {
+    if (d.pct > 0) {
+      rows.push({
+        key: "Al rentar {n} meses o más ({nights}+ noches)",
+        vars: { n: d.months, nights: longStayNights(d.months) },
+        pct: d.pct,
+      });
+    }
+  }
   if (p.earlyBirdPct) {
     rows.push({
       key: "Reserva anticipada ({n}+ días antes)",
@@ -283,6 +325,50 @@ function num(v: unknown, min: number, max: number): number | undefined {
   return Math.min(max, Math.max(min, n));
 }
 
+/** Un descuento por cada duración (3, 6 o 12 meses), 1–90 %, ordenados por meses. */
+export function sanitizeLongStayDiscounts(raw: unknown): LongStayDiscount[] {
+  if (!Array.isArray(raw)) return [];
+  const byMonths = new Map<LongStayMonths, number>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const d = item as Record<string, unknown>;
+    const months = LONG_STAY_MONTHS.find((m) => m === Number(d.months));
+    const pct = num(d.pct, 0, 90);
+    if (!months || !pct) continue;
+    byMonths.set(months, Math.round(pct));
+  }
+  return LONG_STAY_MONTHS.filter((m) => byMonths.get(m)).map((m) => ({ months: m, pct: byMonths.get(m)! }));
+}
+
+/** Lo que capturó el anfitrión en el formulario (texto por cada duración) → lista para guardar. */
+export function longStayFromForm(values: Partial<Record<LongStayMonths, string | number>>): LongStayDiscount[] {
+  return sanitizeLongStayDiscounts(LONG_STAY_MONTHS.map((months) => ({ months, pct: values[months] })));
+}
+
+/** Cambia el porcentaje de una duración; 0 o vacío la quita. */
+export function withLongStayPct(
+  list: LongStayDiscount[] | undefined,
+  months: LongStayMonths,
+  pct: number | undefined
+): LongStayDiscount[] {
+  const rest = (list ?? []).filter((d) => d.months !== months);
+  const next = pct && pct > 0 ? [...rest, { months, pct: Math.min(90, pct) }] : rest;
+  return next.sort((a, b) => a.months - b.months);
+}
+
+/** Porcentaje guardado para cada duración (0 si no hay). */
+export function longStayPctByMonths(p: ListingPricing | undefined): Record<LongStayMonths, number> {
+  const out = { 3: 0, 6: 0, 12: 0 } as Record<LongStayMonths, number>;
+  for (const d of p?.longStayDiscounts ?? []) out[d.months] = d.pct;
+  return out;
+}
+
+/** Valores para los campos del formulario ("" si no hay descuento). */
+export function longStayFormValues(p: ListingPricing | undefined): Record<LongStayMonths, string> {
+  const saved = longStayPctByMonths(p);
+  return { 3: saved[3] ? String(saved[3]) : "", 6: saved[6] ? String(saved[6]) : "", 12: saved[12] ? String(saved[12]) : "" };
+}
+
 export function sanitizePricing(raw: unknown): ListingPricing {
   if (!raw || typeof raw !== "object") return {};
   const o = raw as Record<string, unknown>;
@@ -324,6 +410,8 @@ export function sanitizePricing(raw: unknown): ListingPricing {
     }
     if (promos.length) out.seasonal = promos.sort((a, b) => a.from.localeCompare(b.from));
   }
+  const longStay = sanitizeLongStayDiscounts(o.longStayDiscounts);
+  if (longStay.length) out.longStayDiscounts = longStay;
   const minN = num(o.minNights, 1, 365);
   if (minN && minN > 1) out.minNights = Math.round(minN);
   const maxN = num(o.maxNights, 1, 730);
