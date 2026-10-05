@@ -163,6 +163,14 @@ export default async function AppListingPage({ params }: Props) {
               <UnclaimedNotice listingId={listing.id} t={t} />
             </div>
           )}
+          {hostListing && !isOwn && (
+            <Link
+              href={`/reportar?anuncio=${encodeURIComponent(listing.id)}`}
+              className="mt-3 inline-block text-xs text-[#999] underline"
+            >
+              🚩 {t("Reportar este anuncio o anfitrión")}
+            </Link>
+          )}
         </Section>
 
         {!bookable && (

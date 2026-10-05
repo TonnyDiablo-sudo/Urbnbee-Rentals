@@ -15,6 +15,7 @@ import { siteListing } from "./site-listing";
 import { appToolsStore } from "./app-tools-store";
 import { appWishlists } from "./app-wishlists";
 import { appHelpLegal } from "./app-help-legal";
+import { appReports } from "./app-reports";
 
 /** Clave: el texto exacto en espaÃ±ol que aparece en el cÃ³digo. */
 export const EN: Record<string, string> = {
@@ -35,4 +36,5 @@ export const EN: Record<string, string> = {
   ...appToolsStore,
   ...appWishlists,
   ...appHelpLegal,
+  ...appReports,
 };

@@ -1,10 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { AdminUserRow } from "@/lib/admin-data";
 import type { AdminBookingRow } from "@/lib/admin-data";
+import type { AdminUserDetail } from "@/lib/admin-user-detail";
+import { relTime } from "../users-explorer";
+import { ProductChip } from "../user-preview";
+import { ActivityTab, ConversationsTab, ReportList, StatsTab } from "./user-tabs";
+import { AssociateTab, ListingsTab, hasAssociateData, openClaims, pendingProofs } from "./user-tabs-extra";
+
+type Tab = "summary" | "stats" | "chats" | "activity" | "bookings" | "listings" | "associate" | "reports";
+const TABS: Tab[] = ["summary", "stats", "chats", "activity", "bookings", "listings", "associate", "reports"];
+
+function initialTab(): Tab {
+  if (typeof window === "undefined") return "summary";
+  const t = new URLSearchParams(window.location.search).get("tab") as Tab | null;
+  return t && TABS.includes(t) ? t : "summary";
+}
 
 const ROLE_BADGE: Record<string, string> = {
   admin: "bg-amber-100 text-amber-800",
@@ -24,10 +38,13 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function AdminUserDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [user, setUser] = useState<AdminUserRow | null>(null);
+  const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [bookings, setBookings] = useState<AdminBookingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [version, setVersion] = useState(0);
+  const [chatKey, setChatKey] = useState<string | undefined>();
   const [roleChanging, setRoleChanging] = useState(false);
   const [newRole, setNewRole] = useState<string>("");
   const [roleMsg, setRoleMsg] = useState("");
@@ -37,11 +54,14 @@ export default function AdminUserDetailPage() {
   const [passMsg, setPassMsg] = useState("");
 
   useEffect(() => {
-    Promise.all([fetch("/api/admin/users"), fetch("/api/admin/bookings")]).then(
+    let alive = true;
+    Promise.all([fetch(`/api/admin/users/${encodeURIComponent(id)}`), fetch("/api/admin/bookings")]).then(
       async ([uRes, bRes]) => {
-        const users: AdminUserRow[] = await uRes.json();
+        const d: AdminUserDetail | null = uRes.ok ? await uRes.json() : null;
         const allBookings: AdminBookingRow[] = await bRes.json();
-        const found = users.find((u) => u.id === id) ?? null;
+        if (!alive) return;
+        const found = d?.user ?? null;
+        setDetail(d);
         setUser(found);
         setNewRole(found?.role ?? "guest");
         setBookings(
@@ -52,7 +72,10 @@ export default function AdminUserDetailPage() {
         setLoading(false);
       }
     );
-  }, [id]);
+    return () => {
+      alive = false;
+    };
+  }, [id, version]);
 
   async function handleRoleChange() {
     if (!user || newRole === user.role) return;
@@ -125,7 +148,7 @@ export default function AdminUserDetailPage() {
     );
   }
 
-  if (!user) {
+  if (!user || !detail) {
     return (
       <div className="p-8">
         <p className="text-red-500">Usuario no encontrado.</p>
@@ -138,9 +161,30 @@ export default function AdminUserDetailPage() {
 
   const guestBookings = bookings.filter((b) => b.guestUserId === id);
   const hostBookings = bookings.filter((b) => b.hostId === id);
+  const openReports = detail.reportsAgainst.filter((r) => r.status === "open" || r.status === "in_review").length;
+  const tabs: { id: Tab; label: string; badge?: number; alert?: boolean }[] = [
+    { id: "summary", label: "Resumen y gestión" },
+    { id: "stats", label: "Estadísticas" },
+    { id: "chats", label: "Conversaciones", badge: detail.conversations.length },
+    { id: "activity", label: "Actividad", badge: detail.activity.length },
+    { id: "bookings", label: "Reservas", badge: guestBookings.length + hostBookings.length },
+    ...(detail.listings.length || detail.addressProofs.length || detail.listingClaims.length
+      ? [
+          {
+            id: "listings" as const,
+            label: "Anuncios y domicilio",
+            badge: pendingProofs(detail) + openClaims(detail) || detail.listings.length,
+            alert: pendingProofs(detail) + openClaims(detail) > 0,
+          },
+        ]
+      : []),
+    ...(hasAssociateData(detail) ? [{ id: "associate" as const, label: "Asociado (IA)", badge: detail.associate.accounts.length }] : []),
+    { id: "reports", label: "Reportes", badge: detail.reportsAgainst.length + detail.reportsBy.length, alert: openReports > 0 },
+  ];
+  const acct = detail.account;
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-8 max-w-6xl">
       <div className="mb-6">
         <Link
           href="/admin/users"
@@ -148,24 +192,122 @@ export default function AdminUserDetailPage() {
         >
           ← Usuarios
         </Link>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{user.fullName}</h1>
-            <p className="text-gray-400 text-sm mt-0.5">{user.email}</p>
-            <p className="text-gray-400 text-xs mt-0.5">
-              ID: <code className="font-mono">{user.id}</code>
-            </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            {acct.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={acct.avatarUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-900 text-2xl font-bold text-amber-400">
+                {(user.fullName || user.email).charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {user.fullName}
+                {acct.alias && <span className="ml-2 text-sm font-normal text-gray-400">alias “{acct.alias}”</span>}
+              </h1>
+              <p className="text-gray-500 text-sm mt-0.5">
+                {user.email}
+                {acct.emailVerifiedAt ? (
+                  <span className="ml-2 text-xs text-green-600">✓ verificado</span>
+                ) : (
+                  <span className="ml-2 text-xs text-gray-400">sin verificar</span>
+                )}
+                {acct.placeholderEmail && <span className="ml-2 text-xs text-purple-600">correo interno</span>}
+              </p>
+              <p className="text-gray-400 text-xs mt-0.5">
+                {acct.phone && <>📞 {acct.phone} · </>}
+                {detail.stats.place && <>📍 {detail.stats.place} · </>}
+                Última actividad <span suppressHydrationWarning>{relTime(user.lastActiveAt)}</span> · ID{" "}
+                <code className="font-mono">{user.id}</code>
+              </p>
+              {acct.addressLine && <p className="text-gray-400 text-xs mt-0.5">🏠 {acct.addressLine}</p>}
+            </div>
           </div>
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-medium ${
-              ROLE_BADGE[user.role] ?? "bg-gray-100 text-gray-700"
-            }`}
-          >
-            {user.role}
-          </span>
+          <div className="flex flex-col items-end gap-1">
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                ROLE_BADGE[user.role] ?? "bg-gray-100 text-gray-700"
+              }`}
+            >
+              {user.role}
+            </span>
+            {openReports > 0 && (
+              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                {openReports} reporte{openReports !== 1 ? "s" : ""} abierto{openReports !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
+      <nav className="mb-6 flex flex-wrap gap-1 border-b border-gray-200">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+              tab === t.id ? "border-amber-500 text-amber-700" : "border-transparent text-gray-500 hover:text-gray-800"
+            }`}
+          >
+            {t.label}
+            {t.badge !== undefined && t.badge > 0 && (
+              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${t.alert ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>
+                {t.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </nav>
+
+      {tab === "stats" && <StatsTab d={detail} />}
+      {tab === "chats" && <ConversationsTab key={chatKey ?? "all"} d={detail} initialKey={chatKey} />}
+      {tab === "activity" && (
+        <ActivityTab
+          d={detail}
+          onOpenChat={(key) => {
+            setChatKey(key);
+            setTab("chats");
+          }}
+          onOpenTab={(t) => {
+            if (TABS.includes(t as Tab)) setTab(t as Tab);
+          }}
+        />
+      )}
+      {tab === "listings" && <ListingsTab d={detail} onChanged={() => setVersion((v) => v + 1)} />}
+      {tab === "associate" && <AssociateTab d={detail} />}
+      {tab === "reports" && (
+        <div className="space-y-8">
+          <section>
+            <h2 className="mb-3 text-sm font-semibold text-gray-700">Reportes en su contra ({detail.reportsAgainst.length})</h2>
+            <ReportList rows={detail.reportsAgainst} empty="Nadie ha reportado esta cuenta." />
+          </section>
+          <section>
+            <h2 className="mb-3 text-sm font-semibold text-gray-700">Lo que ha enviado ({detail.reportsBy.length})</h2>
+            <ReportList rows={detail.reportsBy} empty="No ha enviado reportes ni sugerencias." />
+          </section>
+        </div>
+      )}
+
+      {tab === "summary" && (<>
+      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">Productos y servicios</h2>
+        {user.products.length === 0 ? (
+          <p className="text-sm text-gray-400">No ha comprado nada ni tiene servicios activos.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {user.products.map((p) => (
+              <li key={p.key} className="flex flex-wrap items-center gap-2 text-sm">
+                <ProductChip p={p} />
+                <span className="text-gray-600">{[p.detail, p.status].filter(Boolean).join(" · ")}</span>
+                {p.until && <span className="text-xs text-gray-400">vence {new Date(p.until).toLocaleDateString("es-MX")}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
@@ -345,7 +487,9 @@ export default function AdminUserDetailPage() {
           </div>
         </div>
       )}
+      </>)}
 
+      {tab === "bookings" && (<>
       {/* Bookings as guest */}
       {guestBookings.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-6">
@@ -471,6 +615,7 @@ export default function AdminUserDetailPage() {
       {guestBookings.length === 0 && hostBookings.length === 0 && (
         <p className="text-gray-400 text-sm">Este usuario no tiene reservas registradas.</p>
       )}
+      </>)}
     </div>
   );
 }

@@ -2,17 +2,16 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AdminLogoutButton } from "@/components/admin-logout-button";
 import { getSessionUser } from "@/lib/session";
+import { listUserReports } from "@/lib/user-reports-store";
+import { listAddressProofs } from "@/lib/address-proof-store";
+import { listClaimRequests } from "@/lib/listing-claims-store";
 
 const NAV = [
   { href: "/admin/overview", label: "Resumen", icon: "📊" },
   { href: "/admin/estadisticas", label: "Estadísticas", icon: "📈" },
   { href: "/admin/users", label: "Usuarios", icon: "👥" },
-  { href: "/admin/bookings", label: "Reservas", icon: "🏠" },
-  { href: "/asociados", label: "Asociados (alta con IA)", icon: "🤝" },
-  { href: "/admin/reclamos", label: "Reclamos de anuncios", icon: "🙋" },
-  { href: "/admin/domicilios", label: "Comprobantes de domicilio", icon: "📍" },
+  { href: "/admin/reportes", label: "Reportes y sugerencias", icon: "🚩" },
   { href: "/admin/pricing", label: "Precios", icon: "💲" },
-  { href: "/admin/logs", label: "Actividad", icon: "📋" },
   { href: "/admin/blog-bot", label: "Blog (LLM)", icon: "✍️" },
 ];
 
@@ -25,6 +24,9 @@ export default async function AdminLayout({
   if (!user || user.role !== "admin") {
     redirect("/login");
   }
+  const pendingReports = listUserReports().filter((r) => r.status === "open" || r.status === "in_review").length;
+  const pendingReview =
+    listAddressProofs().filter((p) => p.status === "review").length + listClaimRequests().filter((c) => c.status === "open").length;
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -51,8 +53,22 @@ export default async function AdminLayout({
                 {item.icon}
               </span>
               {item.label}
+              {item.href === "/admin/reportes" && pendingReports > 0 && (
+                <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  {pendingReports}
+                </span>
+              )}
             </Link>
           ))}
+          {pendingReview > 0 && (
+            <Link
+              href="/admin/users?pendientes=1"
+              className="mt-2 flex items-center gap-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 hover:bg-amber-100"
+            >
+              <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{pendingReview}</span>
+              Comprobantes y reclamos por revisar
+            </Link>
+          )}
         </nav>
 
         <div className="px-4 py-4 border-t border-gray-100">

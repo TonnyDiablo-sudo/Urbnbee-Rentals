@@ -7,6 +7,7 @@ import { deleteHostPaymentSecrets } from "@/lib/host-payment-store";
 import { deleteHostPayoutMethods } from "@/lib/host-payout-methods";
 import { eraseUserRecord, findUserById } from "@/lib/marketplace-store";
 import { removeSubscriptionsForUser } from "@/lib/push-store";
+import { deleteReportsForAccount } from "@/lib/user-reports-store";
 import { deleteVerification } from "@/lib/verification-store";
 
 const OPEN = new Set(["AWAITING_PAYMENT", "PENDING", "PENDING_HOST", "AWAITING_DETAILS", "CONFIRMED"]);
@@ -53,5 +54,6 @@ export function eraseAccount(userId: string): boolean {
   deleteHostEntitlements(userId);
   deleteVerification(userId);
   removeSubscriptionsForUser(userId);
+  deleteReportsForAccount(userId);
   return eraseUserRecord(userId);
 }

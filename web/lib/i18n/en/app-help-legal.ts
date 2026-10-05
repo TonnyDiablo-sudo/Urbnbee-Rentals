@@ -304,7 +304,7 @@ export const appHelpLegal: Record<string, string> = {
   "Cobra la estancia en tu propia cuenta de Stripe": "Charge stays to your own Stripe account",
   "Estás en modo prueba: los huéspedes no pueden pagar con tarjetas reales.": "You're in test mode: guests can't pay with real cards.",
   "Stripe todavía no te deja cobrar. Completa tus datos y tu banco en Stripe.": "Stripe doesn't let you charge yet. Fill in your details and bank in Stripe.",
-  "Si no tienes cuenta, te ayudamos a crearla en unos minutos. Mientras tanto, el huésped paga a través de Cabibee.": "If you don't have an account, we'll help you create one in a few minutes. Meanwhile, the guest pays through Cabibee.",
+  "Si no tienes cuenta, te ayudamos a crearla en unos minutos. Hasta que la conectes, tus anuncios no reciben reservas en línea: Cabibee nunca cobra la estancia.": "If you don't have an account, we'll help you create one in a few minutes. Until you connect it, your listings can't take online bookings: Cabibee never collects the stay.",
   "Revisar mi Stripe": "Review my Stripe",
   "Conectar o crear cuenta de Stripe": "Connect or create a Stripe account",
   "Conecta o crea tu cuenta de Stripe para cobrar": "Connect or create your Stripe account to get paid",

@@ -1,0 +1,205 @@
+{
+  "version": 1,
+  "plans": [
+    {
+      "code": "pase_reserva",
+      "label": "Pase Cabibee por reserva",
+      "description": "Un solo pago que habilita una reserva. Para quien viaja una vez y no quiere membresía.",
+      "amountMxn": 0,
+      "amountUsd": 0,
+      "active": false,
+      "updatedAt": "2026-10-03T19:26:01.637Z"
+    },
+    {
+      "code": "meses_1",
+      "label": "Verificación de identidad · 1 mes",
+      "description": "Una por persona. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado».",
+      "amountMxn": 500,
+      "amountUsd": 30,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.639Z"
+    },
+    {
+      "code": "meses_6",
+      "label": "Verificación de identidad · 6 meses",
+      "description": "Una por persona. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado».",
+      "amountMxn": 2100,
+      "amountUsd": 120,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.639Z"
+    },
+    {
+      "code": "meses_12",
+      "label": "Verificación de identidad · 12 meses",
+      "description": "Una por persona. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado».",
+      "amountMxn": 1800,
+      "amountUsd": 120,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.639Z"
+    },
+    {
+      "code": "anfitrion_1",
+      "label": "Anfitrión verificado · 1 mes",
+      "description": "Listón «Miembro verificado» en todos tus anuncios, respaldado por tu identidad comprobada.",
+      "amountMxn": 500,
+      "amountUsd": 30,
+      "active": false,
+      "updatedAt": "2026-10-03T19:26:01.639Z"
+    },
+    {
+      "code": "anfitrion_6",
+      "label": "Anfitrión verificado · 6 meses",
+      "description": "Listón «Miembro verificado» en todos tus anuncios, respaldado por tu identidad comprobada.",
+      "amountMxn": 2100,
+      "amountUsd": 120,
+      "active": false,
+      "updatedAt": "2026-10-03T19:26:01.639Z"
+    },
+    {
+      "code": "anfitrion_12",
+      "label": "Anfitrión verificado · 12 meses",
+      "description": "Listón «Miembro verificado» en todos tus anuncios, respaldado por tu identidad comprobada.",
+      "amountMxn": 1800,
+      "amountUsd": 120,
+      "active": false,
+      "updatedAt": "2026-10-03T19:26:01.639Z"
+    },
+    {
+      "code": "booking_engine",
+      "label": "Motor de reservas · 1 mes",
+      "description": "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
+      "amountMxn": 500,
+      "amountUsd": 30,
+      "active": true,
+      "updatedAt": "2026-10-03T20:32:31.361Z"
+    },
+    {
+      "code": "booking_engine_6",
+      "label": "Motor de reservas · 6 meses",
+      "description": "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
+      "amountMxn": 2100,
+      "amountUsd": 120,
+      "active": true,
+      "updatedAt": "2026-10-03T20:32:31.362Z"
+    },
+    {
+      "code": "booking_engine_12",
+      "label": "Motor de reservas · 12 meses",
+      "description": "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
+      "amountMxn": 1800,
+      "amountUsd": 120,
+      "active": true,
+      "updatedAt": "2026-10-03T20:32:31.362Z"
+    },
+    {
+      "code": "cleaning_tool",
+      "label": "Herramienta de limpieza · 1 mes",
+      "description": "Por cada anuncio: las limpiezas salen solas de tus reservas, se asignan a tu equipo y les llegan los avisos.",
+      "amountMxn": 150,
+      "amountUsd": 10,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.638Z"
+    },
+    {
+      "code": "cleaning_tool_6",
+      "label": "Herramienta de limpieza · 6 meses",
+      "description": "Por cada anuncio: las limpiezas salen solas de tus reservas, se asignan a tu equipo y les llegan los avisos.",
+      "amountMxn": 600,
+      "amountUsd": 36,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.638Z"
+    },
+    {
+      "code": "cleaning_tool_12",
+      "label": "Herramienta de limpieza · 12 meses",
+      "description": "Por cada anuncio: las limpiezas salen solas de tus reservas, se asignan a tu equipo y les llegan los avisos.",
+      "amountMxn": 720,
+      "amountUsd": 42,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.638Z"
+    },
+    {
+      "code": "collaborator_seat",
+      "label": "Colaborador · 1 mes",
+      "description": "Otra persona con su propia cuenta de Cabibee acepta reservas, firma contratos en tu nombre o contesta mensajes en los anuncios que elijas.",
+      "amountMxn": 250,
+      "amountUsd": 15,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.638Z"
+    },
+    {
+      "code": "collaborator_seat_6",
+      "label": "Colaborador · 6 meses",
+      "description": "Otra persona con su propia cuenta de Cabibee acepta reservas, firma contratos en tu nombre o contesta mensajes en los anuncios que elijas.",
+      "amountMxn": 1200,
+      "amountUsd": 72,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.638Z"
+    },
+    {
+      "code": "collaborator_seat_12",
+      "label": "Colaborador · 12 meses",
+      "description": "Otra persona con su propia cuenta de Cabibee acepta reservas, firma contratos en tu nombre o contesta mensajes en los anuncios que elijas.",
+      "amountMxn": 1800,
+      "amountUsd": 108,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.638Z"
+    },
+    {
+      "code": "address_proof",
+      "label": "Verificación de domicilio · 1 mes",
+      "description": "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",
+      "amountMxn": 100,
+      "amountUsd": 6,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.638Z"
+    },
+    {
+      "code": "address_proof_6",
+      "label": "Verificación de domicilio · 6 meses",
+      "description": "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",
+      "amountMxn": 390,
+      "amountUsd": 24,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.638Z"
+    },
+    {
+      "code": "address_proof_12",
+      "label": "Verificación de domicilio · 12 meses",
+      "description": "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",
+      "amountMxn": 420,
+      "amountUsd": 24,
+      "active": true,
+      "updatedAt": "2026-10-03T19:26:01.638Z"
+    },
+    {
+      "code": "featured_listing",
+      "label": "Anuncio destacado · 1 mes",
+      "description": "Por cada anuncio: aparece primero en las búsquedas y lleva la etiqueta «Destacado».",
+      "amountMxn": 850,
+      "amountUsd": 50,
+      "active": true,
+      "updatedAt": "2026-10-03T20:49:36.900Z"
+    },
+    {
+      "code": "featured_listing_6",
+      "label": "Anuncio destacado · 6 meses",
+      "description": "Por cada anuncio: aparece primero en las búsquedas y lleva la etiqueta «Destacado».",
+      "amountMxn": 3900,
+      "amountUsd": 240,
+      "active": true,
+      "updatedAt": "2026-10-03T20:49:36.901Z"
+    },
+    {
+      "code": "featured_listing_12",
+      "label": "Anuncio destacado · 12 meses",
+      "description": "Por cada anuncio: aparece primero en las búsquedas y lleva la etiqueta «Destacado».",
+      "amountMxn": 7200,
+      "amountUsd": 420,
+      "active": true,
+      "updatedAt": "2026-10-03T20:49:36.901Z"
+    }
+  ],
+  "defaultPricesAppliedAt": "2026-10-03T19:26:01.638Z",
+  "identityMergedAt": "2026-10-03T19:26:01.639Z"
+}

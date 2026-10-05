@@ -33,12 +33,6 @@ export function bookingBalanceDueMxn(b: BookingRecord): number {
   return a ? a.amountMxn + a.feeMxn : 0;
 }
 
-/** El cargo de plataforma del nuevo total menos el ya cobrado (así el mínimo no se cobra dos veces). */
-function feeForDifference(b: BookingRecord): number {
-  if (b.chargedVia === "host" || !(b.platformFeeMxn && b.platformFeeMxn > 0)) return 0;
-  return Math.max(0, platformBookingFeeMxn(b.estimatedTotalMxn) - b.platformFeeMxn);
-}
-
 function stripeFor(b: BookingRecord) {
   return b.chargedVia === "host" ? getHostStripe(b.hostId) : getStripe();
 }
@@ -83,7 +77,7 @@ export async function reconcileBookingTotal(bookingId: string): Promise<{
       id: adjId(),
       kind: "charge",
       amountMxn: diff,
-      feeMxn: feeForDifference(b),
+      feeMxn: 0,
       status: "pending",
       reason: "dates_changed",
       createdAt: nowIso(),
@@ -196,15 +190,12 @@ export async function startAdjustmentCheckout(
       : { ok: false, status: 500, error: "No se pudo registrar el pago." };
   }
 
-  const stripe = stripeFor(b);
+  const stripe = getHostStripe(b.hostId);
   if (!stripe) {
     return {
       ok: false,
       status: 503,
-      error:
-        b.chargedVia === "host"
-          ? "El Stripe del anfitrión ya no está conectado; pídele que lo reconecte."
-          : "Pago no disponible: Stripe no está configurado.",
+      error: "El Stripe del anfitrión no está conectado; pídele que lo conecte.",
     };
   }
 
@@ -246,7 +237,7 @@ export async function startAdjustmentCheckout(
         bookingAdjustmentId: a.id,
         guestUserId: b.guestUserId ?? "",
         hostId: b.hostId,
-        chargedVia: b.chargedVia ?? "platform",
+        chargedVia: "host",
       }),
       payment_intent_data: {
         metadata: cabibeeMeta({ bookingId: b.id, bookingAdjustmentId: a.id, hostId: b.hostId }),
@@ -259,7 +250,7 @@ export async function startAdjustmentCheckout(
     recordBookingTransaction({
       bookingId: b.id,
       hostId: b.hostId,
-      chargedVia: b.chargedVia ?? "platform",
+      chargedVia: "host",
       providerRef: session.id,
       amountCents: stayCents + feeCents,
       currency: "mxn",

@@ -14,9 +14,12 @@ type VisitsDoc = {
   days: Record<string, Record<string, [number, number]>>;
   /** Último lugar desde el que entró cada usuario con sesión: ubica las cuentas nuevas. */
   userPlaces: Record<string, string>;
+  /** Última página vista con sesión (ISO) y cuántas lleva en total. */
+  userLastSeen: Record<string, string>;
+  userPageViews: Record<string, number>;
 };
 
-let doc: VisitsDoc = { days: {}, userPlaces: {} };
+let doc: VisitsDoc = { days: {}, userPlaces: {}, userLastSeen: {}, userPageViews: {} };
 let cachedMtimeMs = -1;
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 /** Visitante único por día. Se pierde al reiniciar: puede contar doble a quien vuelva ese mismo día. */
@@ -29,7 +32,12 @@ function load() {
     const m = statSync(DATA_FILE).mtimeMs;
     if (m === cachedMtimeMs || flushTimer) return;
     const raw = JSON.parse(readFileSync(DATA_FILE, "utf8")) as Partial<VisitsDoc>;
-    doc = { days: raw.days ?? {}, userPlaces: raw.userPlaces ?? {} };
+    doc = {
+      days: raw.days ?? {},
+      userPlaces: raw.userPlaces ?? {},
+      userLastSeen: raw.userLastSeen ?? {},
+      userPageViews: raw.userPageViews ?? {},
+    };
     cachedMtimeMs = m;
   } catch (e) {
     console.warn("[site-visits] load failed:", e);
@@ -67,8 +75,26 @@ export function recordSiteVisit(opts: { visitorId: string; placeKey: string; use
     seen.add(opts.visitorId);
     row[1] += 1;
   }
-  if (opts.userId) doc.userPlaces[opts.userId] = opts.placeKey;
+  if (opts.userId) {
+    doc.userPlaces[opts.userId] = opts.placeKey;
+    doc.userLastSeen[opts.userId] = new Date().toISOString();
+    doc.userPageViews[opts.userId] = (doc.userPageViews[opts.userId] ?? 0) + 1;
+  }
   scheduleFlush();
+}
+
+export function getUserSeen(userId: string): { lastSeenAt?: string; pageViews: number; place?: string } {
+  load();
+  return {
+    lastSeenAt: doc.userLastSeen[userId],
+    pageViews: doc.userPageViews[userId] ?? 0,
+    place: doc.userPlaces[userId],
+  };
+}
+
+export function getAllUserLastSeen(): Readonly<Record<string, string>> {
+  load();
+  return doc.userLastSeen;
 }
 
 export function getSiteVisitDays(): VisitsDoc["days"] {

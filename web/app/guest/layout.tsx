@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { getT } from "@/lib/i18n/server";
@@ -7,7 +8,8 @@ import { getSessionUser } from "@/lib/session";
 export default async function GuestLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
   if (!user) {
-    redirect("/login?next=/guest");
+    const path = (await headers()).get("x-cabibee-path") ?? "/guest";
+    redirect(`/login?next=${encodeURIComponent(path.startsWith("/guest") ? path : "/guest")}`);
   }
 
   const t = await getT();
@@ -60,6 +62,12 @@ export default async function GuestLayout({ children }: { children: React.ReactN
                 {t("Perfil y foto")}
               </Link>
             )}
+            <Link
+              href="/guest/reportes"
+              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
+            >
+              {t("Reportes y sugerencias")}
+            </Link>
             {user.role === "admin" && (
               <Link
                 href="/admin/overview"

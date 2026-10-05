@@ -13,7 +13,7 @@ import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { stayLengthError } from "@/lib/listing-pricing";
 import { getSessionUser } from "@/lib/session";
 import { listingAcceptsBookings } from "@/lib/booking-engine-slots";
-import { stayPlatformFeeMxn } from "@/lib/platform-fees";
+import { hostCanTakeBookingPayments } from "@/lib/host-stripe";
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import {
   consumeBookingPass,
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No puedes reservar tu propio alojamiento." }, { status: 403 });
   }
 
-  if (!listingAcceptsBookings(listing.id)) {
+  if (!listingAcceptsBookings(listing.id) || !hostCanTakeBookingPayments(listing.hostId)) {
     return NextResponse.json(
       {
         error:
@@ -126,8 +126,6 @@ export async function POST(req: NextRequest) {
   const quote = quoteBookingMxn(listing, checkIn, checkOut);
   const cleaning = quote.cleaningMxn;
   const estimatedTotalMxn = quote.totalMxn;
-  const platformFeeMxn = stayPlatformFeeMxn(listing.hostId, estimatedTotalMxn);
-
   // El pase se descuenta antes de crear la reserva: si se descontara después, dos
   // solicitudes seguidas podrían colarse con un solo pase.
   const usedMembershipPass = access.via === "pass" ? consumeBookingPass(user.id) : false;
@@ -149,7 +147,7 @@ export async function POST(req: NextRequest) {
     checkOut,
     nights,
     estimatedTotalMxn,
-    platformFeeMxn,
+    platformFeeMxn: 0,
     cleaningFeeMxn: cleaning,
     ...bookingTaxFields(quote),
     chargeTax: quote.taxAvailable ? quote.chargesTax : undefined,

@@ -191,7 +191,7 @@ function StripeCard() {
           ? s.account && !s.account.livemode
             ? t("Estás en modo prueba: los huéspedes no pueden pagar con tarjetas reales.")
             : t("Stripe todavía no te deja cobrar. Completa tus datos y tu banco en Stripe.")
-          : t("Si no tienes cuenta, te ayudamos a crearla en unos minutos. Mientras tanto, el huésped paga a través de Cabibee.")}
+          : t("Si no tienes cuenta, te ayudamos a crearla en unos minutos. Hasta que la conectes, tus anuncios no reciben reservas en línea: Cabibee nunca cobra la estancia.")}
       </p>
       <Link
         href="/host/pagos"

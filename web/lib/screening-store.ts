@@ -162,6 +162,11 @@ export function screeningAmount(region: "mx" | "us"): number {
   return region === "us" ? p.amountUsd : p.amountMxn;
 }
 
+export function listAllScreenings(): ScreeningRecord[] {
+  syncCases();
+  return [...cases];
+}
+
 export function listScreeningsForGuest(guestUserId: string): ScreeningRecord[] {
   syncCases();
   return cases

@@ -268,6 +268,166 @@
       "guestEmail": "sofia@urbnbee.test",
       "body": "Mandé solicitud para noviembre en tu loft de Roma. ¿El edificio tiene elevador? Voy con una maleta grande.",
       "createdAt": "2026-09-28T09:35:00.000Z"
+    },
+    {
+      "id": "msg_show_sofia_lucia_1",
+      "listingId": "lst_show_lucia_tulum_playa",
+      "hostId": "usr_show_lucia",
+      "guestSessionId": "gu_usr_demo_sofia_host",
+      "sender": "guest",
+      "guestName": "Sofía Ramírez",
+      "guestEmail": "sofia@urbnbee.test",
+      "body": "Hola Lucía, llegamos el 10 de agosto como a las 5. ¿Nos recomiendas un cenote tranquilo para el día siguiente?",
+      "createdAt": "2026-08-02T16:10:00.000Z"
+    },
+    {
+      "id": "msg_show_sofia_lucia_2",
+      "listingId": "lst_show_lucia_tulum_playa",
+      "hostId": "usr_show_lucia",
+      "guestSessionId": "gu_usr_demo_sofia_host",
+      "sender": "host",
+      "guestName": "",
+      "body": "¡Hola Sofía! Vayan temprano al Cenote Calavera, antes de las 10 casi no hay gente. Les dejo snorkels en la terraza.",
+      "createdAt": "2026-08-02T17:02:00.000Z"
+    },
+    {
+      "id": "msg_show_sofia_lucia_3",
+      "listingId": "lst_show_lucia_tulum_playa",
+      "hostId": "usr_show_lucia",
+      "guestSessionId": "gu_usr_demo_sofia_host",
+      "sender": "guest",
+      "guestName": "Sofía Ramírez",
+      "guestEmail": "sofia@urbnbee.test",
+      "body": "Mil gracias, la casa está increíble. Ya salimos, dejamos las llaves en la caja.",
+      "createdAt": "2026-08-14T10:48:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_lucia_1",
+      "listingId": "lst_show_lucia_tulum_selva",
+      "hostId": "usr_show_lucia",
+      "guestSessionId": "gu_usr_show_totti",
+      "sender": "guest",
+      "guestName": "Totti Hernández",
+      "guestEmail": "totti@urbnbee.test",
+      "body": "Hola Lucía, reservé la villa del 13 al 16 de noviembre. Somos cuatro amigos y nos gusta cocinar: ¿la cocina tiene comal y licuadora?",
+      "createdAt": "2026-09-24T18:10:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_lucia_2",
+      "listingId": "lst_show_lucia_tulum_selva",
+      "hostId": "usr_show_lucia",
+      "guestSessionId": "gu_usr_show_totti",
+      "sender": "host",
+      "guestName": "",
+      "body": "¡Hola Totti! Sí, hay comal, licuadora y hasta molcajete. Si quieren les encargo pescado fresco con un pescador de Punta Allen.",
+      "createdAt": "2026-09-24T19:02:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_lucia_3",
+      "listingId": "lst_show_lucia_tulum_selva",
+      "hostId": "usr_show_lucia",
+      "guestSessionId": "gu_usr_show_totti",
+      "sender": "guest",
+      "guestName": "Totti Hernández",
+      "guestEmail": "totti@urbnbee.test",
+      "body": "¡Eso sí! Encárganos un huachinango para el sábado. Yo cocino y te invitamos.",
+      "createdAt": "2026-09-24T19:20:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_sofia_1",
+      "listingId": "lst_demo_sofia_valle",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_show_totti",
+      "sender": "guest",
+      "guestName": "Totti Hernández",
+      "guestEmail": "totti@urbnbee.test",
+      "body": "Hola Sofía, vamos a Valle el 23 de octubre. ¿Hay leña para la chimenea o la compro en el camino?",
+      "createdAt": "2026-09-26T15:30:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_sofia_2",
+      "listingId": "lst_demo_sofia_valle",
+      "hostId": "usr_demo_sofia_host",
+      "guestSessionId": "gu_usr_show_totti",
+      "sender": "host",
+      "guestName": "",
+      "body": "Hola Totti, te dejo leña para dos noches. Si quieres más, en la entrada a Avándaro venden por manojo.",
+      "createdAt": "2026-09-26T16:12:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_carlos_1",
+      "listingId": "lst_show_totti_juarez_loft",
+      "hostId": "usr_show_totti",
+      "guestSessionId": "gu_usr_show_g_carlos",
+      "sender": "guest",
+      "guestName": "Carlos Méndez",
+      "guestEmail": "carlos.huesped@urbnbee.test",
+      "body": "Hola Totti, llego el 30 en la tarde. ¿El código de la puerta es el mismo para el edificio?",
+      "createdAt": "2026-09-29T20:05:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_carlos_2",
+      "listingId": "lst_show_totti_juarez_loft",
+      "hostId": "usr_show_totti",
+      "guestSessionId": "gu_usr_show_g_carlos",
+      "sender": "host",
+      "guestName": "",
+      "body": "Hola Carlos, el edificio abre con el mismo código. Te dejé café de Veracruz y mi mapa de taquerías en la barra.",
+      "createdAt": "2026-09-29T20:31:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_carlos_3",
+      "listingId": "lst_show_totti_juarez_loft",
+      "hostId": "usr_show_totti",
+      "guestSessionId": "gu_usr_show_g_carlos",
+      "sender": "guest",
+      "guestName": "Carlos Méndez",
+      "guestEmail": "carlos.huesped@urbnbee.test",
+      "body": "Ya estoy instalado, el loft está increíble. Hoy pruebo El Califa que marcaste en el mapa.",
+      "createdAt": "2026-10-01T02:14:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_fernanda_1",
+      "listingId": "lst_show_totti_polanco_depa",
+      "hostId": "usr_show_totti",
+      "guestSessionId": "gu_usr_show_g_fernanda",
+      "sender": "guest",
+      "guestName": "Fernanda Ríos",
+      "guestEmail": "fernanda.huesped@urbnbee.test",
+      "body": "Hola, vamos mi esposo, yo y dos niños. ¿El cajón de estacionamiento cabe una camioneta?",
+      "createdAt": "2026-09-27T14:40:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_fernanda_2",
+      "listingId": "lst_show_totti_polanco_depa",
+      "hostId": "usr_show_totti",
+      "guestSessionId": "gu_usr_show_g_fernanda",
+      "sender": "host",
+      "guestName": "",
+      "body": "Hola Fernanda, sí cabe sin problema. Les dejo dos juegos de llaves y una cuna plegable si la necesitan.",
+      "createdAt": "2026-09-27T15:22:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_sara_1",
+      "listingId": "lst_show_totti_sanrafael_hab",
+      "hostId": "usr_show_totti",
+      "guestSessionId": "gu_usr_show_g_sara",
+      "sender": "guest",
+      "guestName": "Sara Kim",
+      "guestEmail": "sara.huesped@urbnbee.test",
+      "body": "Hola Totti, mandé solicitud para el 10–12 de octubre. Vengo a un congreso en el Chopo, ¿el desayuno es entre semana también?",
+      "createdAt": "2026-10-02T17:45:00.000Z"
+    },
+    {
+      "id": "msg_show_totti_familia_1",
+      "listingId": "lst_show_totti_sanangel_casa",
+      "hostId": "usr_show_totti",
+      "guestSessionId": "sess_show_totti_familia",
+      "sender": "guest",
+      "guestName": "Familia Gutiérrez",
+      "guestEmail": "gutierrez.viajes@gmail.com",
+      "body": "Buenas tardes, ¿la casa de San Ángel está libre en Navidad (23–27 de diciembre)? Somos seis adultos y un perro mediano.",
+      "createdAt": "2026-10-02T21:10:00.000Z"
     }
   ]
 }

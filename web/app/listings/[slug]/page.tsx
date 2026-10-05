@@ -263,6 +263,14 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     <UnclaimedNotice listingId={listing.id} t={t} />
                   </div>
                 )}
+                {record?.published && viewer?.id !== record.hostId && (
+                  <a
+                    href={`/guest/reportes?anuncio=${encodeURIComponent(listing.id)}`}
+                    className="mt-3 inline-block text-xs text-[#999] underline"
+                  >
+                    🚩 {t("Reportar este anuncio o anfitrión")}
+                  </a>
+                )}
               </section>
 
               <hr className="my-6" style={{ borderColor: "#ebebeb" }} />

@@ -1,0 +1,641 @@
+import "server-only";
+import {
+  isListingLocationVerified,
+  latestProofForListing,
+  listAddressProofs,
+  type AddressProof,
+} from "@/lib/address-proof-store";
+import { getAdminUsers, type AdminUserRow } from "@/lib/admin-data";
+import { listDraftsForAssociate, type AssociateDraft } from "@/lib/associate-drafts-store";
+import { listClaimRequests, type ListingClaimRequest } from "@/lib/listing-claims-store";
+import { getStatsTotalsForListings } from "@/lib/listing-stats-store";
+import { listAllBookings } from "@/lib/bookings-store";
+import type { BookingRecord, BookingStatus } from "@/lib/booking-types";
+import { listAllMessages } from "@/lib/host-inbox-store";
+import type { HostInboxMessageRecord } from "@/lib/host-inbox-types";
+import { getListingStats } from "@/lib/listing-stats-store";
+import {
+  findUserById,
+  getHostProfile,
+  getListingById,
+  listAllListings,
+  listListingsForHost,
+  listUsersProvisionedBy,
+} from "@/lib/marketplace-store";
+import { getUserSeen } from "@/lib/site-visits-store";
+import { listStayReviews } from "@/lib/stay-reviews-store";
+import { listReportsAgainst, listReportsByReporter, listUserReports } from "@/lib/user-reports-store";
+import type { UserReportRecord } from "@/lib/user-reports-types";
+import { getVerification } from "@/lib/verification-store";
+import { listWishlistsForUser } from "@/lib/wishlists-store";
+
+export type AdminConversation = {
+  key: string;
+  listingId: string;
+  listingTitle: string;
+  /** Papel del usuario en este hilo. */
+  role: "host" | "guest";
+  counterpartId?: string;
+  counterpartName: string;
+  counterpartEmail?: string;
+  messageCount: number;
+  firstAt: string;
+  lastAt: string;
+  messages: {
+    id: string;
+    sender: "guest" | "host";
+    body: string;
+    createdAt: string;
+    attachment?: "image" | "audio";
+    via?: "ai";
+  }[];
+};
+
+export type AdminActivityKind =
+  | "account"
+  | "visit"
+  | "listing"
+  | "booking"
+  | "payment"
+  | "message"
+  | "review"
+  | "report"
+  | "verification";
+
+export type AdminActivity = {
+  id: string;
+  when: string;
+  kind: AdminActivityKind;
+  title: string;
+  detail?: string;
+  href?: string;
+};
+
+export type AdminUserStats = {
+  host: {
+    listings: number;
+    published: number;
+    views30: number;
+    viewsTotal: number;
+    contacts30: number;
+    contactsTotal: number;
+    bookingsReceived: number;
+    bookingsByStatus: Partial<Record<BookingStatus, number>>;
+    revenueMxn: number;
+    nightsHosted: number;
+    threads: number;
+    threadsAnswered: number;
+    /** Minutos promedio entre el primer mensaje del huésped y la primera respuesta. */
+    avgFirstReplyMin: number | null;
+    reviewsReceived: number;
+    ratingAvg: number | null;
+    reviewsWritten: number;
+  };
+  guest: {
+    bookings: number;
+    bookingsByStatus: Partial<Record<BookingStatus, number>>;
+    paidMxn: number;
+    nights: number;
+    threads: number;
+    messagesSent: number;
+    reviewsWritten: number;
+    reviewsReceived: number;
+    ratingAvg: number | null;
+    wishlists: number;
+    savedListings: number;
+  };
+  pageViews: number;
+  lastSeenAt?: string;
+  place?: string;
+};
+
+export type AdminReportRow = UserReportRecord & {
+  targetName?: string;
+  targetEmail?: string;
+  listingTitle?: string;
+  listingSlug?: string;
+  /** Otros reportes abiertos contra la misma cuenta. */
+  targetOpenReports: number;
+};
+
+export type AdminAddressProofRow = Omit<AddressProof, "fileName" | "addressKey"> & {
+  listingTitle: string;
+  listingSlug?: string;
+};
+
+export type AdminListingClaimRow = ListingClaimRequest & { listingSlug?: string; listingExists: boolean };
+
+export type AdminAssociateInfo = {
+  /** Asociado que dio de alta esta cuenta. */
+  provisionedBy?: { id: string; name: string };
+  /** Cuentas que este usuario dio de alta como asociado. */
+  accounts: {
+    id: string;
+    name: string;
+    email: string;
+    claimed: boolean;
+    listings: number;
+    views: number;
+    contacts: number;
+    createdAt: string;
+  }[];
+  drafts: { pending: number; published: number; discarded: number };
+  recentDrafts: { id: string; title: string; status: AssociateDraft["status"]; site?: string; createdAt: string }[];
+};
+
+export type AdminUserDetail = {
+  user: AdminUserRow;
+  addressProofs: AdminAddressProofRow[];
+  listingClaims: AdminListingClaimRow[];
+  associate: AdminAssociateInfo;
+  account: {
+    phone?: string;
+    addressLine?: string;
+    alias?: string;
+    avatarUrl?: string;
+    emailVerifiedAt?: string;
+    termsAcceptedAt?: string;
+    provisionedBy?: string;
+    claimedAt?: string;
+    placeholderEmail: boolean;
+  };
+  stats: AdminUserStats;
+  listings: {
+    id: string;
+    slug: string;
+    title: string;
+    published: boolean;
+    city?: string;
+    views30: number;
+    contacts30: number;
+    updatedAt: string;
+    locationVerified: boolean;
+    proofStatus?: AddressProof["status"];
+  }[];
+  conversations: AdminConversation[];
+  activity: AdminActivity[];
+  reportsBy: AdminReportRow[];
+  reportsAgainst: AdminReportRow[];
+};
+
+const STATUS_ES: Record<BookingStatus, string> = {
+  AWAITING_PAYMENT: "esperando pago",
+  PENDING: "pendiente del anfitrión",
+  PENDING_HOST: "pendiente del anfitrión",
+  AWAITING_DETAILS: "esperando datos del huésped",
+  CONFIRMED: "confirmada",
+  REJECTED: "rechazada",
+  CANCELLED: "cancelada",
+  COMPLETED: "completada",
+  EXPIRED: "expirada",
+};
+
+const ACTOR_ES: Record<string, string> = {
+  host: "anfitrión",
+  guest: "huésped",
+  system: "sistema",
+  beeagent: "agente IA",
+  admin: "admin",
+};
+
+function placeLabel(key: string | undefined): string | undefined {
+  if (!key) return undefined;
+  const parts = key.split("|").filter((p) => p && p !== "Desconocido");
+  return parts.length ? parts.reverse().join(", ") : undefined;
+}
+
+function avg(nums: number[]): number | null {
+  if (!nums.length) return null;
+  return Math.round((nums.reduce((s, n) => s + n, 0) / nums.length) * 10) / 10;
+}
+
+function bump(map: Partial<Record<BookingStatus, number>>, s: BookingStatus) {
+  map[s] = (map[s] ?? 0) + 1;
+}
+
+function isUserThread(m: HostInboxMessageRecord, userId: string): "host" | "guest" | null {
+  if (m.hostId === userId) return "host";
+  if (m.guestSessionId === `gu_${userId}`) return "guest";
+  return null;
+}
+
+function buildConversations(userId: string): AdminConversation[] {
+  const threads = new Map<string, { role: "host" | "guest"; msgs: HostInboxMessageRecord[] }>();
+  for (const m of listAllMessages()) {
+    const role = isUserThread(m, userId);
+    if (!role) continue;
+    const key = `${m.listingId}:${m.guestSessionId}`;
+    const t = threads.get(key) ?? { role, msgs: [] };
+    t.msgs.push(m);
+    threads.set(key, t);
+  }
+  const out: AdminConversation[] = [];
+  for (const [key, { role, msgs }] of threads) {
+    msgs.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const first = msgs[0];
+    const listing = getListingById(first.listingId);
+    let counterpartId: string | undefined;
+    let counterpartName = "";
+    let counterpartEmail: string | undefined;
+    if (role === "host") {
+      counterpartId = first.guestSessionId.startsWith("gu_") ? first.guestSessionId.slice(3) : undefined;
+      const g = counterpartId ? findUserById(counterpartId) : undefined;
+      const fromMsg = msgs.find((m) => m.sender === "guest");
+      counterpartName = g?.fullName || fromMsg?.guestName || "Huésped sin cuenta";
+      counterpartEmail = g?.email ?? fromMsg?.guestEmail;
+    } else {
+      counterpartId = first.hostId;
+      const h = findUserById(first.hostId);
+      counterpartName = h?.fullName || "Anfitrión";
+      counterpartEmail = h?.email;
+    }
+    out.push({
+      key,
+      listingId: first.listingId,
+      listingTitle: listing?.title ?? first.listingId,
+      role,
+      counterpartId,
+      counterpartName,
+      counterpartEmail,
+      messageCount: msgs.length,
+      firstAt: first.createdAt,
+      lastAt: msgs[msgs.length - 1].createdAt,
+      messages: msgs.slice(-300).map((m) => ({
+        id: m.id,
+        sender: m.sender,
+        body: m.body,
+        createdAt: m.createdAt,
+        ...(m.attachment ? { attachment: m.attachment.kind } : {}),
+        ...(m.via ? { via: m.via } : {}),
+      })),
+    });
+  }
+  return out.sort((a, b) => b.lastAt.localeCompare(a.lastAt));
+}
+
+function hostReplyStats(conversations: AdminConversation[]) {
+  const asHost = conversations.filter((c) => c.role === "host");
+  let answered = 0;
+  const delays: number[] = [];
+  for (const c of asHost) {
+    const firstGuest = c.messages.find((m) => m.sender === "guest");
+    if (!firstGuest) continue;
+    const reply = c.messages.find((m) => m.sender === "host" && m.createdAt >= firstGuest.createdAt);
+    if (!reply) continue;
+    answered++;
+    delays.push((Date.parse(reply.createdAt) - Date.parse(firstGuest.createdAt)) / 60_000);
+  }
+  return {
+    threads: asHost.length,
+    threadsAnswered: answered,
+    avgFirstReplyMin: delays.length ? Math.round(delays.reduce((s, n) => s + n, 0) / delays.length) : null,
+  };
+}
+
+function bookingEvents(b: BookingRecord, userId: string, listingTitle: string): AdminActivity[] {
+  const asGuest = b.guestUserId === userId;
+  const who = asGuest ? "" : ` · huésped ${b.guestName}`;
+  const detail = `${listingTitle} · ${b.checkIn} → ${b.checkOut} · $${(b.estimatedTotalMxn + (b.platformFeeMxn ?? 0)).toLocaleString("es-MX")} MXN${who}`;
+  const href = "#tab-bookings";
+  const events: AdminActivity[] = [
+    {
+      id: `${b.id}-created`,
+      when: b.createdAt,
+      kind: "booking",
+      title: asGuest ? "Pidió una reserva" : "Recibió una solicitud de reserva",
+      detail,
+      href,
+    },
+  ];
+  if (b.paidAt) {
+    events.push({ id: `${b.id}-paid`, when: b.paidAt, kind: "payment", title: asGuest ? "Pagó una reserva" : "Le pagaron una reserva", detail, href });
+  }
+  if (b.refundedAt) {
+    events.push({ id: `${b.id}-refund`, when: b.refundedAt, kind: "payment", title: "Reembolso de reserva", detail, href });
+  }
+  for (const [i, ev] of (b.lifecycle ?? []).entries()) {
+    if (ev.to === "AWAITING_PAYMENT") continue;
+    events.push({
+      id: `${b.id}-lc${i}`,
+      when: ev.at,
+      kind: "booking",
+      title: `Reserva ${STATUS_ES[ev.to] ?? ev.to}`,
+      detail: `${detail} · por ${ACTOR_ES[ev.actor] ?? ev.actor}${ev.reason ? ` · ${ev.reason}` : ""}`,
+      href,
+    });
+  }
+  if (!b.lifecycle?.length && b.updatedAt !== b.createdAt && b.status !== "AWAITING_PAYMENT") {
+    events.push({ id: `${b.id}-status`, when: b.updatedAt, kind: "booking", title: `Reserva ${STATUS_ES[b.status] ?? b.status}`, detail, href });
+  }
+  return events;
+}
+
+/** Mensajes agrupados por hilo y día para que el historial no se llene de una línea por mensaje. */
+function messageEvents(conversations: AdminConversation[]): AdminActivity[] {
+  const out: AdminActivity[] = [];
+  for (const c of conversations) {
+    const byDay = new Map<string, { n: number; last: string }>();
+    for (const m of c.messages) {
+      if (m.sender !== c.role) continue;
+      const day = m.createdAt.slice(0, 10);
+      const g = byDay.get(day) ?? { n: 0, last: m.createdAt };
+      g.n++;
+      if (m.createdAt > g.last) g.last = m.createdAt;
+      byDay.set(day, g);
+    }
+    for (const [day, g] of byDay) {
+      out.push({
+        id: `msg-${c.key}-${day}`,
+        when: g.last,
+        kind: "message",
+        title: g.n === 1 ? `Envió 1 mensaje a ${c.counterpartName}` : `Envió ${g.n} mensajes a ${c.counterpartName}`,
+        detail: c.listingTitle,
+        href: `#chat-${encodeURIComponent(c.key)}`,
+      });
+    }
+  }
+  return out;
+}
+
+function toReportRows(rows: UserReportRecord[]): AdminReportRow[] {
+  const all = listUserReports();
+  const openAgainst = new Map<string, number>();
+  for (const r of all) {
+    if (r.targetUserId && (r.status === "open" || r.status === "in_review")) {
+      openAgainst.set(r.targetUserId, (openAgainst.get(r.targetUserId) ?? 0) + 1);
+    }
+  }
+  return rows.map((r) => {
+    const target = r.targetUserId ? findUserById(r.targetUserId) : undefined;
+    const listing = r.listingId ? getListingById(r.listingId) : undefined;
+    return {
+      ...r,
+      targetName: target?.fullName,
+      targetEmail: target?.email,
+      listingTitle: listing?.title,
+      listingSlug: listing?.slug,
+      targetOpenReports: r.targetUserId ? openAgainst.get(r.targetUserId) ?? 0 : 0,
+    };
+  });
+}
+
+export function getAdminReports(): AdminReportRow[] {
+  return toReportRows(listUserReports());
+}
+
+export function getAdminUserDetail(userId: string): AdminUserDetail | null {
+  const record = findUserById(userId);
+  if (!record) return null;
+  const user = getAdminUsers().find((u) => u.id === userId);
+  if (!user) return null;
+
+  const listings = listAllListings().filter((l) => l.hostId === userId);
+  const bookings = listAllBookings();
+  const asGuest = bookings.filter((b) => b.guestUserId === userId);
+  const asHost = bookings.filter((b) => b.hostId === userId);
+  const conversations = buildConversations(userId);
+  const reviews = listStayReviews();
+  const seen = getUserSeen(userId);
+  const wishlists = listWishlistsForUser(userId);
+  const v = getVerification(userId);
+
+  const listingIds = new Set(listings.map((l) => l.id));
+  const addressProofs: AdminAddressProofRow[] = listAddressProofs()
+    .filter((p) => p.hostId === userId || listingIds.has(p.listingId))
+    .map(({ fileName: _f, addressKey: _k, ...p }) => {
+      void _f;
+      void _k;
+      const l = getListingById(p.listingId);
+      return { ...p, listingTitle: l?.title ?? "(anuncio borrado)", listingSlug: l?.slug };
+    });
+  const listingClaims: AdminListingClaimRow[] = listClaimRequests()
+    .filter((c) => c.hostId === userId || listingIds.has(c.listingId))
+    .map((c) => {
+      const l = getListingById(c.listingId);
+      return { ...c, listingSlug: l?.slug, listingExists: Boolean(l) };
+    });
+
+  const provisioner = record.provisionedBy ? findUserById(record.provisionedBy) : undefined;
+  const drafts = listDraftsForAssociate(userId);
+  const associate: AdminAssociateInfo = {
+    ...(provisioner ? { provisionedBy: { id: provisioner.id, name: provisioner.fullName } } : {}),
+    accounts: listUsersProvisionedBy(userId).map((u) => {
+      const ls = listListingsForHost(u.id);
+      const totals = getStatsTotalsForListings(ls.map((l) => l.id));
+      return {
+        id: u.id,
+        name: u.fullName,
+        email: u.email,
+        claimed: Boolean(u.claimedAt),
+        listings: ls.length,
+        views: totals.views,
+        contacts: totals.contacts,
+        createdAt: u.createdAt,
+      };
+    }),
+    drafts: {
+      pending: drafts.filter((d) => d.status === "pending").length,
+      published: drafts.filter((d) => d.status === "published").length,
+      discarded: drafts.filter((d) => d.status === "discarded").length,
+    },
+    recentDrafts: drafts.slice(0, 20).map((d) => ({
+      id: d.id,
+      title: d.listing.title || "(sin título)",
+      status: d.status,
+      site: d.source.site ?? (d.source.kind === "screenshots" ? "Capturas" : d.source.kind),
+      createdAt: d.createdAt,
+    })),
+  };
+
+  const listingRows = listings.map((l) => {
+    const s = getListingStats(l.id);
+    return {
+      locationVerified: isListingLocationVerified(l),
+      proofStatus: latestProofForListing(l.id)?.status,
+      id: l.id,
+      slug: l.slug,
+      title: l.title,
+      published: Boolean(l.published),
+      city: l.city,
+      views30: s.views30,
+      contacts30: s.contacts30,
+      viewsTotal: s.viewsTotal,
+      contactsTotal: s.contactsTotal,
+      updatedAt: l.updatedAt,
+    };
+  });
+
+  const hostByStatus: Partial<Record<BookingStatus, number>> = {};
+  let revenueMxn = 0;
+  let nightsHosted = 0;
+  for (const b of asHost) {
+    bump(hostByStatus, b.status);
+    if (b.paidAt && !b.refundedAt) {
+      revenueMxn += b.estimatedTotalMxn;
+      nightsHosted += b.nights;
+    }
+  }
+  const guestByStatus: Partial<Record<BookingStatus, number>> = {};
+  let paidMxn = 0;
+  let nights = 0;
+  for (const b of asGuest) {
+    bump(guestByStatus, b.status);
+    if (b.paidAt && !b.refundedAt) {
+      paidMxn += b.estimatedTotalMxn + (b.platformFeeMxn ?? 0);
+      nights += b.nights;
+    }
+  }
+
+  const reviewsOfHost = reviews.filter((r) => r.kind === "guest_to_listing" && r.hostId === userId);
+  const reviewsOfGuest = reviews.filter((r) => r.kind === "host_to_guest" && r.guestUserId === userId);
+  const reply = hostReplyStats(conversations);
+  const guestThreads = conversations.filter((c) => c.role === "guest");
+
+  const stats: AdminUserStats = {
+    host: {
+      listings: listings.length,
+      published: listings.filter((l) => l.published).length,
+      views30: listingRows.reduce((s, l) => s + l.views30, 0),
+      viewsTotal: listingRows.reduce((s, l) => s + l.viewsTotal, 0),
+      contacts30: listingRows.reduce((s, l) => s + l.contacts30, 0),
+      contactsTotal: listingRows.reduce((s, l) => s + l.contactsTotal, 0),
+      bookingsReceived: asHost.length,
+      bookingsByStatus: hostByStatus,
+      revenueMxn,
+      nightsHosted,
+      threads: reply.threads,
+      threadsAnswered: reply.threadsAnswered,
+      avgFirstReplyMin: reply.avgFirstReplyMin,
+      reviewsReceived: reviewsOfHost.length,
+      ratingAvg: avg(reviewsOfHost.map((r) => r.rating)),
+      reviewsWritten: reviews.filter((r) => r.kind === "host_to_guest" && r.authorUserId === userId).length,
+    },
+    guest: {
+      bookings: asGuest.length,
+      bookingsByStatus: guestByStatus,
+      paidMxn,
+      nights,
+      threads: guestThreads.length,
+      messagesSent: guestThreads.reduce((s, c) => s + c.messages.filter((m) => m.sender === "guest").length, 0),
+      reviewsWritten: reviews.filter((r) => r.kind === "guest_to_listing" && r.authorUserId === userId).length,
+      reviewsReceived: reviewsOfGuest.length,
+      ratingAvg: avg(reviewsOfGuest.map((r) => r.rating)),
+      wishlists: wishlists.length,
+      savedListings: wishlists.reduce((s, w) => s + w.items.length, 0),
+    },
+    pageViews: seen.pageViews,
+    lastSeenAt: seen.lastSeenAt,
+    place: placeLabel(seen.place),
+  };
+
+  const activity: AdminActivity[] = [
+    { id: "created", when: record.createdAt, kind: "account", title: "Creó su cuenta", detail: record.provisionedBy ? "Alta hecha por un asociado" : undefined },
+  ];
+  if (record.emailVerifiedAt) activity.push({ id: "email", when: record.emailVerifiedAt, kind: "account", title: "Verificó su correo" });
+  if (record.termsAcceptedAt) activity.push({ id: "terms", when: record.termsAcceptedAt, kind: "account", title: "Aceptó los términos", detail: record.termsVersion });
+  if (record.claimedAt) activity.push({ id: "claimed", when: record.claimedAt, kind: "account", title: "Tomó control de su cuenta" });
+  if (seen.lastSeenAt) {
+    activity.push({ id: "seen", when: seen.lastSeenAt, kind: "visit", title: "Última visita", detail: [placeLabel(seen.place), `${seen.pageViews} páginas vistas en total`].filter(Boolean).join(" · ") });
+  }
+  if (v?.hostVerifiedAt) {
+    activity.push({ id: "host-verified", when: v.hostVerifiedAt, kind: "verification", title: "Identidad de anfitrión verificada", detail: v.hostVerificationSource === "admin" ? "Manual por admin" : "Stripe Identity" });
+  }
+  if (v && v.subscriptionStatus !== "none" && v.updatedAt) {
+    activity.push({ id: "verif", when: v.updatedAt, kind: "verification", title: `Membresía / verificación: ${v.subscriptionStatus}`, detail: `KYC ${v.kycStatus ?? "—"}` });
+  }
+  for (const l of listings) {
+    activity.push({ id: `${l.id}-new`, when: l.createdAt, kind: "listing", title: "Creó un anuncio", detail: l.title, href: `/listings/${l.slug}` });
+    if (l.updatedAt && l.updatedAt !== l.createdAt) {
+      activity.push({ id: `${l.id}-upd`, when: l.updatedAt, kind: "listing", title: l.published ? "Editó un anuncio publicado" : "Editó un borrador", detail: l.title, href: `/listings/${l.slug}` });
+    }
+  }
+  const seenBookings = new Set<string>();
+  for (const b of [...asGuest, ...asHost]) {
+    if (seenBookings.has(b.id)) continue;
+    seenBookings.add(b.id);
+    activity.push(...bookingEvents(b, userId, getListingById(b.listingId)?.title ?? b.listingId));
+  }
+  activity.push(...messageEvents(conversations));
+  const PROOF_ES: Record<AddressProof["status"], string> = {
+    pending: "procesando",
+    review: "por revisar",
+    approved: "aprobado",
+    rejected: "rechazado",
+  };
+  for (const p of addressProofs) {
+    activity.push({ id: `adp-${p.id}`, when: p.createdAt, kind: "verification", title: "Subió un comprobante de domicilio", detail: p.listingTitle, href: "#tab-listings" });
+    if (p.reviewedAt) {
+      activity.push({
+        id: `adp-r-${p.id}`,
+        when: p.reviewedAt,
+        kind: "verification",
+        title: `Comprobante de domicilio ${PROOF_ES[p.status]}${p.reviewedBy === "ai" ? " por IA" : ""}`,
+        detail: p.listingTitle,
+        href: "#tab-listings",
+      });
+    }
+  }
+  for (const c of listingClaims) {
+    activity.push({
+      id: `clm-${c.id}`,
+      when: c.createdAt,
+      kind: "report",
+      title: c.kind === "remove" ? "Pidieron borrar uno de sus anuncios" : "Alguien reclamó uno de sus anuncios",
+      detail: `${c.listingTitle} · ${c.name}`,
+      href: "#tab-listings",
+    });
+  }
+  for (const a of associate.accounts) {
+    activity.push({ id: `prov-${a.id}`, when: a.createdAt, kind: "account", title: `Dio de alta la cuenta de ${a.name}`, detail: a.claimed ? "Ya la reclamó su dueño" : "Sin reclamar", href: `/admin/users/${a.id}` });
+  }
+  for (const d of drafts) {
+    if (d.status === "published") {
+      activity.push({ id: `drf-${d.id}`, when: d.updatedAt, kind: "listing", title: "Publicó un anuncio importado con IA", detail: d.listing.title || undefined });
+    }
+  }
+  for (const r of reviews) {
+    if (r.authorUserId === userId) {
+      activity.push({ id: `rv-${r.id}`, when: r.createdAt, kind: "review", title: `Escribió una reseña · ${r.rating}★`, detail: `${getListingById(r.listingId)?.title ?? r.listingId}${r.comment ? ` · “${r.comment.slice(0, 120)}”` : ""}` });
+    } else if ((r.kind === "guest_to_listing" && r.hostId === userId) || (r.kind === "host_to_guest" && r.guestUserId === userId)) {
+      activity.push({ id: `rr-${r.id}`, when: r.createdAt, kind: "review", title: `Recibió una reseña · ${r.rating}★`, detail: getListingById(r.listingId)?.title ?? r.listingId });
+    }
+  }
+  const reportsBy = listReportsByReporter(userId);
+  const reportsAgainst = listReportsAgainst(userId);
+  for (const r of reportsBy) {
+    activity.push({ id: `rp-${r.id}`, when: r.createdAt, kind: "report", title: `Envió: ${r.category}`, detail: r.message.slice(0, 140), href: "/admin/reportes" });
+  }
+  for (const r of reportsAgainst) {
+    activity.push({ id: `ra-${r.id}`, when: r.createdAt, kind: "report", title: `Lo reportaron: ${r.category}`, detail: `Por ${r.reporterName}`, href: "/admin/reportes" });
+  }
+  activity.sort((a, b) => b.when.localeCompare(a.when));
+
+  const profile = getHostProfile(userId);
+  return {
+    user,
+    addressProofs,
+    listingClaims,
+    associate,
+    account: {
+      phone: record.phone || profile?.phone,
+      addressLine: record.addressLine,
+      alias: record.alias,
+      avatarUrl: profile?.avatarUrl,
+      emailVerifiedAt: record.emailVerifiedAt,
+      termsAcceptedAt: record.termsAcceptedAt,
+      provisionedBy: record.provisionedBy,
+      claimedAt: record.claimedAt,
+      placeholderEmail: Boolean(record.placeholderEmail),
+    },
+    stats,
+    listings: listingRows.map(({ viewsTotal: _v, contactsTotal: _c, ...l }) => {
+      void _v;
+      void _c;
+      return l;
+    }),
+    conversations,
+    activity: activity.slice(0, 400),
+    reportsBy: toReportRows(reportsBy),
+    reportsAgainst: toReportRows(reportsAgainst),
+  };
+}

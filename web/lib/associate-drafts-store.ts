@@ -90,6 +90,11 @@ export function getDraft(id: string): AssociateDraft | undefined {
   return drafts.get(id);
 }
 
+export function listAllDrafts(): AssociateDraft[] {
+  syncIfStale();
+  return [...drafts.values()];
+}
+
 export function listDraftsForAssociate(associateId: string, status?: AssociateDraft["status"]): AssociateDraft[] {
   syncIfStale();
   return [...drafts.values()]

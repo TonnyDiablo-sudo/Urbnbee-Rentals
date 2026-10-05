@@ -1,6 +1,7 @@
 import "server-only";
 import Stripe from "stripe";
 import { getHostPaymentSecrets } from "@/lib/host-payment-store";
+import { allowSimulatedBookingPayment } from "@/lib/stripe-server";
 
 export const HOST_WEBHOOK_EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
   "checkout.session.completed",
@@ -23,6 +24,11 @@ export function getHostStripe(hostId: string): Stripe | null {
   const secrets = getHostPaymentSecrets(hostId);
   if (!secrets?.stripeSecretKey) return null;
   return stripeFor(secrets.stripeSecretKey);
+}
+
+/** Cabibee nunca cobra estancias: sin Stripe del anfitrión no hay reserva en línea (salvo demo sin Stripe). */
+export function hostCanTakeBookingPayments(hostId: string): boolean {
+  return Boolean(getHostPaymentSecrets(hostId)?.stripeSecretKey) || allowSimulatedBookingPayment();
 }
 
 export function constructHostStripeEvent(

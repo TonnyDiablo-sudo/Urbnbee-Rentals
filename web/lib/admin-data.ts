@@ -7,8 +7,31 @@ import {
   isHostMembershipActive,
 } from "@/lib/verification-store";
 import type { BookingStatus } from "@/lib/booking-types";
+import { listAllMessages } from "@/lib/host-inbox-store";
+import { getAllUserLastSeen, getUserPlaces } from "@/lib/site-visits-store";
+import { listUserReports } from "@/lib/user-reports-store";
+import { isListingLocationVerified, listAddressProofs } from "@/lib/address-proof-store";
+import { listAllDrafts } from "@/lib/associate-drafts-store";
+import { listClaimRequests } from "@/lib/listing-claims-store";
+import { listAllHostEntitlements } from "@/lib/host-entitlements-store";
+import type { HostEntitlementRecord, HostSku } from "@/lib/host-entitlement-types";
+import { getMembershipPlan } from "@/lib/membership-plans-store";
+import { listAllScreenings } from "@/lib/screening-store";
+import type { GuestVerificationRecord } from "@/lib/verification-types";
+
+/** Algo que el usuario compró o tiene activo: membresías, módulos de anfitrión, pases, screenings. */
+export type AdminProduct = {
+  key: string;
+  label: string;
+  status: string;
+  detail?: string;
+  until?: string;
+};
 
 export type AdminUserRow = {
+  products: AdminProduct[];
+  /** Cobrado por sus estancias como anfitrión (pagadas y no reembolsadas). */
+  hostRevenueMxn: number;
   id: string;
   email: string;
   fullName: string;
@@ -32,6 +55,22 @@ export type AdminUserRow = {
   kycStatus: string;
   bookingPassesRemaining: number;
   associate: boolean;
+  phone?: string;
+  emailVerified: boolean;
+  bookingsAsHost: number;
+  threads: number;
+  messagesSent: number;
+  /** Lo más reciente entre visita, mensaje, reserva o anuncio. */
+  lastActiveAt?: string;
+  /** "Ciudad, Estado, País" de la última visita con sesión. */
+  place?: string;
+  openReportsAgainst: number;
+  /** Comprobantes de domicilio que la IA dejó por revisar. */
+  pendingAddressProofs: number;
+  /** Reclamos abiertos sobre sus anuncios. */
+  openListingClaims: number;
+  provisionedById?: string;
+  provisionedAccounts: number;
 };
 
 export type AdminBookingRow = {
@@ -86,6 +125,70 @@ export type AdminOverview = {
   totalRefundedMxn: number;
   activeVerificationSubscriptions: number;
 };
+
+/** Foto del momento para Estadísticas: lo que antes vivía en páginas sueltas del menú. */
+export type AdminSnapshot = {
+  bookingsByStatus: Partial<Record<BookingStatus, number>>;
+  totalBookings: number;
+  paidBookings: number;
+  refundedBookings: number;
+  totalStayRevenueMxn: number;
+  totalPlatformFeeMxn: number;
+  totalRefundedMxn: number;
+  addressProofs: { review: number; pending: number; approved: number; rejected: number; approvedByAi: number };
+  locationVerifiedListings: number;
+  publishedListings: number;
+  listingClaims: { open: number; total: number };
+  associates: { associates: number; accounts: number; claimed: number; draftsPending: number; draftsPublished: number };
+  identity: { kycVerified: number; hostRibbon: number; activeMemberships: number };
+  reports: { open: number; total: number };
+};
+
+export function getAdminSnapshot(): AdminSnapshot {
+  const o = getAdminOverview();
+  const users = listAllUsers();
+  const listings = listAllListings();
+  const proofs = listAddressProofs();
+  const claims = listClaimRequests();
+  const drafts = listAllDrafts();
+  const reports = listUserReports();
+  const count = (s: string) => proofs.filter((p) => p.status === s).length;
+  return {
+    bookingsByStatus: o.bookingsByStatus,
+    totalBookings: o.totalBookings,
+    paidBookings: o.paidBookings,
+    refundedBookings: o.refundedBookings,
+    totalStayRevenueMxn: o.totalStayRevenueMxn,
+    totalPlatformFeeMxn: o.totalPlatformFeeMxn,
+    totalRefundedMxn: o.totalRefundedMxn,
+    addressProofs: {
+      review: count("review"),
+      pending: count("pending"),
+      approved: count("approved"),
+      rejected: count("rejected"),
+      approvedByAi: proofs.filter((p) => p.status === "approved" && p.reviewedBy === "ai").length,
+    },
+    locationVerifiedListings: listings.filter((l) => l.published && isListingLocationVerified(l)).length,
+    publishedListings: o.publishedListings,
+    listingClaims: { open: claims.filter((c) => c.status === "open").length, total: claims.length },
+    associates: {
+      associates: users.filter((u) => u.associate).length,
+      accounts: users.filter((u) => u.provisionedBy).length,
+      claimed: users.filter((u) => u.provisionedBy && u.claimedAt).length,
+      draftsPending: drafts.filter((d) => d.status === "pending").length,
+      draftsPublished: drafts.filter((d) => d.status === "published").length,
+    },
+    identity: {
+      kycVerified: users.filter((u) => getVerification(u.id)?.kycStatus === "verified").length,
+      hostRibbon: users.filter((u) => hostShowsVerifiedRibbon(u.id)).length,
+      activeMemberships: o.activeVerificationSubscriptions,
+    },
+    reports: {
+      open: reports.filter((r) => r.status === "open" || r.status === "in_review").length,
+      total: reports.length,
+    },
+  };
+}
 
 export type AdminLogRow = {
   id: string;
@@ -157,19 +260,117 @@ export function getAdminOverview(): AdminOverview {
   };
 }
 
+const SKU_LABEL: Record<HostSku, string> = {
+  cabibee_booking_engine: "Motor de reservas",
+  cabibee_host_verification: "Verificación de anfitrión",
+  cabibee_cleaning_tool: "Limpieza",
+  cabibee_collaborators: "Colaboradores",
+  cabibee_address_proof: "Comprobante de domicilio",
+  cabibee_featured_listing: "Anuncio destacado",
+};
+
+const SUB_LIVE = new Set(["active", "trialing", "past_due"]);
+
+function productsOf(v: GuestVerificationRecord | undefined, ents: HostEntitlementRecord[], screenings: number): AdminProduct[] {
+  const out: AdminProduct[] = [];
+  const plan = (code?: string) => (code ? getMembershipPlan(code)?.label : undefined);
+  if (v && SUB_LIVE.has(v.subscriptionStatus)) {
+    out.push({ key: "guest_membership", label: "Membresía de huésped", status: v.subscriptionStatus, detail: plan(v.planCode), until: v.currentPeriodEnd });
+  }
+  if (v?.hostSubscriptionStatus && SUB_LIVE.has(v.hostSubscriptionStatus)) {
+    out.push({ key: "host_membership", label: "Membresía de anfitrión", status: v.hostSubscriptionStatus, until: v.hostCurrentPeriodEnd });
+  }
+  for (const e of ents) {
+    if (e.status === "cancelled") continue;
+    out.push({
+      key: e.sku,
+      label: SKU_LABEL[e.sku] ?? e.sku,
+      status: e.cancelAtPeriodEnd ? "cancela al vencer" : e.status,
+      detail: [plan(e.planCode), e.quantity ? `${e.quantity} u.` : undefined, e.source === "urbnbeeai_seller" ? "vía UrbnbeeAI" : undefined]
+        .filter(Boolean)
+        .join(" · ") || undefined,
+      until: e.currentPeriodEnd,
+    });
+  }
+  if (v?.bookingPassesRemaining) {
+    out.push({ key: "booking_pass", label: "Pases de reserva", status: "active", detail: `${v.bookingPassesRemaining} sin usar` });
+  }
+  if (screenings) out.push({ key: "screening", label: "Screening de huésped", status: "active", detail: `${screenings} pagado${screenings !== 1 ? "s" : ""}` });
+  return out;
+}
+
 export function getAdminUsers(): AdminUserRow[] {
   const users = listAllUsers();
   const listings = listAllListings();
   const bookings = listAllBookings();
+  const lastSeen = getAllUserLastSeen();
+  const places = getUserPlaces();
+
+  const latest = new Map<string, string>();
+  const touch = (id: string | undefined, at: string | undefined) => {
+    if (!id || !at) return;
+    const prev = latest.get(id);
+    if (!prev || at > prev) latest.set(id, at);
+  };
+  const threadKeys = new Map<string, Set<string>>();
+  const sent = new Map<string, number>();
+  for (const m of listAllMessages()) {
+    const guestId = m.guestSessionId.startsWith("gu_") ? m.guestSessionId.slice(3) : undefined;
+    const key = `${m.listingId}:${m.guestSessionId}`;
+    for (const id of [m.hostId, guestId]) {
+      if (!id) continue;
+      const set = threadKeys.get(id) ?? new Set<string>();
+      set.add(key);
+      threadKeys.set(id, set);
+    }
+    const author = m.sender === "host" ? m.hostId : guestId;
+    if (author) {
+      sent.set(author, (sent.get(author) ?? 0) + 1);
+      touch(author, m.createdAt);
+    }
+  }
+  for (const b of bookings) {
+    touch(b.guestUserId, b.updatedAt);
+    touch(b.hostId, b.updatedAt);
+  }
+  for (const l of listings) touch(l.hostId, l.updatedAt);
+  for (const [id, at] of Object.entries(lastSeen)) touch(id, at);
+
+  const bump = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
+  const proofsPending = new Map<string, number>();
+  for (const p of listAddressProofs()) if (p.status === "review" || p.status === "pending") bump(proofsPending, p.hostId);
+  const claimsOpen = new Map<string, number>();
+  for (const c of listClaimRequests()) if (c.status === "open") bump(claimsOpen, c.hostId);
+  const provisioned = new Map<string, number>();
+  for (const u of users) if (u.provisionedBy) bump(provisioned, u.provisionedBy);
+
+  const entitlementsBy = new Map<string, HostEntitlementRecord[]>();
+  for (const e of listAllHostEntitlements()) entitlementsBy.set(e.hostId, [...(entitlementsBy.get(e.hostId) ?? []), e]);
+  const screeningsBy = new Map<string, number>();
+  for (const s of listAllScreenings()) {
+    if (!s.paidAt) continue;
+    bump(screeningsBy, s.paidByUserId ?? (s.payer === "host" ? s.hostId ?? "" : s.guestUserId));
+  }
+
+  const openAgainst = new Map<string, number>();
+  for (const r of listUserReports()) {
+    if (r.targetUserId && (r.status === "open" || r.status === "in_review")) {
+      openAgainst.set(r.targetUserId, (openAgainst.get(r.targetUserId) ?? 0) + 1);
+    }
+  }
 
   return users.map((u) => {
     const userListings = listings.filter((l) => l.hostId === u.id);
     const userBookings = bookings.filter((b) => b.guestUserId === u.id);
+    const placeParts = (places[u.id] ?? "").split("|").filter((p) => p && p !== "Desconocido");
     const paidBookings = userBookings.filter((b) => !!b.paidAt && !b.refundedAt);
     const totalPaidMxn = paidBookings.reduce((s, b) => s + b.estimatedTotalMxn, 0);
     const platformFeePaidMxn = paidBookings.reduce((s, b) => s + (b.platformFeeMxn ?? 0), 0);
     const v = getVerification(u.id);
+    const hostPaid = bookings.filter((b) => b.hostId === u.id && b.paidAt && !b.refundedAt);
     return {
+      products: productsOf(v, entitlementsBy.get(u.id) ?? [], screeningsBy.get(u.id) ?? 0),
+      hostRevenueMxn: hostPaid.reduce((s, b) => s + b.estimatedTotalMxn, 0),
       id: u.id,
       email: u.email,
       fullName: u.fullName,
@@ -192,6 +393,18 @@ export function getAdminUsers(): AdminUserRow[] {
       kycStatus: v?.kycStatus ?? "not_started",
       bookingPassesRemaining: v?.bookingPassesRemaining ?? 0,
       associate: Boolean(u.associate),
+      phone: u.phone || getHostProfile(u.id)?.phone || undefined,
+      emailVerified: Boolean(u.emailVerifiedAt),
+      bookingsAsHost: bookings.filter((b) => b.hostId === u.id).length,
+      threads: threadKeys.get(u.id)?.size ?? 0,
+      messagesSent: sent.get(u.id) ?? 0,
+      lastActiveAt: latest.get(u.id),
+      place: placeParts.length ? placeParts.reverse().join(", ") : undefined,
+      openReportsAgainst: openAgainst.get(u.id) ?? 0,
+      pendingAddressProofs: proofsPending.get(u.id) ?? 0,
+      openListingClaims: claimsOpen.get(u.id) ?? 0,
+      provisionedById: u.provisionedBy,
+      provisionedAccounts: provisioned.get(u.id) ?? 0,
     };
   });
 }

@@ -48,9 +48,8 @@ export const appNotificationsTax: Record<string, string> = {
   "No hay diferencia pendiente de pago.": "There's no pending difference to pay.",
   "No se pudo iniciar el pago.": "Couldn't start the payment.",
   "No se pudo verificar el pago.": "Couldn't verify the payment.",
-  "El Stripe del anfitrión ya no está conectado; pídele que lo reconecte.":
-    "The host's Stripe is no longer connected; ask them to reconnect it.",
-  "Pago no disponible: Stripe no está configurado.": "Payment unavailable: Stripe isn't configured.",
+  "El Stripe del anfitrión no está conectado; pídele que lo conecte.":
+    "The host's Stripe isn't connected; ask them to connect it.",
   "Este cobro ya no está vigente.": "This charge is no longer valid.",
   "El importe pagado no coincide con la diferencia.": "The amount paid doesn't match the difference.",
 

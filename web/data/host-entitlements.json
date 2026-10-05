@@ -16,6 +16,118 @@
       "source": "cabibee_direct",
       "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
       "updatedAt": "2026-09-30T20:02:10.945Z"
+    },
+    {
+      "hostId": "usr_seed_pedro_dev",
+      "sku": "cabibee_booking_engine",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_seed_pedro_dev",
+      "sku": "cabibee_host_verification",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_lucia",
+      "sku": "cabibee_booking_engine",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_lucia",
+      "sku": "cabibee_host_verification",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_andres",
+      "sku": "cabibee_booking_engine",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_andres",
+      "sku": "cabibee_host_verification",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_mariana",
+      "sku": "cabibee_booking_engine",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_mariana",
+      "sku": "cabibee_host_verification",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_javier",
+      "sku": "cabibee_booking_engine",
+      "status": "canceled",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_valeria",
+      "sku": "cabibee_booking_engine",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_valeria",
+      "sku": "cabibee_host_verification",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_rodrigo",
+      "sku": "cabibee_booking_engine",
+      "status": "canceled",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_totti",
+      "sku": "cabibee_booking_engine",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
+    },
+    {
+      "hostId": "usr_show_totti",
+      "sku": "cabibee_host_verification",
+      "status": "active",
+      "source": "cabibee_direct",
+      "currentPeriodEnd": "2027-03-01T00:00:00.000Z",
+      "updatedAt": "2026-10-03T08:17:32.926Z"
     }
   ]
 }

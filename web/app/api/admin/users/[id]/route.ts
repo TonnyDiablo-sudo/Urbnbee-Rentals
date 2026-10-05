@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import { getAdminUserDetail } from "@/lib/admin-user-detail";
 import { lockLegalName } from "@/lib/display-name";
 import { findUserById, setUserRole, updateUserAuth } from "@/lib/marketplace-store";
 import type { UserRole } from "@/lib/marketplace-types";
@@ -10,6 +11,17 @@ import {
 } from "@/lib/verification-store";
 
 const VALID_ROLES: UserRole[] = ["guest", "host", "admin"];
+
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const viewer = await getSessionUser();
+  if (!viewer || viewer.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const { id } = await params;
+  const detail = getAdminUserDetail(id);
+  if (!detail) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(detail);
+}
 
 export async function PATCH(
   request: Request,

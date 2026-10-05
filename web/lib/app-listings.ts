@@ -5,6 +5,7 @@ import { BROWSE_TITLES, getBrowseListings } from "@/lib/browse-merge";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { getListingById } from "@/lib/marketplace-store";
 import { listingHasEngine } from "@/lib/booking-engine-slots";
+import { hostCanTakeBookingPayments } from "@/lib/host-stripe";
 import type { Listing } from "@/lib/mock-data";
 
 export type AppListingCard = {
@@ -53,7 +54,7 @@ export const APP_BROWSE_FILTERS: { key: string; label: string }[] = [
 /** Sólo los anuncios de anfitriones reales pasan por el motor de reservas; los de muestra no. */
 export function listingIsBookable(listingId: string): boolean {
   const record = getListingById(listingId);
-  return Boolean(record?.published && listingHasEngine(record));
+  return Boolean(record?.published && listingHasEngine(record) && hostCanTakeBookingPayments(record.hostId));
 }
 
 export function appBrowseListings(opts: {

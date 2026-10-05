@@ -373,7 +373,8 @@ export const siteListing: Record<string, string> = {
   "Sesión inválida.": "Invalid session.",
   "Stripe no configurado.": "Stripe is not configured.",
   "No se pudo verificar el pago.": "Could not verify the payment.",
-  "Pago no configurado (STRIPE_SECRET_KEY).": "Payments not configured (STRIPE_SECRET_KEY).",
+  "El anfitrión todavía no conecta su cuenta de Stripe para cobrar esta reserva.":
+    "The host hasn't connected their Stripe account to collect this booking yet.",
   "Importe de reserva demasiado bajo.": "Booking amount is too low.",
   "Stripe no devolvió URL de pago.": "Stripe didn't return a payment URL.",
   "No se pudo iniciar el pago con Stripe.": "Could not start the Stripe payment.",

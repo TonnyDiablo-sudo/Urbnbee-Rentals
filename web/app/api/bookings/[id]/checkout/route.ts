@@ -6,10 +6,9 @@ import { getSessionUser } from "@/lib/session";
 import { cabibeeMeta } from "@/lib/stripe-app-meta";
 import { recordBookingTransaction } from "@/lib/booking-transactions";
 import { getHostStripe } from "@/lib/host-stripe";
-import { getStripe, allowSimulatedBookingPayment } from "@/lib/stripe-server";
+import { allowSimulatedBookingPayment } from "@/lib/stripe-server";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 import { appReturnPath } from "@/lib/app-return-path";
-import { stayPlatformFeeMxn } from "@/lib/platform-fees";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -50,15 +49,14 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   const cancelUrl = `${origin}${cancelPath}`;
 
   const listing = getListingById(booking.listingId);
-  const hostStripe = getHostStripe(booking.hostId);
-  const chargedVia = hostStripe ? "host" : "platform";
-  const stripe = hostStripe ?? getStripe();
+  const stripe = getHostStripe(booking.hostId);
+  const chargedVia = "host";
 
   if (!stripe) {
     if (!allowSimulatedBookingPayment()) {
       return NextResponse.json(
-        { error: "Pago no configurado (STRIPE_SECRET_KEY)." },
-        { status: 503 }
+        { error: "El anfitrión todavía no conecta su cuenta de Stripe para cobrar esta reserva." },
+        { status: 409 }
       );
     }
     return NextResponse.json({
@@ -69,13 +67,10 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
 
   const title = listing?.title ?? "Reserva Cabibee";
-  const platformFeeMxn =
-    chargedVia === "host" ? 0 : stayPlatformFeeMxn(booking.hostId, booking.estimatedTotalMxn);
   const addedTaxMxn = booking.taxIncluded ? 0 : (booking.taxMxn ?? 0);
   const taxCents = Math.max(0, Math.round(addedTaxMxn * 100));
   const stayCents = Math.max(1, Math.round(booking.estimatedTotalMxn * 100) - taxCents);
-  const feeCents = chargedVia === "host" ? 0 : Math.max(0, Math.round(platformFeeMxn * 100));
-  const totalCents = stayCents + taxCents + feeCents;
+  const totalCents = stayCents + taxCents;
   const taxName = (booking.taxLines ?? []).map((l) => `${l.name} ${l.ratePct}%`).join(" + ") || "Impuestos";
   if (totalCents < 50) {
     return NextResponse.json({ error: "Importe de reserva demasiado bajo." }, { status: 400 });
@@ -108,21 +103,6 @@ export async function POST(req: NextRequest, ctx: Ctx) {
               },
             ]
           : []),
-        ...(feeCents > 0
-          ? [
-              {
-                quantity: 1,
-                price_data: {
-                  currency: "mxn" as const,
-                  unit_amount: feeCents,
-                  product_data: {
-                    name: "Cargo de servicio",
-                    description: "Cargo de plataforma sobre el total de la estancia.",
-                  },
-                },
-              },
-            ]
-          : []),
       ],
       success_url: `${origin}${appReturnPath(body.returnPath) ?? "/bookings/confirm"}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
@@ -132,7 +112,6 @@ export async function POST(req: NextRequest, ctx: Ctx) {
         hostId: booking.hostId,
         chargedVia,
         stayTotalMxn: String(booking.estimatedTotalMxn),
-        platformFeeMxn: String(platformFeeMxn),
       }),
       payment_intent_data: {
         metadata: cabibeeMeta({
@@ -149,7 +128,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
       patchBookingRecord(booking.id, {
         stripeCheckoutSessionId: session.id,
         chargedVia,
-        platformFeeMxn: chargedVia === "host" ? 0 : platformFeeMxn,
+        platformFeeMxn: 0,
       });
       recordBookingTransaction({
         bookingId: booking.id,

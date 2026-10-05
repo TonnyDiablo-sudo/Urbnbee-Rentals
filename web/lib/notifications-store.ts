@@ -14,7 +14,8 @@ export type NotificationKind =
   | "contract"
   | "verification"
   | "team"
-  | "cleaning";
+  | "cleaning"
+  | "support";
 
 export type NotificationRecord = {
   id: string;

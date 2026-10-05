@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getAdminSnapshot, type AdminSnapshot } from "@/lib/admin-data";
 import {
   BREAKDOWN_METRICS,
   getPlatformDashboard,
@@ -70,6 +71,98 @@ function MetricCard({ m, labels, href, active }: { m: MetricResult; labels: stri
       </div>
       {labels.length > 1 && <Bars series={m.series} labels={labels} />}
     </Link>
+  );
+}
+
+const BOOKING_STATUS_ES: Record<string, string> = {
+  AWAITING_PAYMENT: "Esperando pago",
+  PENDING: "Pendiente",
+  PENDING_HOST: "Pendiente anfitrión",
+  AWAITING_DETAILS: "Esperando datos",
+  CONFIRMED: "Confirmada",
+  REJECTED: "Rechazada",
+  CANCELLED: "Cancelada",
+  COMPLETED: "Completada",
+  EXPIRED: "Expirada",
+};
+
+const mxn = (n: number) => `$${nf.format(Math.round(n))}`;
+
+function Snap({ label, value, sub, href, alert }: { label: string; value: React.ReactNode; sub?: string; href?: string; alert?: boolean }) {
+  const body = (
+    <>
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
+      <p className={`mt-1 text-2xl font-bold ${alert ? "text-red-600" : "text-gray-900"}`}>{value}</p>
+      {sub && <p className="mt-0.5 text-[11px] text-gray-500">{sub}</p>}
+    </>
+  );
+  const cls = `rounded-xl border p-4 ${alert ? "border-red-200 bg-red-50" : "border-gray-200 bg-white"}`;
+  return href ? (
+    <Link href={href} className={`${cls} hover:border-amber-300`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cls}>{body}</div>
+  );
+}
+
+function CurrentState({ s }: { s: AdminSnapshot }) {
+  const statuses = Object.entries(s.bookingsByStatus).filter(([, n]) => (n ?? 0) > 0) as [string, number][];
+  const max = Math.max(1, ...statuses.map(([, n]) => n));
+  const pending = "/admin/users?pendientes=1";
+  return (
+    <section className="mb-10">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">Estado actual</h2>
+      <p className="mb-3 text-[11px] text-gray-400">
+        Totales de hoy, sin filtro de periodo ni lugar. El detalle de cada uno está en la ficha del usuario.
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+        <Snap label="Reservas" value={nf.format(s.totalBookings)} sub={`${s.paidBookings} pagadas · ${s.refundedBookings} reembolsadas`} />
+        <Snap label="Ingresos por estancias" value={mxn(s.totalStayRevenueMxn)} sub={`comisión ${mxn(s.totalPlatformFeeMxn)} · devuelto ${mxn(s.totalRefundedMxn)}`} />
+        <Snap
+          label="Comprobantes por revisar"
+          value={s.addressProofs.review + s.addressProofs.pending}
+          sub={`${s.addressProofs.approved} aprobados (${s.addressProofs.approvedByAi} por IA) · ${s.addressProofs.rejected} rechazados`}
+          href={pending}
+          alert={s.addressProofs.review > 0}
+        />
+        <Snap
+          label="Ubicación verificada"
+          value={`${s.locationVerifiedListings} / ${s.publishedListings}`}
+          sub="anuncios publicados con comprobante aprobado"
+        />
+        <Snap label="Reclamos de anuncios abiertos" value={s.listingClaims.open} sub={`${s.listingClaims.total} en total`} href={pending} alert={s.listingClaims.open > 0} />
+        <Snap label="Reportes abiertos" value={s.reports.open} sub={`${s.reports.total} reportes y sugerencias en total`} href="/admin/reportes" alert={s.reports.open > 0} />
+        <Snap
+          label="Altas con IA (asociados)"
+          value={s.associates.accounts}
+          sub={`${s.associates.claimed} reclamadas · ${s.associates.associates} asociados · ${s.associates.draftsPending} borradores por revisar · ${s.associates.draftsPublished} publicados`}
+        />
+        <Snap
+          label="Identidad y membresía"
+          value={s.identity.kycVerified}
+          sub={`identidades verificadas · ${s.identity.hostRibbon} con listón · ${s.identity.activeMemberships} membresías activas`}
+        />
+      </div>
+      <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Reservas por estado</p>
+        {statuses.length === 0 ? (
+          <p className="text-sm text-gray-400">Sin reservas.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {statuses
+              .sort((a, b) => b[1] - a[1])
+              .map(([st, n]) => (
+                <li key={st} className="flex items-center gap-3 text-sm">
+                  <span className="w-40 shrink-0 text-gray-600">{BOOKING_STATUS_ES[st] ?? st}</span>
+                  <span className="h-2.5 rounded bg-amber-400" style={{ width: `${(n / max) * 60}%` }} />
+                  <span className="text-gray-700">{n}</span>
+                </li>
+              ))}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -202,6 +295,8 @@ export default async function AdminPlatformStatsPage({ searchParams }: { searchP
           </div>
         </section>
       ))}
+
+      <CurrentState s={getAdminSnapshot()} />
 
       <section className="mb-8">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Por {d.breakdown.level}</h2>

@@ -51,6 +51,11 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
           { href: "/host/pagos", label: t("Pagos de la estancia (tu Stripe)"), hint: t("Conecta o crea tu cuenta de Stripe para cobrar") },
           { href: "/host/settings/integrations", label: t("BeeAgent e integraciones"), web: true },
           { href: "/host/dashboard", label: t("Panel completo de anfitrión"), web: true },
+          {
+            href: "/reportar?modo=host",
+            label: t("Reportes y sugerencias"),
+            hint: t("Denuncia o reclama una cuenta, quejas e ideas"),
+          },
           { href: "/como-funciona", label: t("Qué es Cabibee y cómo funciona") },
           { href: "/terminos", label: t("Términos y condiciones") },
         ]
@@ -64,6 +69,11 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
                 { href: "/notificaciones", label: t("Notificaciones") },
                 { href: "/perfil/editar", label: t("Datos personales y foto") },
                 { href: "/cuenta/seguridad", label: t("Correo y contraseña") },
+                {
+                  href: "/reportar",
+                  label: t("Reportes y sugerencias"),
+                  hint: t("Denuncia o reclama una cuenta, quejas e ideas"),
+                },
               ]
             : []),
           { href: "/como-funciona", label: t("Qué es Cabibee y cómo funciona"), hint: t("Gratis, sin comisión y con herramientas opcionales") },
