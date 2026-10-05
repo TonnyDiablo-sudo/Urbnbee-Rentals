@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { StayReviewRecord } from "@/lib/stay-review-types";
 import { useT } from "@/components/i18n-provider";
+import { ReviewCategoryInput, categoriesComplete } from "@/components/review-category-input";
 import { ReviewStatusNote } from "@/components/review-status-note";
 
 function Stars({
@@ -49,7 +50,8 @@ export function BookingReviewPanel({
   onChanged: () => void;
 }) {
   const t = useT();
-  const [rating, setRating] = useState(5);
+  const kind = role === "guest" ? "guest_to_listing" : "host_to_guest";
+  const [categories, setCategories] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -101,7 +103,7 @@ export function BookingReviewPanel({
               const res = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ rating, comment }),
+                body: JSON.stringify({ categories, comment }),
               });
               const data = await res.json().catch(() => ({}));
               if (!res.ok) {
@@ -117,7 +119,7 @@ export function BookingReviewPanel({
             }
           }}
         >
-          <Stars value={rating} onChange={setRating} />
+          <ReviewCategoryInput kind={kind} value={categories} onChange={setCategories} size="sm" />
           <textarea
             rows={3}
             value={comment}
@@ -133,7 +135,7 @@ export function BookingReviewPanel({
           {err && <p className="text-xs text-red-600">{t(err)}</p>}
           <button
             type="submit"
-            disabled={busy || comment.trim().length < 10}
+            disabled={busy || comment.trim().length < 10 || !categoriesComplete(kind, categories)}
             className="rounded bg-[#dcb81e] px-4 py-2 text-xs font-semibold text-black disabled:opacity-50"
           >
             {busy ? t("Publicando…") : t("Publicar reseña")}

@@ -23,6 +23,8 @@ import {
   listUsersProvisionedBy,
 } from "@/lib/marketplace-store";
 import { getUserSeen } from "@/lib/site-visits-store";
+import { weightedRating } from "@/lib/review-categories";
+import { isPublishedReview, type StayReviewRecord } from "@/lib/stay-review-types";
 import { listStayReviews } from "@/lib/stay-reviews-store";
 import { listReportsAgainst, listReportsByReporter, listUserReports } from "@/lib/user-reports-store";
 import type { UserReportRecord } from "@/lib/user-reports-types";
@@ -207,6 +209,12 @@ function placeLabel(key: string | undefined): string | undefined {
 function avg(nums: number[]): number | null {
   if (!nums.length) return null;
   return Math.round((nums.reduce((s, n) => s + n, 0) / nums.length) * 10) / 10;
+}
+
+/** Igual que en el anuncio: publicadas y ponderadas por antigüedad. */
+function weightedAvg(rows: StayReviewRecord[]): number | null {
+  const pub = rows.filter(isPublishedReview);
+  return pub.length ? Math.round(weightedRating(pub).avg * 10) / 10 : null;
 }
 
 function bump(map: Partial<Record<BookingStatus, number>>, s: BookingStatus) {
@@ -507,7 +515,7 @@ export function getAdminUserDetail(userId: string): AdminUserDetail | null {
       threadsAnswered: reply.threadsAnswered,
       avgFirstReplyMin: reply.avgFirstReplyMin,
       reviewsReceived: reviewsOfHost.length,
-      ratingAvg: avg(reviewsOfHost.map((r) => r.rating)),
+      ratingAvg: weightedAvg(reviewsOfHost),
       reviewsWritten: reviews.filter((r) => r.kind === "host_to_guest" && r.authorUserId === userId).length,
     },
     guest: {
@@ -519,7 +527,7 @@ export function getAdminUserDetail(userId: string): AdminUserDetail | null {
       messagesSent: guestThreads.reduce((s, c) => s + c.messages.filter((m) => m.sender === "guest").length, 0),
       reviewsWritten: reviews.filter((r) => r.kind === "guest_to_listing" && r.authorUserId === userId).length,
       reviewsReceived: reviewsOfGuest.length,
-      ratingAvg: avg(reviewsOfGuest.map((r) => r.rating)),
+      ratingAvg: weightedAvg(reviewsOfGuest),
       wishlists: wishlists.length,
       savedListings: wishlists.reduce((s, w) => s + w.items.length, 0),
     },

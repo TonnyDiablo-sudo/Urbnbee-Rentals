@@ -5,6 +5,7 @@ import type { AgentFaqItem } from "@/lib/listing-agent-info";
 import type { ListingPricing, RentalMode } from "@/lib/listing-pricing";
 import type { ListingCategory } from "@/lib/mock-data";
 import type { ListingDetail } from "@/lib/listing-detail-data";
+import type { StayMessagesSettings } from "@/lib/stay-messages-template";
 import type { HostTaxSettings } from "@/lib/stay-tax";
 
 export type UserRole = "guest" | "host" | "admin";
@@ -134,6 +135,8 @@ export type HostListingRecord = {
   agentCanShareAccessCode?: boolean;
   /** Mensaje con los datos de llegada que se le manda al huésped de una reserva del motor. */
   arrivalMessage?: ArrivalMessageSettings;
+  /** Bienvenida, media estancia y salida, por el chat de la reserva. */
+  stayMessages?: StayMessagesSettings;
   photos: string[];
   amenities: string[];
   rules: ListingDetail["rules"];

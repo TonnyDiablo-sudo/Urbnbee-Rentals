@@ -21,10 +21,21 @@ export type Review = {
   author: string;
   avatarUrl: string;
   rating: number;
+  /** Calificación global exacta de la estancia (promedio de las categorías). */
+  score?: number;
+  categories?: Record<string, number>;
   date: string;
   comment: string;
   /** Reseña de una reserva completada en Cabibee, no un texto de catálogo. */
   fromStay?: boolean;
+};
+
+/** Promedios ponderados por antigüedad: los últimos 6 meses pesan más. */
+export type ReviewSummary = {
+  avg: number;
+  count: number;
+  categories: Record<string, number>;
+  host: { avg: number; count: number };
 };
 
 export type ListingDetail = {
@@ -92,6 +103,8 @@ export type ListingDetail = {
   houseRules?: string;
   host: HostContact;
   reviews: Review[];
+  /** Sólo anuncios de anfitriones reales; los de catálogo promedian sus reseñas sin ponderar. */
+  reviewSummary?: ReviewSummary;
   extras?: {
     breakfast?: string;
     lateCheckIn?: string;

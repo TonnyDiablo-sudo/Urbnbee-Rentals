@@ -47,15 +47,21 @@ export async function sendVerificationEmail(userId: string, origin: string): Pro
   const body = changing
     ? t("Pediste usar este correo en tu cuenta de Cabibee. Confírmalo para terminar el cambio; hasta entonces seguimos usando el anterior.")
     : t("Confirma tu correo para asegurar tu cuenta de Cabibee. Con él podrás recuperar tu contraseña si la olvidas.");
+  const inbox = t("Si este correo te llegó a spam, márcalo como «No es spam» o muévelo a tu bandeja de entrada para que los próximos avisos de Cabibee te lleguen directo.");
   return sendEmail({
     mailbox: "noreply",
     to,
     subject: changing ? t("Confirma tu nuevo correo en Cabibee") : t("Confirma tu correo en Cabibee"),
-    text: `${t("Hola {name},", { name: user.fullName })} ${body}\n${link}\n\n${ignore}`,
+    text: `${t("Hola {name},", { name: user.fullName })} ${body}\n${link}\n\n${inbox}\n\n${ignore}`,
     html: emailLayout({
       lang,
       title: changing ? t("Confirma tu nuevo correo") : t("Confirma tu correo"),
-      paragraphs: [t("Hola {name},", { name: escapeHtml(user.fullName) }), body, `<span style="color:#888">${ignore}</span>`],
+      paragraphs: [
+        t("Hola {name},", { name: escapeHtml(user.fullName) }),
+        body,
+        `<span style="color:#888">${inbox}</span>`,
+        `<span style="color:#888">${ignore}</span>`,
+      ],
       button: { href: link, label: t("Confirmar mi correo") },
     }),
   });

@@ -7,6 +7,7 @@ import { isMonthlyRental } from "@/lib/listing-pricing";
 import { publicNameOf } from "@/lib/display-name";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import { listingReviewsForPublic } from "@/lib/stay-reviews";
+import { hostStayRating, listingStayRating } from "@/lib/stay-reviews-store";
 import { taxActive } from "@/lib/stay-tax";
 import { hostShowsVerifiedRibbon, isHostIdentityVerified } from "@/lib/verification-store";
 
@@ -112,5 +113,10 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
     houseRules: record.houseRules?.trim() || undefined,
     host,
     reviews: listingReviewsForPublic(record.id),
+    reviewSummary: (() => {
+      const l = listingStayRating(record.id);
+      const h = hostStayRating(record.hostId);
+      return { avg: l.avg, count: l.count, categories: l.categories, host: { avg: h.avg, count: h.count } };
+    })(),
   };
 }

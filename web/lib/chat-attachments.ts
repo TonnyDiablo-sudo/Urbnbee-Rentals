@@ -65,13 +65,11 @@ function baseMime(mime: string): string {
 }
 
 /** Las fotos se reducen y se pasan a WebP sin EXIF (no viaja la ubicación GPS del celular). */
-export async function storeChatAttachment(opts: {
-  listingId: string;
-  guestSessionId: string;
+export async function prepareAttachment(opts: {
   data: Buffer;
   mime: string;
   durationSec?: number;
-}): Promise<{ attachment?: ChatAttachment; error?: string }> {
+}): Promise<{ attachment: ChatAttachment; data: Buffer } | { error: string }> {
   const mime = baseMime(opts.mime);
   const id = randomBytes(12).toString("hex");
   if (mime.startsWith("image/")) {
@@ -86,28 +84,61 @@ export async function storeChatAttachment(opts: {
     } catch {
       return { error: "No pudimos leer esa imagen. Prueba con una foto JPG o PNG." };
     }
-    const file = `${id}.webp`;
-    await putPrivateFile(keyOf(opts.listingId, opts.guestSessionId, file), out.data, "image/webp");
     return {
-      attachment: { file, kind: "image", mime: "image/webp", bytes: out.data.byteLength, width: out.info.width, height: out.info.height },
+      data: out.data,
+      attachment: { file: `${id}.webp`, kind: "image", mime: "image/webp", bytes: out.data.byteLength, width: out.info.width, height: out.info.height },
     };
   }
   const ext = AUDIO_EXT[mime];
   if (!ext) return { error: "Sólo se pueden mandar fotos y notas de voz." };
   if (opts.data.byteLength > CHAT_AUDIO_MAX_BYTES) return { error: "La nota de voz es muy larga (máximo 3 minutos)." };
   if (opts.data.byteLength < 200) return { error: "La nota de voz quedó vacía. Intenta de nuevo." };
-  const file = `${id}.${ext}`;
-  await putPrivateFile(keyOf(opts.listingId, opts.guestSessionId, file), opts.data, mime);
   const dur = Number(opts.durationSec);
   return {
+    data: opts.data,
     attachment: {
-      file,
+      file: `${id}.${ext}`,
       kind: "audio",
       mime,
       bytes: opts.data.byteLength,
       durationSec: Number.isFinite(dur) && dur > 0 ? Math.min(CHAT_AUDIO_MAX_SEC, Math.round(dur)) : undefined,
     },
   };
+}
+
+export async function storeChatAttachment(opts: {
+  listingId: string;
+  guestSessionId: string;
+  data: Buffer;
+  mime: string;
+  durationSec?: number;
+}): Promise<{ attachment?: ChatAttachment; error?: string }> {
+  const prepared = await prepareAttachment(opts);
+  if ("error" in prepared) return { error: prepared.error };
+  const a = prepared.attachment;
+  await putPrivateFile(keyOf(opts.listingId, opts.guestSessionId, a.file), prepared.data, a.mime);
+  return { attachment: a };
+}
+
+/** Copia un archivo ya procesado a un hilo, con nombre nuevo (cada hilo tiene sus propios archivos). */
+export async function copyIntoChat(opts: {
+  listingId: string;
+  guestSessionId: string;
+  data: Buffer;
+  attachment: ChatAttachment;
+}): Promise<ChatAttachment> {
+  const ext = opts.attachment.file.split(".").pop() ?? "";
+  const file = `${randomBytes(12).toString("hex")}.${ext}`;
+  await putPrivateFile(keyOf(opts.listingId, opts.guestSessionId, file), opts.data, opts.attachment.mime);
+  return { ...opts.attachment, file };
+}
+
+export function isAttachmentFileName(file: string): boolean {
+  return FILE.test(file);
+}
+
+export function mimeOfAttachmentFile(file: string): string {
+  return EXT_MIME[file.split(".").pop() ?? ""] ?? "application/octet-stream";
 }
 
 export async function readChatAttachment(

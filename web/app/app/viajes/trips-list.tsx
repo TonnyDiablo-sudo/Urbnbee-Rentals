@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { GuestPayNote } from "@/components/booking/pay-status";
 import { PayDifference } from "@/components/booking/pay-difference";
 import { useLang, useT } from "@/components/i18n-provider";
+import { ReviewCategoryInput, categoriesComplete } from "@/components/review-category-input";
 import { ReviewStatusNote } from "@/components/review-status-note";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
 import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
@@ -342,15 +343,13 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-const RATING_WORDS = ["", "Malo", "Regular", "Bien", "Muy bien", "Excelente"];
-
 function ReviewForm({ trip, onDone }: { trip: Trip; onDone: (r: { rating: number; comment: string; status?: string }) => void }) {
   const t = useT();
-  const [rating, setRating] = useState(0);
+  const [categories, setCategories] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const ok = rating > 0 && comment.trim().length >= 10;
+  const ok = categoriesComplete("guest_to_listing", categories) && comment.trim().length >= 10;
 
   async function submit() {
     setBusy(true);
@@ -358,7 +357,7 @@ function ReviewForm({ trip, onDone }: { trip: Trip; onDone: (r: { rating: number
     const res = await fetch(`/api/guest/bookings/${encodeURIComponent(trip.id)}/review`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rating, comment: comment.trim() }),
+      body: JSON.stringify({ categories, comment: comment.trim() }),
     }).catch(() => null);
     const data = res ? await res.json().catch(() => ({})) : {};
     setBusy(false);
@@ -366,28 +365,15 @@ function ReviewForm({ trip, onDone }: { trip: Trip; onDone: (r: { rating: number
       setErr(typeof data.error === "string" ? data.error : "No se pudo guardar. Intenta de nuevo.");
       return;
     }
-    onDone({ rating, comment: comment.trim(), status: data.pending ? "pending" : "published" });
+    onDone({ rating: data.review?.rating ?? 5, comment: comment.trim(), status: data.pending ? "pending" : "published" });
   }
 
   return (
     <div className="space-y-5">
       <p className="text-[15px] font-semibold text-[#222]">{trip.listingTitle}</p>
       <div>
-        <p className="text-sm font-semibold text-[#222]">{t("¿Cómo estuvo tu estancia?")}</p>
-        <div className="mt-2 flex gap-1">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setRating(n)}
-              aria-label={`${n}/5`}
-              className={`h-11 w-11 text-[32px] leading-none ${n <= rating ? "text-[#dcb81e]" : "text-[#d6d6d6]"}`}
-            >
-              ★
-            </button>
-          ))}
-        </div>
-        {rating > 0 && <p className="mt-1 text-sm text-[#717171]">{t(RATING_WORDS[rating])}</p>}
+        <p className="mb-3 text-sm font-semibold text-[#222]">{t("¿Cómo estuvo tu estancia?")}</p>
+        <ReviewCategoryInput kind="guest_to_listing" value={categories} onChange={setCategories} />
       </div>
       <div>
         <p className="text-sm font-semibold text-[#222]">{t("Cuéntale a otros viajeros")}</p>

@@ -289,7 +289,7 @@ export default async function AppListingPage({ params }: Props) {
         </Section>
 
         <Section title={t("Reseñas")}>
-          <ReviewsSection reviews={listing.reviews} />
+          <ReviewsSection reviews={listing.reviews} summary={listing.reviewSummary} />
         </Section>
       </div>
 

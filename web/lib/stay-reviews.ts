@@ -6,6 +6,7 @@ import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import type { Review } from "@/lib/listing-detail-data";
 import { notifyGuestNewReview, notifyHostNewReview } from "@/lib/push";
 import type { Lang } from "@/lib/i18n";
+import { reviewCategoriesFor, stayScore } from "@/lib/review-categories";
 import { moderateReview } from "@/lib/review-moderation";
 import { getBookingById } from "@/lib/bookings-store";
 import {
@@ -69,11 +70,12 @@ export async function createStayReview(opts: {
   booking: BookingRecord;
   authorUserId: string;
   kind: StayReviewKind;
-  rating: number;
+  /** Calificación de 1 a 5 por cada categoría del tipo de reseña. */
+  categories: unknown;
   comment: string;
   lang?: Lang;
 }): Promise<{ review?: StayReviewRecord; error?: string; status?: number; pending?: boolean; message?: string }> {
-  const { booking, authorUserId, kind, rating, comment } = opts;
+  const { booking, authorUserId, kind, comment } = opts;
   if (!stayReviewEligible(booking)) {
     return { error: "La reseña se abre cuando termina la estancia.", status: 409 };
   }
@@ -92,10 +94,17 @@ export async function createStayReview(opts: {
     return { error: "Ya dejaste tu reseña de esta estancia.", status: 409 };
   }
 
-  const stars = Math.round(Number(rating));
-  if (!Number.isFinite(stars) || stars < 1 || stars > 5) {
-    return { error: "La calificación va de 1 a 5.", status: 400 };
+  const raw = opts.categories && typeof opts.categories === "object" ? (opts.categories as Record<string, unknown>) : {};
+  const categories: Record<string, number> = {};
+  for (const c of reviewCategoriesFor(kind)) {
+    const n = Math.round(Number(raw[c.id]));
+    if (!Number.isFinite(n) || n < 1 || n > 5) {
+      return { error: "Califica cada punto del 1 al 5.", status: 400 };
+    }
+    categories[c.id] = n;
   }
+  const score = stayScore(categories);
+  const stars = Math.min(5, Math.max(1, Math.round(score)));
   const text = comment.replace(/[<>]/g, "").trim().slice(0, 2000);
   if (text.length < 10) {
     return { error: "Escribe al menos 10 caracteres.", status: 400 };
@@ -120,6 +129,8 @@ export async function createStayReview(opts: {
     kind,
     authorUserId,
     rating: stars,
+    score,
+    categories,
     comment: text,
     status: pending ? "pending" : "published",
     reviewAttempts: 1,
@@ -192,6 +203,8 @@ export function listingReviewsForPublic(listingId: string): Review[] {
         profile?.avatarUrl ||
         "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&q=80",
       rating: r.rating,
+      score: r.score,
+      categories: r.categories,
       date: r.createdAt.slice(0, 10),
       comment: r.comment,
       fromStay: true,

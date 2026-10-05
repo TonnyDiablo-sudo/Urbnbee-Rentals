@@ -76,6 +76,8 @@ export type BookingRecord = {
   /** Cuándo se mandó el mensaje con los datos de llegada y quién lo disparó. */
   arrivalMessageSentAt?: string;
   arrivalMessageSentBy?: "auto" | "host";
+  /** Mensajes de la estancia ya enviados: `welcome`, `checkout`, `mid:<id>:<n>` (auto) o `<regla>` (último manual). */
+  stayMessagesSent?: Record<string, string>;
   refundAmountMxn?: number;
   stripeRefundId?: string;
   refundReason?: BookingRefundReason;

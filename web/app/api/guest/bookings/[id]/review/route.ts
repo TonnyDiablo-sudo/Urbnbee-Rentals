@@ -21,7 +21,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     booking,
     authorUserId: user.id,
     kind: "guest_to_listing",
-    rating: Number(body.rating),
+    categories: body.categories,
     comment: String(body.comment ?? ""),
     lang: await getLang(),
   });

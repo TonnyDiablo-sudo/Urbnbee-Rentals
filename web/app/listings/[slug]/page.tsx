@@ -329,7 +329,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
               <section>
                 <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Reseñas")}</h2>
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
-                <ReviewsSection reviews={listing.reviews} />
+                <ReviewsSection reviews={listing.reviews} summary={listing.reviewSummary} />
               </section>
             </div>
 

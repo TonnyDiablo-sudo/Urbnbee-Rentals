@@ -146,7 +146,7 @@ export function VerifyEmailButton({ className = "" }: { className?: string }) {
         {state === "busy"
           ? t("Enviando…")
           : state === "sent"
-            ? t("Te lo mandamos. Revisa tu correo.")
+            ? t("Te lo mandamos. Revisa tu bandeja y tu carpeta de spam.")
             : state === "verified"
               ? t("Tu correo ya está confirmado")
               : t("Mandarme el correo de confirmación")}
@@ -187,8 +187,11 @@ export function VerifyEmailBox({
       <p className="font-semibold">{buy ? t("Confirma tu correo para poder comprar") : t("Confirma tu correo")}</p>
       <p className="mt-1">
         {email
-          ? t("Te mandamos un enlace a {email} desde noreply@cabibee.com. Si no te llegó, revisa spam o pide otro.", { email })
-          : t("Te mandamos un enlace desde noreply@cabibee.com. Si no te llegó, revisa spam o pide otro.")}
+          ? t("Te mandamos un enlace a {email} desde noreply@cabibee.com.", { email })
+          : t("Te mandamos un enlace desde noreply@cabibee.com.")}
+      </p>
+      <p className="mt-2">
+        {t("¿No lo ves? Búscalo en tu carpeta de spam o correo no deseado. Si está ahí, márcalo como «No es spam» o muévelo a tu bandeja de entrada: así los próximos correos de Cabibee te llegarán directo. Si tampoco está, pide otro abajo.")}
       </p>
       <VerifyEmailButton className="mt-3 block" />
     </div>

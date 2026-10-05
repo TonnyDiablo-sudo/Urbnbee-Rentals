@@ -8,6 +8,8 @@ import { AMENITY_GROUPS, AMENITY_OPTIONS } from "@/lib/amenity-options";
 import { ArrivalMessageEditor } from "@/components/host/arrival-message-editor";
 import { ACCESS_CODE_MAX, type ArrivalGuide } from "@/lib/arrival-guide";
 import { arrivalMessageOf, type ArrivalMessageSettings } from "@/lib/arrival-message-template";
+import { StayMessagesEditor } from "@/components/host/stay-messages-editor";
+import { stayMessagesOf, type StayMessagesSettings } from "@/lib/stay-messages-template";
 import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 import { bathroomsKey, selfCheckInKey } from "@/lib/listing-facts";
 import { isMonthlyRental } from "@/lib/listing-pricing";
@@ -53,6 +55,7 @@ type PanelId =
   | "manual"
   | "checkout"
   | "arrivalMessage"
+  | "stayMessages"
   | "faq"
   | "agentNotes";
 
@@ -60,6 +63,12 @@ const BEEAGENT_URL = "/api/host/integrations/beeagent";
 type BeeagentInfo = { linked: boolean; agentStatus: { active: boolean } | null };
 
 const money = (n: number) => `$${Math.round(n).toLocaleString("es-MX")}`;
+
+function stayMessagesSummary(listing: HostListing, t: ReturnType<typeof useT>): string {
+  const s = stayMessagesOf(listing.stayMessages);
+  const on = [s.welcome.enabled && t("Bienvenida"), s.mid.some((m) => m.enabled) && t("Media estancia"), s.checkout.enabled && t("Salida")].filter(Boolean);
+  return on.length ? on.join(" · ") : t("Desactivados");
+}
 
 const TAX_URL = "/api/host/tax";
 
@@ -451,6 +460,7 @@ export function ListingHub({ listingId }: { listingId: string }) {
               }
               onClick={() => setPanel("arrivalMessage")}
             />
+            <Row label={t("Mensajes de la estancia")} value={stayMessagesSummary(listing, t)} onClick={() => setPanel("stayMessages")} />
           </ul>
         </>
       )}
@@ -547,6 +557,7 @@ const PANEL_TITLE: Record<PanelId, string> = {
   manual: "Manual de la casa",
   checkout: "Instrucciones de salida",
   arrivalMessage: "Mensaje de llegada",
+  stayMessages: "Mensajes de la estancia",
   faq: "Preguntas frecuentes",
   agentNotes: "Información general",
 };
@@ -595,6 +606,7 @@ function PanelBody({
     arrival: { ...(listing.arrivalGuide ?? {}) } as ArrivalGuide,
     agentCanShareAccessCode: listing.agentCanShareAccessCode !== false,
     arrivalMessage: arrivalMessageOf(listing.arrivalMessage) as ArrivalMessageSettings,
+    stayMessages: stayMessagesOf(listing.stayMessages) as StayMessagesSettings,
     agentFaq: (listing.agentFaq ?? []).map((f) => ({ ...f })) as AgentFaqItem[],
     agentNotes: listing.agentNotes ?? "",
   }));
@@ -629,6 +641,8 @@ function PanelBody({
         return { arrivalGuide: draft.arrival, selfCheckIn: draft.selfCheckIn, agentCanShareAccessCode: draft.agentCanShareAccessCode };
       case "arrivalMessage":
         return { arrivalMessage: draft.arrivalMessage };
+      case "stayMessages":
+        return { stayMessages: draft.stayMessages };
       case "description":
         return { description: draft.description };
       case "amenities":
@@ -1178,6 +1192,9 @@ function PanelBody({
               value={draft.arrivalMessage}
               onChange={(v) => set("arrivalMessage", v)}
             />
+          )}
+          {id === "stayMessages" && (
+            <StayMessagesEditor listingId={listing.id} value={draft.stayMessages} onChange={(v) => set("stayMessages", v)} />
           )}
           {id === "directions" && ta("directions", "Cómo llegar, dónde estacionarse, qué timbre tocar…")}
           {id === "wifi" && (

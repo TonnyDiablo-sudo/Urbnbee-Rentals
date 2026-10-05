@@ -85,6 +85,8 @@ export function ReservationSheet({
           <ArrivalMessageBox key={booking.id} bookingId={booking.id} sentAt={booking.arrivalMessageSentAt} />
         )}
 
+        {(booking.status === "CONFIRMED" || booking.status === "COMPLETED") && <StayMessagesBox key={`stay-${booking.id}`} bookingId={booking.id} />}
+
         <div className="grid gap-2">
           {isPending(booking.status) && onReview && (
             <button
@@ -280,6 +282,93 @@ function ArrivalMessageBox({ bookingId, sentAt: initialSentAt }: { bookingId: st
       >
         {busy ? t("Enviando…") : sentAt ? t("Volver a enviar") : t("Enviar instrucciones de llegada")}
       </button>
+      {err && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{t(err)}</p>}
+    </div>
+  );
+}
+
+type StayRow = { key: string; kind: "welcome" | "mid" | "checkout"; mode: "auto" | "manual"; everyDays?: number; sentAt?: string };
+
+const STAY_LABEL: Record<StayRow["kind"], string> = {
+  welcome: "Bienvenida",
+  mid: "Media estancia",
+  checkout: "Salida",
+};
+
+/** Bienvenida, media estancia y salida: estado y botón para mandarlos a mano. */
+function StayMessagesBox({ bookingId }: { bookingId: string }) {
+  const t = useT();
+  const lang = useLang();
+  const url = `/api/host/bookings/${encodeURIComponent(bookingId)}/stay-message`;
+  const [rows, setRows] = useState<StayRow[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(url, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => !cancelled && setRows(Array.isArray(j?.messages) ? j.messages : []))
+      .catch(() => !cancelled && setRows([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (!rows || rows.length === 0) return null;
+
+  const send = async (row: StayRow) => {
+    if (row.sentAt && !window.confirm(t("Ya se mandó. ¿Enviarlo otra vez?"))) return;
+    setBusy(row.key);
+    setErr(null);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: row.key }),
+    }).catch(() => null);
+    const j = res ? await res.json().catch(() => ({})) : {};
+    setBusy(null);
+    if (!res?.ok) {
+      setErr(typeof j.error === "string" ? j.error : "No se pudo enviar.");
+      return;
+    }
+    setRows((rs) => rs?.map((r) => (r.key === row.key ? { ...r, sentAt: j.sentAt } : r)) ?? rs);
+  };
+
+  return (
+    <div className="rounded-2xl border border-[#ebebeb] p-4">
+      <p className="text-[15px] font-semibold text-[#222]">{t("Mensajes de la estancia")}</p>
+      <ul className="mt-2 divide-y divide-[#f0f0f0]">
+        {rows.map((r) => (
+          <li key={r.key} className="flex items-center justify-between gap-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[#222]">
+                {t(STAY_LABEL[r.kind])}
+                {r.everyDays ? ` · ${t(r.everyDays === 1 ? "Todos los días" : "Cada {n} días", { n: r.everyDays })}` : ""}
+              </p>
+              <p className="text-xs text-[#717171]">
+                {r.sentAt
+                  ? t("Último envío: {date}", {
+                      date: new Date(r.sentAt).toLocaleString(lang === "en" ? "en-US" : "es-MX", { dateStyle: "medium", timeStyle: "short" }),
+                    })
+                  : r.mode === "auto"
+                    ? t("Automático")
+                    : t("Manual")}
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => void send(r)}
+              className={`shrink-0 rounded-xl px-3 py-2 text-sm font-semibold disabled:opacity-50 ${
+                r.sentAt || r.mode === "auto" ? "border border-[#222] text-[#222]" : "bg-[#dcb81e] text-black"
+              }`}
+            >
+              {busy === r.key ? t("Enviando…") : r.sentAt ? t("Volver a enviar") : t("Enviar ahora")}
+            </button>
+          </li>
+        ))}
+      </ul>
       {err && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{t(err)}</p>}
     </div>
   );

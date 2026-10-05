@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { ReviewCategoryInput, categoriesComplete } from "@/components/review-category-input";
 import { ReviewStatusNote } from "@/components/review-status-note";
 import { fmtDay } from "../../_components/booking-status";
 import { Sheet } from "../../_components/sheet";
@@ -21,8 +22,6 @@ type Stay = {
   myReview?: Review | null;
   guestReviewOfListing?: Review | null;
 };
-
-const RATING_WORDS = ["", "Malo", "Regular", "Bien", "Muy bien", "Excelente"];
 
 function Stars({ value }: { value: number }) {
   return (
@@ -151,11 +150,11 @@ export function HostReviews() {
 
 function GuestReviewForm({ stay, onDone }: { stay: Stay; onDone: (r: Review) => void }) {
   const t = useT();
-  const [rating, setRating] = useState(0);
+  const [categories, setCategories] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const ok = rating > 0 && comment.trim().length >= 10;
+  const ok = categoriesComplete("host_to_guest", categories) && comment.trim().length >= 10;
 
   async function submit() {
     setBusy(true);
@@ -163,7 +162,7 @@ function GuestReviewForm({ stay, onDone }: { stay: Stay; onDone: (r: Review) => 
     const res = await fetch(`/api/host/bookings/${encodeURIComponent(stay.id)}/review`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rating, comment: comment.trim() }),
+      body: JSON.stringify({ categories, comment: comment.trim() }),
     }).catch(() => null);
     const data = res ? await res.json().catch(() => ({})) : {};
     setBusy(false);
@@ -171,7 +170,7 @@ function GuestReviewForm({ stay, onDone }: { stay: Stay; onDone: (r: Review) => 
       setErr(typeof data.error === "string" ? data.error : "No se pudo guardar. Intenta de nuevo.");
       return;
     }
-    onDone({ rating, comment: comment.trim(), status: data.pending ? "pending" : "published" });
+    onDone({ rating: data.review?.rating ?? 5, comment: comment.trim(), status: data.pending ? "pending" : "published" });
   }
 
   return (
@@ -180,21 +179,8 @@ function GuestReviewForm({ stay, onDone }: { stay: Stay; onDone: (r: Review) => 
         {stay.guestName} · {stay.effectiveListingTitle ?? stay.listingTitle}
       </p>
       <div>
-        <p className="text-sm font-semibold text-[#222]">{t("¿Qué tal fue como huésped?")}</p>
-        <div className="mt-2 flex gap-1">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setRating(n)}
-              aria-label={`${n}/5`}
-              className={`h-11 w-11 text-[32px] leading-none ${n <= rating ? "text-[#dcb81e]" : "text-[#d6d6d6]"}`}
-            >
-              ★
-            </button>
-          ))}
-        </div>
-        {rating > 0 && <p className="mt-1 text-sm text-[#717171]">{t(RATING_WORDS[rating])}</p>}
+        <p className="mb-3 text-sm font-semibold text-[#222]">{t("¿Qué tal fue como huésped?")}</p>
+        <ReviewCategoryInput kind="host_to_guest" value={categories} onChange={setCategories} />
       </div>
       <div>
         <p className="text-sm font-semibold text-[#222]">{t("Cuéntale a otros anfitriones")}</p>

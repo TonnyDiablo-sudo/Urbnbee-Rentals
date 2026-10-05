@@ -4,6 +4,7 @@ import { join } from "path";
 import { randomBytes } from "crypto";
 import { isPublishedReview, type StayReviewKind, type StayReviewRecord } from "@/lib/stay-review-types";
 import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
+import { weightedRating, type RatingSummary } from "@/lib/review-categories";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
 const DATA_FILE = join(getDataDir(), "stay-reviews.json");
@@ -66,11 +67,21 @@ export function findStayReview(bookingId: string, kind: StayReviewKind): StayRev
   return rows.find((r) => r.bookingId === bookingId && r.kind === kind);
 }
 
-export function listingStayRating(listingId: string): { avg: number; count: number } {
-  const list = listListingStayReviews(listingId);
-  if (list.length === 0) return { avg: 0, count: 0 };
-  const avg = list.reduce((s, r) => s + r.rating, 0) / list.length;
-  return { avg, count: list.length };
+/** Promedio del anuncio; las reseñas recientes pesan más (bloques de 6 meses). */
+export function listingStayRating(listingId: string): RatingSummary {
+  return weightedRating(listListingStayReviews(listingId));
+}
+
+/** Calificación del anfitrión con las reseñas de todos sus anuncios, ponderada igual. */
+export function hostStayRating(hostId: string): RatingSummary {
+  syncIfStale();
+  return weightedRating(rows.filter((r) => r.hostId === hostId && r.kind === "guest_to_listing" && isPublishedReview(r)));
+}
+
+/** Calificación de un huésped con las reseñas que le dejaron los anfitriones. */
+export function guestStayRating(guestUserId: string): RatingSummary {
+  syncIfStale();
+  return weightedRating(rows.filter((r) => r.guestUserId === guestUserId && r.kind === "host_to_guest" && isPublishedReview(r)));
 }
 
 export function insertStayReview(

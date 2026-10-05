@@ -11,7 +11,12 @@ export type StayReviewRecord = {
   guestUserId: string;
   kind: StayReviewKind;
   authorUserId: string;
+  /** Estrellas enteras (la global redondeada), para mostrar. */
   rating: number;
+  /** Calificación global exacta: promedio de las categorías. Las viejas no la tienen. */
+  score?: number;
+  /** Calificación de 1 a 5 por categoría (limpieza, seguridad…). */
+  categories?: Record<string, number>;
   comment: string;
   createdAt: string;
   status?: StayReviewStatus;

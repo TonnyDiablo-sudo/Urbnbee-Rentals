@@ -9,6 +9,7 @@ import { getSessionUser } from "@/lib/session";
 import { deleteProofsForListing } from "@/lib/address-proof-store";
 import { sanitizeArrivalGuide } from "@/lib/arrival-guide";
 import { sanitizeArrivalMessage } from "@/lib/arrival-message-template";
+import { sanitizeStayMessages } from "@/lib/stay-messages-template";
 import { sanitizeListingContract } from "@/lib/booking-contract-templates";
 import { exactAddressProblem } from "@/lib/listing-address";
 import { sanitizeAgentFaq, sanitizeAgentNotes } from "@/lib/listing-agent-info";
@@ -99,6 +100,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ error: "agentCanShareAccessCode debe ser true o false." }, { status: 400 });
   }
   if (body.arrivalMessage !== undefined) patch.arrivalMessage = sanitizeArrivalMessage(body.arrivalMessage);
+  if (body.stayMessages !== undefined) patch.stayMessages = sanitizeStayMessages(body.stayMessages);
   if (body.rules && typeof body.rules === "object") {
     patch.rules = {
       smoking: body.rules.smoking ?? listing.rules.smoking,

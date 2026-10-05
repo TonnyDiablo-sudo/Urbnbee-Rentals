@@ -13,6 +13,8 @@ import type { ListingCategory } from "@/lib/mock-data";
 import { AMENITY_GROUPS, AMENITY_OPTIONS } from "@/lib/amenity-options";
 import { ACCESS_CODE_MAX, type ArrivalGuide } from "@/lib/arrival-guide";
 import { arrivalMessageOf, type ArrivalMessageSettings } from "@/lib/arrival-message-template";
+import { StayMessagesEditor } from "@/components/host/stay-messages-editor";
+import { stayMessagesOf, type StayMessagesSettings } from "@/lib/stay-messages-template";
 import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 import { LongStayDiscountFields } from "@/components/host/long-stay-discount-fields";
 import {
@@ -1286,11 +1288,17 @@ function ArrivalTab({
 }: {
   listing: HostListingRecord;
   hostName: string;
-  onSave: (patch: { arrivalGuide?: ArrivalGuide; arrivalMessage?: ArrivalMessageSettings; agentCanShareAccessCode?: boolean }) => void;
+  onSave: (patch: {
+    arrivalGuide?: ArrivalGuide;
+    arrivalMessage?: ArrivalMessageSettings;
+    stayMessages?: StayMessagesSettings;
+    agentCanShareAccessCode?: boolean;
+  }) => void;
 }) {
   const t = useT();
   const [guide, setGuide] = useState<ArrivalGuide>(() => ({ ...(listing.arrivalGuide ?? {}) }));
   const [message, setMessage] = useState<ArrivalMessageSettings>(() => arrivalMessageOf(listing.arrivalMessage));
+  const [stay, setStay] = useState<StayMessagesSettings>(() => stayMessagesOf(listing.stayMessages));
   const [agentCode, setAgentCode] = useState(listing.agentCanShareAccessCode !== false);
   const setG = (k: keyof ArrivalGuide, v: string) => setGuide((g) => ({ ...g, [k]: v }));
   const input = "w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]";
@@ -1362,6 +1370,19 @@ function ArrivalTab({
           style={{ backgroundColor: "#dcb81e" }}
         >
           {t("Guardar mensaje de llegada")}
+        </button>
+      </section>
+
+      <section className="space-y-4 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#484848]">{t("Mensajes de la estancia")}</h2>
+        <StayMessagesEditor listingId={listing.id} value={stay} onChange={setStay} />
+        <button
+          type="button"
+          onClick={() => onSave({ stayMessages: stay })}
+          className="rounded-full px-5 py-2.5 text-sm font-semibold text-black shadow transition hover:brightness-95"
+          style={{ backgroundColor: "#dcb81e" }}
+        >
+          {t("Guardar mensajes de la estancia")}
         </button>
       </section>
     </div>
