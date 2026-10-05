@@ -15,8 +15,7 @@ export const siteHost: Record<string, string> = {
   // Panel
   "Hola, {name}": "Hi, {name}",
   anfitrión: "host",
-  "Gestiona tus propiedades y datos de contacto. Los datos viven en memoria en desarrollo; en producción irán a MySQL.":
-    "Manage your properties and contact details. Data lives in memory in development; in production it will go to MySQL.",
+  "Gestiona tus propiedades y datos de contacto.": "Manage your properties and contact details.",
   Alojamientos: "Listings",
   Publicados: "Published",
   Cuenta: "Account",

@@ -19,9 +19,7 @@ export default async function HostDashboardPage() {
           })}
         </h1>
         <p className="mt-1 text-sm text-[#888]">
-          {t(
-            "Gestiona tus propiedades y datos de contacto. Los datos viven en memoria en desarrollo; en producción irán a MySQL."
-          )}
+          {t("Gestiona tus propiedades y datos de contacto.")}
         </p>
       </div>
 

@@ -7,6 +7,7 @@ export const appReports: Record<string, string> = {
     "Report an account, claim yours, tell us if something went wrong or send us ideas. Only the Cabibee team reads it.",
   "Denuncia a un huésped o a otra cuenta, reclama tu cuenta o tu propiedad, cuéntanos si algo salió mal o mándanos ideas. Solo el equipo de Cabibee lo lee.":
     "Report a guest or another account, claim your account or property, tell us if something went wrong or send us ideas. Only the Cabibee team reads it.",
+  "También puedes escribirnos a": "You can also write to us at",
 
   // Tipos
   "Denunciar una cuenta": "Report an account",

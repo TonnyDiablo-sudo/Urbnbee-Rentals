@@ -325,7 +325,7 @@ function ListingContractForm({
           type="button"
           disabled={!dirty || busy !== null}
           onClick={() => void save()}
-          className="mx-auto block w-full max-w-xl rounded-xl bg-[#222] py-3.5 text-[15px] font-semibold text-white disabled:opacity-40"
+          className="mx-auto block w-full max-w-xl md:max-w-3xl rounded-xl bg-[#222] py-3.5 text-[15px] font-semibold text-white disabled:opacity-40"
         >
           {busy === "save" ? t("Guardando…") : t("Guardar contrato de este anuncio")}
         </button>

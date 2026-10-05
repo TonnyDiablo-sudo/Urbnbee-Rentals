@@ -529,7 +529,7 @@ export function HostCalendarView() {
                   <tr className="border-b border-[#ebebeb] bg-white">
                     <th
                       rowSpan={3}
-                      className="sticky left-0 z-[25] w-[min(18rem,48vw)] min-w-[17rem] border-r border-[#ebebeb] bg-white px-3 py-3 text-left align-top shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)]"
+                      className="sticky left-0 z-[25] w-[min(18rem,40vw)] min-w-[8.5rem] sm:min-w-[17rem] border-r border-[#ebebeb] bg-white px-3 py-3 text-left align-top shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)]"
                     >
                       <p className="text-xs font-bold uppercase tracking-wide text-[#aaa]">
                         {t(listings.length === 1 ? "{n} alojamiento" : "{n} alojamientos", { n: listings.length })}
@@ -541,7 +541,7 @@ export function HostCalendarView() {
                         onChange={(e) => setFilter(e.target.value)}
                         className="mt-2 w-full rounded-lg border border-[#ddd] px-2 py-1.5 text-xs outline-none focus:border-[#dcb81e]"
                       />
-                    <p className="mt-3 text-[10px] leading-snug text-[#aaa]">
+                    <p className="mt-3 hidden text-[10px] leading-snug text-[#aaa] sm:block">
                       {t("Arrastra en el calendario para multiselección. Rayas = bloqueado. Esc = limpiar.")}
                     </p>
                     </th>
@@ -588,9 +588,11 @@ export function HostCalendarView() {
                 <tbody>
                   {filtered.map((listing, row) => (
                     <tr key={listing.id} className="border-b border-[#ebebeb]">
-                      <td className="sticky left-0 z-[15] max-w-[18rem] min-w-[17rem] border-r border-[#ebebeb] bg-white px-2 py-2 align-middle shadow-[4px_0_12px_-4px_rgba(0,0,0,0.06)]">
+                      <td className="sticky left-0 z-[15] max-w-[18rem] min-w-[8.5rem] sm:min-w-[17rem] border-r border-[#ebebeb] bg-white px-2 py-2 align-middle shadow-[4px_0_12px_-4px_rgba(0,0,0,0.06)]">
                         <div className="flex items-start gap-2.5">
-                          <ListingThumb listing={listing} />
+                          <span className="hidden sm:contents">
+                            <ListingThumb listing={listing} />
+                          </span>
                           <div className="min-w-0 flex-1 py-0.5">
                             <Link
                               href={`/host/listings/${listing.id}/edit`}

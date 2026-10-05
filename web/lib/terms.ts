@@ -88,14 +88,14 @@ const ES: TermsDoc = {
     {
       title: "11. Datos personales",
       paragraphs: [
-        "Cabibee trata tus datos personales para operar la Plataforma, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares en México y a las leyes de privacidad aplicables en Estados Unidos. Puedes ejercer tus derechos de acceso, rectificación, cancelación y oposición escribiendo a hola@cabibee.com, y puedes borrar tu cuenta desde la configuración.",
+        "Cabibee trata tus datos personales para operar la Plataforma, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares en México y a las leyes de privacidad aplicables en Estados Unidos. Puedes ejercer tus derechos de acceso, rectificación, cancelación y oposición escribiendo a support@cabibee.com, y puedes borrar tu cuenta desde la configuración.",
         "Cuando reservas o firmas un contrato, los datos necesarios se comparten con la otra parte. Esa persona es responsable del uso que haga de ellos.",
       ],
     },
     {
       title: "12. Cuentas creadas por terceros",
       paragraphs: [
-        "Si un asociado de Cabibee creó una cuenta con tu información pública, al reclamarla confirmas que eres el titular o estás autorizado, revisas tus anuncios y aceptas estos Términos. Si no la reclamas, puedes pedir que se elimine escribiendo a hola@cabibee.com.",
+        "Si un asociado de Cabibee creó una cuenta con tu información pública, al reclamarla confirmas que eres el titular o estás autorizado, revisas tus anuncios y aceptas estos Términos. Si no la reclamas, puedes pedir que se elimine escribiendo a support@cabibee.com.",
       ],
     },
     {
@@ -115,7 +115,7 @@ const ES: TermsDoc = {
       title: "15. Aceptación electrónica",
       paragraphs: [
         "Al marcar la casilla y dar clic en aceptar, otorgas tu consentimiento por medios electrónicos, con la misma validez que una firma autógrafa, conforme al Código de Comercio y al Código Civil Federal en México, y a la ley federal E-SIGN y la Uniform Electronic Transactions Act en Estados Unidos. Guardamos la fecha y la versión que aceptaste. Puedes consultar estos Términos en cualquier momento en la Plataforma.",
-        "Contacto: hola@cabibee.com.",
+        "Contacto: support@cabibee.com.",
       ],
     },
   ],
@@ -199,14 +199,14 @@ const EN: TermsDoc = {
     {
       title: "11. Personal data",
       paragraphs: [
-        "Cabibee processes your personal data to operate the Platform, in accordance with Mexico's Federal Law on the Protection of Personal Data Held by Private Parties and applicable US privacy laws. You can exercise your rights of access, correction, deletion and objection by writing to hola@cabibee.com, and you can delete your account from your settings.",
+        "Cabibee processes your personal data to operate the Platform, in accordance with Mexico's Federal Law on the Protection of Personal Data Held by Private Parties and applicable US privacy laws. You can exercise your rights of access, correction, deletion and objection by writing to support@cabibee.com, and you can delete your account from your settings.",
         "When you book or sign a contract, the necessary data is shared with the other party. That person is responsible for how they use it.",
       ],
     },
     {
       title: "12. Accounts created by others",
       paragraphs: [
-        "If a Cabibee associate created an account with your public information, by claiming it you confirm that you are the owner or are authorized, you review your listings and you accept these Terms. If you do not claim it, you can ask for it to be deleted by writing to hola@cabibee.com.",
+        "If a Cabibee associate created an account with your public information, by claiming it you confirm that you are the owner or are authorized, you review your listings and you accept these Terms. If you do not claim it, you can ask for it to be deleted by writing to support@cabibee.com.",
       ],
     },
     {
@@ -226,7 +226,7 @@ const EN: TermsDoc = {
       title: "15. Electronic acceptance",
       paragraphs: [
         "By checking the box and clicking accept, you give your consent electronically, with the same validity as a handwritten signature, under Mexico's Commerce Code and Federal Civil Code, and under the federal E-SIGN Act and the Uniform Electronic Transactions Act in the United States. We store the date and the version you accepted. You can read these Terms at any time on the Platform.",
-        "Contact: hola@cabibee.com.",
+        "Contact: support@cabibee.com.",
       ],
     },
   ],

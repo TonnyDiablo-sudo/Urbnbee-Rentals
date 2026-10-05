@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import { emailSupportAboutReport } from "@/lib/support-inbox";
 import { listReportCounterparts, myReportViews, submitUserReport } from "@/lib/user-reports";
 
 export async function GET() {
@@ -17,5 +18,6 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const result = submitUserReport(user, body);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  void emailSupportAboutReport(result.report);
   return NextResponse.json({ ok: true, id: result.report.id });
 }

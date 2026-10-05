@@ -142,7 +142,7 @@ export default function AdminUserDetailPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <p className="text-gray-400 animate-pulse">Cargando…</p>
       </div>
     );
@@ -150,7 +150,7 @@ export default function AdminUserDetailPage() {
 
   if (!user || !detail) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <p className="text-red-500">Usuario no encontrado.</p>
         <Link href="/admin/users" className="text-amber-600 text-sm mt-2 block hover:underline">
           ← Volver a usuarios
@@ -184,7 +184,7 @@ export default function AdminUserDetailPage() {
   const acct = detail.account;
 
   return (
-    <div className="p-8 max-w-6xl">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl">
       <div className="mb-6">
         <Link
           href="/admin/users"

@@ -226,7 +226,7 @@ export default function AdminReportsPage() {
   }, [rows]);
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl">
       <h1 className="text-2xl font-bold text-gray-900">Reportes y sugerencias</h1>
       <p className="mt-1 mb-6 text-sm text-gray-500">
         Denuncias de cuentas, reclamos de cuenta, quejas y sugerencias que mandan huéspedes y anfitriones.

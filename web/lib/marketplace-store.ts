@@ -419,6 +419,10 @@ type UserAuthPatch = Partial<
     | "emailVerifiedAt"
     | "emailVerifyTokenHash"
     | "emailVerifyExpiresAt"
+    | "passwordChangedAt"
+    | "passwordResetTokenHash"
+    | "passwordResetExpiresAt"
+    | "passwordResetRequestedAt"
   >
 >;
 

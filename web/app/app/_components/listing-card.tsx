@@ -17,7 +17,7 @@ export function AppListingCardView({
   /** Línea extra debajo del precio (p. ej. quién lo agregó a un viaje). */
   note?: string;
 }) {
-  const place = [l.city, l.zone].filter(Boolean).join(", ");
+  const place = [l.city, l.zone].filter((s) => s && /[\p{L}\p{N}]/u.test(s)).join(", ");
   return (
     <Link href={`/alojamiento/${l.slug}`} className="block">
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#eee]">

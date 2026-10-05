@@ -82,7 +82,13 @@ export async function readSessionPayload(): Promise<SessionPayload | null> {
 export async function getSessionUser(): Promise<UserRecord | null> {
   const s = await readSessionPayload();
   if (!s) return null;
-  return findUserById(s.sub) ?? null;
+  const user = findUserById(s.sub);
+  if (!user) return null;
+  if (user.passwordChangedAt) {
+    const issuedAtMs = (s.exp - MAX_AGE_SEC) * 1000;
+    if (issuedAtMs < Date.parse(user.passwordChangedAt) - 1000) return null;
+  }
+  return user;
 }
 
 export async function requireHostUser(): Promise<UserRecord> {

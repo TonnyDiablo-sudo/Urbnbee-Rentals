@@ -147,9 +147,9 @@ export default async function AppExplorePage({ searchParams }: Props) {
       ) : (
         <>
           <InstallBanner />
-          <div className="space-y-7 px-4 pb-6 pt-3">
+          <div className="grid gap-x-5 gap-y-7 px-4 pb-6 pt-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {listings.length === 0 ? (
-              <div className="py-16 text-center">
+              <div className="py-16 text-center md:col-span-2 lg:col-span-3">
                 <p className="text-base font-semibold text-[#222]">{t("Sin resultados")}</p>
                 <p className="mt-1 text-sm text-[#717171]">
                   {filterCount > 0 ? t("Prueba subir el precio o quitar algunos filtros.") : t("Prueba otra ciudad o quita el filtro.")}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { notifyEmailChanged, notifyPasswordChanged } from "@/lib/account-notices";
 import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { sendVerificationEmail } from "@/lib/email-verification";
 import { getHostProfile, updateUserAuth, upsertHostProfile } from "@/lib/marketplace-store";
@@ -44,8 +45,25 @@ export async function POST(req: NextRequest) {
   let updated;
   try {
     updated = updateUserAuth(user.id, {
-      ...(emailChanged ? { email, placeholderEmail: undefined, emailVerifiedAt: undefined } : {}),
-      ...(newPassword ? { passwordHash: await bcrypt.hash(newPassword, 11) } : {}),
+      ...(emailChanged
+        ? {
+            email,
+            placeholderEmail: undefined,
+            emailVerifiedAt: undefined,
+            emailVerifyTokenHash: undefined,
+            emailVerifyExpiresAt: undefined,
+            passwordResetTokenHash: undefined,
+            passwordResetExpiresAt: undefined,
+          }
+        : {}),
+      ...(newPassword
+        ? {
+            passwordHash: await bcrypt.hash(newPassword, 11),
+            passwordChangedAt: new Date().toISOString(),
+            passwordResetTokenHash: undefined,
+            passwordResetExpiresAt: undefined,
+          }
+        : {}),
       mustChangePassword: undefined,
       ...(user.provisionedBy && !user.claimedAt ? { claimedAt: new Date().toISOString() } : {}),
     });
@@ -62,7 +80,15 @@ export async function POST(req: NextRequest) {
     if (!profile?.email || profile.email === user.email || isPlaceholderEmail(profile.email)) {
       upsertHostProfile(user.id, { email });
     }
+  }
+  if (emailChanged || newPassword) {
     await createSession({ id: updated.id, email: updated.email, role: updated.role });
+  }
+  if (emailChanged) {
+    void notifyEmailChanged({ oldEmail: user.email, newEmail: updated.email, fullName: updated.fullName });
+  }
+  if (newPassword) {
+    void notifyPasswordChanged({ email: updated.email, fullName: updated.fullName });
   }
 
   let verificationSent = false;

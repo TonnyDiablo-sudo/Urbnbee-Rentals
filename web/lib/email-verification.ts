@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, randomBytes } from "crypto";
-import { sendEmail } from "@/lib/email";
+import { emailLayout, escapeHtml, sendEmail } from "@/lib/email";
+import { SUPPORT_EMAIL } from "@/lib/support-contact";
 import { findUserById, listAllUsers, updateUserAuth } from "@/lib/marketplace-store";
 
 const TTL_MS = 48 * 60 * 60 * 1000;
@@ -19,10 +20,19 @@ export async function sendVerificationEmail(userId: string, origin: string): Pro
   });
   const link = `${origin}/api/account/verify-email?token=${token}`;
   return sendEmail({
+    mailbox: "noreply",
     to: user.email,
     subject: "Confirma tu correo en Cabibee",
-    text: `Hola ${user.fullName}, confirma tu correo para asegurar tu cuenta de Cabibee:\n${link}\n\nEl enlace vence en 48 horas.`,
-    html: `<p>Hola ${user.fullName.replace(/[<>&]/g, "")},</p><p>Confirma tu correo para asegurar tu cuenta de Cabibee:</p><p><a href="${link}">Confirmar mi correo</a></p><p style="color:#888">El enlace vence en 48 horas.</p>`,
+    text: `Hola ${user.fullName}, confirma tu correo para asegurar tu cuenta de Cabibee:\n${link}\n\nEl enlace vence en 48 horas. Si no abriste una cuenta, ignora este correo o escríbenos a ${SUPPORT_EMAIL}.`,
+    html: emailLayout({
+      title: "Confirma tu correo",
+      paragraphs: [
+        `Hola ${escapeHtml(user.fullName)},`,
+        "Confirma tu correo para asegurar tu cuenta de Cabibee. Con él podrás recuperar tu contraseña si la olvidas.",
+        `<span style="color:#888">El enlace vence en 48 horas. Si no abriste una cuenta, ignora este correo o escríbenos a ${SUPPORT_EMAIL}.</span>`,
+      ],
+      button: { href: link, label: "Confirmar mi correo" },
+    }),
   });
 }
 

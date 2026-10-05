@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin/estadisticas", label: "Estadísticas", icon: "📈" },
   { href: "/admin/users", label: "Usuarios", icon: "👥" },
   { href: "/admin/reportes", label: "Reportes y sugerencias", icon: "🚩" },
+  { href: "/admin/correo", label: "Correo", icon: "✉️" },
   { href: "/admin/pricing", label: "Precios", icon: "💲" },
   { href: "/admin/blog-bot", label: "Blog (LLM)", icon: "✍️" },
 ];
@@ -29,9 +30,50 @@ export default async function AdminLayout({
     listAddressProofs().filter((p) => p.status === "review").length + listClaimRequests().filter((c) => c.status === "open").length;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-60 shrink-0 bg-white border-r border-gray-200 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
+      <header className="sticky top-0 z-30 border-b border-gray-200 bg-white lg:hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🐝</span>
+            <p className="text-sm font-bold text-amber-600">Cabibee · Admin</p>
+          </div>
+          <div className="flex items-center gap-3 text-xs">
+            <Link href="/host/dashboard" className="text-amber-700">
+              Anfitrión
+            </Link>
+            <Link href="/" className="text-gray-500">
+              ← Sitio
+            </Link>
+            <AdminLogoutButton compact />
+          </div>
+        </div>
+        <nav className="flex gap-1.5 overflow-x-auto px-3 pb-2.5 [scrollbar-width:none]">
+          {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700"
+            >
+              <span>{item.icon}</span>
+              {item.label}
+              {item.href === "/admin/reportes" && pendingReports > 0 && (
+                <span className="rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">{pendingReports}</span>
+              )}
+            </Link>
+          ))}
+          {pendingReview > 0 && (
+            <Link
+              href="/admin/users?pendientes=1"
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800"
+            >
+              <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{pendingReview}</span>
+              Por revisar
+            </Link>
+          )}
+        </nav>
+      </header>
+
+      <aside className="hidden w-60 shrink-0 bg-white border-r border-gray-200 flex-col lg:flex">
         <div className="px-5 py-5 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <span className="text-xl">🐝</span>
@@ -96,7 +138,7 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main */}
-      <main className="flex-1 min-w-0 overflow-auto">
+      <main className="flex-1 min-w-0 lg:overflow-auto">
         {children}
       </main>
     </div>

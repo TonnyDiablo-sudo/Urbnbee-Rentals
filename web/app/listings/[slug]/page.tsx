@@ -107,9 +107,9 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
               {/* Quick stats */}
               <div className="mt-4 flex flex-wrap gap-4 text-sm text-[#3a3a3a]">
-                <span>👥 {t("{n} invitados", { n: listing.guests })}</span>
-                <span>🛏 {t("{n} recámaras", { n: listing.bedrooms })}</span>
-                <span>🚿 {t("{n} baños", { n: listing.bathrooms })}</span>
+                <span>👥 {t(listing.guests === 1 ? "{n} huésped" : "{n} invitados", { n: listing.guests })}</span>
+                <span>🛏 {t(listing.bedrooms === 1 ? "{n} recámara" : "{n} recámaras", { n: listing.bedrooms })}</span>
+                <span>🚿 {t(listing.bathrooms === 1 ? "{n} baño" : "{n} baños", { n: listing.bathrooms })}</span>
                 {listing.size && <span>📐 {listing.size}</span>}
               </div>
 

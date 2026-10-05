@@ -135,6 +135,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               onChange={setPassword}
             />
           </label>
+          {mode === "login" && (
+            <p className="text-right text-xs">
+              <Link href="/cuenta/recuperar" className="font-semibold text-[#717171] underline">
+                {t("¿Olvidaste tu contraseña?")}
+              </Link>
+            </p>
+          )}
           {mode === "register" && (
           <label className="flex cursor-pointer items-start gap-2.5 text-sm leading-snug text-[#444]">
             <input

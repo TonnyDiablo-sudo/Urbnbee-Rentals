@@ -5,19 +5,19 @@ import { useT } from "@/components/i18n-provider";
 const slides = [
   {
     n: "01",
-    title: "– Directorio de Anfitriones Verificados",
+    title: "Directorio de Anfitriones Verificados",
     body: "Reserva con Confianza – Conectamos viajeros con anfitriones verificados, reduciendo el riesgo de fraudes. Cada perfil es revisado para garantizar autenticidad y seguridad.",
     bg: "https://images.unsplash.com/photo-1758983065583-9cea714214f9?w=1920&q=80",
   },
   {
     n: "02",
-    title: "– Accede a la Información de los Anfitriones",
+    title: "Accede a la Información de los Anfitriones",
     body: "Transparencia Total – Obtén todos los detalles del alojamiento para tomar la mejor decisión. Consulta diferentes formas de contacto y opciones de reserva.",
     bg: "https://images.unsplash.com/photo-1682184805271-11671b7ecf4c?w=1920&q=80",
   },
   {
     n: "03",
-    title: "– Evalúa al Anfitrión con Opiniones Reales",
+    title: "Evalúa al Anfitrión con Opiniones Reales",
     body: "Consulta valoraciones y referencias en distintos sitios para tomar una mejor decisión. Transparencia total: revisa la reputación antes de reservar.",
     bg: "https://images.unsplash.com/photo-1753569632676-961830e89de2?w=1920&q=80",
   },
@@ -43,7 +43,7 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
   const slide = slides[current];
 
   return (
-    <div className="relative w-full overflow-hidden" style={{ height: "100vh", minHeight: "560px" }}>
+    <div className="relative h-svh min-h-[560px] w-full overflow-hidden">
       {/* Background images */}
       {slides.map((s, i) => (
         <div
@@ -62,11 +62,10 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
       <div className="absolute inset-0 bg-black/45" />
 
       {/* Slide content */}
-      <div className="relative z-10 flex h-full flex-col justify-center px-6 pb-36 pt-20 sm:px-12 lg:px-24">
-        <div className="mb-2 text-sm font-semibold tracking-widest" style={{ color: "#dcb81e" }}>
+      <div className="relative z-10 flex h-full flex-col justify-center px-6 pb-36 pt-20 sm:px-16 lg:px-24">
+        <div className="mb-3 text-sm font-semibold tracking-widest" style={{ color: "#dcb81e" }}>
           {slide.n}
         </div>
-        <div className="mb-3 text-sm font-light text-white/70">{t("/por noche aprox.")}</div>
         <h1 className="mb-5 max-w-xl text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
           {t(slide.title)}
         </h1>
@@ -80,7 +79,7 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
         type="button"
         onClick={prev}
         aria-label={t("Anterior")}
-        className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-[2px] transition hover:bg-white/35"
+        className="absolute left-3 top-1/2 z-20 hidden h-10 sm:flex w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-[2px] transition hover:bg-white/35"
       >
         <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -90,7 +89,7 @@ export function HeroSlider({ sentinelRef }: { sentinelRef?: React.RefObject<HTML
         type="button"
         onClick={next}
         aria-label={t("Siguiente")}
-        className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-[2px] transition hover:bg-white/35"
+        className="absolute right-3 top-1/2 z-20 hidden h-10 sm:flex w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-[2px] transition hover:bg-white/35"
       >
         <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { isPlaceholderEmail } from "@/lib/associate-provision";
+import { sendVerificationEmail } from "@/lib/email-verification";
 import { createUser, findUserByEmail, updateUserAuth } from "@/lib/marketplace-store";
+import { publicOriginFromRequest } from "@/lib/public-origin";
 import { createSession } from "@/lib/session";
 import type { UserRole } from "@/lib/marketplace-types";
 import { TERMS_VERSION } from "@/lib/terms";
@@ -23,6 +26,9 @@ export async function POST(req: NextRequest) {
     if (password.length < 8) {
       return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres." }, { status: 400 });
     }
+    if (isPlaceholderEmail(email)) {
+      return NextResponse.json({ error: "Escribe un correo válido." }, { status: 400 });
+    }
     if (findUserByEmail(email)) {
       return NextResponse.json({ error: "Este correo ya está registrado." }, { status: 409 });
     }
@@ -39,6 +45,7 @@ export async function POST(req: NextRequest) {
     updateUserAuth(user.id, { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date().toISOString() });
 
     await createSession({ id: user.id, email: user.email, role: user.role });
+    void sendVerificationEmail(user.id, publicOriginFromRequest(req));
 
     return NextResponse.json({
       ok: true,

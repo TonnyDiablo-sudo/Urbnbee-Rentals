@@ -51,7 +51,7 @@ export function ListingActionBar(p: Props) {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-[#ebebeb] bg-white"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="mx-auto flex max-w-xl items-center gap-3 px-5 py-3">
+        <div className="mx-auto flex max-w-xl md:max-w-3xl items-center gap-3 px-5 py-3">
           <div className="min-w-0 flex-1">
             <p className="text-[15px] text-[#222]">
               <span className="font-bold">${p.pricePerNight.toLocaleString(numberLocale(lang))}</span> MXN {t("noche")}

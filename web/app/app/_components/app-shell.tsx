@@ -106,7 +106,9 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
     <div className="flex min-h-dvh flex-col bg-[#f7f7f7]">
       <UpdateBanner />
       <div
-        className={`mx-auto flex w-full max-w-xl flex-1 flex-col bg-white ${fullscreen ? "" : "pb-[calc(64px+env(safe-area-inset-bottom))]"}`}
+        className={`mx-auto flex w-full flex-1 flex-col bg-white md:shadow-[0_0_0_1px_#ececec] ${
+          fullscreen ? "max-w-xl md:max-w-3xl" : "max-w-xl md:max-w-3xl lg:max-w-5xl pb-[calc(64px+env(safe-area-inset-bottom))]"
+        }`}
       >
         {children}
       </div>
@@ -116,7 +118,7 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
           aria-label={hostMode ? t("Navegación de anfitrión") : t("Navegación principal")}
         >
-          <div className="mx-auto flex h-16 max-w-xl items-stretch justify-around">
+          <div className="mx-auto flex h-16 max-w-xl items-stretch justify-around md:max-w-3xl">
             {tabs.map((tab) => {
               const active =
                 tab.href === "/" || tab.href === "/host"

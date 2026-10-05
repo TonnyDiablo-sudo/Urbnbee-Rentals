@@ -205,7 +205,11 @@ export async function resetTempPassword(
     return { ok: false, error: "Esa cuenta no es tuya o el dueño ya la reclamó." };
   }
   const password = generateTempPassword();
-  updateUserAuth(host.id, { passwordHash: await bcrypt.hash(password, 11), mustChangePassword: true });
+  updateUserAuth(host.id, {
+    passwordHash: await bcrypt.hash(password, 11),
+    mustChangePassword: true,
+    passwordChangedAt: new Date().toISOString(),
+  });
   return { ok: true, email: host.email, password };
 }
 

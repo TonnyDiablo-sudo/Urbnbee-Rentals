@@ -205,7 +205,7 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
@@ -282,11 +282,11 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
               </option>
             ))}
           </select>
-          <label className="flex items-center gap-1 text-xs text-gray-500">
+          <label className="flex flex-wrap items-center gap-1 text-xs text-gray-500">
             Registro del
-            <input type="date" value={f.from} onChange={(e) => set("from", e.target.value)} className={sel} />
+            <input type="date" value={f.from} onChange={(e) => set("from", e.target.value)} className={`${sel} min-w-0`} />
             al
-            <input type="date" value={f.to} onChange={(e) => set("to", e.target.value)} className={sel} />
+            <input type="date" value={f.to} onChange={(e) => set("to", e.target.value)} className={`${sel} min-w-0`} />
           </label>
         </div>
         <div className="flex flex-wrap items-center gap-2">

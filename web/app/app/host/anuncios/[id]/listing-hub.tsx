@@ -649,7 +649,7 @@ function PanelBody({
 
   return (
     <div className="fixed inset-0 z-[100] flex justify-center bg-black/40">
-      <div role="dialog" aria-modal="true" aria-label={t(PANEL_TITLE[id])} className="flex h-dvh w-full max-w-xl flex-col bg-white">
+      <div role="dialog" aria-modal="true" aria-label={t(PANEL_TITLE[id])} className="flex h-dvh w-full max-w-xl md:max-w-3xl flex-col bg-white">
         <header
           className="flex items-center gap-2 border-b border-[#f0f0f0] px-3"
           style={{ paddingTop: "env(safe-area-inset-top)", minHeight: "calc(56px + env(safe-area-inset-top))" }}

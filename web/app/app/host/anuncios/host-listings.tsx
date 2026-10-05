@@ -47,7 +47,7 @@ export function HostListings() {
           </Link>
         </div>
       ) : (
-        <ul className="space-y-6">
+        <ul className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {rows.map((l) => (
             <li key={l.id}>
               <Link href={`/host/anuncios/${l.id}`} prefetch className="block">

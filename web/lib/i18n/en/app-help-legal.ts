@@ -451,6 +451,8 @@ export const appHelpLegal: Record<string, string> = {
   "A la dirección le falta el número exterior (o «S/N» si no tiene).": "The address is missing the street number (or \"S/N\" if it has none).",
   "Falta el número interior del departamento (o marca que no tiene).": "The apartment's unit number is missing (or check that it has none).",
   "Escríbenos para dudas, soporte o para modificar o eliminar un anuncio.": "Write to us with questions, for support, or to edit or remove a listing.",
+  "Escríbenos para quejas, sugerencias, confirmar tu correo o recuperar tu contraseña.":
+    "Write to us for complaints, suggestions, email confirmation or password recovery.",
   "Si ya tienes cuenta, también puedes escribirle al anfitrión desde el chat de cada anuncio.": "If you have an account, you can also message the host from each listing's chat.",
   "Ver tus anuncios, fechas y precios": "See your listings, dates and prices",
   "Para contestar dudas y cotizar. Siempre activo.": "To answer questions and give quotes. Always on.",

@@ -220,7 +220,7 @@ export function HostCalendar() {
           className="fixed inset-x-0 z-40 border-t border-[#ebebeb] bg-white"
           style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}
         >
-          <div className="mx-auto flex max-w-xl items-center gap-3 px-5 py-3">
+          <div className="mx-auto flex max-w-xl md:max-w-3xl items-center gap-3 px-5 py-3">
             <div className="min-w-0 flex-1">
               <p className="text-[15px] font-semibold text-[#222]">
                 {selected.length === 1 ? t("1 noche seleccionada") : t("{n} noches seleccionadas", { n: selected.length })}

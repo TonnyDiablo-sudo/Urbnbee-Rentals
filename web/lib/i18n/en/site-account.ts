@@ -16,6 +16,29 @@ export const siteAccount: Record<string, string> = {
   "Completa correo, nombre y contraseña.": "Enter your email, name and password.",
   "La contraseña debe tener al menos 8 caracteres.": "Password must be at least 8 characters.",
   "Este correo ya está registrado.": "This email is already registered.",
+  "¿Olvidaste tu contraseña?": "Forgot your password?",
+  "Escribe el correo de tu cuenta. Si existe y es un correo real, te mandamos un enlace. No funciona con el usuario temporal de las cuentas que crea un asociado: entra con esa contraseña y pon tu correo.":
+    "Enter your account email. If it exists and is a real address, we'll send a link. It doesn't work with the temporary username of accounts created by an associate: log in with that password and add your email.",
+  "Si esa cuenta existe y tiene un correo real, te mandamos el enlace. Revisa también el spam.":
+    "If that account exists and has a real email, we sent the link. Check spam too.",
+  "Enviar enlace": "Send link",
+  "Volver a iniciar sesión": "Back to log in",
+  "Elige una contraseña nueva": "Choose a new password",
+  "Después entra con tu correo y esta contraseña. Las otras sesiones se cierran.":
+    "Then log in with your email and this password. Other sessions will be signed out.",
+  "Guardar contraseña": "Save password",
+  "Abre el enlace que te mandamos por correo.": "Open the link we sent you by email.",
+  "Pedir otro enlace": "Request another link",
+  "El enlace no es válido o ya venció.": "The link is invalid or has expired.",
+  "La contraseña nueva debe ser distinta a la anterior.": "The new password must be different from the previous one.",
+  "No se pudo enviar. Intenta de nuevo o escríbenos a support@cabibee.com.":
+    "Could not send. Try again or write to support@cabibee.com.",
+  "Correo confirmado": "Email confirmed",
+  "El enlace no es válido o ya venció": "The link is invalid or has expired",
+  "Tu cuenta de Cabibee ya está asegurada con tu correo.": "Your Cabibee account is now secured with your email.",
+  "Inicia sesión y pide otro correo de confirmación desde tu cuenta.":
+    "Log in and request another confirmation email from your account.",
+  "Ir a Cabibee": "Go to Cabibee",
 
   // Menú del área de huésped
   "Mi cuenta": "My account",

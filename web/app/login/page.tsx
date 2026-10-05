@@ -91,6 +91,11 @@ export default function LoginPage() {
               onChange={setPassword}
             />
           </label>
+          <p className="text-right text-xs">
+            <Link href="/recuperar" className="font-semibold text-[#888] underline hover:text-[#484848]">
+              {t("¿Olvidaste tu contraseña?")}
+            </Link>
+          </p>
           <button
             type="submit"
             disabled={loading}

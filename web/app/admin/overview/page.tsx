@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { getAdminOverview } from "@/lib/admin-data";
+import { listMailboxesPublic } from "@/lib/mailboxes-store";
 
 function fmx(n: number) {
   return `$${n.toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN`;
@@ -51,15 +53,36 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function AdminOverviewPage() {
   const d = getAdminOverview();
+  const boxes = listMailboxesPublic();
+  const missingMail = boxes.filter((b) => !b.connected);
+  const noMail = missingMail.length === boxes.length;
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Resumen de la plataforma</h1>
         <p className="text-sm text-gray-500 mt-1">
           Vista en tiempo real del estado de Cabibee.
         </p>
       </div>
+
+      {missingMail.length > 0 && (
+        <Link
+          href="/admin/correo"
+          className={`mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+            noMail
+              ? "border-red-200 bg-red-50 text-red-900 hover:bg-red-100"
+              : "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
+          }`}
+        >
+          <span>
+            {noMail
+              ? "No hay ningún correo conectado: no salen confirmaciones, recuperación de contraseña ni copias de quejas."
+              : `Falta conectar ${missingMail.map((b) => b.email).join(" y ")}. Mientras, todo sale por el otro buzón.`}
+          </span>
+          <span className="font-semibold">Ir a Correo →</span>
+        </Link>
+      )}
 
       {/* Users */}
       <section className="mb-8">

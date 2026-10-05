@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { SUPPORT_EMAIL } from "@/lib/support-contact";
 import {
   REPORT_CATEGORIES,
   REPORT_KINDS,
@@ -128,6 +129,14 @@ export function ReportCenter({ mode, prefill }: { mode: "guest" | "host"; prefil
           {t("¡Gracias! Lo recibimos. El equipo de Cabibee lo revisa y te avisamos aquí y en tus notificaciones.")}
         </p>
       )}
+
+      <p className="text-sm leading-relaxed text-[#717171]">
+        {t("También puedes escribirnos a")}{" "}
+        <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-[#222] underline">
+          {SUPPORT_EMAIL}
+        </a>
+        .
+      </p>
 
       <section>
         <h2 className="mb-3 text-base font-semibold text-[#222]">{t("¿Qué quieres enviar?")}</h2>

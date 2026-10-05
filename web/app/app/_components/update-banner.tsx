@@ -47,7 +47,7 @@ export function UpdateBanner() {
       className="fixed inset-x-0 top-0 z-[70] flex justify-center px-3"
       style={{ paddingTop: "calc(8px + env(safe-area-inset-top))" }}
     >
-      <div className="flex w-full max-w-xl items-center gap-3 rounded-2xl bg-[#111] px-4 py-3 text-white shadow-lg">
+      <div className="flex w-full max-w-xl md:max-w-3xl items-center gap-3 rounded-2xl bg-[#111] px-4 py-3 text-white shadow-lg">
         <p className="min-w-0 flex-1 text-sm">
           <span className="font-semibold">{t("Nueva versión disponible.")}</span>{" "}
           <span className="text-white/75">{t("Actualiza para ver las mejoras.")}</span>

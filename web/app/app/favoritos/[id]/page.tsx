@@ -68,7 +68,7 @@ export default async function AppWishlistPage({ params }: { params: Promise<{ id
             </Link>
           </div>
         ) : (
-          <div className="mt-6 space-y-7">
+          <div className="mt-6 grid gap-x-5 gap-y-7 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {cards.map((c, i) => {
               const by = addedByName(list, c.slug, user.id);
               return (

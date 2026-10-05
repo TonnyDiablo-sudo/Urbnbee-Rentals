@@ -35,7 +35,7 @@ export function Sheet({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex max-h-[92dvh] w-full max-w-xl flex-col rounded-t-3xl bg-white"
+        className="flex max-h-[92dvh] w-full max-w-xl md:max-w-3xl flex-col rounded-t-3xl bg-white"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative flex items-center justify-center border-b border-[#f0f0f0] px-5 py-4">

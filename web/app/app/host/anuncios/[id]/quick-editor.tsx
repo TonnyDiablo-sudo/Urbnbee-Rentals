@@ -327,7 +327,7 @@ export function QuickListingEditor({ listingId }: { listingId: string }) {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-[#ebebeb] bg-white"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="mx-auto flex max-w-xl gap-3 px-5 py-3">
+        <div className="mx-auto flex max-w-xl md:max-w-3xl gap-3 px-5 py-3">
           <button
             type="button"
             disabled={saving}

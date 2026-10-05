@@ -16,11 +16,11 @@ export function SiteFooter() {
           <div>
             <h3 className="text-sm font-semibold text-[#484848]">{t("Contacto")}</h3>
             <a
-              href="mailto:hola@cabibee.com"
+              href="mailto:support@cabibee.com"
               className="mt-1 block text-sm transition hover:text-[#c9a71a]"
               style={{ color: "#dcb81e" }}
             >
-              hola@cabibee.com
+              support@cabibee.com
             </a>
           </div>
           <div>

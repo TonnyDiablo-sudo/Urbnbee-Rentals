@@ -48,3 +48,4 @@ next-env.d.ts
 /data/marketplace-store.json
 # Blog bot puede incluir API key guardada en archivo (preferir env en producción)
 /data/blog-bot-config.json
+/data/mailboxes.json

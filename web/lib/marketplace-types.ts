@@ -42,6 +42,12 @@ export type UserRecord = {
   emailVerifiedAt?: string;
   emailVerifyTokenHash?: string;
   emailVerifyExpiresAt?: string;
+  /** Sesiones emitidas antes de esto ya no valen (cambio o recuperación de contraseña). */
+  passwordChangedAt?: string;
+  passwordResetTokenHash?: string;
+  passwordResetExpiresAt?: string;
+  /** Último pedido de recuperación, para no mandar un correo tras otro. */
+  passwordResetRequestedAt?: string;
 };
 
 /** Contact & bio shown on listing detail — scoped per host (tenant). */

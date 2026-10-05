@@ -240,7 +240,7 @@ export function BlogBotPanel() {
 
   if (loadErr) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <p className="text-red-600">{loadErr}</p>
       </div>
     );
@@ -248,14 +248,14 @@ export function BlogBotPanel() {
 
   if (!cfg) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <p className="text-gray-400 animate-pulse">Cargando configuración…</p>
       </div>
     );
   }
 
   return (
-    <div className="p-8 max-w-4xl pb-16">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl pb-16">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Blog automático (LLM)</h1>
         <p className="text-sm text-gray-600 mt-2 leading-relaxed">
