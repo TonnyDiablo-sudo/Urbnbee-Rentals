@@ -50,8 +50,8 @@ export const billingAccount: Record<string, string> = {
   "Obligatoria. Viene incluida en el motor de reservas.": "Required. It comes with the booking engine.",
   "Ten a la mano tu licencia de manejo, State ID o pasaporte. Te tomarás una selfie. Lo revisa Stripe Identity; Cabibee no guarda las fotos.":
     "Have your driver's license, State ID or passport ready. You'll take a selfie. Stripe Identity reviews it; Cabibee doesn't keep the photos.",
-  "Ten a la mano tu INE o pasaporte. Te tomarás una selfie. Lo revisa Stripe Identity; Cabibee no guarda las fotos.":
-    "Have your INE or passport ready. You'll take a selfie. Stripe Identity reviews it; Cabibee doesn't keep the photos.",
+  "Ten a la mano tu identificación oficial. Te tomarás una selfie. Lo revisa Stripe Identity; Cabibee no guarda las fotos.":
+    "Have your official ID ready. You'll take a selfie. Stripe Identity reviews it; Cabibee doesn't keep the photos.",
   "Continuar verificación de identidad": "Continue identity verification",
   "Verificar mi identidad": "Verify my identity",
   "La verificación de identidad no está disponible ahorita.": "Identity verification isn't available right now.",
@@ -76,7 +76,7 @@ export const billingAccount: Record<string, string> = {
   "Planes": "Plans",
   "Te identificas con tu licencia de manejo, State ID o pasaporte y una selfie.":
     "You verify with your driver's license, State ID or passport and a selfie.",
-  "Te identificas con tu INE o pasaporte y una selfie.": "You verify with your INE or passport and a selfie.",
+  "Te identificas con tu identificación oficial y una selfie.": "You verify with your official ID and a selfie.",
   "Contratar": "Buy",
   "Contratar (demo)": "Buy (demo)",
   "El huésped se identifica, paga con tarjeta en tu Stripe y firma el contrato. Incluye tu verificación de identidad como anfitrión. Conectar Stripe es gratis, pero no activa las reservas.":

@@ -31,6 +31,7 @@ import { verificationRecheck } from "./verification-recheck";
 import { teamTools } from "./team-tools";
 import { contractPayment } from "./contract-payment";
 import { addressIncluded } from "./address-included";
+import { alarmsPromo } from "./alarms-promo";
 
 /** Clave: el texto exacto en español que aparece en el código. */
 export const EN: Record<string, string> = {
@@ -67,4 +68,5 @@ export const EN: Record<string, string> = {
   ...teamTools,
   ...contractPayment,
   ...addressIncluded,
+  ...alarmsPromo,
 };

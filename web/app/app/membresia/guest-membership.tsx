@@ -145,9 +145,7 @@ export function GuestMembership() {
         <section>
           <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Planes")}</h2>
           <p className="mb-3 text-sm text-[#555]">
-            {region === "us"
-              ? t("Te identificas con tu licencia de manejo, State ID o pasaporte y una selfie.")
-              : t("Te identificas con tu INE o pasaporte y una selfie.")}
+            {t("Te identificas con tu identificación oficial y una selfie.")}
           </p>
           <div className="mb-3 space-y-3">
             <CountryPicker value={data.billingCountry} onSaved={() => void load()} />

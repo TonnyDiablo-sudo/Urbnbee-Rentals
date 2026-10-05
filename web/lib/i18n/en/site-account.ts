@@ -198,8 +198,8 @@ export const siteAccount: Record<string, string> = {
   "Identidad (KYC)": "Identity (KYC)",
   "No exigida (servidor)": "Not required (server)",
   "Falta verificar tu identidad": "Your identity still needs to be verified",
-  "Documento oficial (INE, licencia o pasaporte) y selfie. Lo procesa Stripe Identity.":
-    "Government ID (INE, driver's license or passport) and a selfie. Processed by Stripe Identity.",
+  "Identificación oficial y selfie. Lo procesa Stripe Identity.":
+    "Official ID and a selfie. Processed by Stripe Identity.",
   "Abriendo…": "Opening…",
   "Verificar identidad": "Verify identity",
   "Facturación y cancelación (Stripe)": "Billing & cancellation (Stripe)",

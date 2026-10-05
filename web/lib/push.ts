@@ -1,5 +1,7 @@
 import "server-only";
 import webpush from "web-push";
+import { alarmCategoryOf } from "@/lib/alarm-categories";
+import { alarmOn } from "@/lib/notification-prefs-store";
 import type { BookingRecord } from "@/lib/booking-types";
 import { isLang, makeT } from "@/lib/i18n";
 import { findUserById, getListingById } from "@/lib/marketplace-store";
@@ -84,6 +86,7 @@ type NotifyInput = {
 /** Guarda el aviso en el centro de notificaciones y además lo manda como push. */
 export function notifyUser(userId: string, n: NotifyInput): void {
   if (!userId) return;
+  if (!alarmOn(userId, alarmCategoryOf(n.kind, n.tag))) return;
   try {
     addNotification({
       userId,

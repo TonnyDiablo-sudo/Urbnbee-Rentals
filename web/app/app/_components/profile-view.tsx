@@ -47,6 +47,7 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
           { href: "/host/contratos", label: t("Contratos"), hint: t("Machotes, tus datos y cláusulas por anuncio") },
           { href: "/host/impuestos", label: t("Impuestos (IVA)"), hint: t("Cobra IVA u otros impuestos según tu país") },
           { href: "/notificaciones", label: t("Notificaciones") },
+          { href: "/alarmas", label: t("Centro de alarmas"), hint: t("Prende o apaga los avisos de cada tema") },
           { href: "/host/calendar", label: t("Calendario y precios por fecha"), web: true },
           { href: "/host/resenas", label: t("Reseñas de huéspedes"), hint: t("Califica a tus huéspedes y lee lo que dijeron de ti") },
           { href: "/host/requests", label: t("Depósitos de huéspedes"), web: true },
@@ -69,6 +70,7 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
                 { href: "/tienda", label: t("Tienda"), hint: t("Membresías y herramientas de Cabibee") },
                 { href: "/equipo", label: t("Equipos donde colaboro"), hint: t("Invitaciones, limpiezas, reservas y mensajes") },
                 { href: "/notificaciones", label: t("Notificaciones") },
+                { href: "/alarmas", label: t("Centro de alarmas"), hint: t("Prende o apaga los avisos de cada tema") },
                 { href: "/perfil/editar", label: t("Datos personales y foto") },
                 { href: "/cuenta/seguridad", label: t("Correo y contraseña") },
                 {

@@ -27,7 +27,7 @@ let identityMergedAt: string | undefined;
 
 const TERM_SUFFIX: Record<number, string> = { 1: "· 1 mes", 6: "· 6 meses", 12: "· 12 meses" };
 
-const FAMILY_COPY: Record<MembershipPlanFamily, { label: string; description: string }> = {
+export const FAMILY_COPY: Record<MembershipPlanFamily, { label: string; description: string }> = {
   guest_pass: {
     label: "Pase Cabibee por reserva",
     description: "Un solo pago que habilita una reserva. Para quien viaja una vez y no quiere membresía.",

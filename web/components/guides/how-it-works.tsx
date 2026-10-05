@@ -57,7 +57,7 @@ const TAGS = [
   {
     icon: "🪪",
     title: "Identidad verificada («Miembro verificado»)",
-    text: "La persona subió una identificación oficial (INE, pasaporte, licencia o State ID) y una selfie, y se compararon contra una base de datos oficial. Así sabes que es quien dice ser. Aplica igual para anfitriones y huéspedes.",
+    text: "La persona subió una identificación oficial y una selfie, y se compararon contra una base de datos oficial. Así sabes que es quien dice ser. Aplica igual para anfitriones y huéspedes.",
   },
   {
     icon: "📍",

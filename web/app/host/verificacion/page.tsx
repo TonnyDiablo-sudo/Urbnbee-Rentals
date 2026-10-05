@@ -301,9 +301,7 @@ function HostVerificacionClient() {
               {!data.emailVerified && <VerifyEmailBox />}
               {!data.hasPhone && <PhoneBox onSaved={() => void load()} />}
               <p className="text-sm text-[#484848]">
-                {selectedRegion === "us"
-                  ? t("Te identificas con tu licencia de manejo, State ID o pasaporte y una selfie.")
-                  : t("Te identificas con tu INE o pasaporte y una selfie.")}
+                {t("Te identificas con tu identificación oficial y una selfie.")}
               </p>
             </div>
           )}

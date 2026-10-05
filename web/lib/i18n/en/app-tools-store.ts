@@ -368,7 +368,7 @@ export const appToolsStore: Record<string, string> = {
   "Un pago único que habilita una reserva.": "A one-time payment that unlocks one booking.",
   "Ideal si viajas una vez y no quieres membresía.": "Ideal if you travel once and don't want a membership.",
   "Si el anfitrión rechaza tu solicitud, el pase se te devuelve.": "If the host declines your request, you get the pass back.",
-  "Verificamos tu identidad con tu INE o pasaporte.": "We verify your identity with your ID or passport.",
+  "Verificamos tu identidad con tu identificación oficial.": "We verify your identity with your official ID.",
   "Reservas ilimitadas mientras esté activa.": "Unlimited bookings while it's active.",
   "Hablas directo con anfitriones de identidad verificada.": "You talk directly with identity-verified hosts.",
   "Entre más largo el plazo, más barato por mes.": "The longer the term, the cheaper per month.",

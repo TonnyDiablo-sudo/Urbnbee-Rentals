@@ -39,7 +39,10 @@ type Data = {
   email: string;
   isHost: boolean;
   items: Item[];
+  promo?: { banner: Ribbon; ribbons: Record<string, Ribbon> };
 };
+
+type Ribbon = { on: boolean; text: string };
 
 type CartEntry = { family: string; code: string; quantity: number };
 type CartResult = { ok: boolean; lines: { code: string; ok: boolean; error?: string }[]; error?: string };
@@ -67,6 +70,15 @@ function CartIcon({ className = "h-5 w-5" }: { className?: string }) {
       <circle cx="9.5" cy="20" r="1.2" />
       <circle cx="17.5" cy="20" r="1.2" />
     </svg>
+  );
+}
+
+/** Listón diagonal en la esquina de la tarjeta. Sólo decora: no cambia precios ni condiciones. */
+export function PromoRibbon({ text }: { text: string }) {
+  return (
+    <div className="pointer-events-none absolute -right-11 top-4 w-40 rotate-45 bg-[#dcb81e] py-1 text-center text-[10px] font-bold uppercase leading-tight tracking-wide text-black shadow">
+      <span className="block truncate px-6">{text}</span>
+    </div>
   );
 }
 
@@ -279,9 +291,15 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
             ? t("pagas {total} cada mes", { total: money(plan.amount * q, item.currency) })
             : t("se cobra cada mes")
           : t("pagas {total} cada {n} meses", { total: money(plan.amount * (item.unit ? q : 1), item.currency), n: plan.months });
+    const ribbon = data.promo?.ribbons[item.family];
     return (
-      <div key={item.family} id={`p-${item.family}`} className="scroll-mt-20 rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
+      <div
+        key={item.family}
+        id={`p-${item.family}`}
+        className="relative scroll-mt-20 overflow-hidden rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm"
+      >
+        {ribbon?.on && ribbon.text && <PromoRibbon text={t(ribbon.text)} />}
+        <div className={`flex items-start justify-between gap-3 ${ribbon?.on && ribbon.text ? "pr-16" : ""}`}>
           <div>
             <p className="text-[16px] font-semibold text-[#222]">{t(item.label)}</p>
             <p className="mt-1 text-sm text-[#717171]">{t(item.description)}</p>
@@ -453,6 +471,14 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
         <p className={`rounded-xl px-4 py-3 text-sm ${msg.ok ? "bg-[#e7f5ec] text-[#1e5a32]" : "bg-red-50 text-red-700"}`}>
           {t(msg.text)}
         </p>
+      )}
+      {data.promo?.banner.on && data.promo.banner.text && (
+        <div className="rounded-2xl bg-[#111] px-4 py-3 text-white">
+          <p className="text-[15px] font-semibold">
+            <span className="mr-1.5 rounded-md bg-[#dcb81e] px-1.5 py-0.5 text-xs font-bold text-black">{t("PROMOCIÓN")}</span>
+            {t(data.promo.banner.text)}
+          </p>
+        </div>
       )}
       <p className="text-sm text-[#717171]">
         {t("Tu cuenta básica de Cabibee es gratis. Elige el plazo de cada herramienta: entre más largo, más barato por mes.")}

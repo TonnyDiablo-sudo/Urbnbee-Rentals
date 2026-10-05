@@ -60,8 +60,8 @@ export const verificationRecheck: Record<string, string> = {
 
   "Qué significan las etiquetas": "What the tags mean",
   "Identidad verificada («Miembro verificado»)": "Verified identity (“Verified member”)",
-  "La persona subió una identificación oficial (INE, pasaporte, licencia o State ID) y una selfie, y se compararon contra una base de datos oficial. Así sabes que es quien dice ser. Aplica igual para anfitriones y huéspedes.":
-    "The person uploaded an official ID (INE, passport, driver's license or State ID) and a selfie, checked against an official database. So you know they are who they say they are. Same for hosts and guests.",
+  "La persona subió una identificación oficial y una selfie, y se compararon contra una base de datos oficial. Así sabes que es quien dice ser. Aplica igual para anfitriones y huéspedes.":
+    "The person uploaded an official ID and a selfie, checked against an official database. So you know they are who they say they are. Same for hosts and guests.",
   "Dirección verificada («Ubicación verificada»)": "Verified address (“Verified location”)",
   "El anfitrión subió un comprobante de domicilio del alojamiento y lo revisamos. Te dice que el lugar existe, que está donde dice el anuncio y que quien lo renta tiene relación con él. Es tu mejor defensa contra anuncios falsos.":
     "The host uploaded a proof of address for the place and we reviewed it. It tells you the place exists, is where the listing says, and that whoever rents it is connected to it. It's your best defense against fake listings.",

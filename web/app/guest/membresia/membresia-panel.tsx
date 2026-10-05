@@ -282,9 +282,7 @@ export function MembresiaPanel() {
               {!data.emailVerified && <VerifyEmailBox />}
               {!data.hasPhone && <PhoneBox onSaved={() => void load()} />}
               <p className="text-sm text-[#484848]">
-                {selectedRegion === "us"
-                  ? t("Te identificas con tu licencia de manejo, State ID o pasaporte y una selfie.")
-                  : t("Te identificas con tu INE o pasaporte y una selfie.")}
+                {t("Te identificas con tu identificación oficial y una selfie.")}
               </p>
             </div>
           )}
@@ -410,7 +408,7 @@ export function MembresiaPanel() {
               <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3">
                 <p className="text-sm font-medium text-amber-950">{t("Falta verificar tu identidad")}</p>
                 <p className="mt-1 text-xs text-amber-900/90">
-                  {t("Documento oficial (INE, licencia o pasaporte) y selfie. Lo procesa Stripe Identity.")}
+                  {t("Identificación oficial y selfie. Lo procesa Stripe Identity.")}
                 </p>
                 <button
                   type="button"

@@ -4,6 +4,8 @@
  *   sofia@urbnbee.test / pedro@urbnbee.test   → anfitriones con limpieza y 2 asientos de colaborador
  *   lupita@urbnbee.test                        → limpia sus anuncios (ve sus limpiezas en «Equipos donde colaboro»)
  *   marco@urbnbee.test                         → acepta reservas, firma contratos y contesta mensajes
+ *   rosa@urbnbee.test                          → limpia Condesa y Coyoacán de Sofía y contesta mensajes
+ * Sofía además trae reservas de varios huéspedes, chats del equipo, insumos (unos en alarma) y notificaciones.
  * Contraseña de todas: Demo2026!
  *
  * Idempotente: sólo agrega lo que falta; nunca pisa lo que alguien ya cambió.
@@ -191,6 +193,319 @@ if (cleaning) {
     }
   }
   writeJson("cleaning-tasks.json", cleaning);
+}
+
+// ── Sofía: más reservas, otro colaborador, chats del equipo, insumos y alarmas ──
+// Ids propios (bkg_sofia_seed_*, sup_seed_*, ntf_seed_*): seed-demo-accounts no los borra.
+const SOFIA = "usr_demo_sofia_host";
+const S_ROMA = "lst_demo_sofia_roma";
+const S_CONDESA = "lst_demo_sofia_condesa";
+const S_COYO = "lst_demo_sofia_coyoacan";
+const LUPITA_TM = `tm_demo_lupita_${SOFIA}`;
+const MARCO_TM = `tm_demo_marco_${SOFIA}`;
+const ROSA = {
+  id: "usr_demo_rosa_collab",
+  email: "rosa@urbnbee.test",
+  fullName: "Rosa Gómez",
+  avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&q=85",
+};
+const ROSA_TM = `tm_demo_rosa_${SOFIA}`;
+const IVAN_TM = `tm_demo_ivan_${SOFIA}`;
+const ago = (days, h = 0) => new Date(Date.now() - days * 86_400_000 - h * 3_600_000).toISOString();
+
+if (hosts.some((h) => h.id === SOFIA)) {
+  const s = readJson("marketplace-store.json", null);
+  const titleOf = (id) => s?.listings?.find((l) => l.id === id)?.title || "tu anuncio";
+
+  // Rosa: limpia Condesa y Coyoacán y contesta mensajes
+  if (s?.users && !s.users.some((u) => u.id === ROSA.id) && !s.emailToUserId?.[ROSA.email]) {
+    hash ??= bcrypt.hashSync(PASSWORD, 10);
+    s.users.push({ id: ROSA.id, email: ROSA.email, passwordHash: hash, fullName: ROSA.fullName, role: "guest", createdAt: NOW });
+    s.emailToUserId = { ...(s.emailToUserId ?? {}), [ROSA.email]: ROSA.id };
+    s.hostProfiles = s.hostProfiles ?? {};
+    s.hostProfiles[ROSA.id] ??= { userId: ROSA.id, bio: "", avatarUrl: ROSA.avatar };
+    writeJson("marketplace-store.json", s);
+    changes++;
+  }
+
+  // Asientos para 4 colaboradores (Lupita, Marco, Rosa e Iván con invitación pendiente)
+  const ent2 = readJson("host-entitlements.json", { version: 1, entitlements: [] });
+  const seats = ent2?.entitlements?.find((e) => e.hostId === SOFIA && e.sku === "cabibee_collaborators");
+  if (seats && seats.stripeSubscriptionId === "simulated" && (seats.quantity ?? 0) < 4) {
+    seats.quantity = 4;
+    seats.updatedAt = NOW;
+    writeJson("host-entitlements.json", ent2);
+    changes++;
+  }
+
+  const team2 = readJson("team-members.json", { version: 1, members: [] });
+  if (team2) {
+    team2.members = Array.isArray(team2.members) ? team2.members : [];
+    const extra = [
+      {
+        id: ROSA_TM,
+        email: ROSA.email,
+        userId: ROSA.id,
+        roles: ["cleaning", "messages"],
+        listingIds: [S_CONDESA, S_COYO],
+        status: "active",
+        invitedAt: ago(20),
+        respondedAt: ago(19),
+        updatedAt: ago(19),
+      },
+      {
+        id: IVAN_TM,
+        email: "ivan.mantenimiento.demo@gmail.com",
+        roles: ["cleaning"],
+        listingIds: [S_ROMA],
+        status: "pending",
+        invitedAt: ago(1),
+        updatedAt: ago(1),
+      },
+    ];
+    for (const m of extra) {
+      if (team2.members.some((x) => x.id === m.id || (x.hostId === SOFIA && x.email === m.email))) continue;
+      team2.members.push({ ...m, hostId: SOFIA });
+      changes++;
+    }
+    writeJson("team-members.json", team2);
+  }
+
+  // Reservas de varios huéspedes en sus tres anuncios, en todos los estados
+  const bk = readJson("bookings.json", { version: 1, bookings: [] });
+  if (bk) {
+    bk.bookings = Array.isArray(bk.bookings) ? bk.bookings : [];
+    const price = { [S_ROMA]: [1680, 280], [S_CONDESA]: [890, 120], [S_COYO]: [2380, 380] };
+    const used = new Set(bk.bookings.map((b) => b.token));
+    const rows = [
+      ["ana_current", S_CONDESA, "CONFIRMED", "2026-10-03", "2026-10-08", "Ana Torres", "+52 55 2210 4471", "paid"],
+      ["luis_upcoming", S_ROMA, "CONFIRMED", "2026-10-11", "2026-10-15", "Luis Pérez", "+52 81 1932 0045", "paid"],
+      ["carla_upcoming", S_COYO, "CONFIRMED", "2026-10-24", "2026-10-27", "Carla Méndez", "+52 33 3871 2290", "paid"],
+      ["jorge_pending", S_CONDESA, "PENDING_HOST", "2026-10-25", "2026-10-28", "Jorge Castillo", "+52 55 4410 9832", "paid"],
+      ["mariana_pay", S_ROMA, "AWAITING_PAYMENT", "2026-10-30", "2026-11-02", "Mariana López", "+52 222 518 7730", "unpaid"],
+      ["roberto_done", S_COYO, "COMPLETED", "2026-09-15", "2026-09-19", "Roberto Silva", "+52 55 6012 3348", "paid"],
+      ["fernanda_done", S_ROMA, "COMPLETED", "2026-08-25", "2026-08-30", "Fernanda Ruiz", "+52 442 190 5521", "paid"],
+      ["daniel_cancel", S_CONDESA, "CANCELLED", "2026-11-14", "2026-11-16", "Daniel Ortega", "+52 55 7781 0094", "refunded"],
+      ["valeria_expired", S_COYO, "EXPIRED", "2026-11-20", "2026-11-23", "Valeria Núñez", "+52 998 441 2067", "unpaid"],
+      ["tomas_rejected", S_ROMA, "REJECTED", "2026-11-27", "2026-11-29", "Tomás Vega", "+52 55 3307 6618", "unpaid"],
+    ];
+    rows.forEach(([key, listingId, status, checkIn, checkOut, guestName, guestPhone, pay], i) => {
+      const id = `bkg_sofia_seed_${key}`;
+      if (bk.bookings.some((b) => b.id === id)) return;
+      let token = String(610000 + i * 7919).slice(0, 6);
+      while (used.has(token)) token = String(100000 + Math.floor(Math.random() * 900000));
+      used.add(token);
+      const nights = Math.round((Date.parse(checkOut) - Date.parse(checkIn)) / 86_400_000);
+      const [nightly, cleaningMxn] = price[listingId];
+      const stay = nightly * nights;
+      const paid = pay !== "unpaid";
+      const createdAt = new Date(Math.min(Date.parse(checkIn) - 9 * 86_400_000, Date.now() - (i + 1) * 3_600_000)).toISOString();
+      bk.bookings.push({
+        id,
+        listingId,
+        hostId: SOFIA,
+        guestEmail: `${guestName.toLowerCase().replace(" ", ".")}.demo@gmail.com`.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+        guestName,
+        guestPhone,
+        checkIn,
+        checkOut,
+        nights,
+        estimatedTotalMxn: stay + cleaningMxn,
+        platformFeeMxn: Math.max(1, Math.round((stay + cleaningMxn) * 0.01)),
+        cleaningFeeMxn: cleaningMxn,
+        status,
+        paymentStatus: pay,
+        contractStatus: paid ? "signed" : "pending",
+        token,
+        createdAt,
+        updatedAt: createdAt,
+        ...(paid ? { paidAt: createdAt, stripeCheckoutSessionId: `simulated_seed_${id}` } : {}),
+        chargedVia: "platform",
+      });
+      changes++;
+    });
+    writeJson("bookings.json", bk);
+  }
+
+  // Chats del equipo: Sofía, Lupita, Marco y Rosa
+  const chats = readJson("team-chats.json", { version: 1, channels: [], messages: [] });
+  if (chats) {
+    chats.channels = Array.isArray(chats.channels) ? chats.channels : [];
+    chats.messages = Array.isArray(chats.messages) ? chats.messages : [];
+    const CH = [
+      {
+        id: "tch_seed_sofia_limpiezas",
+        name: "Limpiezas",
+        emoji: "🧹",
+        msgs: [
+          [SOFIA, "Lupita, el jueves entra Ana en Condesa a las 3 pm. ¿Alcanzas a dejarlo listo antes?", 2, 5],
+          ["usr_demo_lupita_clean", "Sí, llego a las 11. Dejo foto de la recámara y el baño al terminar.", 2, 4],
+          [ROSA.id, "Yo me encargo de Coyoacán el sábado. Faltan sábanas limpias, las llevo de la bodega.", 1, 9],
+          [SOFIA, "Gracias, Rosa. Revisa también la llave del lavabo, Roberto dijo que goteaba.", 1, 8],
+          ["usr_demo_lupita_clean", "Listo Condesa ✅ Ya subí las fotos en la limpieza.", 0, 3],
+        ],
+      },
+      {
+        id: "tch_seed_sofia_insumos",
+        name: "Insumos",
+        emoji: "📦",
+        msgs: [
+          ["usr_demo_lupita_clean", "Ya casi no hay papel de baño en la bodega, quedan 4 paquetes.", 1, 6],
+          [SOFIA, "Lo pido hoy en el súper. ¿Algo más?", 1, 5],
+          [ROSA.id, "Bolsas de basura y shampoo de cortesía para Roma. En Coyoacán queda poca crema.", 1, 4],
+          [SOFIA, "Anotado. Bajen la cantidad en Insumos cuando usen algo para que nos avise solo.", 1, 3],
+        ],
+      },
+      {
+        id: "tch_seed_sofia_reservas",
+        name: "Reservas y huéspedes",
+        emoji: "🗓️",
+        msgs: [
+          ["usr_demo_marco_collab", "Entró la solicitud de Jorge Castillo para Condesa (25 al 28). Tiene identidad verificada.", 0, 7],
+          [SOFIA, "Acéptala, Marco. Y recuérdale a Mariana que su pago de Roma vence pronto.", 0, 6],
+          ["usr_demo_marco_collab", "Hecho, ya le escribí a Mariana por el chat del anuncio.", 0, 5],
+          [SOFIA, "Perfecto. Luis llega el 11 a Roma, déjale las instrucciones de la caja de llaves.", 0, 2],
+        ],
+      },
+    ];
+    for (const c of CH) {
+      const last = c.msgs[c.msgs.length - 1];
+      if (!chats.channels.some((x) => x.id === c.id)) {
+        chats.channels.push({
+          id: c.id,
+          hostId: SOFIA,
+          name: c.name,
+          emoji: c.emoji,
+          createdBy: SOFIA,
+          createdAt: ago(c.msgs[0][2] + 1),
+          lastAt: ago(last[2], last[3]),
+        });
+        changes++;
+      }
+      c.msgs.forEach(([by, body, d, h], i) => {
+        const id = `tcm_seed_${c.id.slice(9)}_${i}`;
+        if (chats.messages.some((m) => m.id === id)) return;
+        chats.messages.push({ id, channelId: c.id, hostId: SOFIA, by, body, at: ago(d, h) });
+        changes++;
+      });
+    }
+    writeJson("team-chats.json", chats);
+  }
+
+  // Insumos: unos ya en alarma y otros a una o dos piezas del mínimo
+  const sup = readJson("supplies.json", { version: 1, items: [] });
+  const lowItems = [];
+  if (sup) {
+    sup.items = Array.isArray(sup.items) ? sup.items : [];
+    const ITEMS = [
+      ["papel", null, "Papel higiénico (paquetes)", "🧻", 4, 6, ["host", LUPITA_TM], 1],
+      ["jabon", null, "Jabón para manos", "🧴", 3, 2, ["host"]],
+      ["esponjas", null, "Esponjas", "🧽", 10, 4, ["host"]],
+      ["bolsas", null, "Bolsas de basura (rollos)", "🗑️", 1, 3, ["host", LUPITA_TM], 2],
+      ["cafe", S_ROMA, "Café en cápsulas", "☕", 6, 5, ["host"]],
+      ["toallas", S_ROMA, "Toallas de baño", "🛁", 8, 4, ["host"]],
+      ["shampoo", S_ROMA, "Shampoo de cortesía", "🧼", 0, 2, ["host", LUPITA_TM], 1],
+      ["agua", S_CONDESA, "Garrafón de agua", "💧", 2, 1, ["host", ROSA_TM]],
+      ["multiusos", S_CONDESA, "Limpiador multiusos", "🧹", 1, 1, ["host", ROSA_TM], 0],
+      ["sabanas", S_COYO, "Juegos de sábanas", "🛏️", 5, 4, ["host", ROSA_TM]],
+      ["detalles", S_COYO, "Detalles de bienvenida", "🍬", 12, 3, ["host"]],
+      ["crema", S_COYO, "Crema corporal", "🧴", 2, 2, ["host", ROSA_TM], 0],
+    ];
+    for (const [key, listingId, name, emoji, qty, min, alertTo, lowDays] of ITEMS) {
+      const id = `sup_seed_sofia_${key}`;
+      const low = qty <= min;
+      const item = {
+        id,
+        hostId: SOFIA,
+        listingId,
+        name,
+        emoji,
+        qty,
+        min,
+        alertTo,
+        ...(low ? { lowSince: ago(lowDays ?? 0, 3) } : {}),
+        updatedAt: ago(lowDays ?? 2, 3),
+        updatedBy: low ? "usr_demo_lupita_clean" : SOFIA,
+      };
+      if (low) lowItems.push(item);
+      if (sup.items.some((x) => x.id === id)) continue;
+      sup.items.push(item);
+      changes++;
+    }
+    writeJson("supplies.json", sup);
+  }
+
+  // Alarmas en el centro de notificaciones
+  const nf = readJson("notifications.json", { version: 1, notifications: [] });
+  if (nf) {
+    nf.notifications = Array.isArray(nf.notifications) ? nf.notifications : [];
+    const userOfTm = { [LUPITA_TM]: "usr_demo_lupita_clean", [ROSA_TM]: ROSA.id, host: SOFIA };
+    const add = (n) => {
+      if (nf.notifications.some((x) => x.id === n.id)) return;
+      nf.notifications.push(n);
+      changes++;
+    };
+    for (const it of lowItems) {
+      const where = it.listingId ? titleOf(it.listingId) : "la bodega";
+      for (const to of it.alertTo) {
+        const userId = userOfTm[to];
+        if (!userId) continue;
+        add({
+          id: `ntf_seed_${it.id.slice(9)}_${to === "host" ? "host" : to.split("_")[2]}`,
+          userId,
+          kind: "cleaning",
+          title: "Hay que comprar: {name}",
+          body: "Quedan {qty} en {where} (mínimo {min}).",
+          vars: { name: `${it.emoji} ${it.name}`, qty: it.qty, where, min: it.min },
+          url: userId === SOFIA ? "/host/limpieza#insumos" : "/equipo",
+          groupKey: `supply:${it.id}`,
+          createdAt: it.lowSince,
+        });
+      }
+    }
+    add({
+      id: "ntf_seed_sofia_confirmed_luis",
+      userId: SOFIA,
+      kind: "booking",
+      title: "Reserva confirmada",
+      body: "{name} firmó el contrato de {listing} ({checkIn} → {checkOut}).",
+      vars: { name: "Luis Pérez", listing: titleOf(S_ROMA), checkIn: "2026-10-11", checkOut: "2026-10-15" },
+      url: "/host/calendario",
+      createdAt: ago(3, 2),
+    });
+    add({
+      id: "ntf_seed_sofia_sign_jorge",
+      userId: SOFIA,
+      kind: "contract",
+      title: "Firma el contrato para que tu huésped pueda pagar",
+      body: "{guest} ya firmó el contrato de {listing}. El pago se habilita en cuanto tú firmes.",
+      vars: { guest: "Jorge Castillo", listing: titleOf(S_CONDESA) },
+      url: "/host/requests",
+      createdAt: ago(0, 7),
+    });
+    add({
+      id: "ntf_seed_sofia_review_roberto",
+      userId: SOFIA,
+      kind: "review",
+      title: "Deja una reseña de {name}",
+      body: "Terminó su estancia en {listing}. Califica al huésped para que otros anfitriones lo conozcan.",
+      vars: { name: "Roberto Silva", listing: titleOf(S_COYO) },
+      url: "/host/resenas?b=bkg_sofia_seed_roberto_done",
+      createdAt: ago(15),
+    });
+    add({
+      id: "ntf_seed_sofia_chat_insumos",
+      userId: SOFIA,
+      kind: "team",
+      title: "📦 Insumos",
+      body: "Rosa: Bolsas de basura y shampoo de cortesía para Roma. En Coyoacán queda poca crema.",
+      rawBody: true,
+      url: "/host/colaboradores?chat=tch_seed_sofia_insumos",
+      groupKey: "team-chat:tch_seed_sofia_insumos",
+      createdAt: ago(1, 4),
+    });
+    writeJson("notifications.json", nf);
+  }
 }
 
 console.log(changes ? `[seed-demo-tools] ${changes} cambios` : "[seed-demo-tools] ya estaba al día");

@@ -84,6 +84,12 @@ export default async function HostLayout({ children }: { children: React.ReactNo
               {t("Colaboradores")}
             </Link>
             <Link
+              href="/host/alarmas"
+              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
+            >
+              {t("Alarmas")}
+            </Link>
+            <Link
               href="/tienda"
               className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-[#b8931a] hover:bg-amber-50 lg:rounded-lg lg:px-3"
             >

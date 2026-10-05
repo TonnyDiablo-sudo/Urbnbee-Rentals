@@ -95,7 +95,15 @@ export function NotificationsList() {
 
   return (
     <div className="pb-6">
-      <TopBar title={t("Notificaciones")} back="/" />
+      <TopBar
+        title={t("Notificaciones")}
+        back="/"
+        right={
+          <Link href="/alarmas" className="text-sm font-semibold text-[#222] underline">
+            {t("Alarmas")}
+          </Link>
+        }
+      />
       {error ? (
         <div className="px-5 py-8">
           <p className="text-[15px] text-[#555]">{t("Inicia sesión para ver tus notificaciones.")}</p>

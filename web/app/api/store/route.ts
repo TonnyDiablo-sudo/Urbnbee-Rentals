@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { withFeaturedDemand } from "@/lib/featured-demand";
 import { storeItemsFor } from "@/lib/store-catalog";
+import { storePromo } from "@/lib/store-promo-store";
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { billingRegionFor, verificationRegionFromRequest } from "@/lib/verification-region";
 
@@ -30,5 +31,6 @@ export async function GET(req: NextRequest) {
     email: user.email,
     isHost: user.role === "host" || user.role === "admin",
     items: withFeaturedDemand(storeItemsFor(user, region), region),
+    promo: storePromo(),
   });
 }

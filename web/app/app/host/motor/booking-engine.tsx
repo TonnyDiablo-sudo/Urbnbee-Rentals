@@ -148,9 +148,7 @@ export function BookingEngine() {
             data.identityEnabled && data.stripeConfigured ? (
               <div className="space-y-2">
                 <p className="text-sm text-[#555]">
-                  {region === "us"
-                    ? t("Ten a la mano tu licencia de manejo, State ID o pasaporte. Te tomarás una selfie. Lo revisa Stripe Identity; Cabibee no guarda las fotos.")
-                    : t("Ten a la mano tu INE o pasaporte. Te tomarás una selfie. Lo revisa Stripe Identity; Cabibee no guarda las fotos.")}
+                  {t("Ten a la mano tu identificación oficial. Te tomarás una selfie. Lo revisa Stripe Identity; Cabibee no guarda las fotos.")}
                 </p>
                 <button
                   type="button"

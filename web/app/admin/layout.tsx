@@ -16,6 +16,7 @@ const NAV = [
   { href: "/admin/resenas", label: "Reseñas", icon: "⭐" },
   { href: "/admin/correo", label: "Correo", icon: "✉️" },
   { href: "/admin/pricing", label: "Precios", icon: "💲" },
+  { href: "/admin/promociones", label: "Promociones", icon: "🏷️" },
   { href: "/admin/blog-bot", label: "Blog (LLM)", icon: "✍️" },
 ];
 

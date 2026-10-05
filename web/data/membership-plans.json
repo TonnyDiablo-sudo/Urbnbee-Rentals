@@ -67,29 +67,29 @@
     {
       "code": "booking_engine",
       "label": "Motor de reservas · 1 mes",
-      "description": "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
+      "description": "Por cada anuncio: el huésped se identifica con identificación oficial y selfie, paga con tarjeta (Stripe), firma contrato en línea con la ley del lugar y las fechas se bloquean solas. Incluye tu verificación de identidad como anfitrión.",
       "amountMxn": 500,
       "amountUsd": 30,
       "active": true,
-      "updatedAt": "2026-10-03T20:32:31.361Z"
+      "updatedAt": "2026-10-05T21:36:41.635Z"
     },
     {
       "code": "booking_engine_6",
       "label": "Motor de reservas · 6 meses",
-      "description": "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
+      "description": "Por cada anuncio: el huésped se identifica con identificación oficial y selfie, paga con tarjeta (Stripe), firma contrato en línea con la ley del lugar y las fechas se bloquean solas. Incluye tu verificación de identidad como anfitrión.",
       "amountMxn": 2100,
       "amountUsd": 120,
       "active": true,
-      "updatedAt": "2026-10-03T20:32:31.362Z"
+      "updatedAt": "2026-10-05T21:36:41.636Z"
     },
     {
       "code": "booking_engine_12",
       "label": "Motor de reservas · 12 meses",
-      "description": "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
+      "description": "Por cada anuncio: el huésped se identifica con identificación oficial y selfie, paga con tarjeta (Stripe), firma contrato en línea con la ley del lugar y las fechas se bloquean solas. Incluye tu verificación de identidad como anfitrión.",
       "amountMxn": 1800,
       "amountUsd": 120,
       "active": true,
-      "updatedAt": "2026-10-03T20:32:31.362Z"
+      "updatedAt": "2026-10-05T21:36:41.636Z"
     },
     {
       "code": "cleaning_tool",
@@ -148,29 +148,29 @@
     {
       "code": "address_proof",
       "label": "Verificación de domicilio · 1 mes",
-      "description": "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",
+      "description": "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio.",
       "amountMxn": 100,
       "amountUsd": 6,
       "active": true,
-      "updatedAt": "2026-10-03T19:26:01.638Z"
+      "updatedAt": "2026-10-05T21:36:41.636Z"
     },
     {
       "code": "address_proof_6",
       "label": "Verificación de domicilio · 6 meses",
-      "description": "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",
+      "description": "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio.",
       "amountMxn": 390,
       "amountUsd": 24,
       "active": true,
-      "updatedAt": "2026-10-03T19:26:01.638Z"
+      "updatedAt": "2026-10-05T21:36:41.636Z"
     },
     {
       "code": "address_proof_12",
       "label": "Verificación de domicilio · 12 meses",
-      "description": "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",
+      "description": "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio.",
       "amountMxn": 420,
       "amountUsd": 24,
       "active": true,
-      "updatedAt": "2026-10-03T19:26:01.638Z"
+      "updatedAt": "2026-10-05T21:36:41.636Z"
     },
     {
       "code": "featured_listing",

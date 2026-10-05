@@ -1,6 +1,10 @@
 import "server-only";
+import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { CLEANING_TOOL_OFF_ERROR } from "@/lib/cleaning-service";
 import { publicNameOf } from "@/lib/display-name";
+import { emailLayout, emailT, escapeHtml, sendEmail } from "@/lib/email";
+import { isLang } from "@/lib/i18n";
+import { alarmOn } from "@/lib/notification-prefs-store";
 import { findUserById, getListingById, listListingsForHost } from "@/lib/marketplace-store";
 import { notifyUser } from "@/lib/push";
 import { addSupply, deleteSupply, getSupply, listSupplies, updateSupply, type SupplyItem } from "@/lib/supplies-store";
@@ -90,19 +94,49 @@ function cleanRecipients(hostId: string, raw: unknown): string[] | null {
   return out.length ? out : ["host"];
 }
 
+const APP_ORIGIN = (process.env.APP_PUBLIC_ORIGIN?.trim() || "https://app.cabibee.com").replace(/\/$/, "");
+
+function emailLowStock(userId: string, item: SupplyItem, where: string, url: string) {
+  const u = findUserById(userId);
+  if (!u?.email || isPlaceholderEmail(u.email) || !alarmOn(userId, "supplies")) return;
+  const lang = isLang(u.lang) ? u.lang : "es";
+  const t = emailT(lang);
+  const vars = { name: `${item.emoji} ${item.name}`, qty: item.qty, where, min: item.min };
+  const title = t("Hay que comprar: {name}", vars);
+  const body = t("Quedan {qty} en {where} (mínimo {min}).", vars);
+  void sendEmail({
+    mailbox: "noreply",
+    to: u.email,
+    subject: title,
+    text: `${body} ${APP_ORIGIN}${url}`,
+    html: emailLayout({
+      lang,
+      title: escapeHtml(title),
+      paragraphs: [
+        t("Hola {name},", { name: escapeHtml(publicNameOf(u) || u.fullName || "") }),
+        escapeHtml(body),
+        t("Puedes apagar estas alarmas en tu centro de alarmas."),
+      ],
+      button: { href: `${APP_ORIGIN}${url}`, label: t("Ver insumos") },
+    }),
+  }).catch((e) => console.warn("[supplies] email failed:", e));
+}
+
 function alertLow(item: SupplyItem) {
   const where = item.listingId ? getListingById(item.listingId)?.title || "tu anuncio" : "la bodega";
   for (const to of item.alertTo.length ? item.alertTo : ["host"]) {
     const userId = to === "host" ? item.hostId : getTeamMember(to)?.userId;
     if (!userId) continue;
+    const url = userId === item.hostId ? "/host/limpieza#insumos" : "/equipo";
     notifyUser(userId, {
       kind: "cleaning",
       title: "Hay que comprar: {name}",
       body: "Quedan {qty} en {where} (mínimo {min}).",
       vars: { name: `${item.emoji} ${item.name}`, qty: item.qty, where, min: item.min },
-      url: userId === item.hostId ? "/host/limpieza#insumos" : "/equipo",
+      url,
       tag: `supply:${item.id}`,
     });
+    emailLowStock(userId, item, where, url);
   }
 }
 

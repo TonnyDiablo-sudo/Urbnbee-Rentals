@@ -22,7 +22,6 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
   guest_membership: [
     "Es una sola por persona, seas huésped, anfitrión o las dos cosas.",
     "Te identificas con una identificación oficial y una selfie. Lo revisa Stripe Identity.",
-    "En México: INE o pasaporte. En Estados Unidos: licencia de manejo, State ID o pasaporte.",
     "Como huésped: reservas ilimitadas mientras esté activa.",
     "Como anfitrión: listón «Miembro verificado» en todos tus anuncios. Es obligatoria para usar el motor de reservas.",
     "Mientras la pagues, cada mes volvemos a revisar tu identificación contra datos oficiales. Si dejas de pagar, se deja de verificar y se quita el listón. Si la revisión pide confirmarla de nuevo, te pediremos que vuelvas a subir tu identificación y selfie.",
@@ -31,7 +30,6 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
   ],
   host_verification: [
     "Te identificas con una identificación oficial y una selfie. Lo revisa Stripe Identity.",
-    "En México: INE o pasaporte. En Estados Unidos: licencia de manejo, State ID o pasaporte.",
     "Listón «Miembro verificado» en todos tus anuncios.",
     "Reseñas de ida y vuelta: en las reservas hechas con el motor de reservas de Cabibee, tú calificas al huésped y él te califica a ti. Tu comentario pasa por revisión del equipo Cabibee.",
     "Tus anuncios se destacan frente a los no verificados.",
