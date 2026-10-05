@@ -3,6 +3,7 @@ import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
 import { attachmentPreview, attachmentView, storeChatAttachment } from "@/lib/chat-attachments";
 import { CHAT_MEDIA_LOCKED_ERROR, chatMediaAllowed } from "@/lib/chat-media-access";
 import { publicNameOf, shareABooking } from "@/lib/display-name";
+import { emailRequiredResponse } from "@/lib/email-gate";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { sanitizeBodyText, sanitizeGuestName } from "@/lib/host-inbox-sanitize";
 import { appendMessage, guestSessionIdForUser } from "@/lib/host-inbox-store";
@@ -46,6 +47,8 @@ export async function POST(req: NextRequest) {
     }
   } else {
     if (!listing.published) return NextResponse.json({ error: "Este alojamiento no está disponible." }, { status: 404 });
+    const blocked = emailRequiredResponse(user, "message");
+    if (blocked) return blocked;
     guestSessionId = guestSessionIdForUser(user.id);
   }
   if (!chatMediaAllowed(user, { as, listingHostId: listing.hostId })) {

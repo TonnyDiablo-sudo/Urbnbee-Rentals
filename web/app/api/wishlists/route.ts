@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { emailConfirmed, emailRequiredResponse } from "@/lib/email-gate";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
@@ -9,7 +10,10 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Inicia sesión." }, { status: 401 });
   const lists = listWishlistsForUser(user.id).map((l) => summarizeWishlist(l, user.id));
-  return NextResponse.json({ lists }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json(
+    { lists, emailConfirmed: emailConfirmed(user), email: user.email, placeholderEmail: Boolean(user.placeholderEmail) },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 /** Crea una lista; si viene `slug`, ya guarda ese alojamiento. */
@@ -17,6 +21,8 @@ export async function POST(req: NextRequest) {
   const t = await getT();
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: t("Inicia sesión.") }, { status: 401 });
+  const blocked = emailRequiredResponse(user, "favorites");
+  if (blocked) return blocked;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const slug = typeof body.slug === "string" ? body.slug : "";
   if (slug && !getListingDetail(slug)) return NextResponse.json({ error: t("Ese alojamiento ya no existe.") }, { status: 404 });

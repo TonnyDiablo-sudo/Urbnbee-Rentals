@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { HostContact } from "@/lib/listing-detail-data";
+import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { useT } from "@/components/i18n-provider";
 
 type Props = {
@@ -10,9 +11,11 @@ type Props = {
   listingSlug: string;
   /** Solo usuarios registrados ven teléfono, WhatsApp, correo, etc. */
   canViewContacts: boolean;
+  /** Tiene sesión pero falta confirmar el correo. */
+  emailGate?: { email?: string; placeholder?: boolean };
 };
 
-export function ContactModal({ host, listingId, listingSlug, canViewContacts }: Props) {
+export function ContactModal({ host, listingId, listingSlug, canViewContacts, emailGate }: Props) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [views, setViews] = useState(0);
@@ -48,7 +51,7 @@ export function ContactModal({ host, listingId, listingSlug, canViewContacts }: 
         className="w-full rounded py-3 text-center text-sm font-semibold text-black transition hover:brightness-90"
         style={{ backgroundColor: "#dcb81e" }}
       >
-        {canViewContacts ? t("Ver datos de contacto del anfitrión") : t("Ver datos de contacto — regístrate gratis")}
+        {canViewContacts || emailGate ? t("Ver datos de contacto del anfitrión") : t("Ver datos de contacto — regístrate gratis")}
       </button>
       {views > 0 && canViewContacts && (
         <p className="mt-1 text-center text-xs text-[#aaa]">{t("{n} personas consultaron este perfil", { n: views })}</p>
@@ -87,7 +90,14 @@ export function ContactModal({ host, listingId, listingSlug, canViewContacts }: 
               </div>
             </div>
 
-            {!canViewContacts ? (
+            {emailGate ? (
+              <div className="mt-5 space-y-3">
+                <p className="text-sm text-[#3a3a3a]">
+                  {t("Para ver teléfono, WhatsApp y correo del anfitrión confirma tu correo. Así sabemos que la cuenta es tuya.")}
+                </p>
+                <VerifyEmailBox email={emailGate.email} placeholder={emailGate.placeholder} purpose="contacts" />
+              </div>
+            ) : !canViewContacts ? (
               <div className="mt-5 space-y-4 text-sm leading-relaxed text-[#3a3a3a]">
                 <p className="font-medium text-[#484848]">{t("Registro gratuito para ver teléfono, WhatsApp y más")}</p>
                 <p>

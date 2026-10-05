@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
 import { attachmentView } from "@/lib/chat-attachments";
+import { emailRequiredResponse } from "@/lib/email-gate";
 import { nameForViewer, publicNameOf, shareABooking } from "@/lib/display-name";
 import { findUserById, getListingById } from "@/lib/marketplace-store";
 import {
@@ -91,6 +92,11 @@ export async function POST(req: NextRequest, ctx: Ctx) {
       },
       { status: 401 }
     );
+  }
+
+  if (sessionUser.id !== listing.hostId) {
+    const blocked = emailRequiredResponse(sessionUser, "message");
+    if (blocked) return blocked;
   }
 
   const ip = clientIp(req);

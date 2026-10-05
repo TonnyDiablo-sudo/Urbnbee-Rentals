@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback } from "react";
+import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { useT } from "@/components/i18n-provider";
 import { uploadChatAttachment } from "@/components/chat/upload";
 import { ChatThread, type ChatMessage } from "../../_components/chat-thread";
@@ -14,8 +15,11 @@ export function GuestChat({
   closed = false,
   initial,
   mediaAllowed = false,
+  emailGate,
 }: {
   initial?: ChatMessage[];
+  /** Falta confirmar el correo: puede leer, no escribir. */
+  emailGate?: { email?: string; placeholder?: boolean };
   /** Fotos y audios sólo con identidad verificada. */
   mediaAllowed?: boolean;
   listingId: string;
@@ -66,7 +70,15 @@ export function GuestChat({
       seenKey={`g:${listingId}`}
       load={load}
       send={send}
-      sendAttachment={closed ? undefined : sendAttachment}
+      sendAttachment={closed || emailGate ? undefined : sendAttachment}
+      composerLock={
+        emailGate ? (
+          <div className="space-y-2 pb-1">
+            <p className="text-sm text-[#555]">{t("Para escribirle al anfitrión confirma tu correo. Así sabemos que la cuenta es tuya.")}</p>
+            <VerifyEmailBox email={emailGate.email} placeholder={emailGate.placeholder} purpose="message" />
+          </div>
+        ) : undefined
+      }
       mediaLockedHref={mediaAllowed ? undefined : "/membresia"}
       emptyText={t("Saluda al anfitrión y pregúntale lo que necesites. Las respuestas las escribe él, no un robot.")}
       closedNotice={closed ? t("Este anuncio ya no está disponible, así que ya no se pueden enviar mensajes.") : undefined}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { emailRequiredResponse } from "@/lib/email-gate";
 import { getListingStats, recordContactView, viewerKeyFrom } from "@/lib/listing-stats-store";
 import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
@@ -15,6 +16,8 @@ export async function POST(
   const { id } = await params;
   const listing = getListingById(id);
   if (listing && listing.hostId !== user.id) {
+    const blocked = emailRequiredResponse(user, "contacts");
+    if (blocked) return blocked;
     recordContactView(id, viewerKeyFrom({ userId: user.id }));
   }
   return NextResponse.json({ ok: true, views: listing ? getListingStats(id).contactsTotal : 0 });

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { useLang, useT } from "@/components/i18n-provider";
 import { AvailabilityCalendar } from "@/components/listing/availability-calendar";
 import { numberLocale } from "@/lib/i18n";
@@ -29,6 +30,8 @@ type Props = {
   loggedIn: boolean;
   isOwn: boolean;
   host: HostContact;
+  /** Tiene sesión pero falta confirmar el correo: no ve contactos. */
+  emailGate?: { email?: string; placeholder?: boolean };
 };
 
 export function ListingActionBar(p: Props) {
@@ -42,7 +45,7 @@ export function ListingActionBar(p: Props) {
 
   const openContact = () => {
     setSheet("contact");
-    if (p.loggedIn) {
+    if (p.loggedIn && !p.emailGate) {
       void fetch(`/api/listings/${p.listingId}/contact-view`, { method: "POST" }).catch(() => {});
     }
   };
@@ -147,6 +150,13 @@ export function ListingActionBar(p: Props) {
             >
               {t("Ya tengo cuenta")}
             </Link>
+          </div>
+        ) : p.emailGate ? (
+          <div className="space-y-3">
+            <p className="text-[15px] leading-relaxed text-[#333]">
+              {t("Para ver teléfono, WhatsApp y correo del anfitrión confirma tu correo. Así sabemos que la cuenta es tuya.")}
+            </p>
+            <VerifyEmailBox email={p.emailGate.email} placeholder={p.emailGate.placeholder} purpose="contacts" />
           </div>
         ) : (
           <ContactChannels host={p.host} chatHref={p.chatAvailable ? chatHref : undefined} />

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { attachmentView } from "@/lib/chat-attachments";
 import { chatMediaAllowed } from "@/lib/chat-media-access";
+import { emailConfirmed } from "@/lib/email-gate";
 import { resolveListingDetail } from "@/lib/get-listing-detail";
 import { guestSessionIdForUser, listAllThreadsForGuest, listThreadMerged } from "@/lib/host-inbox-store";
 import { getT } from "@/lib/i18n/server";
@@ -91,6 +92,11 @@ export default async function AppGuestThreadPage({ params }: Props) {
       slug={record.slug}
       initial={await initialMessages(listingId, user.id)}
       mediaAllowed={chatMediaAllowed(user)}
+      emailGate={
+        emailConfirmed(user) || user.id === record.hostId
+          ? undefined
+          : { email: user.email, placeholder: Boolean(user.placeholderEmail) }
+      }
     />
   );
 }

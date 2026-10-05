@@ -18,6 +18,7 @@ import { bathroomsKey, selfCheckInKey } from "@/lib/listing-facts";
 import { discountRows } from "@/lib/listing-pricing";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { getSessionUser } from "@/lib/session";
+import { emailConfirmed } from "@/lib/email-gate";
 import { stripHostContactChannels } from "@/lib/host-contact-policy";
 import { getLang, getT } from "@/lib/i18n/server";
 import { localizeListingDetail } from "@/lib/listing-localize";
@@ -40,10 +41,11 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
   const [t, lang] = await Promise.all([getT(), getLang()]);
   const listing = await localizeListingDetail(found, lang);
   const viewer = await getSessionUser();
-  const canViewHostContacts = Boolean(viewer);
+  const record = getListingById(listing.id);
+  const needsEmail = Boolean(viewer) && !emailConfirmed(viewer) && viewer?.id !== record?.hostId;
+  const canViewHostContacts = Boolean(viewer) && !needsEmail;
   const hostForUi = canViewHostContacts ? listing.host : stripHostContactChannels(listing.host);
   const bookable = listingIsBookable(listing.id);
-  const record = getListingById(listing.id);
   const unclaimed = Boolean(record?.published) && isListingUnclaimed(listing.id);
   await trackListingView(record, viewer);
 
@@ -270,6 +272,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     listingId={listing.id}
                     listingSlug={slug}
                     canViewContacts={canViewHostContacts}
+                    emailGate={needsEmail ? { email: viewer?.email, placeholder: Boolean(viewer?.placeholderEmail) } : undefined}
                   />
                 </div>
                 {unclaimed && (
@@ -289,7 +292,11 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
               <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
 
-              <ListingHostChat listingId={listing.id} hostName={listing.host.name} />
+              <ListingHostChat
+                listingId={listing.id}
+                hostName={listing.host.name}
+                emailGate={needsEmail ? { email: viewer?.email, placeholder: Boolean(viewer?.placeholderEmail) } : undefined}
+              />
 
               <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
 
@@ -366,6 +373,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     listingId={listing.id}
                     listingSlug={slug}
                     canViewContacts={canViewHostContacts}
+                    emailGate={needsEmail ? { email: viewer?.email, placeholder: Boolean(viewer?.placeholderEmail) } : undefined}
                   />
                   <SaveHeart
                     slug={slug}

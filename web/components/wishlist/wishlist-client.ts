@@ -6,6 +6,10 @@ import type { WishlistSummary } from "@/lib/wishlist-view";
 export type WishlistState = {
   status: "idle" | "loading" | "anon" | "ready";
   lists: WishlistSummary[];
+  /** Crear listas pide el correo confirmado. */
+  emailConfirmed?: boolean;
+  email?: string;
+  placeholderEmail?: boolean;
 };
 
 const IDLE: WishlistState = { status: "idle", lists: [] };
@@ -24,10 +28,16 @@ export function loadWishlists(force = false): Promise<WishlistState> {
   inflight = fetch("/api/wishlists", { credentials: "include", cache: "no-store" })
     .then(async (r) => {
       if (r.status === 401) return { status: "anon", lists: [] } as WishlistState;
-      const d = (await r.json()) as { lists?: WishlistSummary[] };
-      return { status: "ready", lists: d.lists ?? [] } as WishlistState;
+      const d = (await r.json()) as Omit<WishlistState, "status">;
+      return {
+        status: "ready",
+        lists: d.lists ?? [],
+        emailConfirmed: d.emailConfirmed !== false,
+        email: d.email,
+        placeholderEmail: d.placeholderEmail,
+      } as WishlistState;
     })
-    .catch(() => ({ status: "ready", lists: state.lists }) as WishlistState)
+    .catch(() => ({ ...state, status: "ready" }) as WishlistState)
     .then((s) => {
       inflight = null;
       emit(s);
@@ -40,6 +50,7 @@ export function loadWishlists(force = false): Promise<WishlistState> {
 export function putWishlist(list: WishlistSummary) {
   const exists = state.lists.some((l) => l.id === list.id);
   emit({
+    ...state,
     status: "ready",
     lists: exists ? state.lists.map((l) => (l.id === list.id ? list : l)) : [list, ...state.lists],
   });

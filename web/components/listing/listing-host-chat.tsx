@@ -5,6 +5,7 @@ import { MessageBody } from "@/components/chat/message-body";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { useT } from "@/components/i18n-provider";
 
 type ChatRow = {
@@ -20,9 +21,12 @@ type ChatRow = {
 export function ListingHostChat({
   listingId,
   hostName,
+  emailGate,
 }: {
   listingId: string;
   hostName: string;
+  /** Tiene sesión pero falta confirmar el correo: no puede escribir. */
+  emailGate?: { email?: string; placeholder?: boolean };
 }) {
   const t = useT();
   const pathname = usePathname();
@@ -34,7 +38,9 @@ export function ListingHostChat({
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedInRaw, setLoggedIn] = useState(false);
+  const [needsEmail, setNeedsEmail] = useState(Boolean(emailGate));
+  const loggedIn = loggedInRaw && !needsEmail;
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -91,7 +97,9 @@ export function ListingHostChat({
       });
       const data = await res.json();
       if (!res.ok) {
-        if (res.status === 401 && data.needsLogin) {
+        if (res.status === 403 && data.needsEmail) {
+          setNeedsEmail(true);
+        } else if (res.status === 401 && data.needsLogin) {
           alert(
             typeof data.error === "string"
               ? t(data.error)
@@ -122,7 +130,14 @@ export function ListingHostChat({
         {t("Cabibee puede revisar mensajes ante reportes de fraude o abuso.")}
       </p>
 
-      {!loggedIn && (
+      {loggedInRaw && needsEmail && (
+        <div className="mt-4 space-y-2">
+          <p className="text-sm text-[#3a3a3a]">{t("Para escribirle al anfitrión confirma tu correo. Así sabemos que la cuenta es tuya.")}</p>
+          <VerifyEmailBox email={emailGate?.email} placeholder={emailGate?.placeholder} purpose="message" />
+        </div>
+      )}
+
+      {!loggedInRaw && (
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-950">
           <p className="font-medium">{t("Cuenta gratuita para chatear")}</p>
           <p className="mt-1 text-amber-900">
@@ -208,7 +223,9 @@ export function ListingHostChat({
           placeholder={
             loggedIn
               ? t("Hola {name}, tengo una pregunta sobre…", { name: hostName })
-              : t("Inicia sesión para escribir al anfitrión…")
+              : needsEmail
+                ? t("Confirma tu correo para escribir al anfitrión…")
+                : t("Inicia sesión para escribir al anfitrión…")
           }
         />
       </label>

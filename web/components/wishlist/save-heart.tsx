@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { useT } from "@/components/i18n-provider";
 import { sizedImage } from "@/lib/image-url";
 import {
@@ -235,7 +236,12 @@ function SaveSheet({ slug, onClose: done }: { slug: string; onClose: (changed: b
             </ul>
           )}
 
-          {creating ? (
+          {creating && s.emailConfirmed === false ? (
+            <div className={`space-y-2 ${s.lists.length ? "mt-4 border-t border-[#eee] pt-4" : ""}`}>
+              <p className="text-sm text-[#555]">{t("Para crear una lista de favoritos confirma tu correo. Así sabemos que la cuenta es tuya.")}</p>
+              <VerifyEmailBox email={s.email} placeholder={s.placeholderEmail} purpose="favorites" />
+            </div>
+          ) : creating ? (
             <form onSubmit={create} className={s.lists.length ? "mt-4 border-t border-[#eee] pt-4" : ""}>
               <label className="block text-sm font-semibold text-[#222]" htmlFor="wl-name">
                 {t("Nombre de la lista")}

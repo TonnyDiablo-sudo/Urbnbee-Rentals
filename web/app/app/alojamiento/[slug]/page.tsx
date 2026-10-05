@@ -7,6 +7,7 @@ import { listingIsBookable } from "@/lib/app-listings";
 import { bathroomsKey, selfCheckInKey } from "@/lib/listing-facts";
 import { discountRows } from "@/lib/listing-pricing";
 import { getListingDetail } from "@/lib/get-listing-detail";
+import { emailConfirmed } from "@/lib/email-gate";
 import { stripHostContactChannels } from "@/lib/host-contact-policy";
 import { UnclaimedNotice } from "@/components/listing/unclaimed-notice";
 import { getLang, getT } from "@/lib/i18n/server";
@@ -44,7 +45,8 @@ export default async function AppListingPage({ params }: Props) {
   const isOwn = Boolean(viewer && record && viewer.id === record.hostId);
   const unclaimed = hostListing && isListingUnclaimed(listing.id);
   await trackListingView(record, viewer);
-  const host = viewer ? listing.host : stripHostContactChannels(listing.host);
+  const needsEmail = Boolean(viewer) && !isOwn && !emailConfirmed(viewer);
+  const host = viewer && !needsEmail ? listing.host : stripHostContactChannels(listing.host);
   const place = [listing.zone, listing.city, listing.state].filter(Boolean).join(", ");
   const mxn = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
   const pricing = listing.pricing;
@@ -308,6 +310,7 @@ export default async function AppListingPage({ params }: Props) {
         loggedIn={Boolean(viewer)}
         isOwn={isOwn}
         host={host}
+        emailGate={needsEmail ? { email: viewer?.email, placeholder: Boolean(viewer?.placeholderEmail) } : undefined}
       />
     </div>
   );
