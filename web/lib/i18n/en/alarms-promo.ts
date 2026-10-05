@@ -139,4 +139,15 @@ export const alarmsPromo: Record<string, string> = {
   Bienvenida: "Welcome",
   "Media estancia": "Mid-stay",
   "Te dejamos fotos o audios en el chat de tu reserva en Cabibee.": "We left you photos or audio in your booking chat on Cabibee.",
+
+  // Precio original y con descuento en la Tienda
+  "Precio original": "Original price",
+  "Con descuento": "On sale",
+  "Descuento que se muestra": "Discount shown",
+  "Lo que cobras no cambia. En cada producto con listón activo se muestra un precio original tachado y, abajo, el precio actual como precio con descuento.":
+    "What you charge doesn't change. Every product with an active ribbon shows a crossed-out original price and, below it, the current price as the sale price.",
+  "Ejemplo: un producto de $100 se muestra con precio original de ${orig} tachado y $100 con descuento.":
+    "Example: a $100 product shows a crossed-out original price of ${orig} and $100 on sale.",
+  "Si cambias el porcentaje, cambia también el texto del aviso y de los listones para que digan lo mismo.":
+    "If you change the percentage, also update the banner and ribbon text so they match.",
 };

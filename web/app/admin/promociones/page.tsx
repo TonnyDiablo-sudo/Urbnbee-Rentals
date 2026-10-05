@@ -8,8 +8,9 @@ type Ribbon = { on: boolean; text: string };
 type Payload = {
   banner: Ribbon;
   ribbons: Record<string, Ribbon>;
+  discountPct: number;
   products: { family: string; label: string }[];
-  limits: { ribbon: number; banner: number };
+  limits: { ribbon: number; banner: number; pctMin: number; pctMax: number };
   defaults: { ribbon: string; banner: string };
 };
 
@@ -20,6 +21,7 @@ export default function AdminPromosPage() {
   const [data, setData] = useState<Payload | null>(null);
   const [banner, setBanner] = useState<Ribbon>({ on: true, text: "" });
   const [ribbons, setRibbons] = useState<Record<string, Ribbon>>({});
+  const [pct, setPct] = useState(50);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -27,6 +29,7 @@ export default function AdminPromosPage() {
     setData(j);
     setBanner(j.banner);
     setRibbons(j.ribbons);
+    setPct(j.discountPct);
   };
 
   const load = useCallback(async () => {
@@ -46,7 +49,7 @@ export default function AdminPromosPage() {
     const res = await fetch("/api/admin/store-promo", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ banner, ribbons }),
+      body: JSON.stringify({ banner, ribbons, discountPct: pct }),
     }).catch(() => null);
     setSaving(false);
     if (!res?.ok) return setMsg({ ok: false, text: "No se pudo guardar." });
@@ -61,13 +64,34 @@ export default function AdminPromosPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <h1 className="text-2xl font-bold text-gray-900">{t("Promociones de la Tienda")}</h1>
       <p className="mt-1 max-w-3xl text-sm text-gray-500">
-        {t("El aviso y los listones sólo se muestran en la Tienda: no cambian precios ni condiciones.")}
+        {t("Lo que cobras no cambia. En cada producto con listón activo se muestra un precio original tachado y, abajo, el precio actual como precio con descuento.")}
       </p>
 
       {!data && !msg && <p className="mt-6 text-gray-400">{t("Cargando…")}</p>}
 
       {data && (
         <div className="mt-6 max-w-3xl space-y-6">
+          <section className="rounded-xl border border-gray-200 bg-white p-5">
+            <p className="text-sm font-semibold text-gray-900">{t("Descuento que se muestra")}</p>
+            <div className="mt-3 flex items-center gap-2">
+              <input
+                type="number"
+                min={data.limits.pctMin}
+                max={data.limits.pctMax}
+                value={pct}
+                onChange={(e) => setPct(Number(e.target.value))}
+                className="w-24 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <span className="text-sm text-gray-700">%</span>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              {t("Ejemplo: un producto de $100 se muestra con precio original de ${orig} tachado y $100 con descuento.", {
+                orig: pct > 0 && pct < 100 ? Math.round(100 / (1 - pct / 100)) : 100,
+              })}{" "}
+              {t("Si cambias el porcentaje, cambia también el texto del aviso y de los listones para que digan lo mismo.")}
+            </p>
+          </section>
+
           <section className="rounded-xl border border-gray-200 bg-white p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-semibold text-gray-900">{t("Aviso arriba de la Tienda")}</p>

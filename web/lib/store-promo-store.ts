@@ -13,12 +13,23 @@ export const DEFAULT_RIBBON_TEXT = "50% de descuento";
 export const DEFAULT_BANNER_TEXT =
   "Precios de promoción: todo está al 50% de descuento. Aprovecha antes de que suban los precios.";
 
+/** El precio actual es el precio original con este descuento: original = actual / (1 − %). */
+export const DEFAULT_DISCOUNT_PCT = 50;
+export const DISCOUNT_PCT_MIN = 5;
+export const DISCOUNT_PCT_MAX = 90;
+
 export type PromoRibbon = { on: boolean; text: string };
 export type StorePromo = {
   banner: PromoRibbon;
   ribbons: Partial<Record<MembershipPlanFamily, PromoRibbon>>;
+  discountPct?: number;
   updatedAt?: string;
 };
+
+function pctOf(v: unknown): number {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? Math.min(DISCOUNT_PCT_MAX, Math.max(DISCOUNT_PCT_MIN, n)) : DEFAULT_DISCOUNT_PCT;
+}
 
 const DATA_FILE = join(getDataDir(), "store-promo.json");
 let cache: StorePromo | null = null;
@@ -50,9 +61,13 @@ export function ribbonFor(family: MembershipPlanFamily): PromoRibbon {
   return load().ribbons[family] ?? { on: true, text: DEFAULT_RIBBON_TEXT };
 }
 
-export function storePromo(): { banner: PromoRibbon; ribbons: Record<string, PromoRibbon> } {
+export function storePromo(): { banner: PromoRibbon; ribbons: Record<string, PromoRibbon>; discountPct: number } {
   const p = load();
-  return { banner: p.banner, ribbons: Object.fromEntries(PROMO_FAMILIES.map((f) => [f, ribbonFor(f)])) };
+  return {
+    banner: p.banner,
+    ribbons: Object.fromEntries(PROMO_FAMILIES.map((f) => [f, ribbonFor(f)])),
+    discountPct: pctOf(p.discountPct ?? DEFAULT_DISCOUNT_PCT),
+  };
 }
 
 function clean(text: unknown, max: number, fallback: string): string {
@@ -60,9 +75,14 @@ function clean(text: unknown, max: number, fallback: string): string {
   return Array.from(s || fallback).slice(0, max).join("");
 }
 
-export function saveStorePromo(input: { banner?: Partial<PromoRibbon>; ribbons?: Record<string, Partial<PromoRibbon>> }): StorePromo {
+export function saveStorePromo(input: {
+  banner?: Partial<PromoRibbon>;
+  ribbons?: Record<string, Partial<PromoRibbon>>;
+  discountPct?: unknown;
+}): StorePromo {
   const prev = load();
   const next: StorePromo = {
+    discountPct: input.discountPct !== undefined ? pctOf(input.discountPct) : pctOf(prev.discountPct ?? DEFAULT_DISCOUNT_PCT),
     banner: {
       on: typeof input.banner?.on === "boolean" ? input.banner.on : prev.banner.on,
       text: input.banner?.text !== undefined ? clean(input.banner.text, PROMO_BANNER_MAX, DEFAULT_BANNER_TEXT) : prev.banner.text,

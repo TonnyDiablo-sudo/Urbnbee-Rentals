@@ -4,6 +4,8 @@ import { FAMILY_COPY } from "@/lib/membership-plans-store";
 import {
   DEFAULT_BANNER_TEXT,
   DEFAULT_RIBBON_TEXT,
+  DISCOUNT_PCT_MAX,
+  DISCOUNT_PCT_MIN,
   PROMO_BANNER_MAX,
   PROMO_FAMILIES,
   PROMO_RIBBON_MAX,
@@ -22,7 +24,7 @@ function payload() {
   return {
     ...storePromo(),
     products: PROMO_FAMILIES.filter((f) => f !== "address_proof").map((f) => ({ family: f, label: FAMILY_COPY[f].label })),
-    limits: { ribbon: PROMO_RIBBON_MAX, banner: PROMO_BANNER_MAX },
+    limits: { ribbon: PROMO_RIBBON_MAX, banner: PROMO_BANNER_MAX, pctMin: DISCOUNT_PCT_MIN, pctMax: DISCOUNT_PCT_MAX },
     defaults: { ribbon: DEFAULT_RIBBON_TEXT, banner: DEFAULT_BANNER_TEXT },
   };
 }
@@ -37,6 +39,7 @@ export async function PATCH(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
     banner?: { on?: unknown; text?: unknown };
     ribbons?: Record<string, { on?: unknown; text?: unknown }>;
+    discountPct?: unknown;
   };
   const pick = (r?: { on?: unknown; text?: unknown }) => ({
     on: typeof r?.on === "boolean" ? r.on : undefined,
@@ -45,6 +48,7 @@ export async function PATCH(req: NextRequest) {
   saveStorePromo({
     banner: body.banner ? pick(body.banner) : undefined,
     ribbons: Object.fromEntries(Object.entries(body.ribbons ?? {}).map(([k, v]) => [k, pick(v)])),
+    discountPct: body.discountPct,
   });
   return NextResponse.json({ ok: true, ...payload() });
 }

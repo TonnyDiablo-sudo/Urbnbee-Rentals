@@ -39,7 +39,7 @@ type Data = {
   email: string;
   isHost: boolean;
   items: Item[];
-  promo?: { banner: Ribbon; ribbons: Record<string, Ribbon> };
+  promo?: { banner: Ribbon; ribbons: Record<string, Ribbon>; discountPct?: number };
 };
 
 type Ribbon = { on: boolean; text: string };
@@ -73,7 +73,7 @@ function CartIcon({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
-/** Listón diagonal en la esquina de la tarjeta. Sólo decora: no cambia precios ni condiciones. */
+/** Listón diagonal en la esquina de la tarjeta. No cambia lo que se cobra. */
 export function PromoRibbon({ text }: { text: string }) {
   return (
     <div className="pointer-events-none absolute -right-11 top-4 w-40 rotate-45 bg-[#dcb81e] py-1 text-center text-[10px] font-bold uppercase leading-tight tracking-wide text-black shadow">
@@ -272,6 +272,12 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
   const accountItems = data.items.filter((i) => i.family === "guest_membership");
   const guestItems = data.items.filter((i) => i.audience === "guest" && i.family !== "guest_membership");
   const hostItems = data.items.filter((i) => i.audience === "host");
+  const pct = data.promo?.discountPct ?? 0;
+  /** Precio antes del descuento, redondeado a pesos (o centavos en USD) para que se vea fijo. */
+  const originalOf = (n: number, currency: "mxn" | "usd") => {
+    const raw = n / (1 - pct / 100);
+    return currency === "usd" ? Math.round(raw * 100) / 100 : Math.round(raw);
+  };
 
   const card = (item: Item) => {
     const unitLabel = item.unit === "listing" ? t("por anuncio") : item.unit === "seat" ? t("por colaborador") : "";
@@ -292,6 +298,7 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
             : t("se cobra cada mes")
           : t("pagas {total} cada {n} meses", { total: money(plan.amount * (item.unit ? q : 1), item.currency), n: plan.months });
     const ribbon = data.promo?.ribbons[item.family];
+    const onSale = Boolean(ribbon?.on && ribbon.text && pct > 0);
     return (
       <div
         key={item.family}
@@ -335,7 +342,18 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
 
         {(!owned || owned.code || plan.months === 0) && (
           <>
-            <p className="mt-3 text-[20px] font-bold text-[#222]">
+            {onSale && plan.perMonth > 0 && (
+              <p className="mt-3 text-sm text-[#717171]">
+                {t("Precio original")}{" "}
+                <span className="line-through">{money(originalOf(plan.perMonth, item.currency), item.currency)}</span>
+              </p>
+            )}
+            <p className={`${onSale && plan.perMonth > 0 ? "mt-0.5" : "mt-3"} text-[20px] font-bold text-[#222]`}>
+              {onSale && plan.perMonth > 0 && (
+                <span className="mr-1.5 rounded-md bg-[#dcb81e] px-1.5 py-0.5 align-middle text-[11px] font-bold uppercase text-black">
+                  {t("Con descuento")}
+                </span>
+              )}
               {money(plan.perMonth, item.currency)}{" "}
               <span className="text-sm font-normal text-[#717171]">
                 {[unitLabel, plan.months ? t("al mes") : ""].filter(Boolean).join(" · ")}
