@@ -18,6 +18,7 @@ type Item = {
   unit?: "listing" | "seat";
   terms: Term[];
   owned?: { status: string; quantity?: number; until?: string; cancelAtPeriodEnd?: boolean; renews?: boolean; code?: string };
+  demand?: { occupancy: number; multiplier: number; soldOut: boolean; slotsLeft: number };
 };
 
 /** Dónde se administra cada herramienta: a qué anuncios aplica y quién la usa. */
@@ -266,6 +267,9 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
     const plan = owned || term[item.family] || !inCart ? chosenTerm(item) : (item.terms.find((x) => x.code === inCart.code) ?? chosenTerm(item));
     const q = qty[item.family] ?? item.owned?.quantity ?? inCart?.quantity ?? 1;
     const monthly = item.terms.find((x) => x.months === 1);
+    const demand = item.demand;
+    const maxQty = demand ? (owned?.quantity ?? 0) + demand.slotsLeft : 200;
+    const soldOut = Boolean(demand && !owned && demand.soldOut);
     const charge =
       plan.months === 0
         ? t("pago único")
@@ -321,6 +325,18 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
             <p className="text-xs text-[#888]">{charge}</p>
           </>
         )}
+        {demand && (
+          <p className={`mt-2 text-xs font-medium ${demand.soldOut ? "text-red-700" : "text-[#8a6d00]"}`}>
+            {demand.soldOut
+              ? t("Agotado por ahora. Vuelve en unos días.")
+              : demand.multiplier > 1.005
+                ? t("Mucha demanda: +{p}% sobre el precio normal · quedan {n} lugares", {
+                    p: Math.round((demand.multiplier - 1) * 100),
+                    n: demand.slotsLeft,
+                  })
+                : t("Quedan {n} lugares", { n: demand.slotsLeft })}
+          </p>
+        )}
 
         <button
           type="button"
@@ -353,8 +369,9 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
               <button
                 type="button"
                 aria-label={t("Más")}
-                onClick={() => setQty((p) => ({ ...p, [item.family]: Math.min(200, q + 1) }))}
-                className="h-10 w-10 text-lg"
+                disabled={q >= maxQty}
+                onClick={() => setQty((p) => ({ ...p, [item.family]: Math.min(maxQty, q + 1) }))}
+                className="h-10 w-10 text-lg disabled:opacity-30"
               >
                 +
               </button>
@@ -379,6 +396,8 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
                 {t("Quitar")}
               </button>
             </>
+          ) : soldOut ? (
+            <span className="rounded-xl bg-[#f1f1f1] px-5 py-2.5 text-sm font-semibold text-[#717171]">{t("Agotado")}</span>
           ) : (
             <button
               type="button"

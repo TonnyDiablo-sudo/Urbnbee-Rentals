@@ -95,4 +95,8 @@ export const billingAccount: Record<string, string> = {
   "Comprobante aprobado. La insignia se muestra cuando el anuncio tiene la verificación de domicilio pagada.":
     "Proof approved. The badge shows when the listing has paid address verification.",
   "La revisión de historial crediticio todavía no está disponible.": "Credit history checks aren't available yet.",
+  "Agotado por ahora. Vuelve en unos días.": "Sold out for now. Check back in a few days.",
+  "Mucha demanda: +{p}% sobre el precio normal · quedan {n} lugares": "High demand: +{p}% over the normal price · {n} spots left",
+  "Quedan {n} lugares": "{n} spots left",
+  "Agotado": "Sold out",
 };
