@@ -115,7 +115,7 @@ export const appHelpLegal: Record<string, string> = {
   "Da acceso a tu equipo con roles: mensajes, reservas, limpieza o firma de contratos.":
     "Give your team access with roles: messages, bookings, cleaning or contract signing.",
   "Qué es Cabibee": "What Cabibee is",
-  "Rentar directo, fácil y seguro. Gratis, para la raza.": "Rent direct, easy and safe. Free, for everyone.",
+  "Rentar directo, fácil y seguro. Gratis, para todos.": "Rent direct, easy and safe. Free, for everyone.",
   "Cabibee es una plataforma gratuita que conecta a anfitriones con huéspedes. Nuestra intención es que rentar sea accesible para todos: sin comisiones, con el contacto a la vista y con capas de seguridad y operación para quien las necesite.":
     "Cabibee is a free platform that connects hosts with guests. Our goal is to make renting accessible to everyone: no commissions, contact details in plain sight, and layers of security and operations for whoever needs them.",
   "Si buscas dónde quedarte": "If you're looking for a place to stay",

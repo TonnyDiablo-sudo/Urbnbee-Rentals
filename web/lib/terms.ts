@@ -68,7 +68,7 @@ const ES: TermsDoc = {
     {
       title: "8. Conducta prohibida",
       paragraphs: [
-        "No puedes publicar información falsa, suplantar a otra persona, usar la Plataforma para fraudes, discriminar por raza, origen, religión, género, orientación sexual, discapacidad u otra condición protegida, acosar a otros usuarios, ni extraer datos de forma automatizada. Cabibee puede suspender o cerrar cuentas que incumplan estos Términos.",
+        "No puedes publicar información falsa, suplantar a otra persona, usar la Plataforma para fraudes, discriminar por origen étnico o nacional, color de piel, religión, género, orientación sexual, discapacidad u otra condición protegida, acosar a otros usuarios, ni extraer datos de forma automatizada. Cabibee puede suspender o cerrar cuentas que incumplan estos Términos.",
       ],
     },
     {

@@ -80,7 +80,7 @@ export function HowItWorks({ exploreHref, bookHref, storeHref }: { exploreHref: 
   return (
     <div className="text-[#222]">
       <p className="text-[13px] font-semibold uppercase tracking-wide text-[#a88a12]">{t("Qué es Cabibee")}</p>
-      <h1 className="mt-1 text-[28px] font-bold leading-tight sm:text-4xl">{t("Rentar directo, fácil y seguro. Gratis, para la raza.")}</h1>
+      <h1 className="mt-1 text-[28px] font-bold leading-tight sm:text-4xl">{t("Rentar directo, fácil y seguro. Gratis, para todos.")}</h1>
       <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#555] sm:text-base">
         {t(
           "Cabibee es una plataforma gratuita que conecta a anfitriones con huéspedes. Nuestra intención es que rentar sea accesible para todos: sin comisiones, con el contacto a la vista y con capas de seguridad y operación para quien las necesite."
