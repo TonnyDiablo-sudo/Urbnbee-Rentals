@@ -11,6 +11,8 @@ export type Listing = {
   title: string;
   imageSrc: string;
   pricePerNight: number;
+  /** Sólo en renta mensual: la tarjeta muestra «$X / mes». */
+  pricePerMonth?: number;
   currency: string;
   rating: number;
   categoryLabel: string;

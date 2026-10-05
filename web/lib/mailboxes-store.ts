@@ -85,14 +85,16 @@ function load() {
   }
 }
 
-function persist() {
+function persist(): boolean {
   try {
     ensureDir(getDataDir());
     writeFileSync(DATA_FILE, JSON.stringify(doc, null, 2), "utf8");
     cachedMtime = existsSync(DATA_FILE) ? statSync(DATA_FILE).mtimeMs : cachedMtime;
     scheduleMysql(() => upsertJsonBlob("mailboxes", doc));
+    return true;
   } catch (e) {
     console.warn("[mailboxes] persist failed:", e);
+    return false;
   }
 }
 
@@ -160,7 +162,10 @@ export function saveMailbox(
     lastOkAt: now,
     lastError: undefined,
   };
-  persist();
+  if (!persist()) {
+    delete doc.boxes[id];
+    throw new Error("No se pudo guardar el buzón en el servidor.");
+  }
   return listMailboxesPublic().find((b) => b.id === id)!;
 }
 

@@ -70,6 +70,9 @@ export type BookingRecord = {
   /** Cuándo se le pidió reseña a cada lado (una sola vez). */
   reviewReminderGuestAt?: string;
   reviewReminderHostAt?: string;
+  /** Cuándo se mandó el mensaje con los datos de llegada y quién lo disparó. */
+  arrivalMessageSentAt?: string;
+  arrivalMessageSentBy?: "auto" | "host";
   refundAmountMxn?: number;
   stripeRefundId?: string;
   refundReason?: BookingRefundReason;

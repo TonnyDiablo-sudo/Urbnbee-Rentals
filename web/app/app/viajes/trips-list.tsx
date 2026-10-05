@@ -8,6 +8,7 @@ import { PayDifference } from "@/components/booking/pay-difference";
 import { useLang, useT } from "@/components/i18n-provider";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
 import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
+import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 import { TONE_CLS, fmtDay, fmtMxn, guestStatusOf } from "../_components/booking-status";
 import { Sheet } from "../_components/sheet";
 import { WebLink } from "../_components/site-origin";
@@ -177,7 +178,7 @@ export function TripsList() {
                 <p className="text-sm text-[#555]">
                   {fmtMxn(trip.estimatedTotalMxn)} · {t("código {code}", { code: trip.token })}
                 </p>
-                {trip.screening && (trip.screening.needsConsent || trip.screening.needsPayGuest) && !sec.past && (
+                {CREDIT_CHECK_ENABLED && trip.screening && (trip.screening.needsConsent || trip.screening.needsPayGuest) && !sec.past && (
                   <div className="mt-3 rounded-xl bg-[#fdf6d8] px-3 py-3 text-sm text-[#5c4a0a]">
                     <p className="font-semibold">{t("Tu anfitrión pide revisar tu historial crediticio")}</p>
                     <p className="mt-0.5">
@@ -417,6 +418,7 @@ function ArrivalGuideView({ trip }: { trip: Trip }) {
     { label: "Dirección", value: g.address },
     { label: "Cómo llegar", value: g.directions },
     { label: "Cómo entrar", value: g.checkInMethod },
+    { label: "Código de acceso", value: g.accessCode },
     { label: "Wifi", value: g.wifiName ? `${g.wifiName}${g.wifiPassword ? `\n${t("Contraseña")}: ${g.wifiPassword}` : ""}` : undefined },
     { label: "Manual de la casa", value: g.houseManual },
     { label: "Instrucciones de salida", value: g.checkoutInstructions },

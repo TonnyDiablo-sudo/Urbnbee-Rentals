@@ -13,8 +13,11 @@ export function GuestChat({
   slug,
   closed = false,
   initial,
+  mediaAllowed = false,
 }: {
   initial?: ChatMessage[];
+  /** Fotos y audios sólo con identidad verificada. */
+  mediaAllowed?: boolean;
   listingId: string;
   title: string;
   subtitle: string;
@@ -64,6 +67,7 @@ export function GuestChat({
       load={load}
       send={send}
       sendAttachment={closed ? undefined : sendAttachment}
+      mediaLockedHref={mediaAllowed ? undefined : "/membresia"}
       emptyText={t("Saluda al anfitrión y pregúntale lo que necesites. Las respuestas las escribe él, no un robot.")}
       closedNotice={closed ? t("Este anuncio ya no está disponible, así que ya no se pueden enviar mensajes.") : undefined}
       headerRight={

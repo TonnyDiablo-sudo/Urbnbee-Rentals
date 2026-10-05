@@ -1,5 +1,6 @@
 import { attachmentView } from "@/lib/chat-attachments";
 import { getChatAi } from "@/lib/chat-ai-settings";
+import { chatMediaAllowed } from "@/lib/chat-media-access";
 import { nameForViewer, shareABooking } from "@/lib/display-name";
 import { groupThreads } from "@/lib/host-inbox-store";
 import { getT } from "@/lib/i18n/server";
@@ -47,6 +48,7 @@ export default async function AppHostThreadPage({ params }: Props) {
       guestSessionId={guestSessionId}
       initial={initial}
       initialAi={{ available: ai.available, enabled: ai.enabled }}
+      mediaAllowed={Boolean(user && chatMediaAllowed(user, { as: "host", listingHostId: listing?.hostId }))}
     />
   );
 }

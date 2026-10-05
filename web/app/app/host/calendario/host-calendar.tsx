@@ -505,7 +505,9 @@ export function PriceSettings({
 }) {
   const t = useT();
   const p: ListingPricing = listing.pricing ?? {};
+  const [monthlyMode, setMonthlyMode] = useState(listing.rentalMode === "monthly");
   const [f, setF] = useState({
+    month: listing.pricePerMonth ? String(listing.pricePerMonth) : "",
     base: String(listing.pricePerNight || ""),
     weekend: p.weekendPrice ? String(p.weekendPrice) : "",
     cleaning: String(listing.cleaningFee || ""),
@@ -529,7 +531,12 @@ export function PriceSettings({
 
   const save = async () => {
     const base = Number(f.base);
-    if (!Number.isFinite(base) || base <= 0) {
+    const month = Number(f.month);
+    if (monthlyMode && (!Number.isFinite(month) || month <= 0)) {
+      setErr("Escribe la renta mensual.");
+      return;
+    }
+    if (!monthlyMode && (!Number.isFinite(base) || base <= 0)) {
       setErr("Escribe un precio base mayor a cero.");
       return;
     }
@@ -541,7 +548,8 @@ export function PriceSettings({
     setBusy(true);
     setErr(null);
     const r = await patchListing(listing.id, {
-      pricePerNight: Math.round(base),
+      rentalMode: monthlyMode ? "monthly" : "nightly",
+      ...(monthlyMode ? { pricePerMonth: Math.round(month) } : { pricePerNight: Math.round(base) }),
       cleaningFee: Math.max(0, Math.round(Number(f.cleaning) || 0)),
       pricing: {
         weekendPrice: f.weekend,
@@ -576,14 +584,42 @@ export function PriceSettings({
     <Sheet open={open} onClose={onClose} title={t("Precios y estancia")}>
       <div className="space-y-5">
         <p className="text-sm text-[#717171]">{listing.title}</p>
-        <h3 className="text-base font-semibold text-[#222]">{t("Precio por noche")}</h3>
-        {field("base", "Precio base (MXN)", "Aplica a todas las noches que no tengan otro precio.")}
-        {field("weekend", "Precio de viernes y sábado (MXN)", "Déjalo vacío para usar el precio base.")}
+        <h3 className="text-base font-semibold text-[#222]">{t("¿Cómo cobras?")}</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {(
+            [
+              [false, "Por noche", "Estancias cortas."],
+              [true, "Renta mensual", "Mínimo 30 noches."],
+            ] as const
+          ).map(([v, label, hint]) => (
+            <button
+              key={String(v)}
+              type="button"
+              onClick={() => setMonthlyMode(v)}
+              className={`rounded-2xl border p-3 text-left ${monthlyMode === v ? "border-[#222] ring-1 ring-[#222]" : "border-[#ddd]"}`}
+            >
+              <span className="block text-[15px] font-semibold text-[#222]">{t(label)}</span>
+              <span className="mt-0.5 block text-xs text-[#717171]">{t(hint)}</span>
+            </button>
+          ))}
+        </div>
+        {monthlyMode ? (
+          field(
+            "month",
+            "Renta mensual (MXN)",
+            "Se cobra por noche como la renta entre 30. La estancia mínima queda en 30 noches."
+          )
+        ) : (
+          <>
+            {field("base", "Precio base (MXN)", "Aplica a todas las noches que no tengan otro precio.")}
+            {field("weekend", "Precio de viernes y sábado (MXN)", "Déjalo vacío para usar el precio base.")}
+          </>
+        )}
         {field("cleaning", "Limpieza (MXN)", "Se cobra una vez por reserva.")}
 
         <h3 className="pt-2 text-base font-semibold text-[#222]">{t("Descuentos")}</h3>
-        {field("weekly", "Descuento semanal", "Para estancias de 7 noches o más.", "%")}
-        {field("monthly", "Descuento mensual", "Para estancias de 28 noches o más.", "%")}
+        {field("weekly", "Descuento por 7 noches o más (%)", "Descuento semanal.", "%")}
+        {field("monthly", "Descuento por 28 noches o más (%)", "Descuento mensual.", "%")}
         <div className="grid grid-cols-2 gap-3">
           {field("earlyPct", "Reserva anticipada", undefined, "%")}
           {field("earlyDays", "Días de anticipación")}
@@ -668,7 +704,7 @@ export function PriceSettings({
 
         <h3 className="pt-2 text-base font-semibold text-[#222]">{t("Duración de la estancia")}</h3>
         <div className="grid grid-cols-2 gap-3">
-          {field("minNights", "Mínimo de noches")}
+          {field("minNights", "Mínimo de noches", monthlyMode ? "En renta mensual son al menos 30." : undefined)}
           {field("maxNights", "Máximo de noches")}
         </div>
 

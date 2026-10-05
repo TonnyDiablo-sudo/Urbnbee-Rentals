@@ -61,7 +61,12 @@ export async function POST(req: NextRequest) {
       if (/535|Username and Password not accepted|Invalid login/i.test(check.error)) break;
       continue;
     }
-    const saved = saveMailbox(body.id, auth);
+    let saved;
+    try {
+      saved = saveMailbox(body.id, auth);
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "No se pudo guardar." }, { status: 500 });
+    }
     if (body.testToMe) {
       const sent = await sendEmail({
         mailbox: body.id,

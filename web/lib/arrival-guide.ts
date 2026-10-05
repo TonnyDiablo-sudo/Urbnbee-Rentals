@@ -8,7 +8,11 @@ export type ArrivalGuide = {
   wifiPassword?: string;
   houseManual?: string;
   checkoutInstructions?: string;
+  /** Código de la puerta, caja de llaves o cerradura. */
+  accessCode?: string;
 };
+
+export const ACCESS_CODE_MAX = 200;
 
 export const ARRIVAL_TEXT_FIELDS = [
   "checkInMethod",
@@ -33,6 +37,8 @@ export function sanitizeArrivalGuide(raw: unknown): ArrivalGuide {
     const v = typeof o[k] === "string" ? (o[k] as string).trim().slice(0, 4000) : "";
     if (v) out[k] = v;
   }
+  const code = typeof o.accessCode === "string" ? o.accessCode.trim().slice(0, ACCESS_CODE_MAX) : "";
+  if (code) out.accessCode = code;
   return out;
 }
 

@@ -1,11 +1,7 @@
 import "server-only";
 import type Stripe from "stripe";
-import {
-  getMembershipPlan,
-  isMembershipPlanCode,
-  membershipPlanAmount,
-  membershipPlanCurrency,
-} from "@/lib/membership-plans-store";
+import { featuredPlanAmount, featuredPurchaseProblem, isFeaturedPlan } from "@/lib/featured-demand";
+import { getMembershipPlan, isMembershipPlanCode, membershipPlanCurrency } from "@/lib/membership-plans-store";
 import {
   MEMBERSHIP_PLAN_AUDIENCE,
   MEMBERSHIP_PLAN_BILLING,
@@ -52,8 +48,9 @@ export async function buildMembershipCheckout(
   const plan = getMembershipPlan(code);
   if (!plan) return { error: "unknown_plan" };
 
-  const amount = membershipPlanAmount(plan, region);
+  const amount = featuredPlanAmount(plan, region);
   if (!plan.active || amount <= 0) return { error: "not_offered", planLabel: plan.label };
+  if (isFeaturedPlan(code) && featuredPurchaseProblem(quantity)) return { error: "not_offered", planLabel: plan.label };
 
   const productId = await membershipProductIdForCheckout(stripe, code);
   if (!productId) return { error: "no_product", planLabel: plan.label };

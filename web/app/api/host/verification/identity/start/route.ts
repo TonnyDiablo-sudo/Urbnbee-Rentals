@@ -6,6 +6,7 @@ import { cabibeeMeta } from "@/lib/stripe-app-meta";
 import { getStripe } from "@/lib/stripe-server";
 import {
   getVerification,
+  identityPlanActive,
   stripeIdentityEnabled,
   upsertVerification,
 } from "@/lib/verification-store";
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
  *
  * Es la misma verificación que hace el huésped y escribe el mismo `kycStatus`, porque
  * la identidad es de la persona y no del rol: quien ya se identificó no vuelve a pagar
- * una sesión. La diferencia es que aquí no se exige membresía, que es cosa de huéspedes.
+ * una sesión. Antes de abrirla tiene que estar pagada (el motor de reservas la incluye).
  */
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
@@ -42,6 +43,15 @@ export async function POST(req: NextRequest) {
   }
 
   const v = getVerification(user.id);
+  if (user.role !== "admin" && !identityPlanActive(user.id)) {
+    return NextResponse.json(
+      {
+        error: "Primero contrata el Motor de reservas (ya incluye la verificación de identidad). Se cobra antes de pedirte la identificación.",
+        code: "identity_not_paid",
+      },
+      { status: 402 }
+    );
+  }
   const origin = publicOriginFromRequest(req);
   const body = (await req.json().catch(() => ({}))) as { returnPath?: string };
   const returnPath = appReturnPath(body.returnPath) ?? "/host/verificacion";

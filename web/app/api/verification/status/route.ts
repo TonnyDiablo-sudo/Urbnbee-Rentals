@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { membershipPublicPlans } from "@/lib/membership-plans-store";
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
-import { verificationRegionFromRequest } from "@/lib/verification-region";
+import { billingRegionFor } from "@/lib/verification-region";
 import {
   getVerification,
   isGuestEligibleToBook,
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   const configured = verificationSubscriptionConfigured();
   const rec = getVerification(user.id);
   const eligible = isGuestEligibleToBook(user.id);
-  const billingRegion = verificationRegionFromRequest(req);
+  const billingRegion = billingRegionFor(req, user);
   const plansMx = verificationPlansAvailableForRegion("mx");
   const plansUs = verificationPlansAvailableForRegion("us");
   const plansAvailable = verificationPlansAvailableForRegion(billingRegion);
@@ -35,6 +35,8 @@ export async function GET(req: NextRequest) {
     identityEnabled: stripeIdentityEnabled(),
     regionalPricing: verificationRegionalPricingEnabled(),
     billingRegion,
+    billingCountry: user.billingCountry ?? null,
+    emailVerified: Boolean(user.emailVerifiedAt) || user.role === "admin",
     plansAvailable,
     plansByRegion: { mx: plansMx, us: plansUs },
     // Planes del catálogo, con su precio: son los que se muestran cuando ya hay

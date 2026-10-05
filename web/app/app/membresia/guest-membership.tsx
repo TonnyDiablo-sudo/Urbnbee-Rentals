@@ -6,19 +6,16 @@ import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
 import { IconShield } from "../_components/icons";
 import { WebLink } from "../_components/site-origin";
-import {
-  PlanPicker,
-  RegionToggle,
-  startIdentity,
-  startMembershipCheckout,
-  type CatalogPlan,
-} from "../_components/plan-picker";
+import { CountryPicker, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
+import { PlanPicker, startIdentity, startMembershipCheckout, type CatalogPlan } from "../_components/plan-picker";
 
 type Status = {
   configured: boolean;
   eligible: boolean;
   identityEnabled: boolean;
   billingRegion: "mx" | "us";
+  billingCountry: BillingCountry | null;
+  emailVerified: boolean;
   plansByRegion: { mx: { monthly: boolean; annual: boolean }; us: { monthly: boolean; annual: boolean } };
   catalogPlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
   bookingPassesRemaining: number;
@@ -52,7 +49,6 @@ export function GuestMembership() {
   const params = useSearchParams();
   const justPaid = params.get("subscription") === "success";
   const [data, setData] = useState<Status | null>(null);
-  const [region, setRegion] = useState<"mx" | "us">("mx");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -65,7 +61,6 @@ export function GuestMembership() {
         return;
       }
       setData(j);
-      setRegion(j.billingRegion === "us" ? "us" : "mx");
     } catch {
       setErr("Sin conexión.");
     }
@@ -74,6 +69,8 @@ export function GuestMembership() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const region = data?.billingCountry ? regionForCountry(data.billingCountry) : (data?.billingRegion ?? "mx");
 
   const buy = async (plan: string) => {
     setBusy(true);
@@ -97,7 +94,7 @@ export function GuestMembership() {
   const subActive = data.subscriptionStatus === "active" || data.subscriptionStatus === "trialing";
   const plans = data.catalogPlansByRegion[region];
   const legacy = data.plansByRegion[region];
-  const bothRegions = data.catalogPlansByRegion.mx.length > 0 && data.catalogPlansByRegion.us.length > 0;
+  const canPay = Boolean(data.billingCountry) && data.emailVerified;
   const needsIdentity = data.identityEnabled && data.kycStatus !== "verified";
 
   return (
@@ -145,21 +142,27 @@ export function GuestMembership() {
 
       {!subActive && (
         <section>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-[#222]">{t("Planes")}</h2>
-            {bothRegions && <RegionToggle value={region} onChange={setRegion} />}
+          <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Planes")}</h2>
+          <p className="mb-3 text-sm text-[#555]">
+            {region === "us"
+              ? t("Te identificas con tu licencia de manejo, State ID o pasaporte y una selfie.")
+              : t("Te identificas con tu INE o pasaporte y una selfie.")}
+          </p>
+          <div className="mb-3 space-y-3">
+            <CountryPicker value={data.billingCountry} onSaved={() => void load()} />
+            {!data.emailVerified && <VerifyEmailBox />}
           </div>
           {plans.length > 0 ? (
-            <PlanPicker plans={plans} busy={busy} onPick={(c) => void buy(c)} />
+            <PlanPicker plans={plans} busy={busy || !canPay} onPick={(c) => void buy(c)} />
           ) : legacy.monthly || legacy.annual ? (
             <div className="space-y-3">
               {legacy.monthly && (
-                <button type="button" disabled={busy} onClick={() => void buy("monthly")} className="w-full rounded-xl bg-[#111] py-3.5 text-sm font-semibold text-white">
+                <button type="button" disabled={busy || !canPay} onClick={() => void buy("monthly")} className="w-full rounded-xl bg-[#111] py-3.5 text-sm font-semibold text-white disabled:opacity-50">
                   {t("Membresía mensual")}
                 </button>
               )}
               {legacy.annual && (
-                <button type="button" disabled={busy} onClick={() => void buy("annual")} className="w-full rounded-xl border border-[#222] py-3.5 text-sm font-semibold">
+                <button type="button" disabled={busy || !canPay} onClick={() => void buy("annual")} className="w-full rounded-xl border border-[#222] py-3.5 text-sm font-semibold disabled:opacity-50">
                   {t("Membresía anual")}
                 </button>
               )}

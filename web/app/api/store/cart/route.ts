@@ -5,6 +5,7 @@ import { membershipPlanCurrency } from "@/lib/membership-plans-store";
 import { simulateCatalogMembership } from "@/lib/membership-simulate";
 import { rememberPlanCode } from "@/lib/owned-plan";
 import { publicOriginFromRequest } from "@/lib/public-origin";
+import { purchaseBlockedResponse } from "@/lib/purchase-guard";
 import { getSessionUser } from "@/lib/session";
 import { cabibeeMeta } from "@/lib/stripe-app-meta";
 import { allowSimulatedBookingPayment, getStripe } from "@/lib/stripe-server";
@@ -12,7 +13,7 @@ import { STORE_CART_KIND, cartTotal, catalogPurchaseProblem, encodeCart, parseCa
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { getVerification, upsertVerification } from "@/lib/verification-store";
 import type { VerificationRegion } from "@/lib/verification-types";
-import { verificationRegionFromRequest } from "@/lib/verification-region";
+import { billingRegionFor, verificationRegionFromRequest } from "@/lib/verification-region";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,16 +26,23 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+  const blocked = purchaseBlockedResponse(user);
+  if (blocked) return blocked;
 
   const body = (await req.json().catch(() => ({}))) as { items?: unknown; region?: string; returnPath?: string };
-  const region: VerificationRegion =
-    body.region === "us" ? "us" : body.region === "mx" ? "mx" : verificationRegionFromRequest(req);
+  const region: VerificationRegion = user.billingCountry
+    ? billingRegionFor(req, user)
+    : body.region === "us"
+      ? "us"
+      : body.region === "mx"
+        ? "mx"
+        : verificationRegionFromRequest(req);
   const lines = parseCart(body.items);
   if (!lines) return NextResponse.json({ error: "Tu carrito tiene algo que ya no se puede comprar. Revísalo." }, { status: 400 });
 
   await ensurePublicCatalogFresh();
   for (const line of lines) {
-    const problem = catalogPurchaseProblem(user, line.code, region);
+    const problem = catalogPurchaseProblem(user, line.code, region, line.quantity);
     if (problem) return NextResponse.json({ error: problem.error, code: line.code }, { status: problem.status });
   }
 

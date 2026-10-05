@@ -18,6 +18,7 @@ function hostToListingCard(categoryLabel: string, record: HostListingRecord): Li
     title: d.title,
     imageSrc: cover,
     pricePerNight: d.pricePerNight,
+    pricePerMonth: d.pricePerMonth,
     currency: "$",
     rating: listingStayRating(record.id).avg,
     categoryLabel,

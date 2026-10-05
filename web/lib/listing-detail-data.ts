@@ -67,6 +67,11 @@ export type ListingDetail = {
   guests: number;
   bedrooms: number;
   bathrooms: number;
+  bathroomType?: "private" | "shared";
+  /** true: entrada autónoma; false: lo recibe el anfitrión; sin dato no se muestra. */
+  selfCheckIn?: boolean;
+  /** Sólo en renta mensual: lo que se muestra como precio principal. */
+  pricePerMonth?: number;
   size?: string;
   /** Listón «Miembro verificado»: identidad comprobada y membresía vigente. */
   verified: boolean;

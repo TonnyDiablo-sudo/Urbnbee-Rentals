@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { CountryPicker, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale, type TFn } from "@/lib/i18n";
 import type { VerificationRegion } from "@/lib/verification-types";
@@ -26,6 +27,8 @@ type StatusPayload = {
   identityEnabled: boolean;
   regionalPricing: boolean;
   billingRegion: VerificationRegion;
+  billingCountry: BillingCountry | null;
+  emailVerified: boolean;
   plansAvailable: PlansPair;
   plansByRegion: { mx: PlansPair; us: PlansPair };
   catalogPlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
@@ -266,35 +269,21 @@ export function MembresiaPanel() {
 
       {data && (
         <>
-          {showRegionToggle && (
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              <span className="text-sm text-[#717171]">{t("Precios:")}</span>
-              <div className="inline-flex rounded-lg border border-[#ddd] bg-white p-0.5">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => setSelectedRegion("mx")}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                    selectedRegion === "mx"
-                      ? "bg-black text-white"
-                      : "text-[#484848] hover:bg-[#f5f5f5]"
-                  }`}
-                >
-                  {t("México (MXN)")}
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => setSelectedRegion("us")}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                    selectedRegion === "us"
-                      ? "bg-black text-white"
-                      : "text-[#484848] hover:bg-[#f5f5f5]"
-                  }`}
-                >
-                  {t("USA (USD)")}
-                </button>
-              </div>
+          {!subActive && (
+            <div className="mt-6 space-y-3">
+              <CountryPicker
+                value={data.billingCountry}
+                onSaved={(c) => {
+                  setSelectedRegion(regionForCountry(c));
+                  void load();
+                }}
+              />
+              {!data.emailVerified && <VerifyEmailBox />}
+              <p className="text-sm text-[#484848]">
+                {selectedRegion === "us"
+                  ? t("Te identificas con tu licencia de manejo, State ID o pasaporte y una selfie.")
+                  : t("Te identificas con tu INE o pasaporte y una selfie.")}
+              </p>
             </div>
           )}
 

@@ -44,7 +44,20 @@ export type AddressProof = {
   reviewedBy?: string;
   reviewedAt?: string;
   createdAt: string;
+  /** Ubicación que compartió el teléfono al subirlo (sólo con ADDRESS_PROOF_GEOLOCATION_ENABLED). */
+  deviceLocation?: { lat: number; lng: number; accuracyM: number; at: string };
+  /** Metros entre el teléfono y el punto del anuncio. */
+  deviceDistanceM?: number;
 };
+
+/** Distancia en metros entre dos puntos (haversine). */
+export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6_371_000 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
 
 let rows: AddressProof[] = [];
 let cachedMtimeMs = -1;
@@ -90,6 +103,7 @@ export function saveAddressProof(input: {
   buffer: Buffer;
   mime: string;
   ext: string;
+  deviceLocation?: AddressProof["deviceLocation"];
 }): AddressProof {
   load();
   mkdirSync(FILES_DIR, { recursive: true });
@@ -107,6 +121,13 @@ export function saveAddressProof(input: {
     status: "pending",
     createdAt: new Date().toISOString(),
   };
+  const loc = input.deviceLocation;
+  if (loc) {
+    proof.deviceLocation = loc;
+    if (Number.isFinite(input.listing.lat) && Number.isFinite(input.listing.lng) && (input.listing.lat || input.listing.lng)) {
+      proof.deviceDistanceM = Math.round(distanceMeters(loc, { lat: input.listing.lat, lng: input.listing.lng }));
+    }
+  }
   rows.push(proof);
   persist();
   return proof;

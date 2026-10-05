@@ -144,6 +144,25 @@ export function ListingsTab({ d, onChanged }: { d: AdminUserDetail; onChanged: (
                     <dt className="text-xs text-gray-400">Dirección en el documento</dt>
                     <dd className="text-gray-900">{r.ai?.addressOnDocument ?? "—"}</dd>
                   </div>
+                  {r.deviceLocation && (
+                    <div>
+                      <dt className="text-xs text-gray-400">Ubicación del teléfono</dt>
+                      <dd className={r.deviceDistanceM != null && r.deviceDistanceM > 500 ? "text-red-700" : "text-gray-900"}>
+                        {r.deviceDistanceM != null
+                          ? `a ${r.deviceDistanceM >= 1000 ? `${(r.deviceDistanceM / 1000).toFixed(1)} km` : `${r.deviceDistanceM} m`} del anuncio`
+                          : "anuncio sin punto en el mapa"}{" "}
+                        · precisión ±{r.deviceLocation.accuracyM} m ·{" "}
+                        <a
+                          href={`https://www.google.com/maps?q=${r.deviceLocation.lat},${r.deviceLocation.lng}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline"
+                        >
+                          ver mapa
+                        </a>
+                      </dd>
+                    </div>
+                  )}
                   {r.ai && (
                     <>
                       <div>

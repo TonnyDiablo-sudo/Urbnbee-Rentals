@@ -14,6 +14,7 @@ export type AppListingCard = {
   title: string;
   imageSrc: string;
   pricePerNight: number;
+  pricePerMonth?: number;
   rating: number;
   city: string;
   zone: string;
@@ -123,6 +124,7 @@ function browseCards(opts: { tipo?: string; q?: string }): AppListingCard[] {
         title: l.title,
         imageSrc: l.imageSrc,
         pricePerNight: l.pricePerNight,
+        pricePerMonth: l.pricePerMonth,
         rating: l.rating,
         city: detail?.city ?? "",
         zone: detail?.zone ?? "",

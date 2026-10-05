@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AmenitiesGrid } from "@/components/listing/amenities-grid";
 import { ReviewsSection } from "@/components/listing/reviews-section";
 import { listingIsBookable } from "@/lib/app-listings";
+import { bathroomsKey, selfCheckInKey } from "@/lib/listing-facts";
 import { discountRows } from "@/lib/listing-pricing";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { stripHostContactChannels } from "@/lib/host-contact-policy";
@@ -73,9 +74,14 @@ export default async function AppListingPage({ params }: Props) {
         <p className="mt-1 text-sm text-[#717171]">
           {t(listing.guests === 1 ? "{n} huésped" : "{n} huéspedes", { n: listing.guests })} ·{" "}
           {t(listing.bedrooms === 1 ? "{n} recámara" : "{n} recámaras", { n: listing.bedrooms })} ·{" "}
-          {t(listing.bathrooms === 1 ? "{n} baño" : "{n} baños", { n: listing.bathrooms })}
+          {t(bathroomsKey(listing.bathrooms, listing.bathroomType), { n: listing.bathrooms })}
           {listing.size ? ` · ${listing.size}` : ""}
         </p>
+        {selfCheckInKey(listing.selfCheckIn) && (
+          <p className="mt-1 text-sm text-[#484848]">
+            {listing.selfCheckIn ? "🔑" : "🤝"} {t(selfCheckInKey(listing.selfCheckIn)!)}
+          </p>
+        )}
         <div className="mt-3 flex flex-wrap gap-2">
           {listing.identityVerified && (
             <span className="rounded-full bg-[#e7f5ec] px-3 py-1 text-xs font-semibold text-[#1e7a3a]">
@@ -205,6 +211,9 @@ export default async function AppListingPage({ params }: Props) {
             {listing.checkOutTime && (
               <RuleRow icon="🧳" label={t("Salida")} value={t("Antes de las {time}", { time: listing.checkOutTime })} />
             )}
+            {selfCheckInKey(listing.selfCheckIn) && (
+              <RuleRow icon={listing.selfCheckIn ? "🔑" : "🤝"} label={t("Entrada")} value={t(selfCheckInKey(listing.selfCheckIn)!)} />
+            )}
             <RuleRow icon="👥" label={t("Huéspedes")} value={t("Máximo {n}", { n: listing.guests })} />
             {pricing?.minNights && pricing.minNights > 1 ? (
               <RuleRow icon="🌙" label={t("Estancia mínima")} value={t("{n} noches", { n: pricing.minNights })} />
@@ -243,7 +252,11 @@ export default async function AppListingPage({ params }: Props) {
 
         <Section title={t("Precio")}>
           <dl className="space-y-1.5 text-[15px] text-[#333]">
-            <Row label={t("Por noche")} value={mxn(listing.pricePerNight)} />
+            {listing.pricePerMonth ? (
+              <Row label={t("Renta mensual")} value={mxn(listing.pricePerMonth)} />
+            ) : (
+              <Row label={t("Por noche")} value={mxn(listing.pricePerNight)} />
+            )}
             {pricing?.weekendPrice ? <Row label={t("Viernes y sábado")} value={mxn(pricing.weekendPrice)} /> : null}
             {discountRows(pricing).map((r) => (
               <Row key={r.key + JSON.stringify(r.vars ?? {})} label={t(r.key, r.vars)} value={`−${r.pct}%`} accent />
@@ -282,6 +295,7 @@ export default async function AppListingPage({ params }: Props) {
         listingId={listing.id}
         slug={slug}
         pricePerNight={listing.pricePerNight}
+        pricePerMonth={listing.pricePerMonth}
         cleaningFee={listing.cleaningFee}
         depositMxn={listing.depositMxn}
         tax={listing.tax}

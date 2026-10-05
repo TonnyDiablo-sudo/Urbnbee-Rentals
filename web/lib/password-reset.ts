@@ -8,7 +8,7 @@ import { findUserByEmail, listAllUsers, updateUserAuth } from "@/lib/marketplace
 import { SUPPORT_EMAIL } from "@/lib/support-contact";
 
 const TTL_MS = 60 * 60 * 1000;
-const COOLDOWN_MS = 15 * 60 * 1000;
+const COOLDOWN_MS = 2 * 60 * 1000;
 
 function hash(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -30,10 +30,9 @@ export async function requestPasswordReset(emailRaw: string, origin: string): Pr
   updateUserAuth(user.id, {
     passwordResetTokenHash: hash(token),
     passwordResetExpiresAt: new Date(Date.now() + TTL_MS).toISOString(),
-    passwordResetRequestedAt: new Date().toISOString(),
   });
   const link = `${origin.replace(/:\/\/app\./i, "://")}/recuperar/nueva?token=${token}`;
-  await sendEmail({
+  const sent = await sendEmail({
     mailbox: "noreply",
     to: user.email,
     subject: "Restablece tu contraseña de Cabibee",
@@ -48,6 +47,7 @@ export async function requestPasswordReset(emailRaw: string, origin: string): Pr
       button: { href: link, label: "Elegir contraseña nueva" },
     }),
   });
+  if (sent) updateUserAuth(user.id, { passwordResetRequestedAt: new Date().toISOString() });
 }
 
 export async function consumePasswordReset(

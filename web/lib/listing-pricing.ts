@@ -38,14 +38,43 @@ export const DEFAULT_EARLY_BIRD_DAYS = 30;
 export const DEFAULT_LAST_MINUTE_DAYS = 7;
 export const MAX_SEASONAL_PROMOS = 12;
 
+export type RentalMode = "nightly" | "monthly";
+
 export type PricingInput = {
   pricePerNight: number;
   nightlyPriceOverrides?: Record<string, number>;
   pricing?: ListingPricing;
+  rentalMode?: RentalMode;
+  pricePerMonth?: number;
 };
 
 export const WEEKLY_NIGHTS = 7;
 export const MONTHLY_NIGHTS = 28;
+/** En renta mensual: el mes se cobra como 30 noches y es la estancia mínima. */
+export const MONTHLY_RENTAL_NIGHTS = 30;
+
+export function isMonthlyRental(p: Pick<PricingInput, "rentalMode" | "pricePerMonth">): boolean {
+  return p.rentalMode === "monthly" && (p.pricePerMonth ?? 0) > 0;
+}
+
+/** Precio por noche que sale de la renta mensual (centavos, para que 30 noches sumen el mes). */
+export function nightlyFromMonthly(pricePerMonth: number): number {
+  return Math.round((pricePerMonth / MONTHLY_RENTAL_NIGHTS) * 100) / 100;
+}
+
+/**
+ * Con renta mensual, el precio por noche guardado se deriva del mensual, no hay precio de
+ * fin de semana y la estancia mínima es de 30 noches. Así el calendario del huésped
+ * (que sólo recibe precio por noche y `pricing`) cotiza lo mismo que el servidor.
+ */
+export function applyRentalMode(p: PricingInput): { pricePerNight: number; pricing: ListingPricing } {
+  const pricing: ListingPricing = { ...(p.pricing ?? {}) };
+  if (!isMonthlyRental(p)) return { pricePerNight: p.pricePerNight, pricing };
+  delete pricing.weekendPrice;
+  pricing.minNights = Math.max(MONTHLY_RENTAL_NIGHTS, pricing.minNights ?? 0);
+  if (pricing.maxNights && pricing.maxNights < pricing.minNights) pricing.maxNights = pricing.minNights;
+  return { pricePerNight: nightlyFromMonthly(p.pricePerMonth!), pricing };
+}
 
 function parseIso(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number);
@@ -65,6 +94,7 @@ export function isWeekendNight(iso: string): boolean {
 export function nightPrice(p: PricingInput, iso: string): number {
   const override = p.nightlyPriceOverrides?.[iso];
   if (typeof override === "number" && Number.isFinite(override)) return override;
+  if (isMonthlyRental(p)) return nightlyFromMonthly(p.pricePerMonth!);
   const weekend = p.pricing?.weekendPrice;
   if (weekend && weekend > 0 && isWeekendNight(iso)) return weekend;
   return p.pricePerNight;
@@ -237,7 +267,9 @@ export function upcomingSeasonalPromos(p: ListingPricing | undefined, today: str
 
 /** Mensaje en español (clave de traducción) si la duración no cumple las reglas del anuncio. */
 export function stayLengthError(p: PricingInput, nights: number): { key: string; n: number } | null {
-  const min = p.pricing?.minNights ?? 1;
+  const min = isMonthlyRental(p)
+    ? Math.max(MONTHLY_RENTAL_NIGHTS, p.pricing?.minNights ?? 1)
+    : (p.pricing?.minNights ?? 1);
   const max = p.pricing?.maxNights;
   if (min > 1 && nights < min) return { key: "La estancia mínima es de {n} noches.", n: min };
   if (max && max > 0 && nights > max) return { key: "La estancia máxima es de {n} noches.", n: max };

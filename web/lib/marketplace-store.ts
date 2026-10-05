@@ -423,6 +423,7 @@ type UserAuthPatch = Partial<
     | "passwordResetTokenHash"
     | "passwordResetExpiresAt"
     | "passwordResetRequestedAt"
+    | "billingCountry"
   >
 >;
 

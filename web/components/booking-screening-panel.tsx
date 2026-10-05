@@ -8,6 +8,7 @@ import {
   SCREENING_STATUS_LABEL,
 } from "@/lib/screening-types";
 import { useT } from "@/components/i18n-provider";
+import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 
 export function BookingScreeningPanel({
   bookingId,
@@ -32,6 +33,7 @@ export function BookingScreeningPanel({
   const [accepted, setAccepted] = useState(false);
   const [payer, setPayer] = useState<ScreeningPayer>("host");
 
+  if (!CREDIT_CHECK_ENABLED) return null;
   if (role === "host" && !screening && !canRequest) return null;
   if (role === "guest" && !screening) return null;
 

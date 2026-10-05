@@ -13,6 +13,8 @@ type Listing = {
   city: string;
   zone: string;
   pricePerNight: number;
+  rentalMode?: "nightly" | "monthly";
+  pricePerMonth?: number;
   photos: string[];
   published: boolean;
   verified: boolean;
@@ -68,8 +70,10 @@ export function HostListings() {
                 </div>
                 <p className="mt-2.5 truncate text-[15px] font-semibold text-[#222]">{l.title}</p>
                 <p className="truncate text-sm text-[#717171]">
-                  {[l.zone, l.city].filter(Boolean).join(", ") || t("Sin ciudad")} · ${l.pricePerNight.toLocaleString("es-MX")}{" "}
-                  {t("MXN noche")}
+                  {[l.zone, l.city].filter(Boolean).join(", ") || t("Sin ciudad")} ·{" "}
+                  {l.rentalMode === "monthly" && l.pricePerMonth
+                    ? `$${l.pricePerMonth.toLocaleString("es-MX")} ${t("MXN al mes")}`
+                    : `$${l.pricePerNight.toLocaleString("es-MX")} ${t("MXN noche")}`}
                 </p>
               </Link>
             </li>

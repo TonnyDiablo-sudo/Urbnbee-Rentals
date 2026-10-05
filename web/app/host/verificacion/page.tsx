@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AddressProofPanel } from "@/components/host/address-proof-panel";
+import { CountryPicker, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
 import { EngineListingsPanel } from "@/components/host/engine-listings-panel";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale, type TFn } from "@/lib/i18n";
@@ -32,7 +33,10 @@ type Status = {
   hostCurrentPeriodEnd?: string;
   stripeConfigured: boolean;
   billingRegion: VerificationRegion;
+  billingCountry: BillingCountry | null;
+  emailVerified: boolean;
   catalogPlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
+  enginePlansByRegion?: { mx: CatalogPlan[]; us: CatalogPlan[] };
   listingsTotal: number;
   listingsWithBadge: number;
 };
@@ -58,6 +62,35 @@ function billingCaption(plan: CatalogPlan, t: TFn): string {
     n: meses,
     amount: perMonth.toLocaleString("es-MX", { maximumFractionDigits: 0 }),
   });
+}
+
+function PlanCard({
+  plan,
+  busy,
+  stripeConfigured,
+  onPick,
+}: {
+  plan: CatalogPlan;
+  busy: boolean;
+  stripeConfigured: boolean;
+  onPick: (code: string) => void;
+}) {
+  const t = useT();
+  return (
+    <div className="flex flex-col rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{plan.label}</p>
+      <p className="mt-3 text-2xl font-semibold text-[#222]">{formatAmount(plan)}</p>
+      <p className="mt-1 text-xs text-[#888]">{billingCaption(plan, t)}</p>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onPick(plan.code)}
+        className="mt-5 w-full rounded-lg bg-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#222] disabled:opacity-50"
+      >
+        {stripeConfigured ? t("Contratar") : t("Contratar (demo)")}
+      </button>
+    </div>
+  );
 }
 
 export default function HostVerificacionPage() {
@@ -166,11 +199,8 @@ function HostVerificacionClient() {
   };
 
   const catalogPlans = data?.catalogPlansByRegion[selectedRegion] ?? [];
-  const showRegionToggle = Boolean(
-    data &&
-      data.catalogPlansByRegion.mx.length > 0 &&
-      data.catalogPlansByRegion.us.length > 0
-  );
+  const enginePlans = data?.enginePlansByRegion?.[selectedRegion] ?? [];
+  const canPay = Boolean(data?.billingCountry) && Boolean(data?.emailVerified);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -258,25 +288,39 @@ function HostVerificacionClient() {
             <AddressProofPanel surface="web" />
           </div>
 
-          {showRegionToggle && (
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              <span className="text-sm text-[#717171]">{t("Precios:")}</span>
-              <div className="inline-flex rounded-lg border border-[#ddd] bg-white p-0.5">
-                {(["mx", "us"] as VerificationRegion[]).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setSelectedRegion(r)}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-                      selectedRegion === r ? "bg-black text-white" : "text-[#484848]"
-                    }`}
-                  >
-                    {r === "mx" ? t("México (MXN)") : "USA (USD)"}
-                  </button>
+          {(!data.identityPlanActive || !data.membershipActive) && (
+            <div className="mt-6 space-y-3">
+              <CountryPicker
+                value={data.billingCountry}
+                onSaved={(c) => {
+                  setSelectedRegion(regionForCountry(c));
+                  void load();
+                }}
+              />
+              {!data.emailVerified && <VerifyEmailBox />}
+              <p className="text-sm text-[#484848]">
+                {selectedRegion === "us"
+                  ? t("Te identificas con tu licencia de manejo, State ID o pasaporte y una selfie.")
+                  : t("Te identificas con tu INE o pasaporte y una selfie.")}
+              </p>
+            </div>
+          )}
+
+          {!data.membershipActive && enginePlans.length > 0 && (
+            <section className="mt-6">
+              <h2 className="text-lg font-semibold text-[#222]">{t("Motor de reservas")}</h2>
+              <p className="mt-1 text-sm text-[#484848]">
+                {t("El huésped se identifica, paga con tarjeta en tu Stripe y firma el contrato. Incluye tu verificación de identidad como anfitrión. Conectar Stripe es gratis, pero no activa las reservas.")}
+              </p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                {enginePlans.map((p) => (
+                  <PlanCard key={p.code} plan={p} busy={busy || !canPay} stripeConfigured={data.stripeConfigured} onPick={(c) => void startCheckout(c)} />
                 ))}
               </div>
-            </div>
+              <a href="/tienda" className="mt-3 inline-block text-sm font-medium text-[#222] underline">
+                {t("Ver más productos en la Tienda")}
+              </a>
+            </section>
           )}
 
           {catalogPlans.length > 0 && !data.identityPlanActive && (
@@ -294,7 +338,7 @@ function HostVerificacionClient() {
                   )}
                   <button
                     type="button"
-                    disabled={busy}
+                    disabled={busy || !canPay}
                     onClick={() => void startCheckout(p.code)}
                     className="mt-5 w-full rounded-lg bg-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#222] disabled:opacity-50"
                   >
@@ -322,7 +366,7 @@ function HostVerificacionClient() {
           )}
 
           <div className="mt-6 flex flex-wrap gap-3">
-            {!data.identityVerified && data.identityEnabled && data.stripeConfigured && (
+            {!data.identityVerified && data.identityEnabled && data.stripeConfigured && data.identityPlanActive && (
               <button
                 type="button"
                 disabled={busy}

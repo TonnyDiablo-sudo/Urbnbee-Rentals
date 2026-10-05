@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { SiteHeader } from "@/components/site-header";
+import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 
@@ -127,7 +129,14 @@ export default async function HostLayout({ children }: { children: React.ReactNo
             </Link>
           </nav>
         </aside>
-        <main className="min-w-0 flex-1 bg-[#fafafa] px-4 py-8 sm:px-8">{children}</main>
+        <main className="min-w-0 flex-1 bg-[#fafafa] px-4 py-8 sm:px-8">
+          {!user.emailVerifiedAt && user.role !== "admin" && (
+            <div className="mx-auto mb-6 max-w-3xl">
+              <VerifyEmailBox email={user.email} placeholder={isPlaceholderEmail(user.email)} />
+            </div>
+          )}
+          {children}
+        </main>
       </div>
     </>
   );

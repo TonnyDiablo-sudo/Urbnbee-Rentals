@@ -7,6 +7,7 @@ type Summary = {
   capacity: number;
   used: number;
   listings: { id: string; title: string; city: string; published: boolean; on: boolean }[];
+  demand?: { occupancy: number; multiplier: number; soldOut: boolean; slotsLeft: number };
 };
 
 /** Elige qué anuncios usan los lugares pagados de «Anuncio destacado». */
@@ -53,6 +54,18 @@ export function FeaturedListingsPanel({ storeHref = "/tienda" }: { storeHref?: s
           {data.capacity === 0 ? t("Ir a la Tienda") : t("Agregar más en la Tienda")}
         </a>
       </p>
+      {data.demand && (
+        <p className={`mt-2 rounded-lg px-3 py-2 text-xs ${data.demand.soldOut ? "bg-amber-50 text-amber-900" : "bg-[#f7f7f7] text-[#555]"}`}>
+          {data.demand.soldOut
+            ? t("Agotado por ahora: todos los lugares de anuncio destacado están ocupados. Si ya tienes, los conservas.")
+            : data.demand.multiplier > 1
+              ? t("Quedan {n} lugares. Por la demanda, hoy el precio está {pct} % arriba del normal.", {
+                  n: data.demand.slotsLeft,
+                  pct: Math.round((data.demand.multiplier - 1) * 100),
+                })
+              : t("Quedan {n} lugares. El precio sube o baja según cuántos anfitriones lo quieren ahorita.", { n: data.demand.slotsLeft })}
+        </p>
+      )}
       {err && <p className="mt-2 text-sm text-red-700">{t(err)}</p>}
       <ul className="mt-4 divide-y divide-[#f0f0f0]">
         {data.listings.map((l) => (

@@ -75,10 +75,11 @@ export function InfoButton({ className = "" }: { className?: string }) {
     <Link
       href="/como-funciona"
       prefetch
-      className={`flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-full text-[#222] hover:bg-[#f5f5f5] ${className}`}
+      className={`flex h-9 shrink-0 touch-manipulation items-center gap-1 whitespace-nowrap rounded-full bg-[#dcb81e] pl-2 pr-3 text-[13px] font-semibold text-black shadow-sm hover:bg-[#c9a714] ${className}`}
       aria-label={t("Qué es Cabibee y cómo funciona")}
     >
-      <IconInfo />
+      <IconInfo className="h-[18px] w-[18px]" />
+      <span className="hidden min-[390px]:inline">{t("¿Qué es Cabibee?")}</span>
     </Link>
   );
 }

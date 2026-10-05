@@ -14,6 +14,8 @@ type Props = {
   listingId: string;
   slug: string;
   pricePerNight: number;
+  /** Renta mensual: el precio principal es por mes. */
+  pricePerMonth?: number;
   cleaningFee?: number;
   depositMxn?: number;
   tax?: HostTaxSettings;
@@ -54,7 +56,8 @@ export function ListingActionBar(p: Props) {
         <div className="mx-auto flex max-w-xl md:max-w-3xl items-center gap-3 px-5 py-3">
           <div className="min-w-0 flex-1">
             <p className="text-[15px] text-[#222]">
-              <span className="font-bold">${p.pricePerNight.toLocaleString(numberLocale(lang))}</span> MXN {t("noche")}
+              <span className="font-bold">${(p.pricePerMonth ?? p.pricePerNight).toLocaleString(numberLocale(lang))}</span> MXN{" "}
+              {p.pricePerMonth ? t("/ mes") : t("noche")}
             </p>
             {p.chatAvailable && !p.isOwn && p.bookable && (
               <Link href={chatHref} prefetch className="text-sm font-semibold text-[#222] underline">

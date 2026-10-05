@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { ADDRESS_PROOF_GEOLOCATION_ENABLED } from "@/lib/feature-flags";
+
+type DeviceLoc = { lat: number; lng: number; accuracy: number };
 
 type Latest = { status: "pending" | "approved" | "rejected" | "review"; createdAt: string; message: string | null; reasons: string[] };
 type Row = {
@@ -27,6 +30,26 @@ export function AddressProofPanel({ surface }: { surface: "app" | "web" }) {
   const [err, setErr] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const reload = useCallback(() => setVersion((v) => v + 1), []);
+  const [loc, setLoc] = useState<DeviceLoc | null>(null);
+  const [locBusy, setLocBusy] = useState(false);
+  const [locErr, setLocErr] = useState<string | null>(null);
+
+  function shareLocation() {
+    if (!("geolocation" in navigator)) return setLocErr("Tu dispositivo no permite compartir la ubicación.");
+    setLocBusy(true);
+    setLocErr(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy });
+        setLocBusy(false);
+      },
+      (e) => {
+        setLocErr(e.code === e.PERMISSION_DENIED ? "No diste permiso para usar tu ubicación." : "No pudimos obtener tu ubicación. Intenta de nuevo.");
+        setLocBusy(false);
+      },
+      { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 }
+    );
+  }
 
   useEffect(() => {
     let alive = true;
@@ -49,6 +72,11 @@ export function AddressProofPanel({ surface }: { surface: "app" | "web" }) {
     const fd = new FormData();
     fd.set("listingId", listingId);
     fd.set("file", file);
+    if (ADDRESS_PROOF_GEOLOCATION_ENABLED && loc) {
+      fd.set("lat", String(loc.lat));
+      fd.set("lng", String(loc.lng));
+      fd.set("accuracy", String(loc.accuracy));
+    }
     try {
       const res = await fetch("/api/host/address-proof", { method: "POST", body: fd });
       const j = (await res.json().catch(() => ({}))) as { error?: string };
@@ -83,6 +111,29 @@ export function AddressProofPanel({ surface }: { surface: "app" | "web" }) {
           {t(err)}
         </p>
       )}
+      {ADDRESS_PROOF_GEOLOCATION_ENABLED && rows.some((r) => r.hasAddress && !r.locationVerified) && (
+        <div className="mt-3 rounded-lg border border-[#f0f0f0] bg-[#fafafa] px-3 py-2.5">
+          <p className="text-sm font-semibold text-[#222]">{t("Opcional: comparte tu ubicación")}</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-[#717171]">
+            {t("Hazlo estando en el alojamiento, antes de subir el recibo. Nos ayuda a confirmar que la dirección es real; no se muestra a nadie.")}
+          </p>
+          {loc ? (
+            <p className="mt-2 text-xs font-medium text-green-800">
+              {t("Ubicación lista (±{m} m). Se enviará con tu comprobante.", { m: String(Math.round(loc.accuracy)) })}
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={shareLocation}
+              disabled={locBusy}
+              className="mt-2 rounded-lg border border-[#222] px-3 py-1.5 text-xs font-semibold text-[#222] disabled:opacity-50"
+            >
+              {locBusy ? t("Obteniendo ubicación…") : t("Compartir mi ubicación")}
+            </button>
+          )}
+          {locErr && <p className="mt-1 text-xs text-red-600">{t(locErr)}</p>}
+        </div>
+      )}
       {rows.length === 0 && <p className="mt-3 text-sm text-[#888]">{t("Todavía no tienes anuncios.")}</p>}
 
       <ul className="mt-4 space-y-3">
@@ -113,7 +164,7 @@ export function AddressProofPanel({ surface }: { surface: "app" | "web" }) {
             </div>
             {r.locationVerified && r.covered === false && (
               <p className="mt-2 text-xs text-amber-800">
-                {t("Comprobante aprobado. La insignia se muestra cuando el anuncio tiene motor de reservas o verificación de domicilio pagada.")}{" "}
+                {t("Comprobante aprobado. La insignia se muestra cuando el anuncio tiene la verificación de domicilio pagada.")}{" "}
                 <a href="/tienda" className="font-semibold underline">
                   {t("Ir a la Tienda")}
                 </a>

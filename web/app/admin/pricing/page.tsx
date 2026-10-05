@@ -57,7 +57,7 @@ const UNIT_BY_FAMILY: Record<string, string> = {
   booking_engine: "precio por anuncio (el anfitrión elige cuántos)",
   collaborator_seat: "precio por colaborador",
   cleaning_tool: "precio por anuncio",
-  address_proof: "precio por anuncio (ya incluida en el motor)",
+  address_proof: "precio por anuncio (aparte del motor)",
   featured_listing: "precio por anuncio destacado",
 };
 const unitLabel = (code: string): string | undefined => UNIT_BY_FAMILY[code.replace(/_(6|12)$/, "")];
@@ -211,6 +211,10 @@ export default function AdminPricingPage() {
           <p className="mb-4 max-w-3xl text-sm text-gray-500">
             Lo que se cobra es el costo del proveedor más el margen de Cabibee. El anfitrión elige
             si lo paga él o se lo cobra al huésped. El buró real se enchufa después.
+          </p>
+          <p className="mb-4 max-w-3xl rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Apagado: huéspedes y anfitriones no lo ven hasta que un proveedor nos apruebe
+            (CREDIT_CHECK_ENABLED en lib/feature-flags.ts).
           </p>
           {data.screening && (
             <ScreeningCard screening={data.screening} onSaved={() => void load()} />

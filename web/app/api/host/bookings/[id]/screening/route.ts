@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBookingById } from "@/lib/bookings-store";
+import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 import { getSessionUser } from "@/lib/session";
 import {
   canRequestScreening,
@@ -32,6 +33,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  if (!CREDIT_CHECK_ENABLED) {
+    return NextResponse.json({ error: "La revisión de historial crediticio todavía no está disponible." }, { status: 403 });
+  }
   const user = await getSessionUser();
   if (!user || (user.role !== "host" && user.role !== "admin")) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { attachmentView } from "@/lib/chat-attachments";
+import { chatMediaAllowed } from "@/lib/chat-media-access";
 import { resolveListingDetail } from "@/lib/get-listing-detail";
 import { guestSessionIdForUser, listAllThreadsForGuest, listThreadMerged } from "@/lib/host-inbox-store";
 import { getT } from "@/lib/i18n/server";
@@ -89,6 +90,7 @@ export default async function AppGuestThreadPage({ params }: Props) {
       subtitle={record.title}
       slug={record.slug}
       initial={await initialMessages(listingId, user.id)}
+      mediaAllowed={chatMediaAllowed(user)}
     />
   );
 }

@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { SiteHeader } from "@/components/site-header";
+import { isPlaceholderEmail } from "@/lib/associate-provision";
+import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 
@@ -42,12 +45,14 @@ export default async function GuestLayout({ children }: { children: React.ReactN
             >
               {t("Mis reservas")}
             </Link>
-            <Link
-              href="/guest/screening"
-              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
-            >
-              {t("Screening")}
-            </Link>
+            {CREDIT_CHECK_ENABLED && (
+              <Link
+                href="/guest/screening"
+                className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
+              >
+                {t("Screening")}
+              </Link>
+            )}
             <Link
               href="/guest/messages"
               className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
@@ -92,7 +97,14 @@ export default async function GuestLayout({ children }: { children: React.ReactN
             </Link>
           </nav>
         </aside>
-        <main className="min-w-0 flex-1 bg-[#fafafa] px-4 py-8 sm:px-8">{children}</main>
+        <main className="min-w-0 flex-1 bg-[#fafafa] px-4 py-8 sm:px-8">
+          {!user.emailVerifiedAt && user.role !== "admin" && (
+            <div className="mx-auto mb-6 max-w-3xl">
+              <VerifyEmailBox email={user.email} placeholder={isPlaceholderEmail(user.email)} />
+            </div>
+          )}
+          {children}
+        </main>
       </div>
     </>
   );

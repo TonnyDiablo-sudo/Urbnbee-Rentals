@@ -3,6 +3,7 @@
 import { ChatAttachmentView, type ChatAttachmentClient } from "@/components/chat/attachment-view";
 import { VOICE_MAX_SEC, shrinkImage, useVoiceRecorder } from "@/components/chat/media-input";
 import { MessageBody } from "@/components/chat/message-body";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale, type Lang } from "@/lib/i18n";
@@ -53,7 +54,10 @@ export function ChatThread({
   sendAttachment,
   composerLock,
   showVia,
+  mediaLockedHref,
 }: {
+  /** Sin identidad verificada: sólo texto y una liga a la página para verificarse. */
+  mediaLockedHref?: string;
   /** Fotos y notas de voz; sin esto el chat es sólo texto. */
   sendAttachment?: SendAttachment;
   /** Mensajes que ya trae la página: la conversación se pinta sin esperar otra consulta. */
@@ -130,12 +134,13 @@ export function ChatThread({
     await refresh(temp.id);
   };
 
+  const canSendMedia = Boolean(sendAttachment) && !mediaLockedHref;
   const voice = useVoiceRecorder();
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
 
   const sendMedia = async (file: Blob, kind: "image" | "audio", durationSec?: number) => {
-    if (!sendAttachment) return;
+    if (!sendAttachment || !canSendMedia) return;
     const caption = kind === "image" ? text.trim() : "";
     const localUrl = URL.createObjectURL(file);
     const temp: ChatMessage = {
@@ -267,8 +272,16 @@ export function ChatThread({
             </button>
           </div>
         ) : (
+          <>
+          {sendAttachment && mediaLockedHref && (
+            <p className="mb-2 px-2 text-xs text-[#717171]">
+              <Link href={mediaLockedHref} className="font-semibold text-[#222] underline">
+                {t("Verifica tu identidad para mandar fotos y audios.")}
+              </Link>
+            </p>
+          )}
           <div className="flex items-end gap-1">
-            {sendAttachment && (
+            {canSendMedia && (
               <>
                 <button type="button" onClick={() => cameraRef.current?.click()} className={iconBtn} aria-label={t("Tomar foto")}>
                   <IconCamera />
@@ -288,7 +301,7 @@ export function ChatThread({
               placeholder={t("Escribe un mensaje")}
               className="ml-1 max-h-32 min-h-[44px] min-w-0 flex-1 resize-none rounded-2xl border border-[#ddd] px-4 py-2.5 text-[15px] outline-none focus:border-[#222]"
             />
-            {sendAttachment && voice.supported && !text.trim() ? (
+            {canSendMedia && voice.supported && !text.trim() ? (
               <button
                 type="button"
                 onClick={() => void voice.start()}
@@ -308,6 +321,7 @@ export function ChatThread({
               </button>
             )}
           </div>
+          </>
         )}
       </form>
       )}

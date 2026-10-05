@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import type { BillingCountry, UserRecord } from "@/lib/marketplace-types";
 import type { VerificationRegion } from "@/lib/verification-types";
 
 function headerCountry(h: Headers): string | undefined {
@@ -24,4 +25,17 @@ export function verificationRegionFromHeaders(h: Headers): VerificationRegion {
 
 export function verificationRegionFromRequest(req: NextRequest): VerificationRegion {
   return verificationRegionFromHeaders(req.headers);
+}
+
+export function regionForCountry(country: BillingCountry): VerificationRegion {
+  return country === "MX" ? "mx" : "us";
+}
+
+/** El país que eligió el usuario manda; si todavía no elige, se adivina por la conexión. */
+export function billingRegionFor(req: NextRequest, user: Pick<UserRecord, "billingCountry"> | null): VerificationRegion {
+  return user?.billingCountry ? regionForCountry(user.billingCountry) : verificationRegionFromRequest(req);
+}
+
+export function parseBillingCountry(v: unknown): BillingCountry | null {
+  return v === "MX" || v === "US" || v === "OTHER" ? v : null;
 }

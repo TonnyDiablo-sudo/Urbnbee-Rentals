@@ -3,6 +3,7 @@ import type { HostListingRecord } from "@/lib/marketplace-types";
 import type { ListingDetail } from "@/lib/listing-detail-data";
 import { listingShowsLocationBadge } from "@/lib/address-proof-access";
 import { listingStreet } from "@/lib/listing-address";
+import { isMonthlyRental } from "@/lib/listing-pricing";
 import { publicNameOf } from "@/lib/display-name";
 import { findUserById, getHostProfile } from "@/lib/marketplace-store";
 import { listingReviewsForPublic } from "@/lib/stay-reviews";
@@ -95,6 +96,9 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
     guests: record.guests,
     bedrooms: record.bedrooms,
     bathrooms: record.bathrooms,
+    bathroomType: record.bathroomType,
+    selfCheckIn: record.selfCheckIn,
+    pricePerMonth: isMonthlyRental(record) ? record.pricePerMonth : undefined,
     size: record.size,
     verified: hostShowsVerifiedRibbon(record.hostId),
     identityVerified: isHostIdentityVerified(record.hostId),

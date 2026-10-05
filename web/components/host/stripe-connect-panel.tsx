@@ -47,6 +47,7 @@ export function StripeConnectPanel() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const [engineOn, setEngineOn] = useState<boolean | null>(null);
 
   const fetchStatus = useCallback(async (refresh = false) => {
     const res = await fetch(`/api/host/settings/payments${refresh ? "?refresh=1" : ""}`, { credentials: "include" });
@@ -70,6 +71,10 @@ export function StripeConnectPanel() {
       if (r.status) setStatus(r.status);
       else setErr(r.error ?? null);
     });
+    fetch("/api/host/verification/status", { credentials: "include", cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => alive && j && setEngineOn(Boolean(j.membershipActive)))
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -96,7 +101,11 @@ export function StripeConnectPanel() {
       setSecret("");
       setWhsec("");
       setManual(false);
-      setOk("Stripe conectado. Las estancias se cobran en tu cuenta.");
+      setOk(
+        engineOn
+          ? "Stripe conectado. Las estancias se cobran en tu cuenta."
+          : "Stripe conectado. Para recibir reservas falta contratar el motor de reservas."
+      );
     } finally {
       setBusy(false);
     }
@@ -193,8 +202,25 @@ export function StripeConnectPanel() {
         </section>
       ) : (
         <p className="rounded-2xl border border-[#ebebeb] bg-[#fafafa] px-4 py-3 text-sm leading-relaxed text-[#555]">
-          {t("Los pagos del motor de reservas son sólo en línea, con tarjeta. Si no conectas tu Stripe, el huésped paga con Stripe a través de Cabibee y la reserva se confirma sola al pagar.")}
+          {t("Los pagos del motor de reservas son sólo en línea, con tarjeta, y caen directo en tu Stripe. Conectarlo es gratis.")}
         </p>
+      )}
+
+      {status.connected && engineOn === false && (
+        <section className="rounded-2xl border border-[#f0d77a] bg-[#fdf6d8] p-5 text-sm text-[#5c4a0a]">
+          <p className="text-base font-semibold">{t("Tu Stripe ya está conectado. Falta el motor de reservas.")}</p>
+          <p className="mt-1 leading-relaxed">
+            {t("Conectar Stripe es gratis, pero no activa las reservas. Para que tus huéspedes reserven y paguen, contrata el Motor de reservas: se paga por anuncio, por 1, 6 o 12 meses, e incluye tu verificación de identidad.")}
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <a href="/tienda#p-booking_engine" className="inline-flex items-center justify-center rounded-xl bg-[#222] px-4 py-3 text-[15px] font-semibold text-white">
+              {t("Contratar el motor de reservas")}
+            </a>
+            <a href="/tienda" className={outlineBtn}>
+              {t("Ver más productos en la Tienda")}
+            </a>
+          </div>
+        </section>
       )}
 
       {!status.connected && (

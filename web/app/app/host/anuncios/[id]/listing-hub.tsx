@@ -4,8 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "@/components/i18n-provider";
-import { AMENITY_OPTIONS } from "@/lib/amenity-options";
-import type { ArrivalGuide } from "@/lib/arrival-guide";
+import { AMENITY_GROUPS, AMENITY_OPTIONS } from "@/lib/amenity-options";
+import { ArrivalMessageEditor } from "@/components/host/arrival-message-editor";
+import { ACCESS_CODE_MAX, type ArrivalGuide } from "@/lib/arrival-guide";
+import { arrivalMessageOf, type ArrivalMessageSettings } from "@/lib/arrival-message-template";
+import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
+import { bathroomsKey, selfCheckInKey } from "@/lib/listing-facts";
+import { isMonthlyRental } from "@/lib/listing-pricing";
 import { getContractTemplate } from "@/lib/booking-contract-templates";
 import { COUNTRY_OPTIONS, isMexico, MX_STATE_LIST } from "@/lib/geo-places";
 import { exactAddressProblem, listingFullAddress, listingNeedsUnit } from "@/lib/listing-address";
@@ -47,6 +52,7 @@ type PanelId =
   | "wifi"
   | "manual"
   | "checkout"
+  | "arrivalMessage"
   | "faq"
   | "agentNotes";
 
@@ -272,7 +278,9 @@ export function ListingHub({ listingId }: { listingId: string }) {
           <Row
             label={t("Precio")}
             value={[
-              t("{price} por noche", { price: money(listing.pricePerNight) }),
+              isMonthlyRental(listing)
+                ? t("{price} al mes", { price: money(listing.pricePerMonth!) })
+                : t("{price} por noche", { price: money(listing.pricePerNight) }),
               p.weekendPrice ? t("fin de semana {price}", { price: money(p.weekendPrice) }) : null,
               p.weeklyDiscountPct ? t("{n}% semanal", { n: p.weeklyDiscountPct }) : null,
               p.monthlyDiscountPct ? t("{n}% mensual", { n: p.monthlyDiscountPct }) : null,
@@ -296,7 +304,7 @@ export function ListingHub({ listingId }: { listingId: string }) {
             value={`${t(listing.guests === 1 ? "{n} huésped" : "{n} huéspedes", { n: listing.guests })} · ${t(
               listing.bedrooms === 1 ? "{n} recámara" : "{n} recámaras",
               { n: listing.bedrooms }
-            )} · ${t(listing.bathrooms === 1 ? "{n} baño" : "{n} baños", { n: listing.bathrooms })}`}
+            )} · ${t(bathroomsKey(listing.bathrooms, listing.bathroomType), { n: listing.bathrooms })}`}
             onClick={() => setPanel("capacity")}
           />
           <Row label={t("Descripción")} value={listing.description || t("Sin descripción")} onClick={() => setPanel("description")} />
@@ -320,10 +328,10 @@ export function ListingHub({ listingId }: { listingId: string }) {
             label={t("Cómo se reserva")}
             value={
               listing.bookingApprovalMode === "instant"
-                ? listing.requireCreditCheck
+                ? CREDIT_CHECK_ENABLED && listing.requireCreditCheck
                   ? t("Reservación inmediata · pide historial")
                   : t("Reservación inmediata")
-                : listing.requireCreditCheck
+                : CREDIT_CHECK_ENABLED && listing.requireCreditCheck
                   ? t("Tú apruebas · pide historial")
                   : t("Tú apruebas cada solicitud")
             }
@@ -378,7 +386,8 @@ export function ListingHub({ listingId }: { listingId: string }) {
       ) : (
         <>
           <p className="mx-5 mt-4 rounded-2xl bg-[#fdf6d8] px-4 py-3 text-sm text-[#5c4a0a]">
-            {t("El huésped ve esta guía en «Viajes» en cuanto su reserva está confirmada.")}
+            {t("El huésped ve esta guía en «Viajes» en cuanto su reserva está confirmada.")}{" "}
+            {t("Se le comparte al huésped sólo cuando reserva y paga con el Motor de reservas.")}
           </p>
           <ul className="mt-2 divide-y divide-[#f0f0f0] px-5">
             <Row
@@ -392,7 +401,19 @@ export function ListingHub({ listingId }: { listingId: string }) {
               }
               onClick={() => setPanel("times")}
             />
-            <Row label={t("Cómo entrar")} value={ag.checkInMethod || t("Agregar detalles")} onClick={() => setPanel("checkin")} />
+            <Row
+              label={t("Cómo entrar")}
+              value={
+                [
+                  selfCheckInKey(listing.selfCheckIn) ? t(selfCheckInKey(listing.selfCheckIn)!) : null,
+                  ag.checkInMethod || null,
+                  ag.accessCode ? t("Código de acceso") : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || t("Agregar detalles")
+              }
+              onClick={() => setPanel("checkin")}
+            />
             <Row label={t("Cómo llegar")} value={ag.directions || t("Agregar detalles")} onClick={() => setPanel("directions")} />
             <Row
               label={t("Wifi")}
@@ -404,6 +425,22 @@ export function ListingHub({ listingId }: { listingId: string }) {
               label={t("Instrucciones de salida")}
               value={ag.checkoutInstructions || t("Agregar detalles")}
               onClick={() => setPanel("checkout")}
+            />
+            <Row
+              label={t("Mensaje de llegada")}
+              value={
+                arrivalMessageOf(listing.arrivalMessage).mode === "auto"
+                  ? t(
+                      arrivalMessageOf(listing.arrivalMessage).daysBefore === 0
+                        ? "Automático el día de llegada"
+                        : arrivalMessageOf(listing.arrivalMessage).daysBefore === 1
+                          ? "Automático 1 día antes"
+                          : "Automático {n} días antes",
+                      { n: arrivalMessageOf(listing.arrivalMessage).daysBefore }
+                    )
+                  : t("Manual: lo mandas desde la reservación")
+              }
+              onClick={() => setPanel("arrivalMessage")}
             />
           </ul>
         </>
@@ -500,6 +537,7 @@ const PANEL_TITLE: Record<PanelId, string> = {
   wifi: "Wifi",
   manual: "Manual de la casa",
   checkout: "Instrucciones de salida",
+  arrivalMessage: "Mensaje de llegada",
   faq: "Preguntas frecuentes",
   agentNotes: "Información general",
 };
@@ -526,6 +564,8 @@ function PanelBody({
     guests: listing.guests,
     bedrooms: listing.bedrooms,
     bathrooms: listing.bathrooms,
+    bathroomType: listing.bathroomType ?? null,
+    selfCheckIn: listing.selfCheckIn ?? null,
     description: listing.description,
     amenities: [...listing.amenities],
     city: listing.city,
@@ -544,6 +584,7 @@ function PanelBody({
     creditCheckPayer: listing.creditCheckPayer === "host" ? "host" : "guest",
     chargeTax: listing.chargeTax !== false,
     arrival: { ...(listing.arrivalGuide ?? {}) } as ArrivalGuide,
+    arrivalMessage: arrivalMessageOf(listing.arrivalMessage) as ArrivalMessageSettings,
     agentFaq: (listing.agentFaq ?? []).map((f) => ({ ...f })) as AgentFaqItem[],
     agentNotes: listing.agentNotes ?? "",
   }));
@@ -568,7 +609,16 @@ function PanelBody({
       case "type":
         return { categoryKey: draft.categoryKey, spaceType: draft.spaceType };
       case "capacity":
-        return { guests: draft.guests, bedrooms: draft.bedrooms, bathrooms: draft.bathrooms };
+        return {
+          guests: draft.guests,
+          bedrooms: draft.bedrooms,
+          bathrooms: draft.bathrooms,
+          bathroomType: draft.bathrooms > 0 ? draft.bathroomType : null,
+        };
+      case "checkin":
+        return { arrivalGuide: draft.arrival, selfCheckIn: draft.selfCheckIn };
+      case "arrivalMessage":
+        return { arrivalMessage: draft.arrivalMessage };
       case "description":
         return { description: draft.description };
       case "amenities":
@@ -708,6 +758,29 @@ function PanelBody({
               <Counter label={t("Huéspedes")} value={draft.guests} min={1} onChange={(v) => set("guests", v)} />
               <Counter label={t("Recámaras")} value={draft.bedrooms} min={0} onChange={(v) => set("bedrooms", v)} />
               <Counter label={t("Baños")} value={draft.bathrooms} min={0} onChange={(v) => set("bathrooms", v)} />
+              {draft.bathrooms > 0 && (
+                <div className="py-4">
+                  <p className="text-[15px] text-[#222]">{t("¿Los baños son privados o compartidos?")}</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        ["private", "Privados", "Sólo para tus huéspedes."],
+                        ["shared", "Compartidos", "Con otros huéspedes o contigo."],
+                      ] as const
+                    ).map(([v, label, hint]) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => set("bathroomType", draft.bathroomType === v ? null : v)}
+                        className={`rounded-2xl border p-3 text-left ${draft.bathroomType === v ? "border-[#222] ring-1 ring-[#222]" : "border-[#ddd]"}`}
+                      >
+                        <span className="block text-[15px] font-semibold text-[#222]">{t(label)}</span>
+                        <span className="mt-0.5 block text-xs text-[#717171]">{t(hint)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -721,24 +794,33 @@ function PanelBody({
             />
           )}
 
-          {id === "amenities" && (
-            <div className="flex flex-wrap gap-2">
-              {[...new Set([...AMENITY_OPTIONS, ...draft.amenities])].map((a) => {
-                const on = draft.amenities.includes(a);
-                return (
-                  <button
-                    key={a}
-                    type="button"
-                    onClick={() => set("amenities", on ? draft.amenities.filter((x) => x !== a) : [...draft.amenities, a])}
-                    className={`rounded-full border px-3.5 py-2 text-sm font-medium ${on ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#444]"}`}
-                  >
-                    {on ? "✓ " : ""}
-                    {t(a)}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          {id === "amenities" &&
+            [
+              ...AMENITY_GROUPS,
+              { key: "other", title: "Otras", items: draft.amenities.filter((a) => !AMENITY_OPTIONS.includes(a)) },
+            ]
+              .filter((g) => g.items.length > 0)
+              .map((g) => (
+                <div key={g.key}>
+                  <p className="mb-2 text-sm font-semibold text-[#222]">{t(g.title)}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {g.items.map((a) => {
+                      const on = draft.amenities.includes(a);
+                      return (
+                        <button
+                          key={a}
+                          type="button"
+                          onClick={() => set("amenities", on ? draft.amenities.filter((x) => x !== a) : [...draft.amenities, a])}
+                          className={`rounded-full border px-3.5 py-2 text-sm font-medium ${on ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#444]"}`}
+                        >
+                          {on ? "✓ " : ""}
+                          {t(a)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
 
           {id === "location" && (
             <>
@@ -976,6 +1058,7 @@ function PanelBody({
                   <span className="mt-0.5 block text-sm text-[#717171]">{t(hint)}</span>
                 </button>
               ))}
+              {CREDIT_CHECK_ENABLED && (
               <div className="mt-4 rounded-2xl border border-[#ebebeb] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[15px] font-semibold text-[#222]">{t("Pedir historial crediticio")}</span>
@@ -1010,6 +1093,7 @@ function PanelBody({
                   </div>
                 )}
               </div>
+              )}
             </div>
           )}
 
@@ -1027,7 +1111,55 @@ function PanelBody({
               <TimeField label="Salida antes de" value={draft.arrival.checkOutTime} onChange={(v) => setArrival("checkOutTime", v)} />
             </div>
           )}
-          {id === "checkin" && ta("checkInMethod", "Ej.: Caja de llaves junto a la puerta, código 1234. O: te recibo en persona.")}
+          {id === "checkin" && (
+            <>
+              <p className="text-sm font-semibold text-[#222]">{t("¿Cómo es la entrada?")}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    [true, "Entrada autónoma", "Caja de llaves, cerradura con código…"],
+                    [false, "Te recibe el anfitrión", "Tú o alguien de tu equipo entrega las llaves."],
+                  ] as const
+                ).map(([v, label, hint]) => (
+                  <button
+                    key={String(v)}
+                    type="button"
+                    onClick={() => set("selfCheckIn", draft.selfCheckIn === v ? null : v)}
+                    className={`rounded-2xl border p-3 text-left ${draft.selfCheckIn === v ? "border-[#222] ring-1 ring-[#222]" : "border-[#ddd]"}`}
+                  >
+                    <span className="block text-[15px] font-semibold text-[#222]">{t(label)}</span>
+                    <span className="mt-0.5 block text-xs text-[#717171]">{t(hint)}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-[#717171]">{t("Esto sí se muestra en el anuncio. Lo demás sólo lo ve el huésped con reserva.")}</p>
+              <label className="block text-sm font-medium text-[#222]">
+                {t("Instrucciones para entrar")}
+                {ta("checkInMethod", "Ej.: Caja de llaves junto a la puerta, código 1234. O: te recibo en persona.")}
+              </label>
+              <label className="block text-sm font-medium text-[#222]">
+                {t("Código de acceso")}
+                <input
+                  value={draft.arrival.accessCode ?? ""}
+                  maxLength={ACCESS_CODE_MAX}
+                  onChange={(e) => setArrival("accessCode", e.target.value)}
+                  placeholder={t("Ej.: Puerta 4821#, caja de llaves 0912")}
+                  className={inputCls}
+                />
+              </label>
+              <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#484848]">
+                {t("Se le comparte al huésped sólo cuando reserva y paga con el Motor de reservas.")}
+              </p>
+            </>
+          )}
+          {id === "arrivalMessage" && (
+            <ArrivalMessageEditor
+              listing={listing}
+              guide={draft.arrival}
+              value={draft.arrivalMessage}
+              onChange={(v) => set("arrivalMessage", v)}
+            />
+          )}
           {id === "directions" && ta("directions", "Cómo llegar, dónde estacionarse, qué timbre tocar…")}
           {id === "wifi" && (
             <>

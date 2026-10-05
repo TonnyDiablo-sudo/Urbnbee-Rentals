@@ -70,7 +70,15 @@ export function AppListingCardView({
         )}
       </div>
       <p className="mt-1 text-[15px] text-[#222]">
-        <span className="font-semibold">${l.pricePerNight.toLocaleString("es-MX")} MXN</span> {t("noche")}
+        {l.pricePerMonth ? (
+          <>
+            <span className="font-semibold">${l.pricePerMonth.toLocaleString("es-MX")} MXN</span> {t("/ mes")}
+          </>
+        ) : (
+          <>
+            <span className="font-semibold">${l.pricePerNight.toLocaleString("es-MX")} MXN</span> {t("noche")}
+          </>
+        )}
       </p>
       {note && <p className="mt-0.5 text-[13px] text-[#717171]">{note}</p>}
     </Link>

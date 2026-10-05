@@ -377,14 +377,16 @@ export function hostShowsVerifiedRibbon(userId: string): boolean {
 
 /**
  * Verificación de identidad pagada. Es un solo producto por persona: la membresía de
- * huésped y la verificación de anfitrión anterior cuentan igual.
+ * huésped y la verificación de anfitrión anterior cuentan igual. El motor de reservas
+ * la incluye: el anfitrión que cobra reservas tiene que estar identificado.
  */
 export function identityPlanActive(userId: string): boolean {
   const paid = getHostEntitlement(userId, HOST_SKU_HOST_VERIFICATION);
   if (paid && paid.status === "active" && !periodOver(paid.currentPeriodEnd)) return true;
   const v = getVerification(userId);
   const s = v?.subscriptionStatus;
-  return (s === "active" || s === "trialing") && !periodOver(v?.currentPeriodEnd);
+  if ((s === "active" || s === "trialing") && !periodOver(v?.currentPeriodEnd)) return true;
+  return isHostMembershipPaidUp(userId);
 }
 
 /** @deprecated Usa hostShowsVerifiedRibbon o isHostIdentityVerified. */

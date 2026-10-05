@@ -8,10 +8,11 @@ import {
 import { getSessionUser } from "@/lib/session";
 import { deleteProofsForListing } from "@/lib/address-proof-store";
 import { sanitizeArrivalGuide } from "@/lib/arrival-guide";
+import { sanitizeArrivalMessage } from "@/lib/arrival-message-template";
 import { sanitizeListingContract } from "@/lib/booking-contract-templates";
 import { exactAddressProblem } from "@/lib/listing-address";
 import { sanitizeAgentFaq, sanitizeAgentNotes } from "@/lib/listing-agent-info";
-import { sanitizePricing } from "@/lib/listing-pricing";
+import { applyRentalMode, sanitizePricing } from "@/lib/listing-pricing";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import type { ListingCategory } from "@/lib/mock-data";
 
@@ -69,6 +70,15 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   if (body.guests !== undefined) patch.guests = clampInt(body.guests, 1, 50);
   if (body.bedrooms !== undefined) patch.bedrooms = clampInt(body.bedrooms, 0, 50);
   if (body.bathrooms !== undefined) patch.bathrooms = clampInt(body.bathrooms, 0, 50);
+  if (body.bathroomType === "private" || body.bathroomType === "shared") patch.bathroomType = body.bathroomType;
+  else if (body.bathroomType === null) patch.bathroomType = undefined;
+  if (typeof body.selfCheckIn === "boolean") patch.selfCheckIn = body.selfCheckIn;
+  else if (body.selfCheckIn === null) patch.selfCheckIn = undefined;
+  if (body.rentalMode === "nightly" || body.rentalMode === "monthly") patch.rentalMode = body.rentalMode;
+  if (body.pricePerMonth !== undefined) {
+    const n = Math.round(Number(body.pricePerMonth));
+    patch.pricePerMonth = Number.isFinite(n) && n > 0 ? Math.min(n, 10_000_000) : undefined;
+  }
   if (body.lat !== undefined) patch.lat = Number(body.lat);
   if (body.lng !== undefined) patch.lng = Number(body.lng);
   if (body.locationPrecision === "approximate" || body.locationPrecision === "exact") {
@@ -84,6 +94,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   }
   if (body.pricing !== undefined) patch.pricing = sanitizePricing(body.pricing);
   if (body.arrivalGuide !== undefined) patch.arrivalGuide = sanitizeArrivalGuide(body.arrivalGuide);
+  if (body.arrivalMessage !== undefined) patch.arrivalMessage = sanitizeArrivalMessage(body.arrivalMessage);
   if (body.rules && typeof body.rules === "object") {
     patch.rules = {
       smoking: body.rules.smoking ?? listing.rules.smoking,
@@ -128,6 +139,15 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
 
   if (body.regenerateSlug === true && body.title) {
     patch.slug = slugifyTitle(String(body.title));
+  }
+
+  const touchesPrice = ["rentalMode", "pricePerMonth", "pricePerNight", "pricing"].some((k) => k in patch);
+  if (touchesPrice) {
+    const merged = { ...listing, ...patch };
+    if (merged.rentalMode === "monthly" && !(merged.pricePerMonth && merged.pricePerMonth > 0)) {
+      return NextResponse.json({ error: "Escribe la renta mensual." }, { status: 400 });
+    }
+    Object.assign(patch, applyRentalMode(merged));
   }
 
   const touchesAddress = ["addressLine", "addressUnit", "noAddressUnit"].some((k) => k in patch);

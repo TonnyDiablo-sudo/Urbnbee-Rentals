@@ -10,4 +10,6 @@ export async function register() {
   startPlanExpiryWorker();
   const { startReviewReminderWorker } = await import("@/lib/review-reminders");
   startReviewReminderWorker();
+  const { startArrivalMessageWorker } = await import("@/lib/arrival-message");
+  startArrivalMessageWorker();
 }

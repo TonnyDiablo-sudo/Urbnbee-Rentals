@@ -8,7 +8,7 @@ import { MEMBERSHIP_PLAN_FAMILY } from "@/lib/membership-plans-types";
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { getSessionUser } from "@/lib/session";
 import { getStripe } from "@/lib/stripe-server";
-import { verificationRegionFromRequest } from "@/lib/verification-region";
+import { billingRegionFor } from "@/lib/verification-region";
 import { hostAcceptsBookings } from "@/lib/verification-store";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +16,10 @@ export const dynamic = "force-dynamic";
 /** La verificación de identidad es un solo producto por persona. */
 function identityPlans(region: "mx" | "us") {
   return membershipPublicPlans(region, "guest").filter((p) => MEMBERSHIP_PLAN_FAMILY[p.code] === "guest_membership");
+}
+
+function enginePlans(region: "mx" | "us") {
+  return membershipPublicPlans(region, "host").filter((p) => MEMBERSHIP_PLAN_FAMILY[p.code] === "booking_engine");
 }
 
 export async function GET(req: NextRequest) {
@@ -27,15 +31,21 @@ export async function GET(req: NextRequest) {
   await ensurePublicCatalogFresh();
   const summary = hostVerificationSummary(user.id);
   const listings = listListingsForHost(user.id);
-  const billingRegion = verificationRegionFromRequest(req);
+  const billingRegion = billingRegionFor(req, user);
 
   return NextResponse.json({
     ...summary,
     stripeConfigured: Boolean(getStripe()),
     billingRegion,
+    billingCountry: user.billingCountry ?? null,
+    emailVerified: Boolean(user.emailVerifiedAt) || user.role === "admin",
     catalogPlansByRegion: {
       mx: identityPlans("mx"),
       us: identityPlans("us"),
+    },
+    enginePlansByRegion: {
+      mx: enginePlans("mx"),
+      us: enginePlans("us"),
     },
     acceptsBookings: hostAcceptsBookings(user.id),
     entitlements: entitlementsPublicView(user.id),

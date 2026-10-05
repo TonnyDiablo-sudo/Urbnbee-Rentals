@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 import { SCREENING_BAND_LABEL, SCREENING_PAYER_LABEL, SCREENING_STATUS_LABEL } from "@/lib/screening-types";
 import { TONE_CLS, fmtDay, fmtMxn, hostStatusOf } from "../../_components/booking-status";
 import { Sheet } from "../../_components/sheet";
@@ -72,7 +73,13 @@ export function ReservationSheet({
           payProof={booking.payProof}
         />
 
-        {booking.guestUserId && !CLOSED_STATUSES.has(booking.status) && <ScreeningBox bookingId={booking.id} />}
+        {CREDIT_CHECK_ENABLED && booking.guestUserId && !CLOSED_STATUSES.has(booking.status) && (
+          <ScreeningBox bookingId={booking.id} />
+        )}
+
+        {booking.status === "CONFIRMED" && (
+          <ArrivalMessageBox key={booking.id} bookingId={booking.id} sentAt={booking.arrivalMessageSentAt} />
+        )}
 
         <div className="grid gap-2">
           {isPending(booking.status) && onReview && (
@@ -96,6 +103,55 @@ export function ReservationSheet({
 }
 
 const CLOSED_STATUSES = new Set(["REJECTED", "CANCELLED", "EXPIRED", "COMPLETED"]);
+
+/** Manda (o vuelve a mandar) los datos de llegada por el chat y por correo. */
+function ArrivalMessageBox({ bookingId, sentAt: initialSentAt }: { bookingId: string; sentAt?: string }) {
+  const t = useT();
+  const lang = useLang();
+  const [sentAt, setSentAt] = useState(initialSentAt);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const send = async () => {
+    if (sentAt && !window.confirm(t("Ya se mandaron. ¿Enviarlas otra vez?"))) return;
+    setBusy(true);
+    setErr(null);
+    const res = await fetch(`/api/host/bookings/${encodeURIComponent(bookingId)}/arrival-message`, { method: "POST" }).catch(
+      () => null
+    );
+    const j = res ? await res.json().catch(() => ({})) : {};
+    setBusy(false);
+    if (!res?.ok) {
+      setErr(typeof j.error === "string" ? j.error : "No se pudo enviar.");
+      return;
+    }
+    setSentAt(j.sentAt);
+  };
+
+  return (
+    <div className="rounded-2xl border border-[#ebebeb] p-4">
+      <p className="text-[15px] font-semibold text-[#222]">{t("Instrucciones de llegada")}</p>
+      <p className="mt-1 text-sm text-[#717171]">
+        {sentAt
+          ? t("Enviadas el {date}.", {
+              date: new Date(sentAt).toLocaleString(lang === "en" ? "en-US" : "es-MX", { dateStyle: "medium", timeStyle: "short" }),
+            })
+          : t("Dirección, llegada, código y wifi, con la plantilla de tu anuncio. Van por el chat y por correo.")}
+      </p>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void send()}
+        className={`mt-3 w-full rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50 ${
+          sentAt ? "border border-[#222] text-[#222]" : "bg-[#dcb81e] text-black"
+        }`}
+      >
+        {busy ? t("Enviando…") : sentAt ? t("Volver a enviar") : t("Enviar instrucciones de llegada")}
+      </button>
+      {err && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{t(err)}</p>}
+    </div>
+  );
+}
 
 type ScreeningState = {
   screening: {

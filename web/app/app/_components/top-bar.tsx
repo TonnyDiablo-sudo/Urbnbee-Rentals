@@ -52,7 +52,7 @@ export function TabHeader({ title, subtitle, right }: { title: string; subtitle?
         </div>
         <div className="flex shrink-0 items-start gap-1">
           {right}
-          <InfoButton />
+          <InfoButton className="mt-0.5" />
           <NotificationBell />
         </div>
       </div>

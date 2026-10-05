@@ -1,7 +1,8 @@
 import type { ArrivalGuide } from "@/lib/arrival-guide";
+import type { ArrivalMessageSettings } from "@/lib/arrival-message-template";
 import type { ListingContractSettings } from "@/lib/booking-contract-templates";
 import type { AgentFaqItem } from "@/lib/listing-agent-info";
-import type { ListingPricing } from "@/lib/listing-pricing";
+import type { ListingPricing, RentalMode } from "@/lib/listing-pricing";
 import type { ListingCategory } from "@/lib/mock-data";
 import type { ListingDetail } from "@/lib/listing-detail-data";
 import type { HostTaxSettings } from "@/lib/stay-tax";
@@ -48,7 +49,11 @@ export type UserRecord = {
   passwordResetExpiresAt?: string;
   /** Último pedido de recuperación, para no mandar un correo tras otro. */
   passwordResetRequestedAt?: string;
+  /** País que eligió al pagar: México paga en MXN; Estados Unidos y cualquier otro, en USD. */
+  billingCountry?: BillingCountry;
 };
+
+export type BillingCountry = "MX" | "US" | "OTHER";
 
 /** Contact & bio shown on listing detail — scoped per host (tenant). */
 export type HostProfileRecord = {
@@ -106,7 +111,14 @@ export type HostListingRecord = {
   guests: number;
   bedrooms: number;
   bathrooms: number;
+  /** Si los baños son sólo del huésped o se comparten. Sin esto no se indica. */
+  bathroomType?: "private" | "shared";
+  /** true: entrada autónoma (caja de llaves, cerradura con código); false: lo recibe el anfitrión. */
+  selfCheckIn?: boolean;
   size?: string;
+  /** monthly: el anfitrión pone `pricePerMonth` y `pricePerNight` se deriva (mes = 30 noches). */
+  rentalMode?: RentalMode;
+  pricePerMonth?: number;
   pricePerNight: number;
   cleaningFee: number;
   /** Precio por noche para fechas concretas (YYYY-MM-DD). Si falta la clave, aplica `pricePerNight`. */
@@ -114,6 +126,8 @@ export type HostListingRecord = {
   /** Fin de semana, descuentos por duración y estancia mínima/máxima. */
   pricing?: ListingPricing;
   arrivalGuide?: ArrivalGuide;
+  /** Mensaje con los datos de llegada que se le manda al huésped de una reserva del motor. */
+  arrivalMessage?: ArrivalMessageSettings;
   photos: string[];
   amenities: string[];
   rules: ListingDetail["rules"];

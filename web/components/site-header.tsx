@@ -11,7 +11,7 @@ const nav = [
   { href: "/alojamientos", label: "Alojamientos" },
   { href: "/membresia", label: "Membresía" },
   { href: "/nosotros", label: "Nosotros" },
-  { href: "/como-funciona#servicios", label: "Servicios" },
+  { href: "/como-funciona", label: "¿Qué es Cabibee?" },
   { href: "/blog", label: "Blog" },
   { href: "/contacto", label: "Contacto" },
 ];
@@ -103,6 +103,15 @@ export function SiteHeader({ heroSentinelRef }: Props) {
 
           {/* Auth */}
           <div className="flex items-center gap-4 shrink-0">
+            <Link
+              href="/como-funciona"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#dcb81e] px-3 py-1.5 text-sm font-semibold text-[#dcb81e] transition hover:bg-[#dcb81e] hover:text-black lg:hidden"
+            >
+              <span aria-hidden className="flex h-4 w-4 items-center justify-center rounded-full bg-[#dcb81e] text-[11px] font-bold text-black">
+                ?
+              </span>
+              {t("¿Qué es Cabibee?")}
+            </Link>
             <div className="hidden sm:flex">
               <LangSwitch dark />
             </div>

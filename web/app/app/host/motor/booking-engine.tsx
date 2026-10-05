@@ -3,15 +3,10 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { CountryPicker, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
 import { useT } from "@/components/i18n-provider";
 import { WebLink } from "../../_components/site-origin";
-import {
-  PlanPicker,
-  RegionToggle,
-  startIdentity,
-  startMembershipCheckout,
-  type CatalogPlan,
-} from "../../_components/plan-picker";
+import { PlanPicker, startIdentity, startMembershipCheckout, type CatalogPlan } from "../../_components/plan-picker";
 
 type Status = {
   acceptsBookings: boolean;
@@ -23,8 +18,10 @@ type Status = {
   identityEnabled: boolean;
   stripeConfigured: boolean;
   billingRegion: "mx" | "us";
+  billingCountry: BillingCountry | null;
+  emailVerified: boolean;
   hostCurrentPeriodEnd?: string;
-  catalogPlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
+  enginePlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
 };
 
 const RETURN = "/host/motor";
@@ -34,7 +31,6 @@ export function BookingEngine() {
   const params = useSearchParams();
   const justPaid = params.get("subscription") === "success";
   const [data, setData] = useState<Status | null>(null);
-  const [region, setRegion] = useState<"mx" | "us">("mx");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -47,7 +43,6 @@ export function BookingEngine() {
         return;
       }
       setData(j);
-      setRegion(j.billingRegion === "us" ? "us" : "mx");
     } catch {
       setErr("Sin conexión.");
     }
@@ -56,6 +51,8 @@ export function BookingEngine() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const region = data?.billingCountry ? regionForCountry(data.billingCountry) : (data?.billingRegion ?? "mx");
 
   const buy = async (plan: string) => {
     setBusy(true);
@@ -76,8 +73,11 @@ export function BookingEngine() {
 
   if (!data) return <p className="px-5 py-6 text-sm text-[#999]">{err ? t(err) : t("Cargando…")}</p>;
 
-  const plans = data.catalogPlansByRegion[region];
-  const bothRegions = data.catalogPlansByRegion.mx.length > 0 && data.catalogPlansByRegion.us.length > 0;
+  const plans = data.enginePlansByRegion[region];
+  const engineOn = data.membershipActive;
+  const until = data.hostCurrentPeriodEnd
+    ? new Date(data.hostCurrentPeriodEnd).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
+    : null;
 
   return (
     <div className="space-y-6 px-5 py-5">
@@ -94,49 +94,95 @@ export function BookingEngine() {
         </p>
         <p className={`mt-1 text-sm leading-relaxed ${data.acceptsBookings ? "text-white/75" : ""}`}>
           {data.acceptsBookings
-            ? t("Los huéspedes verificados pueden elegir fechas, pagar y firmar contrato en Cabibee.")
-            : t("Publicar y chatear es gratis. Con el motor de reservas los huéspedes reservan y pagan dentro de Cabibee, con contrato.")}
+            ? t("Los huéspedes se identifican, pagan y firman contrato en Cabibee.")
+            : t("Publicar y chatear es gratis. Para recibir reservas necesitas tu Stripe conectado y el Motor de reservas.")}
         </p>
       </div>
 
-      <dl className="divide-y divide-[#f0f0f0] rounded-2xl border border-[#ebebeb] text-[15px]">
-        <Row label={t("Verificación de identidad")} value={data.identityPlanActive ? t("Activa") : t("Sin contratar")} />
-        <Row
-          label={t("Identidad")}
-          value={data.identityVerified ? t("Comprobada") : data.kycStatus === "pending" ? t("En revisión") : t("Sin comprobar")}
-        />
-        <Row label={t("Listón «Miembro verificado»")} value={data.ribbon ? t("Sí") : t("No")} />
-      </dl>
+      <Step n={1} title={t("Conecta tu Stripe")} done={false} hint={t("Gratis. Conectarlo no activa el motor de reservas.")}>
+        <StripeCard engineOn={engineOn} />
+      </Step>
 
-      <StripeCard />
-
-
-      {!data.identityVerified && data.identityEnabled && data.stripeConfigured && (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void verify()}
-          className="w-full rounded-xl border border-[#222] py-3.5 text-[15px] font-semibold text-[#222] disabled:opacity-60"
-        >
-          {data.kycStatus === "pending" ? t("Continuar verificación de identidad") : t("Verificar mi identidad")}
-        </button>
-      )}
-
-      {!data.identityPlanActive && (
-        <section>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-[#222]">{t("Verificación de identidad")}</h2>
-            {bothRegions && <RegionToggle value={region} onChange={setRegion} />}
+      <Step
+        n={2}
+        title={t("Motor de reservas")}
+        done={engineOn}
+        hint={engineOn ? (until ? t("Activo hasta el {d}", { d: until }) : t("Activo")) : t("Se paga por anuncio.")}
+      >
+        {engineOn ? (
+          <p className="text-sm text-[#555]">{t("Elige abajo qué anuncios lo usan. Para más anuncios, súbele la cantidad en la Tienda.")}</p>
+        ) : (
+          <div className="space-y-3">
+            <ul className="list-disc space-y-1 pl-5 text-sm text-[#484848]">
+              <li>{t("El huésped se identifica con identificación oficial y selfie antes de reservar.")}</li>
+              <li>{t("Paga con tarjeta en tu Stripe y la reserva se confirma sola.")}</li>
+              <li>{t("Se genera el contrato y lo firman en línea.")}</li>
+              <li>{t("Incluye tu verificación de identidad como anfitrión, obligatoria para la seguridad del huésped.")}</li>
+            </ul>
+            <CountryPicker value={data.billingCountry} onSaved={() => void load()} />
+            {!data.emailVerified && <VerifyEmailBox />}
+            {plans.length > 0 ? (
+              <PlanPicker
+                plans={plans}
+                busy={busy || !data.billingCountry || !data.emailVerified}
+                onPick={(c) => void buy(c)}
+                demo={!data.stripeConfigured}
+              />
+            ) : (
+              <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#555]">{t("Todavía no hay planes del motor de reservas a la venta.")}</p>
+            )}
           </div>
-          {plans.length > 0 ? (
-            <PlanPicker plans={plans} busy={busy} onPick={(c) => void buy(c)} demo={!data.stripeConfigured} />
+        )}
+      </Step>
+
+      <Step
+        n={3}
+        title={t("Tu identidad")}
+        done={data.identityVerified}
+        hint={
+          data.identityVerified
+            ? t("Comprobada")
+            : data.kycStatus === "pending"
+              ? t("En revisión")
+              : t("Obligatoria. Viene incluida en el motor de reservas.")
+        }
+      >
+        {!data.identityVerified &&
+          (data.identityPlanActive ? (
+            data.identityEnabled && data.stripeConfigured ? (
+              <div className="space-y-2">
+                <p className="text-sm text-[#555]">
+                  {region === "us"
+                    ? t("Ten a la mano tu licencia de manejo, State ID o pasaporte. Te tomarás una selfie. Lo revisa Stripe Identity; Cabibee no guarda las fotos.")
+                    : t("Ten a la mano tu INE o pasaporte. Te tomarás una selfie. Lo revisa Stripe Identity; Cabibee no guarda las fotos.")}
+                </p>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void verify()}
+                  className="w-full rounded-xl border border-[#222] py-3.5 text-[15px] font-semibold text-[#222] disabled:opacity-60"
+                >
+                  {data.kycStatus === "pending" ? t("Continuar verificación de identidad") : t("Verificar mi identidad")}
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-[#555]">{t("La verificación de identidad no está disponible ahorita.")}</p>
+            )
           ) : (
-            <p className="rounded-2xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#555]">
-              {t("Todavía no hay planes de verificación de identidad a la venta.")}
-            </p>
-          )}
-        </section>
-      )}
+            <p className="text-sm text-[#555]">{t("Se habilita en cuanto contrates el motor de reservas: primero se cobra y luego te pedimos tu identificación.")}</p>
+          ))}
+      </Step>
+
+      <Link
+        href="/tienda"
+        className="flex items-center justify-between rounded-2xl border border-[#ebebeb] px-4 py-3 text-[15px] font-semibold text-[#222]"
+      >
+        <span>
+          {t("Ver más productos en la Tienda")}
+          <span className="block text-sm font-normal text-[#717171]">{t("Limpieza, colaboradores, anuncio destacado, verificación de domicilio…")}</span>
+        </span>
+        <span aria-hidden>›</span>
+      </Link>
 
       <WebLink
         path="/host/verificacion"
@@ -149,12 +195,45 @@ export function BookingEngine() {
   );
 }
 
+function Step({
+  n,
+  title,
+  done,
+  hint,
+  children,
+}: {
+  n: number;
+  title: string;
+  done: boolean;
+  hint?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-2 flex items-start gap-3">
+        <span
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+            done ? "bg-[#1e7a3a] text-white" : "bg-[#222] text-white"
+          }`}
+        >
+          {done ? "✓" : n}
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-[17px] font-semibold text-[#222]">{title}</h2>
+          {hint && <p className="text-sm text-[#717171]">{hint}</p>}
+        </div>
+      </div>
+      {children && <div className="pl-10">{children}</div>}
+    </section>
+  );
+}
+
 type StripeState = {
   connected: boolean;
   account: { chargesEnabled: boolean; livemode: boolean; name: string | null; email: string | null } | null;
 };
 
-function StripeCard() {
+function StripeCard({ engineOn }: { engineOn: boolean }) {
   const t = useT();
   const [s, setS] = useState<StripeState | null>(null);
   useEffect(() => {
@@ -175,7 +254,11 @@ function StripeCard() {
         <span>
           <strong>{t("Stripe conectado")}</strong>
           {s.account?.name || s.account?.email ? ` · ${s.account.name || s.account.email}` : ""}
-          <span className="block text-emerald-800/80">{t("Las estancias se cobran en tu cuenta.")}</span>
+          <span className="block text-emerald-800/80">
+            {engineOn
+              ? t("Las estancias se cobran en tu cuenta.")
+              : t("Listo. Para que tus anuncios reciban reservas, falta contratar el motor de reservas (paso 2).")}
+          </span>
         </span>
         <span aria-hidden>›</span>
       </Link>
@@ -191,7 +274,7 @@ function StripeCard() {
           ? s.account && !s.account.livemode
             ? t("Estás en modo prueba: los huéspedes no pueden pagar con tarjetas reales.")
             : t("Stripe todavía no te deja cobrar. Completa tus datos y tu banco en Stripe.")
-          : t("Si no tienes cuenta, te ayudamos a crearla en unos minutos. Hasta que la conectes, tus anuncios no reciben reservas en línea: Cabibee nunca cobra la estancia.")}
+          : t("Si no tienes cuenta, te ayudamos a crearla en unos minutos. Conectarla es gratis; Cabibee nunca cobra la estancia.")}
       </p>
       <Link
         href="/host/pagos"
@@ -199,15 +282,6 @@ function StripeCard() {
       >
         {s.connected ? t("Revisar mi Stripe") : t("Conectar o crear cuenta de Stripe")}
       </Link>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4 px-4 py-3">
-      <dt className="text-[#717171]">{label}</dt>
-      <dd className="font-medium text-[#222]">{value}</dd>
     </div>
   );
 }

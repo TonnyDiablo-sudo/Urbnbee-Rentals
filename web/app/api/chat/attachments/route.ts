@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
 import { attachmentPreview, attachmentView, storeChatAttachment } from "@/lib/chat-attachments";
+import { CHAT_MEDIA_LOCKED_ERROR, chatMediaAllowed } from "@/lib/chat-media-access";
 import { publicNameOf, shareABooking } from "@/lib/display-name";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { sanitizeBodyText, sanitizeGuestName } from "@/lib/host-inbox-sanitize";
@@ -46,6 +47,9 @@ export async function POST(req: NextRequest) {
   } else {
     if (!listing.published) return NextResponse.json({ error: "Este alojamiento no está disponible." }, { status: 404 });
     guestSessionId = guestSessionIdForUser(user.id);
+  }
+  if (!chatMediaAllowed(user, { as, listingHostId: listing.hostId })) {
+    return NextResponse.json({ error: CHAT_MEDIA_LOCKED_ERROR, needsIdentity: true }, { status: 403 });
   }
 
   const stored = await storeChatAttachment({

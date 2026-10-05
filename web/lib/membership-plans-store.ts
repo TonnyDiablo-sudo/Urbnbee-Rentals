@@ -45,7 +45,7 @@ const FAMILY_COPY: Record<MembershipPlanFamily, { label: string; description: st
   booking_engine: {
     label: "Motor de reservas",
     description:
-      "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
+      "Por cada anuncio: el huésped se identifica con identificación oficial y selfie, paga con tarjeta (Stripe), firma contrato en línea con la ley del lugar y las fechas se bloquean solas. Incluye tu verificación de identidad como anfitrión.",
   },
   cleaning_tool: {
     label: "Herramienta de limpieza",
@@ -59,8 +59,7 @@ const FAMILY_COPY: Record<MembershipPlanFamily, { label: string; description: st
   },
   address_proof: {
     label: "Verificación de domicilio",
-    description:
-      "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",
+    description: "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio.",
   },
   featured_listing: {
     label: "Anuncio destacado",
@@ -170,15 +169,21 @@ function mergeIdentityPlansOnce(): boolean {
   return true;
 }
 
-const OLD_ENGINE_COPY =
-  "Por cada anuncio: reservas en línea con cobro por Stripe o pago manual (transferencia, CLABE, Zelle), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.";
+/**
+ * Descripciones que ya no son ciertas: el motor no acepta pagos manuales, no trae el
+ * asistente de urbnbeeai ni la verificación de domicilio. Se cambian si nadie las editó.
+ */
+const OUTDATED_COPY = new Set([
+  "Por cada anuncio: reservas en línea con cobro por Stripe o pago manual (transferencia, CLABE, Zelle), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
+  "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
+  "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",
+]);
 
-/** El motor ya no acepta pagos manuales: cambia la descripción vieja si nadie la editó. */
-function dropManualPayCopy(): boolean {
+function dropOutdatedCopy(): boolean {
   let changed = false;
   for (const code of MEMBERSHIP_PLAN_CODES) {
     const prev = rows.get(code);
-    if (!prev || prev.description !== OLD_ENGINE_COPY) continue;
+    if (!prev || !OUTDATED_COPY.has(prev.description)) continue;
     rows.set(code, { ...prev, description: seedFor(code).description, updatedAt: nowIso() });
     changed = true;
   }
@@ -227,7 +232,7 @@ function reloadFromDisk() {
   const seeded = seedMissing();
   const priced = applyOwnerPricesOnce();
   const merged = mergeIdentityPlansOnce();
-  const copy = dropManualPayCopy();
+  const copy = dropOutdatedCopy();
   if (seeded || priced || merged || copy) persist();
 }
 

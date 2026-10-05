@@ -1,5 +1,6 @@
 import "server-only";
 import type Stripe from "stripe";
+import { featuredPlanAmount, featuredPurchaseProblem, isFeaturedPlan } from "@/lib/featured-demand";
 import { getHostEntitlement } from "@/lib/host-entitlements-store";
 import { hostEntitlementAllowsAccess } from "@/lib/host-entitlement-types";
 import { buildMembershipCheckout, membershipPlanCodeFromInput, membershipQuantity } from "@/lib/membership-checkout";
@@ -24,7 +25,8 @@ export type CartLine = { code: MembershipPlanCode; quantity: number };
 export function catalogPurchaseProblem(
   user: { id: string; role: string },
   code: MembershipPlanCode,
-  region: VerificationRegion
+  region: VerificationRegion,
+  quantity = 1
 ): { error: string; status: number } | null {
   if (MEMBERSHIP_PLAN_AUDIENCE[code] === "host" && user.role !== "host" && user.role !== "admin") {
     return { error: "Esta membresía es para anfitriones.", status: 403 };
@@ -47,6 +49,9 @@ export function catalogPurchaseProblem(
       status: 409,
     };
   }
+  // 410 y no 409: chargeLine lee 409 como «ya lo tiene» y no cobraría.
+  const soldOut = isFeaturedPlan(code) ? featuredPurchaseProblem(quantity) : null;
+  if (soldOut) return { error: soldOut.error, status: 410 };
   return null;
 }
 
@@ -70,7 +75,7 @@ export function cartTotal(lines: CartLine[], region: VerificationRegion): number
   let total = 0;
   for (const l of lines) {
     const plan = getMembershipPlan(l.code);
-    if (plan) total += membershipPlanAmount(plan, region) * l.quantity;
+    if (plan) total += featuredPlanAmount(plan, region) * l.quantity;
   }
   return Math.round(total * 100) / 100;
 }

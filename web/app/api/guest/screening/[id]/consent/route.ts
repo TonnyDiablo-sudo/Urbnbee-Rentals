@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 import { getSessionUser } from "@/lib/session";
 import { guestConsentScreening, screeningPublicView } from "@/lib/screening-service";
 
@@ -13,6 +14,9 @@ function requestIp(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  if (!CREDIT_CHECK_ENABLED) {
+    return NextResponse.json({ error: "La revisión de historial crediticio todavía no está disponible." }, { status: 403 });
+  }
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });

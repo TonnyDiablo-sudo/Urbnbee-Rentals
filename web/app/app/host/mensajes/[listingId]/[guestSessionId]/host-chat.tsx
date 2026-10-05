@@ -17,7 +17,9 @@ export function HostChat({
   guestSessionId,
   initial,
   initialAi,
+  mediaAllowed = false,
 }: {
+  mediaAllowed?: boolean;
   listingId: string;
   guestSessionId: string;
   initial?: HostChatInitial;
@@ -92,6 +94,7 @@ export function HostChat({
       load={load}
       send={send}
       sendAttachment={sendAttachment}
+      mediaLockedHref={mediaAllowed ? undefined : "/host/motor"}
       emptyText={t("No encontramos esta conversación.")}
       showVia
       headerRight={

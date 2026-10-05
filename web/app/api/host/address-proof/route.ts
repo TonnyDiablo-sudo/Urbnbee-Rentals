@@ -12,6 +12,7 @@ import {
 } from "@/lib/address-proof-store";
 import { getListingById, listListingsForHost } from "@/lib/marketplace-store";
 import { addressCoveredListingIds } from "@/lib/address-proof-access";
+import { ADDRESS_PROOF_GEOLOCATION_ENABLED } from "@/lib/feature-flags";
 import { notifyUser } from "@/lib/push";
 import { getSessionUser } from "@/lib/session";
 import { isHostIdentityVerified } from "@/lib/verification-store";
@@ -27,6 +28,17 @@ function hostView(p: AddressProof | undefined) {
     message: p.hostMessage ?? null,
     reasons: p.status === "approved" ? [] : (p.ai?.reasons ?? []),
   };
+}
+
+/** lat/lng/accuracy opcionales del teléfono; se ignoran mientras la bandera esté apagada. */
+function deviceLocationFrom(form: FormData | null | undefined): AddressProof["deviceLocation"] {
+  if (!ADDRESS_PROOF_GEOLOCATION_ENABLED || !form) return undefined;
+  const lat = Number(form.get("lat"));
+  const lng = Number(form.get("lng"));
+  const accuracy = Number(form.get("accuracy"));
+  if (!form.get("lat") || !form.get("lng") || ![lat, lng, accuracy].every(Number.isFinite)) return undefined;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180 || accuracy < 0) return undefined;
+  return { lat, lng, accuracyM: Math.round(accuracy), at: new Date().toISOString() };
 }
 
 export async function GET() {
@@ -95,7 +107,7 @@ export async function POST(req: Request) {
     ext = "jpg";
   }
 
-  const proof = saveAddressProof({ listing, buffer, mime, ext });
+  const proof = saveAddressProof({ listing, buffer, mime, ext, deviceLocation: deviceLocationFrom(form) });
   const hostName = user.fullName || "";
   const review = await reviewAddressProof({ declaredAddress: proof.addressSnapshot, hostName, buffer, mime });
 

@@ -16,6 +16,9 @@ import { appToolsStore } from "./app-tools-store";
 import { appWishlists } from "./app-wishlists";
 import { appHelpLegal } from "./app-help-legal";
 import { appReports } from "./app-reports";
+import { billingAccount } from "./billing-account";
+import { listingSetup } from "./listing-setup";
+import { trustMedia } from "./trust-media";
 
 /** Clave: el texto exacto en espaÃ±ol que aparece en el cÃ³digo. */
 export const EN: Record<string, string> = {
@@ -37,4 +40,7 @@ export const EN: Record<string, string> = {
   ...appWishlists,
   ...appHelpLegal,
   ...appReports,
+  ...billingAccount,
+  ...listingSetup,
+  ...trustMedia,
 };

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { featuredPurchaseProblem, isFeaturedPlan } from "@/lib/featured-demand";
 import { applyHostEntitlement } from "@/lib/host-entitlements";
 import { getHostEntitlement } from "@/lib/host-entitlements-store";
 import { membershipPlanCodeFromInput, membershipQuantity } from "@/lib/membership-checkout";
@@ -34,6 +35,10 @@ export async function POST(req: NextRequest) {
       { error: "Tu suscripción actual ya cubre todos tus anuncios; no necesitas agregar más." },
       { status: 409 }
     );
+  }
+  if (isFeaturedPlan(code) && quantity > row.quantity) {
+    const problem = featuredPurchaseProblem(quantity - row.quantity);
+    if (problem) return NextResponse.json({ error: problem.error, soldOut: true }, { status: problem.status });
   }
 
   if (row.stripeSubscriptionId !== "simulated") {

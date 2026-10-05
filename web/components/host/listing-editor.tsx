@@ -10,7 +10,12 @@ import {
 } from "@/lib/booking-contract-templates";
 import type { HostListingRecord, HostProfileRecord } from "@/lib/marketplace-types";
 import type { ListingCategory } from "@/lib/mock-data";
-import { AMENITY_OPTIONS } from "@/lib/amenity-options";
+import { AMENITY_GROUPS, AMENITY_OPTIONS } from "@/lib/amenity-options";
+import { ACCESS_CODE_MAX, type ArrivalGuide } from "@/lib/arrival-guide";
+import { arrivalMessageOf, type ArrivalMessageSettings } from "@/lib/arrival-message-template";
+import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
+import { MONTHLY_RENTAL_NIGHTS, type ListingPricing } from "@/lib/listing-pricing";
+import { ArrivalMessageEditor } from "@/components/host/arrival-message-editor";
 import { ListingImportUsagePanel } from "@/components/host/listing-import-usage-panel";
 import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
 import { useT } from "@/components/i18n-provider";
@@ -19,7 +24,7 @@ import { exactAddressProblem, listingNeedsUnit } from "@/lib/listing-address";
 import { ContractReviewNotice } from "@/components/host/contract-review-notice";
 import { ContractTips, MIN_STAY_CLAUSE } from "@/components/host/contract-tips";
 
-type Tab = "fotos" | "info" | "ubicacion" | "contacto" | "precio" | "comodidades" | "contrato";
+type Tab = "fotos" | "info" | "ubicacion" | "contacto" | "precio" | "comodidades" | "llegada" | "contrato";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "fotos", label: "Fotos" },
@@ -28,6 +33,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "contacto", label: "Tu perfil y contacto" },
   { id: "precio", label: "Precio" },
   { id: "comodidades", label: "Comodidades y reglas" },
+  { id: "llegada", label: "Guía de llegada" },
   { id: "contrato", label: "Contrato" },
 ];
 
@@ -117,7 +123,14 @@ export function ListingEditor({ listingId }: { listingId: string }) {
     setTimeout(() => setToast(null), 2500);
   }
 
-  async function saveListing(patch: Partial<HostListingRecord> & { regenerateSlug?: boolean }) {
+  async function saveListing(
+    patch: Omit<Partial<HostListingRecord>, "bathroomType" | "selfCheckIn"> & {
+      regenerateSlug?: boolean;
+      /** null borra el dato. */
+      bathroomType?: HostListingRecord["bathroomType"] | null;
+      selfCheckIn?: boolean | null;
+    }
+  ) {
     const res = await fetch(`/api/host/listings/${listingId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -131,6 +144,12 @@ export function ListingEditor({ listingId }: { listingId: string }) {
     }
     if (data.listing) setListing(data.listing);
     notify("Cambios guardados");
+  }
+
+  /** El servidor reemplaza `pricing` completo: se manda lo guardado con el cambio encima. */
+  function savePricing(change: Partial<ListingPricing>) {
+    if (!listing) return;
+    void saveListing({ pricing: { ...(listing.pricing ?? {}), ...change } });
   }
 
   async function saveAccount(payload: { fullName?: string; phone?: string }) {
@@ -495,6 +514,38 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 onChange={(e) => setListing({ ...listing, bathrooms: Number(e.target.value) })}
                 onBlur={() => saveListing({ bathrooms: listing.bathrooms })}
               />
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Tipo de baño">
+              <select
+                className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+                value={listing.bathroomType ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value === "private" || e.target.value === "shared" ? e.target.value : undefined;
+                  setListing({ ...listing, bathroomType: v });
+                  void saveListing({ bathroomType: v ?? null });
+                }}
+              >
+                <option value="">{t("Sin indicar")}</option>
+                <option value="private">{t("Privados (sólo para tus huéspedes)")}</option>
+                <option value="shared">{t("Compartidos")}</option>
+              </select>
+            </Field>
+            <Field label="Entrada">
+              <select
+                className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+                value={listing.selfCheckIn === true ? "self" : listing.selfCheckIn === false ? "host" : ""}
+                onChange={(e) => {
+                  const v = e.target.value === "self" ? true : e.target.value === "host" ? false : undefined;
+                  setListing({ ...listing, selfCheckIn: v });
+                  void saveListing({ selfCheckIn: v ?? null });
+                }}
+              >
+                <option value="">{t("Sin indicar")}</option>
+                <option value="self">{t("Entrada autónoma")}</option>
+                <option value="host">{t("Te recibe el anfitrión")}</option>
+              </select>
             </Field>
           </div>
           <Field label="Tamaño (opcional)">
@@ -916,17 +967,65 @@ export function ListingEditor({ listingId }: { listingId: string }) {
       {/* ─── Precio ─── */}
       {tab === "precio" && (
         <section className="space-y-4 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
+          <fieldset className="rounded-xl border border-[#ebebeb] p-4">
+            <legend className="px-1 text-sm font-semibold text-[#484848]">{t("¿Cómo cobras?")}</legend>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {(
+                [
+                  ["nightly", "Por noche", "Estancias cortas."],
+                  ["monthly", "Renta mensual", "Mínimo 30 noches."],
+                ] as const
+              ).map(([mode, label, help]) => (
+                <label key={mode} className="flex cursor-pointer items-start gap-3 text-sm">
+                  <input
+                    type="radio"
+                    name="rentalMode"
+                    className="mt-1"
+                    checked={(listing.rentalMode ?? "nightly") === mode}
+                    onChange={() => {
+                      setListing({ ...listing, rentalMode: mode });
+                      if (mode === "nightly" || (listing.pricePerMonth ?? 0) > 0) void saveListing({ rentalMode: mode });
+                    }}
+                  />
+                  <span>
+                    <span className="font-medium text-[#222]">{t(label)}</span>
+                    <span className="block text-xs text-[#888]">{t(help)}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Precio por noche (MXN)">
-              <input
-                type="number"
-                min={0}
-                className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
-                value={listing.pricePerNight}
-                onChange={(e) => setListing({ ...listing, pricePerNight: Number(e.target.value) })}
-                onBlur={() => saveListing({ pricePerNight: listing.pricePerNight })}
-              />
-            </Field>
+            {listing.rentalMode === "monthly" ? (
+              <Field label="Renta mensual (MXN)">
+                <input
+                  type="number"
+                  min={0}
+                  className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+                  value={listing.pricePerMonth ?? ""}
+                  onChange={(e) => setListing({ ...listing, pricePerMonth: Number(e.target.value) || undefined })}
+                  onBlur={() => {
+                    if ((listing.pricePerMonth ?? 0) > 0) {
+                      void saveListing({ rentalMode: "monthly", pricePerMonth: listing.pricePerMonth });
+                    } else notify("Escribe la renta mensual.");
+                  }}
+                />
+                <span className="mt-1 block text-xs text-[#888]">
+                  {t("Se cobra por noche como la renta entre 30. La estancia mínima queda en 30 noches.")}
+                </span>
+              </Field>
+            ) : (
+              <Field label="Precio por noche (MXN)">
+                <input
+                  type="number"
+                  min={0}
+                  className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+                  value={listing.pricePerNight}
+                  onChange={(e) => setListing({ ...listing, pricePerNight: Number(e.target.value) })}
+                  onBlur={() => saveListing({ pricePerNight: listing.pricePerNight })}
+                />
+              </Field>
+            )}
             <Field label="Tarifa de limpieza (MXN)">
               <input
                 type="number"
@@ -937,6 +1036,41 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 onBlur={() => saveListing({ cleaningFee: listing.cleaningFee })}
               />
             </Field>
+          </div>
+          <div className="rounded-lg border border-[#ebebeb] p-4">
+            <p className="mb-3 text-sm font-medium text-[#484848]">{t("Descuentos por estancia larga")}</p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {(
+                [
+                  ["weeklyDiscountPct", "Descuento por 7 noches o más (%)", 99],
+                  ["monthlyDiscountPct", "Descuento por 28 noches o más (%)", 99],
+                  ["minNights", "Mínimo de noches", 365],
+                ] as const
+              ).map(([k, label, max]) => (
+                <Field key={k} label={label}>
+                  <input
+                    type="number"
+                    min={0}
+                    max={max}
+                    className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+                    value={listing.pricing?.[k] ?? ""}
+                    onChange={(e) =>
+                      setListing({
+                        ...listing,
+                        pricing: { ...listing.pricing, [k]: e.target.value === "" ? undefined : Number(e.target.value) },
+                      })
+                    }
+                    onBlur={() => savePricing({ [k]: listing.pricing?.[k] })}
+                  />
+                </Field>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-[#888]">
+              {listing.rentalMode === "monthly"
+                ? t("En renta mensual la estancia mínima es de al menos {n} noches.", { n: MONTHLY_RENTAL_NIGHTS })
+                : t("No se acumulan: si aplican varios, el huésped recibe el mayor.")}{" "}
+              {t("Fin de semana, temporadas y más opciones están en el calendario de la app.")}
+            </p>
           </div>
           <div className="rounded-lg border border-[#ebebeb] bg-[#fafafa] p-4">
             <p className="mb-3 text-sm font-medium text-[#484848]">{t("Reservas")}</p>
@@ -973,6 +1107,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 </span>
               </label>
             </div>
+            {CREDIT_CHECK_ENABLED && (
             <div className="mt-4 rounded-lg border border-[#ddd] bg-white p-3">
               <label className="flex cursor-pointer items-start gap-3 text-sm">
                 <input
@@ -1010,6 +1145,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 </div>
               )}
             </div>
+            )}
           </div>
         </section>
       )}
@@ -1017,29 +1153,39 @@ export function ListingEditor({ listingId }: { listingId: string }) {
       {/* ─── Comodidades ─── */}
       {tab === "comodidades" && (
         <section className="space-y-6 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
-          <div>
-            <p className="mb-3 text-sm font-medium text-[#484848]">{t("Comodidades")}</p>
-            <div className="flex flex-wrap gap-2">
-              {AMENITY_OPTIONS.map((a) => {
-                const on = listing.amenities.includes(a);
-                return (
-                  <button
-                    key={a}
-                    type="button"
-                    onClick={() => {
-                      const amenities = on ? listing.amenities.filter((x) => x !== a) : [...listing.amenities, a];
-                      setListing({ ...listing, amenities });
-                      saveListing({ amenities });
-                    }}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                      on ? "border-[#dcb81e] bg-[#dcb81e]/20 text-black" : "border-[#ddd] bg-white text-[#666] hover:border-[#dcb81e]"
-                    }`}
-                  >
-                    {t(a)}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="space-y-4">
+            <p className="text-sm font-medium text-[#484848]">{t("Comodidades")}</p>
+            {[
+              ...AMENITY_GROUPS,
+              { key: "other", title: "Otras", items: listing.amenities.filter((a) => !AMENITY_OPTIONS.includes(a)) },
+            ]
+              .filter((g) => g.items.length > 0)
+              .map((g) => (
+                <div key={g.key}>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#888]">{t(g.title)}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {g.items.map((a) => {
+                      const on = listing.amenities.includes(a);
+                      return (
+                        <button
+                          key={a}
+                          type="button"
+                          onClick={() => {
+                            const amenities = on ? listing.amenities.filter((x) => x !== a) : [...listing.amenities, a];
+                            setListing({ ...listing, amenities });
+                            saveListing({ amenities });
+                          }}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                            on ? "border-[#dcb81e] bg-[#dcb81e]/20 text-black" : "border-[#ddd] bg-white text-[#666] hover:border-[#dcb81e]"
+                          }`}
+                        >
+                          {t(a)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <RuleToggle
@@ -1080,6 +1226,17 @@ export function ListingEditor({ listingId }: { listingId: string }) {
         </section>
       )}
 
+      {tab === "llegada" && (
+        <ArrivalTab
+          listing={listing}
+          hostName={fullName}
+          onSave={(patch) => {
+            setListing({ ...listing, ...patch });
+            void saveListing(patch);
+          }}
+        />
+      )}
+
       {tab === "contrato" && (
         <ContractTab
           listing={listing}
@@ -1090,6 +1247,90 @@ export function ListingEditor({ listingId }: { listingId: string }) {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function ArrivalTab({
+  listing,
+  hostName,
+  onSave,
+}: {
+  listing: HostListingRecord;
+  hostName: string;
+  onSave: (patch: { arrivalGuide?: ArrivalGuide; arrivalMessage?: ArrivalMessageSettings }) => void;
+}) {
+  const t = useT();
+  const [guide, setGuide] = useState<ArrivalGuide>(() => ({ ...(listing.arrivalGuide ?? {}) }));
+  const [message, setMessage] = useState<ArrivalMessageSettings>(() => arrivalMessageOf(listing.arrivalMessage));
+  const setG = (k: keyof ArrivalGuide, v: string) => setGuide((g) => ({ ...g, [k]: v }));
+  const input = "w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]";
+  const area = (k: keyof ArrivalGuide, label: string, placeholder: string) => (
+    <Field label={label}>
+      <textarea rows={4} className={input} value={guide[k] ?? ""} placeholder={t(placeholder)} onChange={(e) => setG(k, e.target.value)} />
+    </Field>
+  );
+
+  return (
+    <div className="space-y-6">
+      <section className="space-y-4 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
+        <div>
+          <h2 className="text-lg font-semibold text-[#484848]">{t("Guía de llegada")}</h2>
+          <p className="mt-1 text-sm text-[#888]">
+            {t("Se le comparte al huésped sólo cuando reserva y paga con el Motor de reservas.")}
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Llegada desde">
+            <input type="time" className={input} value={guide.checkInTime ?? ""} onChange={(e) => setG("checkInTime", e.target.value)} />
+          </Field>
+          <Field label="Salida antes de">
+            <input type="time" className={input} value={guide.checkOutTime ?? ""} onChange={(e) => setG("checkOutTime", e.target.value)} />
+          </Field>
+        </div>
+        {area("checkInMethod", "Cómo entrar", "Ej.: Caja de llaves junto a la puerta, código 1234. O: te recibo en persona.")}
+        <Field label="Código de acceso">
+          <input
+            className={input}
+            maxLength={ACCESS_CODE_MAX}
+            value={guide.accessCode ?? ""}
+            placeholder={t("Ej.: Puerta 4821#, caja de llaves 0912")}
+            onChange={(e) => setG("accessCode", e.target.value)}
+          />
+        </Field>
+        {area("directions", "Cómo llegar", "Cómo llegar, dónde estacionarse, qué timbre tocar…")}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Nombre de la red">
+            <input className={input} value={guide.wifiName ?? ""} onChange={(e) => setG("wifiName", e.target.value)} />
+          </Field>
+          <Field label="Contraseña">
+            <input className={input} value={guide.wifiPassword ?? ""} onChange={(e) => setG("wifiPassword", e.target.value)} />
+          </Field>
+        </div>
+        {area("houseManual", "Manual de la casa", "Cómo usar el boiler, la tele, la basura, reglas de los vecinos…")}
+        {area("checkoutInstructions", "Instrucciones de salida", "Ej.: Deja las llaves en la caja, saca la basura y apaga el aire.")}
+        <button
+          type="button"
+          onClick={() => onSave({ arrivalGuide: guide })}
+          className="rounded-full px-5 py-2.5 text-sm font-semibold text-black shadow transition hover:brightness-95"
+          style={{ backgroundColor: "#dcb81e" }}
+        >
+          {t("Guardar guía de llegada")}
+        </button>
+      </section>
+
+      <section className="space-y-4 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#484848]">{t("Mensaje de llegada")}</h2>
+        <ArrivalMessageEditor listing={listing} guide={guide} value={message} onChange={setMessage} hostName={hostName} />
+        <button
+          type="button"
+          onClick={() => onSave({ arrivalMessage: message })}
+          className="rounded-full px-5 py-2.5 text-sm font-semibold text-black shadow transition hover:brightness-95"
+          style={{ backgroundColor: "#dcb81e" }}
+        >
+          {t("Guardar mensaje de llegada")}
+        </button>
+      </section>
     </div>
   );
 }

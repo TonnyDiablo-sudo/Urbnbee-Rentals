@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { CountryPicker, VerifyEmailBox, type BillingCountry } from "@/components/account/purchase-prereqs";
 import { AiAgentCard } from "@/components/store/ai-agent-card";
 
 type Term = { code: string; months: number; amount: number; perMonth: number };
@@ -28,7 +29,15 @@ const MANAGE: Record<string, { app: string; web: string }> = {
   featured_listing: { app: "/host/destacados", web: "/host/destacados" },
 };
 
-type Data = { region: "mx" | "us"; isHost: boolean; items: Item[] };
+type Data = {
+  region: "mx" | "us";
+  billingCountry: BillingCountry | null;
+  emailVerified: boolean;
+  placeholderEmail: boolean;
+  email: string;
+  isHost: boolean;
+  items: Item[];
+};
 
 type CartEntry = { family: string; code: string; quantity: number };
 type CartResult = { ok: boolean; lines: { code: string; ok: boolean; error?: string }[]; error?: string };
@@ -171,7 +180,7 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
   }
 
   async function checkout() {
-    if (cartLines.length === 0) return;
+    if (cartLines.length === 0 || !data?.billingCountry || !data.emailVerified) return;
     setBusy("cart");
     setMsg(null);
     const one = cartLines.length === 1 ? cartLines[0] : null;
@@ -187,6 +196,10 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
     const j = res ? await res.json().catch(() => ({})) : {};
     if (!res?.ok) {
       setBusy(null);
+      if (j.code === "email_unverified" || j.code === "email_placeholder" || j.code === "country_required") {
+        void load();
+        return;
+      }
       setCartOpen(false);
       return setMsg({ ok: false, text: typeof j.error === "string" ? j.error : "No se pudo iniciar el cobro." });
     }
@@ -425,6 +438,15 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
         {t("Tu cuenta básica de Cabibee es gratis. Elige el plazo de cada herramienta: entre más largo, más barato por mes.")}
       </p>
 
+      <CountryPicker
+        value={data.billingCountry}
+        onSaved={() => {
+          setMsg(null);
+          void load();
+        }}
+      />
+      {!data.emailVerified && <VerifyEmailBox email={data.email} placeholder={data.placeholderEmail} />}
+
       {accountItems.length > 0 && (
         <section>
           <h2 className="mb-1 text-lg font-semibold text-[#222]">{t("Tu cuenta")}</h2>
@@ -546,9 +568,19 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
                 <p className="mt-2 text-xs text-[#888]">
                   {t("Cada producto se renueva solo al terminar su plazo, con su propio cobro. Puedes cancelar cualquiera desde la Tienda.")}
                 </p>
+                {!data.billingCountry && (
+                  <div className="mt-3">
+                    <CountryPicker value={null} compact onSaved={() => void load()} />
+                  </div>
+                )}
+                {!data.emailVerified && (
+                  <div className="mt-3">
+                    <VerifyEmailBox email={data.email} placeholder={data.placeholderEmail} />
+                  </div>
+                )}
                 <button
                   type="button"
-                  disabled={busy !== null}
+                  disabled={busy !== null || !data.billingCountry || !data.emailVerified}
                   onClick={() => void checkout()}
                   className="mt-4 w-full rounded-xl bg-[#dcb81e] px-5 py-3 text-[15px] font-semibold text-black disabled:opacity-50"
                 >

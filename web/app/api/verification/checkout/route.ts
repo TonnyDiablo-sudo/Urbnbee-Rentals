@@ -16,9 +16,10 @@ import { rememberPlanCode } from "@/lib/owned-plan";
 import { catalogPurchaseProblem } from "@/lib/store-cart";
 import { getVerification, resolveVerificationPriceId, type VerificationBillingPlan } from "@/lib/verification-store";
 import type { VerificationRegion } from "@/lib/verification-types";
-import { verificationRegionFromRequest } from "@/lib/verification-region";
+import { billingRegionFor, verificationRegionFromRequest } from "@/lib/verification-region";
 import { allowSimulatedBookingPayment } from "@/lib/stripe-server";
 import { appReturnPath } from "@/lib/app-return-path";
+import { purchaseBlockedResponse } from "@/lib/purchase-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,6 +127,8 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
     }
+    const blocked = purchaseBlockedResponse(user);
+    if (blocked) return blocked;
 
     const body = (await req.json().catch(() => ({}))) as {
       plan?: string;
@@ -136,12 +139,14 @@ export async function POST(req: NextRequest) {
     };
     const bodyRegion =
       body.region === "us" ? "us" : body.region === "mx" ? "mx" : undefined;
-    const region: VerificationRegion = bodyRegion ?? verificationRegionFromRequest(req);
+    const region: VerificationRegion = user.billingCountry
+      ? billingRegionFor(req, user)
+      : (bodyRegion ?? verificationRegionFromRequest(req));
 
     const catalogCode = membershipPlanCodeFromInput(body.plan);
     if (catalogCode) {
       await ensurePublicCatalogFresh();
-      const problem = catalogPurchaseProblem(user, catalogCode, region);
+      const problem = catalogPurchaseProblem(user, catalogCode, region, membershipQuantity(catalogCode, body.quantity));
       if (problem) return NextResponse.json({ error: problem.error }, { status: problem.status });
 
       const stripeForCatalog = getStripe();

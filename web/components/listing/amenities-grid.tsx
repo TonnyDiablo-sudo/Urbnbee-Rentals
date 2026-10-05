@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { groupAmenities } from "@/lib/amenity-options";
 
 const ICONS: Record<string, string> = {
   "Aire Acondicionado": "❄️", "Agua caliente": "🚿", "Internet Inalámbrico": "📶",
@@ -12,7 +13,7 @@ const ICONS: Record<string, string> = {
   "Elementos básicos": "✅", "Artículos Esenciales": "🗂️", "Mesa de comedor": "🪑",
   "Sistema de sonido": "🔊", "Caja fuerte": "🔒", "Amigable Familias/Niños": "👨‍👩‍👧",
   "Desayuno incluido": "🥐", "Jardín / Patio": "🌿", "Permiten Mascotas": "🐾",
-  "Alberca": "🏊", "Gimnasio": "💪", "Jacuzzi": "🛁", "Internet": "🌐",
+  "Alberca": "🏊", "Piscina": "🏊", "Gimnasio": "💪", "Jacuzzi": "🛁", "Sauna": "🧖", "Internet": "🌐",
   "Patio": "🌿", "Asador": "🍖", "Bicicletas": "🚲", "Kayak": "🛶",
 };
 
@@ -20,18 +21,30 @@ export function AmenitiesGrid({ amenities }: { amenities: string[] }) {
   const t = useT();
   const [showAll, setShowAll] = useState(false);
   const LIMIT = 12;
-  const visible = showAll ? amenities : amenities.slice(0, LIMIT);
+  const groups = groupAmenities(amenities);
+  const limit = showAll ? Infinity : LIMIT;
+  const visible = groups
+    .map((g, i) => {
+      const before = groups.slice(0, i).reduce((n, x) => n + x.items.length, 0);
+      return { ...g, items: g.items.slice(0, Math.max(0, limit - before)) };
+    })
+    .filter((g) => g.items.length > 0);
 
   return (
-    <div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {visible.map((a) => (
-          <div key={a} className="flex items-center gap-2 text-sm text-[#3a3a3a]">
-            <span className="text-base">{ICONS[a] ?? "•"}</span>
-            <span>{t(a)}</span>
+    <div className="space-y-5">
+      {visible.map((g) => (
+        <div key={g.key}>
+          {groups.length > 1 && <h3 className="mb-2 text-sm font-semibold text-[#484848]">{t(g.title)}</h3>}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {g.items.map((a) => (
+              <div key={a} className="flex items-center gap-2 text-sm text-[#3a3a3a]">
+                <span className="text-base">{ICONS[a] ?? "•"}</span>
+                <span>{t(a)}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
       {amenities.length > LIMIT && (
         <button
           type="button"

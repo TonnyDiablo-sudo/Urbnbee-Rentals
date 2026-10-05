@@ -14,6 +14,7 @@ import { ListingHostChat } from "@/components/listing/listing-host-chat";
 import { ShareLinkButton } from "@/components/share-link-button";
 import { SaveHeart } from "@/components/wishlist/save-heart";
 import { listingIsBookable } from "@/lib/app-listings";
+import { bathroomsKey, selfCheckInKey } from "@/lib/listing-facts";
 import { discountRows } from "@/lib/listing-pricing";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import { getSessionUser } from "@/lib/session";
@@ -109,8 +110,11 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
               <div className="mt-4 flex flex-wrap gap-4 text-sm text-[#3a3a3a]">
                 <span>👥 {t(listing.guests === 1 ? "{n} huésped" : "{n} invitados", { n: listing.guests })}</span>
                 <span>🛏 {t(listing.bedrooms === 1 ? "{n} recámara" : "{n} recámaras", { n: listing.bedrooms })}</span>
-                <span>🚿 {t(listing.bathrooms === 1 ? "{n} baño" : "{n} baños", { n: listing.bathrooms })}</span>
+                <span>🚿 {t(bathroomsKey(listing.bathrooms, listing.bathroomType), { n: listing.bathrooms })}</span>
                 {listing.size && <span>📐 {listing.size}</span>}
+                {selfCheckInKey(listing.selfCheckIn) && (
+                  <span>{listing.selfCheckIn ? "🔑" : "🤝"} {t(selfCheckInKey(listing.selfCheckIn)!)}</span>
+                )}
               </div>
 
               <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
@@ -132,7 +136,14 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                 <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
                 <div className="rounded border p-5 text-sm" style={{ borderColor: "#ebebeb" }}>
                   <div className="grid gap-2">
-                    <PriceRow label={t("Precio por noche")} value={`$ ${listing.pricePerNight.toLocaleString("es-MX")}`} />
+                    {listing.pricePerMonth ? (
+                      <>
+                        <PriceRow label={t("Renta mensual")} value={`$ ${listing.pricePerMonth.toLocaleString("es-MX")}`} />
+                        <PriceRow label={t("Estancia mínima")} value={t("{n} noches", { n: listing.pricing?.minNights ?? 30 })} />
+                      </>
+                    ) : (
+                      <PriceRow label={t("Precio por noche")} value={`$ ${listing.pricePerNight.toLocaleString("es-MX")}`} />
+                    )}
                     {listing.priceWeekly && <PriceRow label={t("Precio por noche (7d+)")} value={`$ ${listing.priceWeekly}`} />}
                     {listing.priceMonthly && <PriceRow label={t("Precio por noche (30d+)")} value={`$ ${listing.priceMonthly}`} />}
                     {listing.cleaningFee && <PriceRow label={t("Tarifa de limpieza")} value={`$ ${listing.cleaningFee} — ${t("Tarifa única")}`} />}
@@ -171,7 +182,10 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                     {listing.size && <DetailRow label={t("Tamaño")} value={listing.size} />}
                     <DetailRow label={t("Habitaciones")} value={String(listing.bedrooms)} />
                     <DetailRow label={t("Dormitorios")} value={String(listing.bedrooms)} />
-                    <DetailRow label={t("Baños")} value={String(listing.bathrooms)} />
+                    <DetailRow label={t("Baños")} value={t(bathroomsKey(listing.bathrooms, listing.bathroomType), { n: listing.bathrooms })} />
+                    {selfCheckInKey(listing.selfCheckIn) && (
+                      <DetailRow label={t("Llegada")} value={t(selfCheckInKey(listing.selfCheckIn)!)} />
+                    )}
                     <DetailRow label={t("Ciudad")} value={listing.city} />
                     <DetailRow label={t("Zona")} value={listing.zone} />
                     {listing.county && listing.county !== listing.state && (
@@ -318,9 +332,9 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                 {/* Price header */}
                 <div className="mb-1 flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-[#484848]">
-                    $ {listing.pricePerNight.toLocaleString("es-MX")}
+                    $ {(listing.pricePerMonth ?? listing.pricePerNight).toLocaleString("es-MX")}
                   </span>
-                  <span className="text-sm text-[#aaa]">{t("por noche aprox.")}</span>
+                  <span className="text-sm text-[#aaa]">{listing.pricePerMonth ? t("/ mes") : t("por noche aprox.")}</span>
                 </div>
 
                 <hr className="mb-4 mt-3" style={{ borderColor: "#ebebeb" }} />

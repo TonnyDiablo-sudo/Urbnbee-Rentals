@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import { withFeaturedDemand } from "@/lib/featured-demand";
 import { storeItemsFor } from "@/lib/store-catalog";
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
-import { verificationRegionFromRequest } from "@/lib/verification-region";
+import { billingRegionFor, verificationRegionFromRequest } from "@/lib/verification-region";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +13,20 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Inicia sesión para ver la tienda." }, { status: 401 });
   await ensurePublicCatalogFresh();
   const q = req.nextUrl.searchParams.get("region");
-  const region = q === "us" ? "us" : q === "mx" ? "mx" : verificationRegionFromRequest(req);
+  const region = user.billingCountry
+    ? billingRegionFor(req, user)
+    : q === "us"
+      ? "us"
+      : q === "mx"
+        ? "mx"
+        : verificationRegionFromRequest(req);
   return NextResponse.json({
     region,
+    billingCountry: user.billingCountry ?? null,
+    emailVerified: Boolean(user.emailVerifiedAt) || user.role === "admin",
+    placeholderEmail: Boolean(user.placeholderEmail),
+    email: user.email,
     isHost: user.role === "host" || user.role === "admin",
-    items: storeItemsFor(user, region),
+    items: withFeaturedDemand(storeItemsFor(user, region), region),
   });
 }

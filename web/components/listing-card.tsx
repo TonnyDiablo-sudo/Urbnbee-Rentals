@@ -18,6 +18,9 @@ export function ListingCard({ listing }: Props) {
   const imgSrc = listing.imageSrc?.trim() ? listing.imageSrc : FALLBACK_COVER;
   const fmt = (n: number) =>
     n.toLocaleString(numberLocale(lang), { maximumFractionDigits: n % 1 === 0 ? 0 : 1 });
+  const price = listing.pricePerMonth
+    ? `$ ${fmt(listing.pricePerMonth)} ${t("/ mes")}`
+    : `$ ${fmt(listing.pricePerNight)} ${t("/noche")}`;
 
   return (
     <article className="group overflow-hidden bg-white shadow-sm transition hover:shadow-md" style={{ border: "1px solid #e8e8e8" }}>
@@ -35,7 +38,7 @@ export function ListingCard({ listing }: Props) {
           className="absolute left-0 top-0 px-3 py-2 text-sm font-semibold text-white"
           style={{ backgroundColor: "#dcb81e" }}
         >
-          $ {fmt(listing.pricePerNight)} {t("/noche")}
+          {price}
         </div>
         {/* Badges */}
         <div className="absolute right-2 top-2 flex flex-col gap-1">
@@ -97,7 +100,7 @@ export function ListingCard({ listing }: Props) {
         </p>
 
         <p className="mt-3 text-sm font-semibold" style={{ color: "#dcb81e" }}>
-          $ {fmt(listing.pricePerNight)} {t("/noche")}
+          {price}
         </p>
       </div>
     </article>

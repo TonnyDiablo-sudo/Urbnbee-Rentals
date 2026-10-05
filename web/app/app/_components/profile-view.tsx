@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { LangSwitch } from "@/components/lang-switch";
+import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { getT } from "@/lib/i18n/server";
 import { getHostProfile } from "@/lib/marketplace-store";
 import type { UserRecord } from "@/lib/marketplace-types";
@@ -105,7 +107,13 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
             </div>
             <IconChevron className="h-5 w-5 shrink-0 text-[#999]" />
           </Link>
-        ) : (
+        ) : null}
+        {user && !user.emailVerifiedAt && user.role !== "admin" && (
+          <div className="mt-4">
+            <VerifyEmailBox email={user.email} placeholder={isPlaceholderEmail(user.email)} />
+          </div>
+        )}
+        {user ? null : (
           <div className="border-b border-[#ebebeb] pb-6">
             <p className="text-[15px] leading-relaxed text-[#555]">
               {t("Explora sin cuenta. Crea una gratis cuando quieras ver contactos, chatear o reservar.")}

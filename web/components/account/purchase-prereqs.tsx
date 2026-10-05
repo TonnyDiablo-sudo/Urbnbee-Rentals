@@ -1,0 +1,130 @@
+"use client";
+
+import { useState } from "react";
+import { useT } from "@/components/i18n-provider";
+
+export type BillingCountry = "MX" | "US" | "OTHER";
+
+export function regionForCountry(c: BillingCountry): "mx" | "us" {
+  return c === "MX" ? "mx" : "us";
+}
+
+export async function saveBillingCountry(country: BillingCountry): Promise<boolean> {
+  const res = await fetch("/api/account/billing-country", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ country }),
+  }).catch(() => null);
+  return Boolean(res?.ok);
+}
+
+/** México paga en pesos; Estados Unidos y cualquier otro país, en dólares. */
+export function CountryPicker({
+  value,
+  onSaved,
+  compact,
+}: {
+  value: BillingCountry | null;
+  onSaved: (country: BillingCountry) => void;
+  compact?: boolean;
+}) {
+  const t = useT();
+  const [busy, setBusy] = useState<BillingCountry | null>(null);
+  const [err, setErr] = useState(false);
+  const options: { c: BillingCountry; label: string }[] = [
+    { c: "MX", label: t("México") },
+    { c: "US", label: t("Estados Unidos") },
+    { c: "OTHER", label: t("Otro país") },
+  ];
+  return (
+    <div className={compact ? "" : "rounded-2xl border border-[#e5e5e5] bg-white p-4"}>
+      <p className="text-sm font-semibold text-[#222]">
+        {value ? t("Tu país") : t("¿De qué país eres?")}
+      </p>
+      {!value && (
+        <p className="mt-0.5 text-xs text-[#717171]">{t("México paga en pesos (MXN). Estados Unidos y otros países, en dólares (USD).")}</p>
+      )}
+      <div className="mt-2 inline-flex flex-wrap gap-1 rounded-full bg-[#f1f1f1] p-1">
+        {options.map((o) => (
+          <button
+            key={o.c}
+            type="button"
+            disabled={busy !== null}
+            onClick={async () => {
+              setBusy(o.c);
+              setErr(false);
+              const ok = await saveBillingCountry(o.c);
+              setBusy(null);
+              if (ok) onSaved(o.c);
+              else setErr(true);
+            }}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium disabled:opacity-60 ${
+              value === o.c ? "bg-white text-[#222] shadow" : "text-[#717171]"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {err && <p className="mt-2 text-xs text-red-700">{t("No se pudo guardar. Intenta otra vez.")}</p>}
+    </div>
+  );
+}
+
+/** Reenvía el correo de confirmación desde noreply@cabibee.com. */
+export function VerifyEmailButton({ className = "" }: { className?: string }) {
+  const t = useT();
+  const [state, setState] = useState<"idle" | "busy" | "sent" | "verified" | "error">("idle");
+  const [msg, setMsg] = useState<string | null>(null);
+  return (
+    <span className={className}>
+      <button
+        type="button"
+        disabled={state === "busy" || state === "sent" || state === "verified"}
+        onClick={async () => {
+          setState("busy");
+          setMsg(null);
+          const res = await fetch("/api/account/verify-email", { method: "POST" }).catch(() => null);
+          const j = res ? await res.json().catch(() => ({})) : {};
+          if (res?.ok && j.alreadyVerified) return setState("verified");
+          if (res?.ok && j.sent) return setState("sent");
+          setState("error");
+          setMsg(typeof j.error === "string" ? j.error : "No se pudo mandar el correo. Intenta en un rato.");
+        }}
+        className="rounded-xl bg-[#222] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+      >
+        {state === "busy"
+          ? t("Enviando…")
+          : state === "sent"
+            ? t("Te lo mandamos. Revisa tu correo.")
+            : state === "verified"
+              ? t("Tu correo ya está confirmado")
+              : t("Mandarme el correo de confirmación")}
+      </button>
+      {msg && <span className="mt-1 block text-xs text-red-700">{t(msg)}</span>}
+    </span>
+  );
+}
+
+export function VerifyEmailBox({ email, placeholder }: { email?: string; placeholder?: boolean }) {
+  const t = useT();
+  if (placeholder) {
+    return (
+      <div className="rounded-2xl border border-[#f0d77a] bg-[#fdf6d8] p-4 text-sm text-[#5c4a0a]">
+        <p className="font-semibold">{t("Pon tu correo personal")}</p>
+        <p className="mt-1">{t("Tu cuenta la creó un asociado con un correo interno. Para comprar, pon tu correo en tu perfil y confírmalo.")}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-2xl border border-[#f0d77a] bg-[#fdf6d8] p-4 text-sm text-[#5c4a0a]">
+      <p className="font-semibold">{t("Confirma tu correo para poder comprar")}</p>
+      <p className="mt-1">
+        {email
+          ? t("Te mandamos un enlace a {email} desde noreply@cabibee.com. Si no te llegó, revisa spam o pide otro.", { email })
+          : t("Te mandamos un enlace desde noreply@cabibee.com. Si no te llegó, revisa spam o pide otro.")}
+      </p>
+      <VerifyEmailButton className="mt-3 block" />
+    </div>
+  );
+}
