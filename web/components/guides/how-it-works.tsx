@@ -46,9 +46,33 @@ const SERVICES = [
     text: "Validación de identificación oficial con selfie. Una sola por persona: sirve como anfitrión y como huésped, y da la etiqueta «Miembro verificado».",
   },
   { title: "Ubicación verificada", text: "Comprobamos que la dirección del anuncio existe y que la propiedad es tuya o la administras." },
-  { title: "Motor de reservas", text: "El huésped reserva y paga en línea, firma el contrato y todo queda registrado." },
+  {
+    title: "Motor de reservas",
+    text: "El huésped reserva y paga en línea, firma el contrato y todo queda registrado. Para usarlo, el anfitrión contrata también su verificación de identidad y la de dirección.",
+  },
   { title: "Limpieza", text: "Limpiezas automáticas según tus reservas, con asignación y fotos al terminar." },
   { title: "Colaboradores", text: "Da acceso a tu equipo con roles: mensajes, reservas, limpieza o firma de contratos." },
+];
+
+const TAGS = [
+  {
+    icon: "🪪",
+    title: "Identidad verificada («Miembro verificado»)",
+    text: "La persona subió una identificación oficial (INE, pasaporte, licencia o State ID) y una selfie, y se compararon contra una base de datos oficial. Así sabes que es quien dice ser. Aplica igual para anfitriones y huéspedes.",
+  },
+  {
+    icon: "📍",
+    title: "Dirección verificada («Ubicación verificada»)",
+    text: "El anfitrión subió un comprobante de domicilio del alojamiento y lo revisamos. Te dice que el lugar existe, que está donde dice el anuncio y que quien lo renta tiene relación con él. Es tu mejor defensa contra anuncios falsos.",
+  },
+];
+
+const ENGINE_WHY = [
+  "Los dos lados están verificados: el huésped con identificación y selfie, y el anfitrión con su identidad y la dirección del anuncio. Sin esas dos verificaciones, un anuncio no puede usar el motor.",
+  "El pago se hace con tarjeta a la cuenta de Stripe del anfitrión y queda registrado; nada de depósitos a cuentas desconocidas.",
+  "El contrato se firma en línea antes de llegar y queda guardado para los dos.",
+  "La dirección exacta, el código de entrada y el wifi se comparten sólo con la reserva confirmada.",
+  "Al terminar, se califican el uno al otro; nuestro equipo revisa las reseñas antes de publicarlas.",
 ];
 
 export function HowItWorks({ exploreHref, bookHref, storeHref }: { exploreHref: string; bookHref: string; storeHref?: string }) {
@@ -95,6 +119,43 @@ export function HowItWorks({ exploreHref, bookHref, storeHref }: { exploreHref: 
           </section>
         ))}
       </div>
+
+      <section id="etiquetas" className="mt-10 scroll-mt-24">
+        <h2 className="text-xl font-semibold">{t("Qué significan las etiquetas")}</h2>
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          {TAGS.map((tag) => (
+            <li key={tag.title} className="rounded-2xl border border-[#ebebeb] p-4">
+              <p className="text-2xl" aria-hidden>
+                {tag.icon}
+              </p>
+              <p className="mt-2 text-[16px] font-semibold">{t(tag.title)}</p>
+              <p className="mt-1 text-sm leading-relaxed text-[#555]">{t(tag.text)}</p>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 rounded-2xl bg-[#fdf6d8] px-4 py-3 text-sm leading-relaxed text-[#5c4a0a]">
+          <p className="font-semibold">{t("Se revisan cada mes")}</p>
+          <p className="mt-1">
+            {t(
+              "Mientras la verificación esté pagada, cada mes nuestros sistemas vuelven a revisar todas las identidades y direcciones verificadas contra datos oficiales. Si se deja de pagar, se deja de verificar y la etiqueta se quita. Si la revisión marca que hay que confirmar de nuevo, le pedimos a la persona que vuelva a subir sus datos. Es por la seguridad de todos."
+            )}
+          </p>
+        </div>
+      </section>
+
+      <section id="motor" className="mt-10 scroll-mt-24">
+        <h2 className="text-xl font-semibold">{t("Por qué es más seguro reservar con el motor de Cabibee")}</h2>
+        <ul className="mt-3 space-y-2">
+          {ENGINE_WHY.map((s) => (
+            <li key={s} className="flex gap-2 text-[15px] leading-relaxed text-[#444]">
+              <span className="text-[#1e7a3a]" aria-hidden>
+                ✓
+              </span>
+              <span>{t(s)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section id="servicios" className="mt-10 scroll-mt-24">
         <h2 className="text-xl font-semibold">{t("Servicios opcionales de la Tienda")}</h2>

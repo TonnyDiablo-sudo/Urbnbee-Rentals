@@ -426,6 +426,7 @@ type UserAuthPatch = Partial<
     | "billingCountry"
     | "lang"
     | "phone"
+    | "pendingEmail"
   >
 >;
 

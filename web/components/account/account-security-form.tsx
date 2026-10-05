@@ -10,6 +10,8 @@ export type AccountSecurityProps = {
   /** Vacío si el usuario actual es el interno que generó el asociado. */
   email: string;
   emailVerified: boolean;
+  /** Correo nuevo esperando confirmación (el cambio aún no se aplica). */
+  pendingEmail?: string;
   phone: string;
   stats?: { listings: number; views: number; contacts: number };
   doneHref: string;
@@ -18,7 +20,15 @@ export type AccountSecurityProps = {
 const inputCls = "mt-1 w-full rounded-xl border border-[#ccc] px-3.5 py-3 text-base outline-none focus:border-[#222]";
 const pwCls = "w-full rounded-xl border border-[#ccc] py-3 pl-3.5 pr-11 text-base outline-none focus:border-[#222]";
 
-export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, phone: initialPhone, stats, doneHref }: AccountSecurityProps) {
+export function AccountSecurityForm({
+  mode,
+  email: initialEmail,
+  emailVerified,
+  pendingEmail: initialPending,
+  phone: initialPhone,
+  stats,
+  doneHref,
+}: AccountSecurityProps) {
   const t = useT();
   const router = useRouter();
   const activate = mode === "activate";
@@ -31,6 +41,7 @@ export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, 
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [verified, setVerified] = useState(emailVerified);
+  const [pending, setPending] = useState(initialPending ?? "");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,6 +69,8 @@ export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, 
       return;
     }
     setVerified(Boolean(j.emailVerified));
+    setPending(typeof j.pendingEmail === "string" ? j.pendingEmail : "");
+    if (typeof j.email === "string") setEmail(j.email);
     setCurrentPassword("");
     setNewPassword("");
     setConfirm("");
@@ -67,11 +80,13 @@ export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, 
       return;
     }
     setNotice(
-      j.emailVerified
-        ? "Guardado."
-        : j.verificationSent
-          ? "Guardado. Te mandamos un correo para confirmar tu dirección."
-          : "Guardado."
+      j.pendingEmail
+        ? "Te mandamos un enlace a tu correo nuevo. El cambio se hace cuando lo confirmes; mientras, sigues entrando con el de antes."
+        : j.emailVerified
+          ? "Guardado."
+          : j.verificationSent
+            ? "Guardado. Te mandamos un correo para confirmar tu dirección."
+            : "Guardado."
     );
     router.refresh();
   }
@@ -118,7 +133,14 @@ export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, 
           <input type="email" required autoComplete="email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
           {!activate && initialEmail && (
             <span className="mt-1 block text-xs font-normal text-[#888]">
-              {verified ? (
+              {pending ? (
+                <>
+                  {t("Cambio pendiente a {email}: abre el enlace que te mandamos ahí.", { email: pending })}{" "}
+                  <button type="button" onClick={() => void resend()} className="font-semibold underline">
+                    {t("Reenviar correo")}
+                  </button>
+                </>
+              ) : verified ? (
                 t("✓ Correo confirmado")
               ) : (
                 <>

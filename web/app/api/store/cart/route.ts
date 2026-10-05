@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
 
   await ensurePublicCatalogFresh();
   for (const line of lines) {
-    const problem = catalogPurchaseProblem(user, line.code, region, line.quantity);
+    const others = lines.filter((l) => l !== line).map((l) => l.code);
+    const problem = catalogPurchaseProblem(user, line.code, region, line.quantity, others);
     if (problem) return NextResponse.json({ error: problem.error, code: line.code }, { status: problem.status });
   }
 

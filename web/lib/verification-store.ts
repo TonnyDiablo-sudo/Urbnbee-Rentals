@@ -378,7 +378,7 @@ export function hostShowsVerifiedRibbon(userId: string): boolean {
 /**
  * Verificación de identidad pagada. Es un solo producto por persona: la membresía de
  * huésped y la verificación de anfitrión anterior cuentan igual. El motor de reservas
- * la incluye: el anfitrión que cobra reservas tiene que estar identificado.
+ * no la incluye: se contrata aparte y el motor no funciona sin ella.
  */
 export function identityPlanActive(userId: string): boolean {
   const paid = getHostEntitlement(userId, HOST_SKU_HOST_VERIFICATION);
@@ -386,6 +386,9 @@ export function identityPlanActive(userId: string): boolean {
   const v = getVerification(userId);
   const s = v?.subscriptionStatus;
   if ((s === "active" || s === "trialing") && !periodOver(v?.currentPeriodEnd)) return true;
+  // El motor por anuncio no incluye identidad; sólo las suscripciones antiguas «todo incluido».
+  const engine = getHostEntitlement(userId, HOST_SKU_BOOKING_ENGINE);
+  if (engine?.quantity !== undefined) return false;
   return isHostMembershipPaidUp(userId);
 }
 

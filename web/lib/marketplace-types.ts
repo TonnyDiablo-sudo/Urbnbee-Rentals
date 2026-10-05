@@ -45,6 +45,8 @@ export type UserRecord = {
   lang?: "es" | "en";
   emailVerifyTokenHash?: string;
   emailVerifyExpiresAt?: string;
+  /** Correo nuevo que pidió; reemplaza a `email` sólo cuando lo confirma desde el enlace. */
+  pendingEmail?: string;
   /** Sesiones emitidas antes de esto ya no valen (cambio o recuperación de contraseña). */
   passwordChangedAt?: string;
   passwordResetTokenHash?: string;

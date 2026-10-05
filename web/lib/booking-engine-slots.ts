@@ -3,7 +3,8 @@ import { getHostEntitlement } from "@/lib/host-entitlements-store";
 import { HOST_SKU_BOOKING_ENGINE } from "@/lib/host-entitlement-types";
 import { getListingById, listListingsForHost, updateListing } from "@/lib/marketplace-store";
 import type { HostListingRecord } from "@/lib/marketplace-types";
-import { hostAcceptsBookings } from "@/lib/verification-store";
+import { listingShowsLocationBadge } from "@/lib/address-proof-access";
+import { hostAcceptsBookings, identityPlanActive, isHostIdentityVerified } from "@/lib/verification-store";
 
 /** Anuncios que puede tener con motor: "all" en suscripciones anteriores al cobro por anuncio. */
 export function engineCapacity(hostId: string): number | "all" {
@@ -28,8 +29,26 @@ export function engineListingIds(hostId: string): Set<string> {
   return new Set(on.map((l) => l.id));
 }
 
+export const ENGINE_NEEDS_IDENTITY =
+  "El motor de reservas necesita tu verificación de identidad contratada y aprobada. Se compra aparte en la Tienda.";
+export const ENGINE_NEEDS_ADDRESS =
+  "El motor de reservas necesita que este anuncio tenga la verificación de dirección contratada y aprobada. Se compra aparte en la Tienda.";
+
+/** El motor no viene con verificaciones: identidad del anfitrión y dirección del anuncio se pagan y aprueban aparte. */
+export function engineHostReady(hostId: string): boolean {
+  return identityPlanActive(hostId) && isHostIdentityVerified(hostId);
+}
+
+export function engineReadyProblem(listing: HostListingRecord): string | null {
+  if (!engineHostReady(listing.hostId)) return ENGINE_NEEDS_IDENTITY;
+  if (!listingShowsLocationBadge(listing)) return ENGINE_NEEDS_ADDRESS;
+  return null;
+}
+
 export function listingHasEngine(listing: Pick<HostListingRecord, "id" | "hostId">): boolean {
-  return engineListingIds(listing.hostId).has(listing.id);
+  if (!engineListingIds(listing.hostId).has(listing.id)) return false;
+  const full = getListingById(listing.id);
+  return Boolean(full && !engineReadyProblem(full));
 }
 
 /** Puede recibir y procesar reservas: membresía al corriente y un lugar del motor asignado. */
@@ -39,7 +58,7 @@ export function listingAcceptsBookings(listingId: string): boolean {
 }
 
 export const LISTING_ENGINE_OFF_ERROR =
-  "Este anuncio no tiene el motor de reservas activo. Actívalo en Reservas en línea o compra otro lugar en la Tienda.";
+  "Este anuncio no puede procesar reservas. Necesita el motor de reservas activo, tu identidad verificada y la dirección del anuncio verificada; revísalo en Reservas en línea o en la Tienda.";
 
 export function setListingEngine(
   hostId: string,
@@ -71,12 +90,14 @@ export function engineSummary(hostId: string) {
   return {
     capacity: cap,
     used: on.size,
+    identityReady: engineHostReady(hostId),
     listings: listListingsForHost(hostId).map((l) => ({
       id: l.id,
       title: l.title || "Sin título",
       city: l.city,
       published: l.published,
       on: on.has(l.id),
+      addressReady: listingShowsLocationBadge(l),
     })),
   };
 }

@@ -14,8 +14,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-  if (user.emailVerifiedAt) return NextResponse.json({ ok: true, alreadyVerified: true });
-  if (user.placeholderEmail) {
+  if (user.emailVerifiedAt && !user.pendingEmail) return NextResponse.json({ ok: true, alreadyVerified: true });
+  if (user.placeholderEmail && !user.pendingEmail) {
     return NextResponse.json({ error: "Primero pon tu correo personal." }, { status: 400 });
   }
   const sent = await sendVerificationEmail(user.id, publicOriginFromRequest(req));

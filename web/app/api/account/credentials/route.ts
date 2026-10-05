@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { notifyEmailChanged, notifyPasswordChanged } from "@/lib/account-notices";
+import { notifyPasswordChanged } from "@/lib/account-notices";
 import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { userLang } from "@/lib/email";
 import { sendVerificationEmail } from "@/lib/email-verification";
-import { getHostProfile, updateUserAuth, upsertHostProfile } from "@/lib/marketplace-store";
+import { findUserByEmail, getHostProfile, updateUserAuth, upsertHostProfile } from "@/lib/marketplace-store";
 import { normalizeLegitPhone, PHONE_ERROR } from "@/lib/phone-validation";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 import { createSession, getSessionUser } from "@/lib/session";
@@ -49,10 +49,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "La contraseña nueva debe ser distinta a la temporal." }, { status: 400 });
   }
 
+  // Correo temporal del asociado: se cambia ya. Cualquier otro cambio queda pendiente hasta
+  // que el usuario abra el enlace en el correo nuevo.
+  const swapNow = emailChanged && Boolean(user.placeholderEmail);
+  const requestChange = emailChanged && !swapNow;
+  if (requestChange) {
+    const owner = findUserByEmail(email);
+    if (owner && owner.id !== user.id) {
+      return NextResponse.json({ error: "Ese correo ya tiene otra cuenta en Cabibee." }, { status: 409 });
+    }
+  }
+
   let updated;
   try {
     updated = updateUserAuth(user.id, {
-      ...(emailChanged
+      ...(requestChange ? { pendingEmail: email } : {}),
+      ...(swapNow
         ? {
             email,
             placeholderEmail: undefined,
@@ -83,7 +95,7 @@ export async function POST(req: NextRequest) {
   }
   if (!updated) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
 
-  if (emailChanged) {
+  if (swapNow) {
     const profile = getHostProfile(user.id);
     if (!profile?.email || profile.email === user.email || isPlaceholderEmail(profile.email)) {
       upsertHostProfile(user.id, { email });
@@ -92,24 +104,22 @@ export async function POST(req: NextRequest) {
   if (phone && !getHostProfile(user.id)?.phone) {
     upsertHostProfile(user.id, { phone });
   }
-  if (emailChanged || newPassword) {
+  if (swapNow || newPassword) {
     await createSession({ id: updated.id, email: updated.email, role: updated.role });
-  }
-  if (emailChanged) {
-    void notifyEmailChanged({ oldEmail: user.email, newEmail: updated.email, fullName: updated.fullName, lang: userLang(updated) });
   }
   if (newPassword) {
     void notifyPasswordChanged({ email: updated.email, fullName: updated.fullName, lang: userLang(updated) });
   }
 
   let verificationSent = false;
-  if (!updated.emailVerifiedAt) {
+  if (requestChange || (swapNow && !updated.emailVerifiedAt)) {
     verificationSent = await sendVerificationEmail(updated.id, publicOriginFromRequest(req));
   }
 
   return NextResponse.json({
     ok: true,
     email: updated.email,
+    pendingEmail: updated.pendingEmail ?? null,
     emailVerified: Boolean(updated.emailVerifiedAt),
     verificationSent,
   });

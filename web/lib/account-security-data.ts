@@ -15,6 +15,7 @@ export function accountSecurityProps(
     mode,
     email: user.placeholderEmail ? "" : user.email,
     emailVerified: Boolean(user.emailVerifiedAt),
+    pendingEmail: user.pendingEmail,
     phone: user.phone || getHostProfile(user.id)?.phone || "",
     stats: { listings: listings.length, views: totals.views, contacts: totals.contacts },
     doneHref,

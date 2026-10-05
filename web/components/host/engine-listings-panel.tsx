@@ -6,7 +6,8 @@ import { useT } from "@/components/i18n-provider";
 type Summary = {
   capacity: number | "all";
   used: number;
-  listings: { id: string; title: string; city: string; published: boolean; on: boolean }[];
+  identityReady: boolean;
+  listings: { id: string; title: string; city: string; published: boolean; on: boolean; addressReady: boolean }[];
 };
 
 /** Elige qué anuncios usan los lugares pagados del motor de reservas. */
@@ -57,6 +58,11 @@ export function EngineListingsPanel({ storeHref = "/tienda" }: { storeHref?: str
         </a>
       </p>
       {err && <p className="mt-2 text-sm text-red-700">{t(err)}</p>}
+      {!data.identityReady && (
+        <p className="mt-3 rounded-xl bg-[#fdf6d8] px-4 py-3 text-sm text-[#5c4a0a]">
+          {t("El motor de reservas necesita tu verificación de identidad contratada y aprobada. Se compra aparte en la Tienda.")}
+        </p>
+      )}
       <ul className="mt-4 divide-y divide-[#f0f0f0]">
         {data.listings.map((l) => (
           <li key={l.id} className="flex items-center justify-between gap-3 py-3">
@@ -65,6 +71,9 @@ export function EngineListingsPanel({ storeHref = "/tienda" }: { storeHref?: str
               <p className="text-xs text-[#888]">
                 {[l.city, l.published ? t("Publicado") : t("Borrador")].filter(Boolean).join(" · ")}
               </p>
+              {l.on && !l.addressReady && (
+                <p className="text-xs text-[#a15c00]">{t("Falta la dirección verificada: no recibe reservas hasta tenerla.")}</p>
+              )}
             </div>
             <label className="flex shrink-0 items-center gap-2 text-sm">
               <input

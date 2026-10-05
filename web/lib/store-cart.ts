@@ -1,5 +1,6 @@
 import "server-only";
 import type Stripe from "stripe";
+import { addressProofSlots } from "@/lib/address-proof-access";
 import { featuredPlanAmount, featuredPurchaseProblem, isFeaturedPlan } from "@/lib/featured-demand";
 import { getHostEntitlement } from "@/lib/host-entitlements-store";
 import { hostEntitlementAllowsAccess } from "@/lib/host-entitlement-types";
@@ -26,10 +27,29 @@ export function catalogPurchaseProblem(
   user: { id: string; role: string },
   code: MembershipPlanCode,
   region: VerificationRegion,
-  quantity = 1
+  quantity = 1,
+  /** Lo demás que va en el mismo carrito: cuenta para los requisitos del motor. */
+  alsoBuying: MembershipPlanCode[] = []
 ): { error: string; status: number } | null {
   if (MEMBERSHIP_PLAN_AUDIENCE[code] === "host" && user.role !== "host" && user.role !== "admin") {
     return { error: "Esta membresía es para anfitriones.", status: 403 };
+  }
+  if (MEMBERSHIP_PLAN_FAMILY[code] === "booking_engine" && user.role !== "admin") {
+    const families = new Set(alsoBuying.map((c) => MEMBERSHIP_PLAN_FAMILY[c]));
+    const identity =
+      identityPlanActive(user.id) || families.has("guest_membership") || families.has("host_verification");
+    const address = addressProofSlots(user.id) > 0 || families.has("address_proof");
+    if (!identity || !address) {
+      return {
+        error:
+          !identity && !address
+            ? "El motor de reservas requiere la verificación de identidad y la verificación de dirección. Agrégalas a tu carrito o cómpralas antes."
+            : !identity
+              ? "El motor de reservas requiere la verificación de identidad. Agrégala a tu carrito o cómprala antes."
+              : "El motor de reservas requiere la verificación de dirección de tus anuncios. Agrégala a tu carrito o cómprala antes.",
+        status: 412,
+      };
+    }
   }
   const plan = getMembershipPlan(code);
   if (!plan || !plan.active || membershipPlanAmount(plan, region) <= 0) {

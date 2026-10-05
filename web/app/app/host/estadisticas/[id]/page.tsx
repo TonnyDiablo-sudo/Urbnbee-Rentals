@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ListingInsightsView } from "@/components/host/listing-insights-view";
+import { StatsEmailGate } from "@/components/host/stats-email-gate";
 import { getLang, getT } from "@/lib/i18n/server";
 import { listingInsights, parseInsightRange } from "@/lib/listing-insights";
 import { getListingById } from "@/lib/marketplace-store";
@@ -24,6 +25,16 @@ export default async function AppListingStatsPage({
   const listing = getListingById(id);
   if (!user || !listing || (listing.hostId !== user.id && user.role !== "admin")) notFound();
   const [t, lang] = await Promise.all([getT(), getLang()]);
+  if (user.role !== "admin" && !user.emailVerifiedAt) {
+    return (
+      <>
+        <TopBar title={t("Estadísticas del anuncio")} back="/host/estadisticas" />
+        <div className="px-5 pb-10 pt-4">
+          <StatsEmailGate email={user.email} placeholder={Boolean(user.placeholderEmail)} />
+        </div>
+      </>
+    );
+  }
   const data = listingInsights(listing.id, listing.hostId, parseInsightRange(d));
   return (
     <>
