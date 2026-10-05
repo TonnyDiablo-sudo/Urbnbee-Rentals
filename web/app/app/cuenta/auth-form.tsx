@@ -112,10 +112,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           </label>
           {mode === "register" && (
             <label className="block text-sm font-medium text-[#222]">
-              {t("Teléfono")}
+              {t("Teléfono")} <span className="font-normal text-[#999]">{t("(opcional)")}</span>
               <input
                 type="tel"
-                required
                 placeholder={t("Con lada, ej. 55 1234 5678")}
                 autoComplete="tel"
                 inputMode="tel"

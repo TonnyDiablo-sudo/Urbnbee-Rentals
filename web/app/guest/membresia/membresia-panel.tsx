@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CountryPicker, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
+import { CountryPicker, PhoneBox, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale, type TFn } from "@/lib/i18n";
 import type { VerificationRegion } from "@/lib/verification-types";
@@ -29,6 +29,7 @@ type StatusPayload = {
   billingRegion: VerificationRegion;
   billingCountry: BillingCountry | null;
   emailVerified: boolean;
+  hasPhone: boolean;
   plansAvailable: PlansPair;
   plansByRegion: { mx: PlansPair; us: PlansPair };
   catalogPlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
@@ -279,6 +280,7 @@ export function MembresiaPanel() {
                 }}
               />
               {!data.emailVerified && <VerifyEmailBox />}
+              {!data.hasPhone && <PhoneBox onSaved={() => void load()} />}
               <p className="text-sm text-[#484848]">
                 {selectedRegion === "us"
                   ? t("Te identificas con tu licencia de manejo, State ID o pasaporte y una selfie.")

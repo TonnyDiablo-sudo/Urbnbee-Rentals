@@ -1,3 +1,4 @@
+import { purchaseHasPhone } from "@/lib/purchase-guard";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { entitlementsPublicView } from "@/lib/host-entitlements";
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
     billingRegion,
     billingCountry: user.billingCountry ?? null,
     emailVerified: Boolean(user.emailVerifiedAt) || user.role === "admin",
+    hasPhone: purchaseHasPhone(user),
     catalogPlansByRegion: {
       mx: identityPlans("mx"),
       us: identityPlans("us"),

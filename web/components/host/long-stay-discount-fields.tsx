@@ -1,7 +1,7 @@
 "use client";
 
 import { useT } from "@/components/i18n-provider";
-import { LONG_STAY_MONTHS, longStayNights, type LongStayMonths } from "@/lib/listing-pricing";
+import { LONG_STAY_MONTHS, longStayNights, type LongStayMonths, type MonthlyCharge } from "@/lib/listing-pricing";
 
 /** Descuentos opcionales de 3, 6 y 12 meses; resaltados cuando el anuncio es de renta mensual. */
 export function LongStayDiscountFields({
@@ -10,18 +10,57 @@ export function LongStayDiscountFields({
   onBlur,
   highlight = false,
   inputClassName,
+  monthlyCharge,
+  onMonthlyChargeChange,
 }: {
   values: Record<LongStayMonths, string>;
   onChange: (months: LongStayMonths, value: string) => void;
   onBlur?: () => void;
   highlight?: boolean;
   inputClassName: string;
+  /** Sólo renta mensual: cómo se cobra y se muestra el total al huésped. */
+  monthlyCharge?: MonthlyCharge;
+  onMonthlyChargeChange?: (value: MonthlyCharge) => void;
 }) {
   const t = useT();
+  const charge = monthlyCharge ?? "per_night";
   return (
     <div
       className={`rounded-2xl border p-4 ${highlight ? "border-[#dcb81e] bg-[#fdf6d8]" : "border-[#e5e5e5]"}`}
     >
+      {highlight && onMonthlyChargeChange && (
+        <fieldset className="mb-4 border-b border-[#ecd98a] pb-4">
+          <legend className="text-[15px] font-semibold text-[#222]">{t("¿Cómo cobras la renta?")}</legend>
+          {(
+            [
+              {
+                v: "per_month" as const,
+                title: "Por mes completo",
+                hint: "Cada mes de calendario cuesta tu renta exacta (5 ene → 5 jul = 6 meses). Los días que sobren se cobran a renta ÷ 30. Totales redondos.",
+              },
+              {
+                v: "per_night" as const,
+                title: "Por noche",
+                hint: "La renta se divide entre 30 y se cobra cada noche. 6 meses pueden salir unos pesos arriba o abajo de la renta × 6.",
+              },
+            ]
+          ).map((o) => (
+            <label key={o.v} className="mt-2 flex cursor-pointer items-start gap-2.5">
+              <input
+                type="radio"
+                name="monthlyCharge"
+                className="mt-1"
+                checked={charge === o.v}
+                onChange={() => onMonthlyChargeChange(o.v)}
+              />
+              <span>
+                <span className="block text-sm font-semibold text-[#222]">{t(o.title)}</span>
+                <span className="block text-xs text-[#717171]">{t(o.hint)}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      )}
       <p className="text-[15px] font-semibold text-[#222]">{t("Descuentos por estancias largas (opcional)")}</p>
       <p className="mt-1 text-xs text-[#717171]">
         {highlight

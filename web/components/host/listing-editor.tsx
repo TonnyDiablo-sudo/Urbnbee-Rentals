@@ -1086,6 +1086,11 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 onBlur={() => savePricing({ longStayDiscounts: listing.pricing?.longStayDiscounts ?? [] })}
                 highlight={listing.rentalMode === "monthly"}
                 inputClassName="mt-1 w-full rounded-lg border border-[#ddd] bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#dcb81e]"
+                monthlyCharge={listing.pricing?.monthlyCharge}
+                onMonthlyChargeChange={(v) => {
+                  setListing({ ...listing, pricing: { ...listing.pricing, monthlyCharge: v } });
+                  savePricing({ monthlyCharge: v });
+                }}
               />
             </div>
             <p className="mt-2 text-xs text-[#888]">

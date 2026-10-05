@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import {
+  fullMonthsBetween,
   quoteStay,
   stayLengthError,
   type ListingPricing,
@@ -260,7 +261,10 @@ export function AvailabilityCalendar({
   const subtotal = stay ? Math.round(stay.staySubtotal + cleaningFee) : 0;
   const taxes = computeStayTax(tax, subtotal);
   const total = subtotal + taxes.addedMxn;
-  const lengthErr = nights > 0 ? stayLengthError(priceInput, nights) : null;
+  const lengthErr =
+    nights > 0 && checkin && checkout
+      ? stayLengthError(priceInput, nights, fullMonthsBetween(localISO(checkin), localISO(checkout)).months)
+      : null;
 
   const fmtDate = (d: Date) => `${d.getDate()} ${t(MONTHS[d.getMonth()]).slice(0,3)} ${d.getFullYear()}`;
 
@@ -333,7 +337,25 @@ export function AvailabilityCalendar({
       {/* Price summary */}
       {nights > 0 && stay && (
         <div className="mt-4 rounded border p-4 text-sm" style={{ borderColor: "#ebebeb" }}>
-          {stay.sameRate ? (
+          {stay.months && stay.monthPrice ? (
+            <>
+              <div className="flex justify-between text-[#3a3a3a]">
+                <span>
+                  ${stay.monthPrice.toLocaleString("es-MX")} ×{" "}
+                  {stay.months === 1 ? t("1 mes") : t("{n} meses", { n: stay.months })}
+                </span>
+                <span>${(stay.monthPrice * stay.months).toLocaleString("es-MX")}</span>
+              </div>
+              {(stay.extraNights ?? 0) > 0 && (
+                <div className="flex justify-between text-[#3a3a3a]">
+                  <span>{t("+ {n} noches extra", { n: stay.extraNights ?? 0 })}</span>
+                  <span>
+                    ${Math.round(stay.nightsSubtotal - stay.monthPrice * stay.months).toLocaleString("es-MX")}
+                  </span>
+                </div>
+              )}
+            </>
+          ) : stay.sameRate ? (
             <div className="flex justify-between text-[#3a3a3a]">
               <span>
                 ${Math.round(stay.nightsSubtotal / nights).toLocaleString("es-MX")} × {t("{n} noches", { n: nights })}

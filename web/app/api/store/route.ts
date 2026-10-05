@@ -1,3 +1,4 @@
+import { purchaseHasPhone } from "@/lib/purchase-guard";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { withFeaturedDemand } from "@/lib/featured-demand";
@@ -24,6 +25,7 @@ export async function GET(req: NextRequest) {
     region,
     billingCountry: user.billingCountry ?? null,
     emailVerified: Boolean(user.emailVerifiedAt) || user.role === "admin",
+    hasPhone: purchaseHasPhone(user),
     placeholderEmail: Boolean(user.placeholderEmail),
     email: user.email,
     isHost: user.role === "host" || user.role === "admin",

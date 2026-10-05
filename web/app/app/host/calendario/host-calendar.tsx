@@ -14,6 +14,7 @@ import {
   nightPrice,
   type ListingPricing,
   type LongStayMonths,
+  type MonthlyCharge,
 } from "@/lib/listing-pricing";
 import { LongStayDiscountFields } from "@/components/host/long-stay-discount-fields";
 import { sizedImage } from "@/lib/image-url";
@@ -528,12 +529,15 @@ export function PriceSettings({
     (p.seasonal ?? []).map((s) => ({ from: s.from, to: s.to, pct: String(s.pct), label: s.label ?? "" }))
   );
   const [longStay, setLongStay] = useState<Record<LongStayMonths, string>>(() => longStayFormValues(p));
+  const [monthlyCharge, setMonthlyCharge] = useState<MonthlyCharge>(p.monthlyCharge ?? "per_night");
   const longStayBlock = (
     <LongStayDiscountFields
       values={longStay}
       onChange={(m, v) => setLongStay((s) => ({ ...s, [m]: v }))}
       highlight={monthlyMode}
       inputClassName={inputCls}
+      monthlyCharge={monthlyCharge}
+      onMonthlyChargeChange={setMonthlyCharge}
     />
   );
   const setPromo = (i: number, k: "from" | "to" | "pct" | "label", v: string) =>
@@ -574,6 +578,7 @@ export function PriceSettings({
         lastMinuteDays: f.lastDays,
         seasonal: filled.map((s) => ({ from: s.from, to: s.to, pct: s.pct, label: s.label })),
         longStayDiscounts: longStayFromForm(longStay),
+        monthlyCharge,
         minNights: f.minNights,
         maxNights: f.maxNights,
       },
@@ -621,7 +626,7 @@ export function PriceSettings({
           field(
             "month",
             "Renta mensual (MXN)",
-            "Se cobra por noche como la renta entre 30. La estancia mínima queda en 30 noches."
+            "La estancia mínima queda en un mes. Abajo eliges si se cobra por mes completo o por noche."
           )
         ) : (
           <>

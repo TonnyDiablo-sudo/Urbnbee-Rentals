@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
   const rawPhone = typeof body.phone === "string" ? body.phone.trim() : "";
   const phone = rawPhone ? normalizeLegitPhone(rawPhone) : null;
-  if ((user.mustChangePassword && !phone) || (rawPhone && !phone)) {
+  if (rawPhone && !phone) {
     return NextResponse.json({ error: PHONE_ERROR }, { status: 400 });
   }
   if (user.mustChangePassword && newPassword.length < 8) {

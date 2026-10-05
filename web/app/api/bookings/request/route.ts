@@ -16,7 +16,7 @@ import {
 import { countNights, nightsBlockedByListing } from "@/lib/booking-helpers";
 import { bookingTaxFields, quoteBookingMxn } from "@/lib/booking-quote";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
-import { stayLengthError } from "@/lib/listing-pricing";
+import { fullMonthsBetween, stayLengthError } from "@/lib/listing-pricing";
 import { getSessionUser } from "@/lib/session";
 import { listingAcceptsBookings } from "@/lib/booking-engine-slots";
 import { hostCanTakeBookingPayments } from "@/lib/host-stripe";
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const lengthErr = stayLengthError(listing, nights);
+  const lengthErr = stayLengthError(listing, nights, fullMonthsBetween(checkIn, checkOut).months);
   if (lengthErr) {
     return NextResponse.json({ error: lengthErr.key.replace("{n}", String(lengthErr.n)) }, { status: 400 });
   }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { CountryPicker, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
+import { CountryPicker, PhoneBox, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
 import { useT } from "@/components/i18n-provider";
 import { WebLink } from "../../_components/site-origin";
 import { PlanPicker, startIdentity, startMembershipCheckout, type CatalogPlan } from "../../_components/plan-picker";
@@ -20,6 +20,7 @@ type Status = {
   billingRegion: "mx" | "us";
   billingCountry: BillingCountry | null;
   emailVerified: boolean;
+  hasPhone: boolean;
   hostCurrentPeriodEnd?: string;
   enginePlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
 };
@@ -122,10 +123,11 @@ export function BookingEngine() {
             </ul>
             <CountryPicker value={data.billingCountry} onSaved={() => void load()} />
             {!data.emailVerified && <VerifyEmailBox />}
+            {!data.hasPhone && <PhoneBox onSaved={() => void load()} />}
             {plans.length > 0 ? (
               <PlanPicker
                 plans={plans}
-                busy={busy || !data.billingCountry || !data.emailVerified}
+                busy={busy || !data.billingCountry || !data.emailVerified || !data.hasPhone}
                 onPick={(c) => void buy(c)}
                 demo={!data.stripeConfigured}
               />

@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AddressProofPanel } from "@/components/host/address-proof-panel";
-import { CountryPicker, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
+import { CountryPicker, PhoneBox, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
 import { EngineListingsPanel } from "@/components/host/engine-listings-panel";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale, type TFn } from "@/lib/i18n";
@@ -35,6 +35,7 @@ type Status = {
   billingRegion: VerificationRegion;
   billingCountry: BillingCountry | null;
   emailVerified: boolean;
+  hasPhone: boolean;
   catalogPlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
   enginePlansByRegion?: { mx: CatalogPlan[]; us: CatalogPlan[] };
   listingsTotal: number;
@@ -200,7 +201,7 @@ function HostVerificacionClient() {
 
   const catalogPlans = data?.catalogPlansByRegion[selectedRegion] ?? [];
   const enginePlans = data?.enginePlansByRegion?.[selectedRegion] ?? [];
-  const canPay = Boolean(data?.billingCountry) && Boolean(data?.emailVerified);
+  const canPay = Boolean(data?.billingCountry) && Boolean(data?.emailVerified) && Boolean(data?.hasPhone);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -298,6 +299,7 @@ function HostVerificacionClient() {
                 }}
               />
               {!data.emailVerified && <VerifyEmailBox />}
+              {!data.hasPhone && <PhoneBox onSaved={() => void load()} />}
               <p className="text-sm text-[#484848]">
                 {selectedRegion === "us"
                   ? t("Te identificas con tu licencia de manejo, State ID o pasaporte y una selfie.")

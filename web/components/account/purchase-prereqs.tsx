@@ -71,6 +71,56 @@ export function CountryPicker({
   );
 }
 
+/** Teléfono de la cuenta: se pide sólo al comprar. */
+export function PhoneBox({ onSaved }: { onSaved: (phone: string) => void }) {
+  const t = useT();
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <form
+      className="rounded-2xl border border-[#f0d77a] bg-[#fdf6d8] p-4 text-sm text-[#5c4a0a]"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setErr(null);
+        const res = await fetch("/api/account/phone", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone }),
+        }).catch(() => null);
+        const j = res ? await res.json().catch(() => ({})) : {};
+        setBusy(false);
+        if (res?.ok) onSaved(j.phone ?? phone);
+        else setErr(typeof j.error === "string" ? j.error : "No se pudo guardar. Intenta otra vez.");
+      }}
+    >
+      <p className="font-semibold">{t("Pon tu teléfono para poder comprar")}</p>
+      <p className="mt-1">{t("Lo usamos sólo para avisos de tu compra y de tus reservas. No se muestra a nadie.")}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <input
+          type="tel"
+          required
+          autoComplete="tel"
+          inputMode="tel"
+          placeholder={t("Con lada, ej. 55 1234 5678")}
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          className="min-w-0 flex-1 rounded-xl border border-[#e5d48a] bg-white px-3 py-2 text-sm text-[#222] outline-none focus:border-[#222]"
+        />
+        <button
+          type="submit"
+          disabled={busy || phone.replace(/\D/g, "").length < 10}
+          className="rounded-xl bg-[#222] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {busy ? t("Guardando…") : t("Guardar")}
+        </button>
+      </div>
+      {err && <p className="mt-2 text-xs text-red-700">{t(err)}</p>}
+    </form>
+  );
+}
+
 /** Reenvía el correo de confirmación desde noreply@cabibee.com. */
 export function VerifyEmailButton({ className = "" }: { className?: string }) {
   const t = useT();

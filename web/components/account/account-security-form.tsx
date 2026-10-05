@@ -88,7 +88,7 @@ export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, 
         <div>
           <h1 className="text-[26px] font-bold text-[#222]">{t("Bienvenido a Cabibee")}</h1>
           <p className="mt-1.5 text-sm leading-relaxed text-[#717171]">
-            {t("Publicamos tu alojamiento gratis. Pon tu correo, tu teléfono y una contraseña nueva para que la cuenta quede a tu nombre; después puedes editar o borrar tus anuncios cuando quieras.")}
+            {t("Publicamos tu alojamiento gratis. Pon tu correo y una contraseña nueva para que la cuenta quede a tu nombre; después puedes editar o borrar tus anuncios cuando quieras.")}
           </p>
         </div>
       )}
@@ -132,10 +132,9 @@ export function AccountSecurityForm({ mode, email: initialEmail, emailVerified, 
           )}
         </label>
         <label className="block text-sm font-medium text-[#222]">
-          {t("Tu teléfono")}
+          {t("Tu teléfono")} <span className="font-normal text-[#999]">{t("(opcional)")}</span>
           <input
             type="tel"
-            required={activate || Boolean(initialPhone)}
             autoComplete="tel"
             inputMode="tel"
             placeholder={t("Con lada, ej. 55 1234 5678")}

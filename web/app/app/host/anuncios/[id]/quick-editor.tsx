@@ -10,6 +10,7 @@ import {
   longStayFormValues,
   longStayFromForm,
   type LongStayMonths,
+  type MonthlyCharge,
   type RentalMode,
 } from "@/lib/listing-pricing";
 import { IconExternal, IconPlus } from "../../../_components/icons";
@@ -41,6 +42,7 @@ type Draft = {
   weeklyDiscountPct: number;
   monthlyDiscountPct: number;
   longStay: Record<LongStayMonths, string>;
+  monthlyCharge: MonthlyCharge;
   amenities: string[];
   accessCode: string;
   agentCanShareAccessCode: boolean;
@@ -72,6 +74,7 @@ function toDraft(l: Listing): Draft {
     weeklyDiscountPct: l.pricing?.weeklyDiscountPct ?? 0,
     monthlyDiscountPct: l.pricing?.monthlyDiscountPct ?? 0,
     longStay: longStayFormValues(l.pricing),
+    monthlyCharge: l.pricing?.monthlyCharge ?? "per_night",
     amenities: [...l.amenities],
     accessCode: ag.accessCode ?? "",
     agentCanShareAccessCode: l.agentCanShareAccessCode !== false,
@@ -164,6 +167,7 @@ export function QuickListingEditor({ listingId }: { listingId: string }) {
         weeklyDiscountPct: draft.weeklyDiscountPct,
         monthlyDiscountPct: draft.monthlyDiscountPct,
         longStayDiscounts: longStayFromForm(draft.longStay),
+        monthlyCharge: draft.monthlyCharge,
       },
       amenities: draft.amenities,
       arrivalGuide: {
@@ -443,6 +447,8 @@ export function QuickListingEditor({ listingId }: { listingId: string }) {
             onChange={(m, v) => set("longStay", { ...draft.longStay, [m]: v })}
             highlight={draft.rentalMode === "monthly"}
             inputClassName={inputCls}
+            monthlyCharge={draft.monthlyCharge}
+            onMonthlyChargeChange={(v) => set("monthlyCharge", v)}
           />
           <p className="text-xs text-[#888]">
             {draft.rentalMode === "monthly"

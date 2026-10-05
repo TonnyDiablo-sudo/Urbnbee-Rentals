@@ -1,3 +1,4 @@
+import { purchaseHasPhone } from "@/lib/purchase-guard";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
@@ -37,6 +38,7 @@ export async function GET(req: NextRequest) {
     billingRegion,
     billingCountry: user.billingCountry ?? null,
     emailVerified: Boolean(user.emailVerifiedAt) || user.role === "admin",
+    hasPhone: purchaseHasPhone(user),
     plansAvailable,
     plansByRegion: { mx: plansMx, us: plansUs },
     // Planes del catálogo, con su precio: son los que se muestran cuando ya hay

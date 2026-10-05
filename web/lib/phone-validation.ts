@@ -26,6 +26,10 @@ function validMx(n10: string): boolean {
   return /^[2-9]\d{9}$/.test(n10);
 }
 
+export function hasLegitPhone(phone: string | undefined | null): boolean {
+  return Boolean(phone && normalizeLegitPhone(phone));
+}
+
 /** Teléfono tal como lo escribió (espacios normalizados), o null si no es creíble. */
 export function normalizeLegitPhone(raw: unknown): string | null {
   if (typeof raw !== "string") return null;

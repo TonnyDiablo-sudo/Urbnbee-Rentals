@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
-import { CountryPicker, VerifyEmailBox, type BillingCountry } from "@/components/account/purchase-prereqs";
+import { CountryPicker, PhoneBox, VerifyEmailBox, type BillingCountry } from "@/components/account/purchase-prereqs";
 import { AiAgentCard } from "@/components/store/ai-agent-card";
 
 type Term = { code: string; months: number; amount: number; perMonth: number };
@@ -34,6 +34,7 @@ type Data = {
   region: "mx" | "us";
   billingCountry: BillingCountry | null;
   emailVerified: boolean;
+  hasPhone: boolean;
   placeholderEmail: boolean;
   email: string;
   isHost: boolean;
@@ -181,7 +182,7 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
   }
 
   async function checkout() {
-    if (cartLines.length === 0 || !data?.billingCountry || !data.emailVerified) return;
+    if (cartLines.length === 0 || !data?.billingCountry || !data.emailVerified || !data.hasPhone) return;
     setBusy("cart");
     setMsg(null);
     const one = cartLines.length === 1 ? cartLines[0] : null;
@@ -597,9 +598,14 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
                     <VerifyEmailBox email={data.email} placeholder={data.placeholderEmail} />
                   </div>
                 )}
+                {!data.hasPhone && (
+                  <div className="mt-3">
+                    <PhoneBox onSaved={() => void load()} />
+                  </div>
+                )}
                 <button
                   type="button"
-                  disabled={busy !== null || !data.billingCountry || !data.emailVerified}
+                  disabled={busy !== null || !data.billingCountry || !data.emailVerified || !data.hasPhone}
                   onClick={() => void checkout()}
                   className="mt-4 w-full rounded-xl bg-[#dcb81e] px-5 py-3 text-[15px] font-semibold text-black disabled:opacity-50"
                 >

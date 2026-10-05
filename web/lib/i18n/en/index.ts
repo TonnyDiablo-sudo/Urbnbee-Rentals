@@ -26,6 +26,7 @@ import { admin } from "./admin";
 import { associates } from "./associates";
 import { longStay } from "./long-stay";
 import { reviewsPhoneMail } from "./reviews-phone-mail";
+import { monthlyCharge } from "./monthly-charge";
 
 /** Clave: el texto exacto en español que aparece en el código. */
 export const EN: Record<string, string> = {
@@ -57,4 +58,5 @@ export const EN: Record<string, string> = {
   ...associates,
   ...longStay,
   ...reviewsPhoneMail,
+  ...monthlyCharge,
 };

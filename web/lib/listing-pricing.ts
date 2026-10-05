@@ -30,9 +30,18 @@ export type ListingPricing = {
   seasonal?: SeasonalPromo[];
   /** Descuentos opcionales por estancias de 3, 6 o 12 meses (un mes = 30 noches). */
   longStayDiscounts?: LongStayDiscount[];
+  /**
+   * Sólo renta mensual. "per_month": cada mes de calendario completo cuesta la renta exacta
+   * (5 ene → 5 jul = 6 meses) y los días sobrantes a renta ÷ 30. Sin valor: todo por noche.
+   */
+  monthlyCharge?: MonthlyCharge;
+  /** Renta mensual exacta; la pone el servidor para que el calendario del huésped cotice igual. */
+  monthPrice?: number;
   minNights?: number;
   maxNights?: number;
 };
+
+export type MonthlyCharge = "per_night" | "per_month";
 
 export const LONG_STAY_MONTHS = [3, 6, 12] as const;
 export type LongStayMonths = (typeof LONG_STAY_MONTHS)[number];
@@ -68,14 +77,19 @@ export function longStayNights(months: number): number {
   return months * MONTHLY_RENTAL_NIGHTS;
 }
 
-/** El mayor descuento de estancia larga cuyo mínimo de noches cumple la estancia. */
+/**
+ * El mayor descuento de estancia larga que cumple la estancia: por noches (90/180/360) o por
+ * meses de calendario completos (así 1 nov → 1 feb cuenta como 3 meses aunque sean 92 noches).
+ */
 export function longStayDiscountFor(
   p: ListingPricing | undefined,
-  nights: number
+  nights: number,
+  fullMonths = 0
 ): { pct: number; months: LongStayMonths } | null {
   let best: { pct: number; months: LongStayMonths } | null = null;
   for (const d of p?.longStayDiscounts ?? []) {
-    if (d.pct > 0 && nights >= longStayNights(d.months) && (!best || d.pct > best.pct)) {
+    const reaches = nights >= longStayNights(d.months) || fullMonths >= d.months;
+    if (d.pct > 0 && reaches && (!best || d.pct > best.pct)) {
       best = { pct: d.pct, months: d.months };
     }
   }
@@ -98,8 +112,17 @@ export function nightlyFromMonthly(pricePerMonth: number): number {
  */
 export function applyRentalMode(p: PricingInput): { pricePerNight: number; pricing: ListingPricing } {
   const pricing: ListingPricing = { ...(p.pricing ?? {}) };
-  if (!isMonthlyRental(p)) return { pricePerNight: p.pricePerNight, pricing };
+  if (!isMonthlyRental(p)) {
+    delete pricing.monthlyCharge;
+    delete pricing.monthPrice;
+    return { pricePerNight: p.pricePerNight, pricing };
+  }
   delete pricing.weekendPrice;
+  if (pricing.monthlyCharge === "per_month") pricing.monthPrice = p.pricePerMonth;
+  else {
+    delete pricing.monthlyCharge;
+    delete pricing.monthPrice;
+  }
   pricing.minNights = Math.max(MONTHLY_RENTAL_NIGHTS, pricing.minNights ?? 0);
   if (pricing.maxNights && pricing.maxNights < pricing.minNights) pricing.maxNights = pricing.minNights;
   return { pricePerNight: nightlyFromMonthly(p.pricePerMonth!), pricing };
@@ -151,6 +174,28 @@ function daysBetween(fromIso: string, toIsoDate: string): number {
   return Math.round((parseIso(toIsoDate).getTime() - parseIso(fromIso).getTime()) / 86_400_000);
 }
 
+/** Mismo día `k` meses después; si ese mes es más corto, su último día (31 ene + 1 → 28/29 feb). */
+function addMonthsIso(iso: string, k: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const last = new Date(y, m - 1 + k + 1, 0).getDate();
+  return toIso(new Date(y, m - 1 + k, Math.min(d, last)));
+}
+
+/** Meses de calendario completos entre llegada y salida, y las noches que sobran. */
+export function fullMonthsBetween(checkIn: string, checkOut: string): { months: number; extraNights: number } {
+  let months = 0;
+  while (addMonthsIso(checkIn, months + 1) <= checkOut) months++;
+  return { months, extraNights: Math.max(0, daysBetween(addMonthsIso(checkIn, months), checkOut)) };
+}
+
+/** Renta mensual exacta si el anfitrión eligió cobrar por mes completo; null si se cobra por noche. */
+export function perMonthPrice(p: PricingInput): number | null {
+  if (p.pricing?.monthlyCharge !== "per_month") return null;
+  const exact = p.pricing.monthPrice ?? (isMonthlyRental(p) ? p.pricePerMonth : undefined);
+  const price = exact && exact > 0 ? exact : Math.round(p.pricePerNight * MONTHLY_RENTAL_NIGHTS);
+  return price > 0 ? price : null;
+}
+
 export function seasonalPctFor(p: PricingInput, iso: string): number {
   let best = 0;
   for (const s of p.pricing?.seasonal ?? []) {
@@ -164,11 +209,12 @@ export function stayDiscountFor(
   p: PricingInput,
   nights: number,
   checkIn: string,
-  today: string
+  today: string,
+  fullMonths = 0
 ): { pct: number; kind: StayDiscountKind | null; months?: LongStayMonths } {
   const pr = p.pricing ?? {};
   const options: { pct: number; kind: StayDiscountKind; months?: LongStayMonths }[] = [];
-  const longStay = longStayDiscountFor(pr, nights);
+  const longStay = longStayDiscountFor(pr, nights, fullMonths);
   if (longStay) options.push({ pct: longStay.pct, kind: "long_stay", months: longStay.months });
   if (nights >= MONTHLY_NIGHTS && (pr.monthlyDiscountPct ?? 0) > 0) {
     options.push({ pct: pr.monthlyDiscountPct!, kind: "monthly" });
@@ -202,6 +248,10 @@ export type StayQuote = {
   /** Lo que cuestan las noches ya con descuento (sin limpieza). */
   staySubtotal: number;
   sameRate: boolean;
+  /** Sólo con cobro por mes completo: meses de calendario, su renta y las noches sobrantes. */
+  months?: number;
+  monthPrice?: number;
+  extraNights?: number;
 };
 
 /**
@@ -219,24 +269,39 @@ export function quoteStay(
   let nights = 0;
   let min = Infinity;
   let max = -Infinity;
-  const cur = parseIso(checkIn);
-  const end = parseIso(checkOut);
-  while (cur < end) {
-    const iso = toIso(cur);
-    const price = nightPrice(p, iso);
-    nightsSubtotal += price;
-    seasonalRaw += (price * seasonalPctFor(p, iso)) / 100;
-    min = Math.min(min, price);
-    max = Math.max(max, price);
-    nights++;
-    cur.setDate(cur.getDate() + 1);
+  const span = checkIn < checkOut ? fullMonthsBetween(checkIn, checkOut) : { months: 0, extraNights: 0 };
+  const monthPrice = perMonthPrice(p);
+  const perMonth = monthPrice !== null && span.months > 0;
+  if (perMonth) {
+    nights = daysBetween(checkIn, checkOut);
+    nightsSubtotal = span.months * monthPrice + Math.round((span.extraNights * monthPrice) / MONTHLY_RENTAL_NIGHTS);
+    const avg = nightsSubtotal / nights;
+    const cur = parseIso(checkIn);
+    for (let i = 0; i < nights; i++) {
+      seasonalRaw += (avg * seasonalPctFor(p, toIso(cur))) / 100;
+      cur.setDate(cur.getDate() + 1);
+    }
+    min = max = 0;
+  } else {
+    const cur = parseIso(checkIn);
+    const end = parseIso(checkOut);
+    while (cur < end) {
+      const iso = toIso(cur);
+      const price = nightPrice(p, iso);
+      nightsSubtotal += price;
+      seasonalRaw += (price * seasonalPctFor(p, iso)) / 100;
+      min = Math.min(min, price);
+      max = Math.max(max, price);
+      nights++;
+      cur.setDate(cur.getDate() + 1);
+    }
   }
   const seasonalDiscountMxn = Math.round(seasonalRaw);
   const {
     pct: discountPct,
     kind: discountKind,
     months: discountMonths,
-  } = stayDiscountFor(p, nights, checkIn, opts.today ?? pricingToday());
+  } = stayDiscountFor(p, nights, checkIn, opts.today ?? pricingToday(), span.months);
   const discountMxn = Math.round(((nightsSubtotal - seasonalDiscountMxn) * discountPct) / 100);
   return {
     nights,
@@ -248,6 +313,7 @@ export function quoteStay(
     discountMxn,
     staySubtotal: nightsSubtotal - seasonalDiscountMxn - discountMxn,
     sameRate: nights === 0 || min === max,
+    ...(perMonth ? { months: span.months, monthPrice: monthPrice!, extraNights: span.extraNights } : {}),
   };
 }
 
@@ -308,12 +374,14 @@ export function upcomingSeasonalPromos(p: ListingPricing | undefined, today: str
 }
 
 /** Mensaje en español (clave de traducción) si la duración no cumple las reglas del anuncio. */
-export function stayLengthError(p: PricingInput, nights: number): { key: string; n: number } | null {
+export function stayLengthError(p: PricingInput, nights: number, fullMonths = 0): { key: string; n: number } | null {
   const min = isMonthlyRental(p)
     ? Math.max(MONTHLY_RENTAL_NIGHTS, p.pricing?.minNights ?? 1)
     : (p.pricing?.minNights ?? 1);
   const max = p.pricing?.maxNights;
-  if (min > 1 && nights < min) return { key: "La estancia mínima es de {n} noches.", n: min };
+  // Con cobro por mes completo, un mes de calendario (28–31 noches) cumple la mínima de 30.
+  const monthCovers = perMonthPrice(p) !== null && fullMonths >= 1 && min <= MONTHLY_RENTAL_NIGHTS;
+  if (min > 1 && nights < min && !monthCovers) return { key: "La estancia mínima es de {n} noches.", n: min };
   if (max && max > 0 && nights > max) return { key: "La estancia máxima es de {n} noches.", n: max };
   return null;
 }
@@ -412,6 +480,7 @@ export function sanitizePricing(raw: unknown): ListingPricing {
   }
   const longStay = sanitizeLongStayDiscounts(o.longStayDiscounts);
   if (longStay.length) out.longStayDiscounts = longStay;
+  if (o.monthlyCharge === "per_month") out.monthlyCharge = "per_month";
   const minN = num(o.minNights, 1, 365);
   if (minN && minN > 1) out.minNights = Math.round(minN);
   const maxN = num(o.maxNights, 1, 730);

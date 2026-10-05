@@ -6,7 +6,7 @@ import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
 import { IconShield } from "../_components/icons";
 import { WebLink } from "../_components/site-origin";
-import { CountryPicker, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
+import { CountryPicker, PhoneBox, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
 import { PlanPicker, startIdentity, startMembershipCheckout, type CatalogPlan } from "../_components/plan-picker";
 
 type Status = {
@@ -16,6 +16,7 @@ type Status = {
   billingRegion: "mx" | "us";
   billingCountry: BillingCountry | null;
   emailVerified: boolean;
+  hasPhone: boolean;
   plansByRegion: { mx: { monthly: boolean; annual: boolean }; us: { monthly: boolean; annual: boolean } };
   catalogPlansByRegion: { mx: CatalogPlan[]; us: CatalogPlan[] };
   bookingPassesRemaining: number;
@@ -94,7 +95,7 @@ export function GuestMembership() {
   const subActive = data.subscriptionStatus === "active" || data.subscriptionStatus === "trialing";
   const plans = data.catalogPlansByRegion[region];
   const legacy = data.plansByRegion[region];
-  const canPay = Boolean(data.billingCountry) && data.emailVerified;
+  const canPay = Boolean(data.billingCountry) && data.emailVerified && data.hasPhone;
   const needsIdentity = data.identityEnabled && data.kycStatus !== "verified";
 
   return (
@@ -151,6 +152,7 @@ export function GuestMembership() {
           <div className="mb-3 space-y-3">
             <CountryPicker value={data.billingCountry} onSaved={() => void load()} />
             {!data.emailVerified && <VerifyEmailBox />}
+            {!data.hasPhone && <PhoneBox onSaved={() => void load()} />}
           </div>
           {plans.length > 0 ? (
             <PlanPicker plans={plans} busy={busy || !canPay} onPick={(c) => void buy(c)} />
