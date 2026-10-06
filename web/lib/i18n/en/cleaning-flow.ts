@@ -386,4 +386,43 @@ export const cleaningFlow: Record<string, string> = {
   "Lo que dicen los anfitriones": "What hosts say",
   "Todavía no hay reseñas.": "No reviews yet.",
   "Solicitud por aprobar de {host}": "Booking request for {host} to approve",
+
+  // Traductor del chat (membresía con identidad verificada)
+  "Traductor del chat": "Chat translator",
+  auto: "auto",
+  "Traductor activo: tus mensajes se envían en el idioma en que escribe la otra persona.":
+    "Translator on: your messages are sent in the language the other person writes in.",
+  "Traductor activo: tus mensajes se envían en {lang}.": "Translator on: your messages are sent in {lang}.",
+  "Escribe en tu idioma: el mensaje se envía traducido y la otra persona puede ver lo que escribiste. Lo que te escriben ya lo ves traducido.":
+    "Write in your language: the message is sent translated and the other person can see what you wrote. What they write to you already shows translated.",
+  "Apagado: enviar tal cual": "Off: send as written",
+  "Automático: idioma de la otra persona": "Automatic: the other person's language",
+  "Con la membresía de identidad verificada escribes en tu idioma y tus mensajes llegan traducidos al idioma de la otra persona, además de mandar fotos y notas de voz.":
+    "With the verified-identity membership you write in your language and your messages arrive translated into the other person's language, and you can also send photos and voice notes.",
+  "Ver membresía": "See membership",
+  "El traductor del chat viene con la membresía de identidad verificada.": "The chat translator comes with the verified-identity membership.",
+  "Tu mensaje se envía traducido; el anfitrión puede ver lo que escribiste.": "Your message is sent translated; the host can see what you wrote.",
+  "Se envió traducido · ver cómo llegó": "Sent translated · see how it arrived",
+  "Ver lo que escribí": "See what I wrote",
+  "Con identidad verificada el chat también te deja mandar fotos y notas de voz y usar el traductor: escribes en tu idioma y al anfitrión le llega en el suyo.":
+    "With verified identity the chat also lets you send photos and voice notes and use the translator: you write in your language and the host gets it in theirs.",
+
+  // Contrato dentro de la app y recibo
+  "No encontramos este contrato.": "We couldn't find this contract.",
+  "Recibo y contrato": "Receipt and contract",
+
+  // Contrato: todo el texto editable
+  "Texto del contrato": "Contract text",
+  "Toca una cláusula para cambiar su texto o quitarla. Los datos de las partes, fechas y montos se llenan solos en cada reserva.":
+    "Tap a clause to change its text or remove it. The parties' details, dates and amounts are filled in automatically for each booking.",
+  "Cargando cláusulas…": "Loading clauses…",
+  "No se pudieron cargar las cláusulas.": "The clauses couldn't be loaded.",
+  "Cláusula fija de la herramienta de reservas": "Fixed clause of the booking tool",
+  "Quitada del contrato": "Removed from the contract",
+  "Texto editado por ti": "Text edited by you",
+  "Texto original": "Original text",
+  "Volver a incluir": "Include again",
+  "Restaurar texto original": "Restore original text",
+  "Quitar esta cláusula": "Remove this clause",
+  "Ley aplicable y tribunales": "Governing law and courts",
 };

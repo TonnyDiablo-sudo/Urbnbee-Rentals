@@ -7,6 +7,7 @@ import { ChatsSwitch } from "@/components/team/chats-switch";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { CHAT_LANGS, isChatTranslateTarget, type ChatTranslateTarget } from "@/lib/chat-langs";
 import { numberLocale } from "@/lib/i18n";
 
 type Msg = {
@@ -49,6 +50,8 @@ function HostGuestChats() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
+  const [translateTo, setTranslateTo] = useState<ChatTranslateTarget | "">("");
+  const [translatorLocked, setTranslatorLocked] = useState(false);
   const query = useChatSearch();
 
   const load = useCallback(async () => {
@@ -87,10 +90,15 @@ function HostGuestChats() {
           listingId: th.listingId,
           guestSessionId: th.guestSessionId,
           body,
+          ...(translateTo ? { translateTo } : {}),
         }),
       });
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 403 && data.translatorLocked) {
+          setTranslatorLocked(true);
+          setTranslateTo("");
+        }
         alert(t(data.error ?? "No se pudo enviar."));
         return;
       }
@@ -179,11 +187,35 @@ function HostGuestChats() {
                                 <ChatAttachmentView attachment={m.attachment} mine={m.sender === "host"} />
                               </div>
                             )}
-                            {m.body && <MessageBody body={m.body} original={m.original} className="mt-0.5 whitespace-pre-wrap" />}
+                            {m.body && <MessageBody body={m.body} original={m.original} mine={m.sender === "host"} className="mt-0.5 whitespace-pre-wrap" />}
                           </div>
                         </div>
                       ))}
                     </div>
+                    <label className="mt-3 block text-xs font-semibold text-[#666]">
+                      {t("Traductor del chat")}
+                      <select
+                        value={translateTo}
+                        onChange={(e) => setTranslateTo(isChatTranslateTarget(e.target.value) ? e.target.value : "")}
+                        className="mt-1 w-full rounded-lg border border-[#ddd] bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#dcb81e] sm:max-w-xs"
+                      >
+                        <option value="">{t("Apagado: enviar tal cual")}</option>
+                        <option value="auto">{t("Automático: idioma de la otra persona")}</option>
+                        {CHAT_LANGS.map((l) => (
+                          <option key={l.code} value={l.code}>
+                            {l.name}
+                          </option>
+                        ))}
+                      </select>
+                      {translatorLocked && (
+                        <span className="mt-1 block font-normal text-amber-800">
+                          {t("El traductor del chat viene con la membresía de identidad verificada.")}{" "}
+                          <Link href="/host/verificacion" className="font-semibold underline">
+                            {t("Verificar mi identidad")}
+                          </Link>
+                        </span>
+                      )}
+                    </label>
                     <div className="mt-3 flex gap-2">
                       <textarea
                         value={replyText[key] ?? ""}

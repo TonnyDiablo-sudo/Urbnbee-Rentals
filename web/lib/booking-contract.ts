@@ -64,6 +64,45 @@ function cleanName(v: string | undefined, fallback: string): string {
   return t || fallback;
 }
 
+export type EditableContractClause = { title: string; text: string; locked: boolean };
+
+/** Cláusulas tal como vienen de fábrica para un alojamiento; la de la herramienta va bloqueada. */
+export function defaultContractClauses(maxGuests: number, localClauses: { title: string; text: string }[]): EditableContractClause[] {
+  return [
+    ...commonContractClauses(maxGuests).map((c) => ({ ...c, locked: false })),
+    ...localClauses.map((c) => ({ ...c, locked: false })),
+    { ...THIRD_PARTY_CLAUSE, locked: true },
+    { ...SEVERABILITY_CLAUSE, locked: false },
+  ];
+}
+
+/** Aplica el texto del anfitrión por cláusula; vacío = se quita. Las bloqueadas no cambian. */
+function applyClauseOverrides(
+  base: EditableContractClause[],
+  overrides: Record<string, string> | undefined
+): { title: string; text: string }[] {
+  return base.flatMap((cl) => {
+    const o = cl.locked ? undefined : overrides?.[cl.title];
+    if (o === undefined) return [{ title: cl.title, text: cl.text }];
+    const text = o.trim();
+    return text ? [{ title: cl.title, text }] : [];
+  });
+}
+
+/** Lo que el editor necesita para dejar que el anfitrión edite todo el texto: cláusulas y ley aplicable de fábrica. */
+export function contractEditableDefaults(listingId: string): { clauses: EditableContractClause[]; law: string } | null {
+  const listing = getListingById(listingId);
+  if (!listing) return null;
+  const place = contractJurisdiction(
+    { country: listing.country, state: listing.state, city: listing.city, municipality: listing.county },
+    { nights: 3 }
+  );
+  return {
+    clauses: defaultContractClauses(Math.max(1, listing.guests || 1), place.localClauses),
+    law: [place.governingLaw, place.courts].filter(Boolean).join("\n"),
+  };
+}
+
 export function buildContractSnapshot(
   booking: BookingRecord,
   settingsOverride?: ListingContractSettings
@@ -96,6 +135,7 @@ export function buildContractSnapshot(
     { country: listing.country, state: listing.state, city: listing.city, municipality: listing.county },
     { nights: booking.nights }
   );
+  const lawOverride = settings.governingLawOverride?.trim();
 
   return {
     format: 2,
@@ -104,9 +144,9 @@ export function buildContractSnapshot(
     maxGuests,
     jurisdiction: {
       label: place.label,
-      governingLaw: place.governingLaw,
-      courts: place.courts,
-      clauses: [...commonContractClauses(maxGuests), ...place.localClauses, THIRD_PARTY_CLAUSE, SEVERABILITY_CLAUSE],
+      governingLaw: lawOverride || place.governingLaw,
+      courts: lawOverride ? "" : place.courts,
+      clauses: applyClauseOverrides(defaultContractClauses(maxGuests, place.localClauses), settings.clauseOverrides),
     },
     templateId: template.id,
     templateTitle: template.title,
@@ -612,8 +652,8 @@ export function contractPlainLines(c: BookingContractRecord): string[] {
     ...(extra ? ["CLÁUSULAS ADICIONALES DEL ANFITRIÓN", extra, ""] : []),
     ...paymentClauseLines(c),
     "LEY APLICABLE Y TRIBUNALES",
-    j.governingLaw,
-    j.courts,
+    ...j.governingLaw.split("\n").map((l) => l.trim()).filter(Boolean),
+    ...(j.courts ? [j.courts] : []),
     "",
     ...signatureAndHistoryLines(c, hostName, money),
     ...stampLines(c),

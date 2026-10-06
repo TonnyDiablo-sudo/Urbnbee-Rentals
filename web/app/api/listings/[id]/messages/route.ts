@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
 import { attachmentView } from "@/lib/chat-attachments";
+import { isChatTranslateTarget } from "@/lib/chat-langs";
+import { CHAT_TRANSLATOR_LOCKED_ERROR, chatTranslatorAllowed } from "@/lib/chat-media-access";
+import { translateOutgoing } from "@/lib/chat-translate";
 import { emailRequiredResponse } from "@/lib/email-gate";
 import { nameForViewer, publicNameOf, shareABooking } from "@/lib/display-name";
 import { findUserById, getListingById } from "@/lib/marketplace-store";
 import {
   appendMessage,
   guestSessionIdForUser,
+  listThread,
   listThreadMerged,
 } from "@/lib/host-inbox-store";
 import { sanitizeBodyText, sanitizeGuestName, sanitizeOptionalEmail } from "@/lib/host-inbox-sanitize";
@@ -125,6 +129,21 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   const guestSessionId = guestSessionIdForUser(sessionUser.id);
   map[listingId] = guestSessionId;
 
+  let out = { body: text } as Awaited<ReturnType<typeof translateOutgoing>>;
+  if (isChatTranslateTarget(body.translateTo)) {
+    if (!chatTranslatorAllowed(sessionUser, { as: "guest" })) {
+      return NextResponse.json({ error: CHAT_TRANSLATOR_LOCKED_ERROR, translatorLocked: true }, { status: 403 });
+    }
+    out = await translateOutgoing(text, body.translateTo, {
+      otherTexts: listThread(listingId, guestSessionId)
+        .filter((m) => m.sender === "host" && m.body.trim())
+        .map((m) => m.body),
+      // Sin respuestas del anfitrión todavía: el idioma en que escribió su anuncio.
+      fallbackTexts: [listing.title, listing.description].filter(Boolean),
+      cacheKey: `g:${listingId}:${guestSessionId}`,
+    });
+  }
+
   const msg = appendMessage({
     listingId,
     hostId: listing.hostId,
@@ -132,12 +151,13 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     sender: "guest",
     guestName,
     guestEmail,
-    body: text,
+    body: out.body,
+    ...(out.original ? { original: out.original, lang: out.lang } : {}),
   });
   bridgeChatMessage(msg);
-  notifyHostNewMessage({ hostId: listing.hostId, listingId, guestSessionId, guestName, body: text });
+  notifyHostNewMessage({ hostId: listing.hostId, listingId, guestSessionId, guestName, body: out.body });
 
-  const res = NextResponse.json({ ok: true });
+  const res = NextResponse.json({ ok: true, translated: Boolean(out.original), lang: out.lang });
   res.cookies.set(COOKIE, JSON.stringify(map), {
     httpOnly: true,
     sameSite: "lax",

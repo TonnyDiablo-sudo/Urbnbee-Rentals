@@ -79,6 +79,13 @@ export type ListingContractSettings = {
   depositMxn: number;
   extraClauses: string;
   cancellationOverride?: string;
+  /**
+   * Texto que el anfitrión puso en lugar del de cada cláusula (clave = título de la cláusula).
+   * Cadena vacía = la cláusula se quita del contrato. La cláusula de la herramienta no se edita.
+   */
+  clauseOverrides: Record<string, string>;
+  /** Sustituye el apartado de ley aplicable y tribunales. */
+  governingLawOverride?: string;
   /** El anfitrión confirmó esta plantilla en el anuncio (firma de oferta para reservas instantáneas). */
   hostAcknowledged: boolean;
   /** El anfitrión confirmó que leyó el contrato completo y que se ajusta a su caso. */
@@ -97,10 +104,27 @@ export function defaultListingContract(partial?: Partial<ListingContractSettings
     depositMxn: Math.max(0, Math.round(Number(partial?.depositMxn) || 0)),
     extraClauses: (partial?.extraClauses ?? template.defaultExtraClauses).trim(),
     cancellationOverride: partial?.cancellationOverride?.trim() || undefined,
+    clauseOverrides: cleanClauseOverrides(partial?.clauseOverrides),
+    governingLawOverride: partial?.governingLawOverride?.trim() || undefined,
     hostAcknowledged: Boolean(partial?.hostAcknowledged),
     hostReviewed: Boolean(partial?.hostReviewed),
     hostReviewedAt: partial?.hostReviewed ? partial.hostReviewedAt || undefined : undefined,
   };
+}
+
+const MAX_CLAUSE_OVERRIDES = 40;
+const MAX_CLAUSE_CHARS = 6000;
+
+function cleanClauseOverrides(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    const title = k.trim().slice(0, 120);
+    if (!title || typeof v !== "string") continue;
+    out[title] = v.trim().slice(0, MAX_CLAUSE_CHARS);
+    if (Object.keys(out).length >= MAX_CLAUSE_OVERRIDES) break;
+  }
+  return out;
 }
 
 export function sanitizeListingContract(raw: unknown, fallback?: ListingContractSettings): ListingContractSettings {
@@ -123,6 +147,9 @@ export function sanitizeListingContract(raw: unknown, fallback?: ListingContract
     extraClauses: extra,
     cancellationOverride:
       o.cancellationOverride !== undefined ? String(o.cancellationOverride).slice(0, 2000) : prev.cancellationOverride,
+    clauseOverrides: o.clauseOverrides !== undefined ? cleanClauseOverrides(o.clauseOverrides) : prev.clauseOverrides,
+    governingLawOverride:
+      o.governingLawOverride !== undefined ? String(o.governingLawOverride).slice(0, 2000) : prev.governingLawOverride,
     hostAcknowledged: o.hostAcknowledged !== undefined ? Boolean(o.hostAcknowledged) : prev.hostAcknowledged,
     hostReviewed: reviewed,
     hostReviewedAt: reviewed

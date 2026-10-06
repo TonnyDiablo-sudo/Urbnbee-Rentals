@@ -145,7 +145,8 @@ export function GuestMembership() {
         <section>
           <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Planes")}</h2>
           <p className="mb-3 text-sm text-[#555]">
-            {t("Te identificas con tu identificación oficial y una selfie.")}
+            {t("Te identificas con tu identificación oficial y una selfie.")}{" "}
+            {t("Con identidad verificada el chat también te deja mandar fotos y notas de voz y usar el traductor: escribes en tu idioma y al anfitrión le llega en el suyo.")}
           </p>
           <div className="mb-3 space-y-3">
             <CountryPicker value={data.billingCountry} onSaved={() => void load()} />

@@ -11,6 +11,10 @@ export type HostInboxMessageRecord = {
   guestName: string;
   guestEmail?: string;
   body: string;
+  /** Si quien mandó usó el traductor: lo que escribió tal cual (`body` va ya traducido). */
+  original?: string;
+  /** Idioma al que se tradujo `body`. */
+  lang?: string;
   /** Foto o nota de voz; `body` es el texto que la acompaña (puede ir vacío). */
   attachment?: ChatAttachment;
   /** "ai": lo escribió el agente de urbnbeeai a nombre del anfitrión. */

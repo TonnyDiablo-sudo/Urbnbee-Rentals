@@ -36,10 +36,14 @@ const FULLSCREEN = [
   /^\/host\/anuncios\/.+/,
   /^\/cuenta\//,
   /^\/notificaciones/,
+  // Tienen su propia barra fija de "Guardar" abajo: con la de pestañas encima no se veía.
+  /^\/host\/contratos/,
+  /^\/perfil\/editar/,
+  /^\/contrato\//,
 ];
 
 /** Pantallas compartidas por ambos modos: abrirlas no cambia el modo guardado. */
-const NEUTRAL = [/^\/notificaciones/, /^\/tienda/, /^\/equipo/, /^\/cuenta\//];
+const NEUTRAL = [/^\/notificaciones/, /^\/tienda/, /^\/equipo/, /^\/cuenta\//, /^\/contrato\//, /^\/persona\//];
 
 const noSubscribe = () => () => {};
 const savedHostMode = () => /(?:^|;\s*)cabibee_mode=host/.test(document.cookie);

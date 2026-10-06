@@ -10,8 +10,15 @@ export async function generateMetadata() {
   return { title: t("Detalles de la reserva") };
 }
 
-export default async function AppHostBookingDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, user, t] = await Promise.all([params, getSessionUser(), getT()]);
+export default async function AppHostBookingDetailsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ vista?: string }>;
+}) {
+  const [{ id }, sp, user, t] = await Promise.all([params, searchParams, getSessionUser(), getT()]);
+  const receipt = sp.vista === "recibo";
   const b = getBookingById(id);
   const chatHref =
     user && b && b.guestUserId && bookingActor(user, b)
@@ -19,9 +26,13 @@ export default async function AppHostBookingDetailsPage({ params }: { params: Pr
       : undefined;
   return (
     <>
-      <TopBar title={t("Detalles de la reserva")} back="/host/calendario" />
+      <TopBar title={receipt ? t("Recibo y contrato") : t("Detalles de la reserva")} back="/host/calendario" />
       <div className="px-4 pt-4 sm:px-6">
-        <BookingDetailsView url={`/api/host/bookings/${encodeURIComponent(id)}/details`} chatHref={chatHref} />
+        <BookingDetailsView
+          url={`/api/host/bookings/${encodeURIComponent(id)}/details`}
+          chatHref={chatHref}
+          view={receipt ? "receipt" : "full"}
+        />
       </div>
     </>
   );

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { PlaceMap } from "@/components/maps/place-map";
 import { TONE_CLS, fmtMxn, guestStatusOf, hostStatusOf } from "@/app/app/_components/booking-status";
-import { useSiteUrl } from "@/app/app/_components/site-origin";
 import type { BookingDetails } from "@/lib/booking-details";
 import { numberLocale } from "@/lib/i18n";
 
@@ -34,10 +33,20 @@ function stamp(iso: string | undefined, lang: string): string {
  * Todo lo de una reserva en una pantalla: quién se queda, costo y recibo, contrato y, ya confirmada,
  * dirección, mapa y claves. Lo usan el huésped (y sus acompañantes) y el anfitrión, en la app y en la web.
  */
-export function BookingDetailsView({ url, chatHref, actions }: { url: string; chatHref?: string; actions?: React.ReactNode }) {
+export function BookingDetailsView({
+  url,
+  chatHref,
+  actions,
+  view = "full",
+}: {
+  url: string;
+  chatHref?: string;
+  actions?: React.ReactNode;
+  /** `receipt`: sólo el recibo de cobro y el contrato (lo que abre "Ver recibo"). */
+  view?: "full" | "receipt";
+}) {
   const t = useT();
   const lang = useLang();
-  const siteUrl = useSiteUrl();
   const [d, setD] = useState<BookingDetails | null | undefined>(undefined);
 
   useEffect(() => {
@@ -61,9 +70,119 @@ export function BookingDetailsView({ url, chatHref, actions }: { url: string; ch
   const h2 = "text-[17px] font-semibold text-[#222]";
   const g = d.arrival;
 
+  const contractSection = d.contract && (
+    <section className={box}>
+      <h2 className={h2}>{t("Contrato")}</h2>
+      <dl className="mt-2 space-y-1.5 text-[15px]">
+        <Row label={t("Anfitrión")} value={d.contract.hostSignedAt ? `✓ ${stamp(d.contract.hostSignedAt, lang)}` : t("Sin firmar")} />
+        <Row label={t("Huésped")} value={d.contract.guestSignedAt ? `✓ ${stamp(d.contract.guestSignedAt, lang)}` : t("Sin firmar")} />
+      </dl>
+      {d.role !== "companion" && (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Link href={`/contrato/${encodeURIComponent(d.token)}`} className="rounded-xl border border-[#222] py-2.5 text-center text-sm font-semibold text-[#222]">
+            {t("Ver contrato")}
+          </Link>
+          <a
+            href={`/api/bookings/contract?token=${encodeURIComponent(d.token)}&format=pdf`}
+            download={`contrato-${d.token}.pdf`}
+            className="rounded-xl bg-[#111] py-2.5 text-center text-sm font-semibold text-white"
+          >
+            {t("Descargar PDF")}
+          </a>
+        </div>
+      )}
+    </section>
+  );
+
+  const receiptSection = (
+    <section id="recibo" data-receipt className={box}>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className={h2}>{t("Recibo")}</h2>
+        <button type="button" onClick={() => window.print()} className="rounded-full border border-[#ddd] px-3 py-1.5 text-xs font-semibold text-[#222] print:hidden">
+          {t("Imprimir o guardar PDF")}
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-[#999]">
+        Cabibee · {d.listing.title} · {t("Código {code}", { code: d.token })}
+      </p>
+      <dl className="mt-3 space-y-1.5 text-[15px]">
+        <Row label={t("{n} noches", { n: d.nights })} value={fmtMxn(c.stayMxn)} />
+        {c.cleaningMxn > 0 && <Row label={t("Limpieza")} value={fmtMxn(c.cleaningMxn)} />}
+        {c.taxLines.length > 0
+          ? c.taxLines.map((l) => (
+              <Row key={l.name} label={`${l.name} (${l.ratePct}%)${c.taxIncluded ? ` · ${t("incluido")}` : ""}`} value={fmtMxn(l.amountMxn)} />
+            ))
+          : c.taxMxn > 0 && <Row label={c.taxIncluded ? t("Impuestos incluidos") : t("Impuestos")} value={fmtMxn(c.taxMxn)} />}
+        {c.platformFeeMxn > 0 && <Row label={t("Cargo de servicio")} value={fmtMxn(c.platformFeeMxn)} />}
+      </dl>
+      <div className="mt-3 flex justify-between border-t border-[#ebebeb] pt-3 text-[16px] font-semibold text-[#222]">
+        <span>{t("Total")}</span>
+        <span>{fmtMxn(c.totalMxn + c.platformFeeMxn)}</span>
+      </div>
+      <dl className="mt-3 space-y-1.5 text-sm">
+        <Row label={t("Pago")} value={c.paidAt ? `✓ ${t("Pagado")} · ${stamp(c.paidAt, lang)}` : t("Sin pagar")} />
+        {c.method && <Row label={t("Método")} value={t(METHOD[c.method] ?? c.method)} />}
+        {c.balanceDueMxn > 0 && <Row label={t("Diferencia por pagar")} value={fmtMxn(c.balanceDueMxn)} />}
+        {c.refundedMxn > 0 && <Row label={t("Reembolsado")} value={`${fmtMxn(c.refundedMxn)}${c.refundedAt ? ` · ${stamp(c.refundedAt, lang)}` : ""}`} />}
+        <Row label={t("Reservada el")} value={stamp(d.createdAt, lang)} />
+      </dl>
+      {d.stripe && (
+        <div className="mt-3 rounded-xl border border-[#ebebeb] px-3 py-2.5">
+          <p className="text-sm font-semibold text-[#222]">{t("Cargo bancario")}</p>
+          <dl className="mt-1.5 space-y-1 text-sm">
+            <Row label={t("Cobrado")} value={`${fmtMxn(d.stripe.amountMxn)} · ${stamp(d.stripe.paidAt, lang)}`} />
+            {d.stripe.card && <Row label={t("Tarjeta")} value={`${d.stripe.card.brand.toUpperCase()} •••• ${d.stripe.card.last4}`} />}
+            <Row label={t("Referencia")} value={d.stripe.reference} />
+          </dl>
+          {d.stripe.receiptUrl && (
+            <a
+              href={d.stripe.receiptUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block text-sm font-semibold text-[#222] underline print:hidden"
+            >
+              {t("Ver comprobante de Stripe")}
+            </a>
+          )}
+        </div>
+      )}
+      {d.deposit && d.deposit.amountMxn > 0 && (
+        <p className="mt-3 rounded-xl bg-[#f7f7f7] px-3 py-2 text-xs text-[#555]">
+          {t("Depósito pactado: ${amount} MXN. Se entrega entre ustedes; Cabibee no lo cobra ni lo guarda.", {
+            amount: d.deposit.amountMxn.toLocaleString("es-MX"),
+          })}
+        </p>
+      )}
+    </section>
+  );
+
+  const printCss = (
+    <style>{`@media print{body *{visibility:hidden!important}[data-receipt],[data-receipt] *{visibility:visible!important}[data-receipt]{position:absolute;left:0;top:0;width:100%;border:0}}`}</style>
+  );
+
+  if (view === "receipt") {
+    return (
+      <div className="mx-auto w-full max-w-2xl space-y-4 pb-10">
+        {printCss}
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-semibold leading-snug text-[#222]">{d.listing.title}</p>
+            <p className="text-sm text-[#717171]">
+              {longDay(d.checkIn, lang)} → {longDay(d.checkOut, lang)}
+              {host ? ` · ${d.booker.name}` : ""}
+            </p>
+          </div>
+          <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${TONE_CLS[st.tone]}`}>{t(st.label)}</span>
+        </div>
+        {receiptSection}
+        {contractSection}
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4 pb-10">
-      <style>{`@media print{body *{visibility:hidden!important}[data-receipt],[data-receipt] *{visibility:visible!important}[data-receipt]{position:absolute;left:0;top:0;width:100%;border:0}}`}</style>
+      {printCss}
 
       <div className="flex items-start gap-3">
         {d.listing.photo && (
@@ -202,98 +321,11 @@ export function BookingDetailsView({ url, chatHref, actions }: { url: string; ch
             </section>
           )}
 
-          {d.contract && (
-            <section className={box}>
-              <h2 className={h2}>{t("Contrato")}</h2>
-              <dl className="mt-2 space-y-1.5 text-[15px]">
-                <Row label={t("Anfitrión")} value={d.contract.hostSignedAt ? `✓ ${stamp(d.contract.hostSignedAt, lang)}` : t("Sin firmar")} />
-                <Row label={t("Huésped")} value={d.contract.guestSignedAt ? `✓ ${stamp(d.contract.guestSignedAt, lang)}` : t("Sin firmar")} />
-              </dl>
-              {d.role !== "companion" && (
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <a
-                    href={siteUrl(d.contract.url)}
-                    target="_blank"
-                    rel="noopener"
-                    className="rounded-xl border border-[#222] py-2.5 text-center text-sm font-semibold text-[#222]"
-                  >
-                    {t("Ver contrato")}
-                  </a>
-                  <a
-                    href={`/api/bookings/contract?token=${encodeURIComponent(d.token)}&format=pdf`}
-                    download={`contrato-${d.token}.pdf`}
-                    className="rounded-xl bg-[#111] py-2.5 text-center text-sm font-semibold text-white"
-                  >
-                    {t("Descargar PDF")}
-                  </a>
-                </div>
-              )}
-            </section>
-          )}
+          {contractSection}
         </div>
 
         <div className="space-y-4">
-          <section id="recibo" data-receipt className={box}>
-            <div className="flex items-center justify-between gap-3">
-              <h2 className={h2}>{t("Recibo")}</h2>
-              <button type="button" onClick={() => window.print()} className="rounded-full border border-[#ddd] px-3 py-1.5 text-xs font-semibold text-[#222] print:hidden">
-                {t("Imprimir o guardar PDF")}
-              </button>
-            </div>
-            <p className="mt-1 text-xs text-[#999]">
-              Cabibee · {d.listing.title} · {t("Código {code}", { code: d.token })}
-            </p>
-            <dl className="mt-3 space-y-1.5 text-[15px]">
-              <Row label={t("{n} noches", { n: d.nights })} value={fmtMxn(c.stayMxn)} />
-              {c.cleaningMxn > 0 && <Row label={t("Limpieza")} value={fmtMxn(c.cleaningMxn)} />}
-              {c.taxLines.length > 0
-                ? c.taxLines.map((l) => (
-                    <Row key={l.name} label={`${l.name} (${l.ratePct}%)${c.taxIncluded ? ` · ${t("incluido")}` : ""}`} value={fmtMxn(l.amountMxn)} />
-                  ))
-                : c.taxMxn > 0 && <Row label={c.taxIncluded ? t("Impuestos incluidos") : t("Impuestos")} value={fmtMxn(c.taxMxn)} />}
-              {c.platformFeeMxn > 0 && <Row label={t("Cargo de servicio")} value={fmtMxn(c.platformFeeMxn)} />}
-            </dl>
-            <div className="mt-3 flex justify-between border-t border-[#ebebeb] pt-3 text-[16px] font-semibold text-[#222]">
-              <span>{t("Total")}</span>
-              <span>{fmtMxn(c.totalMxn + c.platformFeeMxn)}</span>
-            </div>
-            <dl className="mt-3 space-y-1.5 text-sm">
-              <Row label={t("Pago")} value={c.paidAt ? `✓ ${t("Pagado")} · ${stamp(c.paidAt, lang)}` : t("Sin pagar")} />
-              {c.method && <Row label={t("Método")} value={t(METHOD[c.method] ?? c.method)} />}
-              {c.balanceDueMxn > 0 && <Row label={t("Diferencia por pagar")} value={fmtMxn(c.balanceDueMxn)} />}
-              {c.refundedMxn > 0 && <Row label={t("Reembolsado")} value={`${fmtMxn(c.refundedMxn)}${c.refundedAt ? ` · ${stamp(c.refundedAt, lang)}` : ""}`} />}
-              <Row label={t("Reservada el")} value={stamp(d.createdAt, lang)} />
-            </dl>
-            {d.stripe && (
-              <div className="mt-3 rounded-xl border border-[#ebebeb] px-3 py-2.5">
-                <p className="text-sm font-semibold text-[#222]">{t("Cargo bancario")}</p>
-                <dl className="mt-1.5 space-y-1 text-sm">
-                  <Row label={t("Cobrado")} value={`${fmtMxn(d.stripe.amountMxn)} · ${stamp(d.stripe.paidAt, lang)}`} />
-                  {d.stripe.card && (
-                    <Row label={t("Tarjeta")} value={`${d.stripe.card.brand.toUpperCase()} •••• ${d.stripe.card.last4}`} />
-                  )}
-                  <Row label={t("Referencia")} value={d.stripe.reference} />
-                </dl>
-                {d.stripe.receiptUrl && (
-                  <a
-                    href={d.stripe.receiptUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-block text-sm font-semibold text-[#222] underline print:hidden"
-                  >
-                    {t("Ver comprobante de Stripe")}
-                  </a>
-                )}
-              </div>
-            )}
-            {d.deposit && d.deposit.amountMxn > 0 && (
-              <p className="mt-3 rounded-xl bg-[#f7f7f7] px-3 py-2 text-xs text-[#555]">
-                {t("Depósito pactado: ${amount} MXN. Se entrega entre ustedes; Cabibee no lo cobra ni lo guarda.", {
-                  amount: d.deposit.amountMxn.toLocaleString("es-MX"),
-                })}
-              </p>
-            )}
-          </section>
+          {receiptSection}
 
           {g ? (
             <section className={box}>

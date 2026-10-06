@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { getListingById } from "@/lib/marketplace-store";
-import { appendMessage } from "@/lib/host-inbox-store";
+import { appendMessage, listThread } from "@/lib/host-inbox-store";
 import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
+import { isChatTranslateTarget } from "@/lib/chat-langs";
+import { CHAT_TRANSLATOR_LOCKED_ERROR, chatTranslatorAllowed } from "@/lib/chat-media-access";
+import { translateOutgoing } from "@/lib/chat-translate";
 import { sanitizeBodyText } from "@/lib/host-inbox-sanitize";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { notifyGuestHostReply } from "@/lib/push";
@@ -37,16 +40,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No encontrado." }, { status: 404 });
   }
 
+  let out = { body: text } as Awaited<ReturnType<typeof translateOutgoing>>;
+  if (isChatTranslateTarget(body.translateTo)) {
+    if (!chatTranslatorAllowed(user, { as: "host", listingHostId: listing.hostId })) {
+      return NextResponse.json({ error: CHAT_TRANSLATOR_LOCKED_ERROR, translatorLocked: true }, { status: 403 });
+    }
+    out = await translateOutgoing(text, body.translateTo, {
+      otherTexts: listThread(listingId, guestSessionId)
+        .filter((m) => m.sender === "guest" && m.body.trim())
+        .map((m) => m.body),
+      cacheKey: `h:${listingId}:${guestSessionId}`,
+    });
+  }
+
   const msg = appendMessage({
     listingId,
     hostId: listing.hostId,
     guestSessionId,
     sender: "host",
     guestName: "",
-    body: text,
+    body: out.body,
+    ...(out.original ? { original: out.original, lang: out.lang } : {}),
   });
   bridgeChatMessage(msg);
-  notifyGuestHostReply({ listingId, guestSessionId, body: text });
+  notifyGuestHostReply({ listingId, guestSessionId, body: out.body });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, translated: Boolean(out.original), lang: out.lang });
 }

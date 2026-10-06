@@ -59,7 +59,7 @@ export async function translatedContractLines(lines: string[], lang: Lang, waitM
 }
 
 /** Mensajes del chat que escribió la otra persona, en el idioma de quien lee; `original` guarda el texto tal cual. */
-export async function translateIncoming<T extends { sender: "guest" | "host"; body: string }>(
+export async function translateIncoming<T extends { sender: "guest" | "host"; body: string; original?: string }>(
   msgs: T[],
   from: "guest" | "host",
   lang: Lang,
@@ -74,7 +74,8 @@ export async function translateIncoming<T extends { sender: "guest" | "host"; bo
   );
   const copy: (T & { original?: string })[] = [...msgs];
   idx.forEach((i, j) => {
-    if (out[j] !== msgs[i].body) copy[i] = { ...msgs[i], body: out[j], original: msgs[i].body };
+    // Si quien mandó ya lo tradujo con el traductor del chat, `original` sigue siendo lo que escribió.
+    if (out[j] !== msgs[i].body) copy[i] = { ...msgs[i], body: out[j], original: msgs[i].original ?? msgs[i].body };
   });
   return copy;
 }

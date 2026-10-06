@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { useT } from "@/components/i18n-provider";
 import { uploadChatAttachment } from "@/components/chat/upload";
+import type { ChatTranslateTarget } from "@/lib/chat-langs";
 import { ChatThread, type ChatMessage } from "../../_components/chat-thread";
 
 export function GuestChat({
@@ -38,12 +39,12 @@ export function GuestChat({
   }, [listingId]);
 
   const send = useCallback(
-    async (body: string): Promise<string | null> => {
+    async (body: string, translateTo?: ChatTranslateTarget): Promise<string | null> => {
       try {
         const res = await fetch(`/api/listings/${encodeURIComponent(listingId)}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body }),
+          body: JSON.stringify({ body, ...(translateTo ? { translateTo } : {}) }),
         });
         if (res.ok) return null;
         const data = await res.json().catch(() => ({}));
@@ -81,6 +82,7 @@ export function GuestChat({
         ) : undefined
       }
       mediaLockedHref={mediaAllowed ? undefined : "/membresia"}
+      translator={closed || emailGate ? undefined : { allowed: mediaAllowed, lockedHref: "/membresia" }}
       emptyText={t("Saluda al anfitrión y pregúntale lo que necesites. Las respuestas las escribe él, no un robot.")}
       closedNotice={closed ? t("Este anuncio ya no está disponible, así que ya no se pueden enviar mensajes.") : undefined}
       headerRight={

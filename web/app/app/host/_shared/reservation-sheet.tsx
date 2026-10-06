@@ -164,7 +164,7 @@ export function ReservationSheet({
             <Link href={details} className="rounded-xl bg-[#111] py-3 text-center text-[15px] font-semibold text-white">
               {t("Ver detalles")}
             </Link>
-            <Link href={`${details}#recibo`} className="rounded-xl border border-[#ddd] py-3 text-center text-[15px] font-medium text-[#222]">
+            <Link href={`${details}?vista=recibo`} className="rounded-xl border border-[#ddd] py-3 text-center text-[15px] font-medium text-[#222]">
               {t("Ver recibo")}
             </Link>
           </div>

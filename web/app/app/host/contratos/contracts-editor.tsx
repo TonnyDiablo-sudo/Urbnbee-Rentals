@@ -2,7 +2,9 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { ContractClausesEditor, pruneClauseOverrides, useContractDefaults } from "@/components/host/contract-clauses-editor";
 import { ContractReviewNotice } from "@/components/host/contract-review-notice";
+import type { ContractDefaults } from "@/components/host/contract-clauses-editor";
 import { ContractTips, MIN_STAY_CLAUSE } from "@/components/host/contract-tips";
 import { useT } from "@/components/i18n-provider";
 import {
@@ -27,6 +29,8 @@ type Form = {
   depositMxn: string;
   cancellation: string;
   extraClauses: string;
+  clauseOverrides: Record<string, string>;
+  governingLaw?: string;
   hostAcknowledged: boolean;
   hostReviewed: boolean;
 };
@@ -42,13 +46,16 @@ function formFor(l: HostListing): Form {
     depositMxn: c.depositMxn ? String(c.depositMxn) : "",
     cancellation: c.cancellationOverride || tpl.defaultCancellation,
     extraClauses: c.extraClauses,
+    clauseOverrides: c.clauseOverrides,
+    governingLaw: c.governingLawOverride,
     hostAcknowledged: c.hostAcknowledged,
     hostReviewed: c.hostReviewed,
   };
 }
 
-function payload(f: Form, includeProperty: boolean) {
+function payload(f: Form, includeProperty: boolean, defaults?: ContractDefaults | null) {
   const tpl = getContractTemplate(f.templateId);
+  const law = f.governingLaw?.trim();
   return {
     templateId: f.templateId,
     hostLegalName: f.hostLegalName.trim(),
@@ -57,6 +64,8 @@ function payload(f: Form, includeProperty: boolean) {
     depositMxn: Math.max(0, Math.round(Number(f.depositMxn) || 0)),
     cancellationOverride: f.cancellation.trim() === tpl.defaultCancellation ? "" : f.cancellation.trim(),
     extraClauses: f.extraClauses.trim(),
+    clauseOverrides: pruneClauseOverrides(f.clauseOverrides, defaults),
+    governingLawOverride: !law || (defaults && law === defaults.law.trim()) ? "" : law,
     hostAcknowledged: f.hostReviewed && f.hostAcknowledged,
     hostReviewed: f.hostReviewed,
   };
@@ -134,6 +143,7 @@ function ListingContractForm({
   const [previewOpen, setPreviewOpen] = useState(false);
   const dirty = JSON.stringify(f) !== JSON.stringify(saved);
   const tpl = getContractTemplate(f.templateId);
+  const defaults = useContractDefaults(listing.id);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((p) => ({ ...p, [k]: v }));
 
@@ -156,7 +166,7 @@ function ListingContractForm({
     const res = await fetch("/api/host/contracts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listingId: listing.id, contract: payload(f, true) }),
+      body: JSON.stringify({ listingId: listing.id, contract: payload(f, true, defaults) }),
     }).catch(() => null);
     const j = res ? await res.json().catch(() => ({})) : {};
     setPreview(Array.isArray(j.lines) ? j.lines : []);
@@ -166,7 +176,7 @@ function ListingContractForm({
     if (!f.hostReviewed) return setMsg({ ok: false, text: "Confirma que revisaste el contrato antes de guardarlo." });
     setBusy("save");
     setMsg(null);
-    const r = await patchListing(listing.id, { contract: payload(f, true) });
+    const r = await patchListing(listing.id, { contract: payload(f, true, defaults) });
     setBusy(null);
     if (r.error) return setMsg({ ok: false, text: r.error });
     setSaved(f);
@@ -179,8 +189,8 @@ function ListingContractForm({
       return;
     setBusy("all");
     setMsg(null);
-    const first = await patchListing(listing.id, { contract: payload(f, true) });
-    const rest = await Promise.all(others.map((o) => patchListing(o.id, { contract: payload(f, false) })));
+    const first = await patchListing(listing.id, { contract: payload(f, true, defaults) });
+    const rest = await Promise.all(others.map((o) => patchListing(o.id, { contract: payload(f, false, defaults) })));
     setBusy(null);
     const failed = [first, ...rest].filter((r) => r.error).length;
     if (failed) return setMsg({ ok: false, text: t("No se pudieron guardar {n} anuncios.", { n: failed }) });
@@ -285,6 +295,26 @@ function ListingContractForm({
           rows={4}
           placeholder={t("Ej. Horario de silencio de 22:00 a 8:00. No se permiten visitas nocturnas.")}
         />
+      </section>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold text-[#222]">{t("Texto del contrato")}</h2>
+          <p className="mt-0.5 text-sm text-[#717171]">
+            {t("Toca una cláusula para cambiar su texto o quitarla. Los datos de las partes, fechas y montos se llenan solos en cada reserva.")}
+          </p>
+        </div>
+        <ContractClausesEditor
+          compact
+          defaults={defaults}
+          overrides={f.clauseOverrides}
+          onOverrides={(v) => set("clauseOverrides", v)}
+          law={f.governingLaw}
+          onLaw={(v) => set("governingLaw", v)}
+        />
+      </section>
+
+      <section className="space-y-4">
         <label className={`flex items-start gap-3 text-sm text-[#333] ${f.hostReviewed ? "" : "opacity-50"}`}>
           <input
             type="checkbox"

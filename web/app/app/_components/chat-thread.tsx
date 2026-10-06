@@ -7,9 +7,38 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale, type Lang } from "@/lib/i18n";
+import { CHAT_LANGS, chatLangName, isChatTranslateTarget, type ChatTranslateTarget } from "@/lib/chat-langs";
 import { IconCamera, IconImage, IconMic, IconSend, IconTrash } from "./icons";
 import { markThreadSeen } from "./seen";
+import { Sheet } from "./sheet";
 import { TopBar } from "./top-bar";
+
+export type ChatTranslator = {
+  /** Tiene la membresía (identidad verificada). */
+  allowed: boolean;
+  /** A dónde mandar a quien no la tiene. */
+  lockedHref: string;
+};
+
+function IconGlobe({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </svg>
+  );
+}
+
+const TRANSLATE_KEY = (seenKey: string) => `cb:translate:${seenKey}`;
+
+function readTranslateTarget(seenKey: string): ChatTranslateTarget | null {
+  try {
+    const v = window.localStorage.getItem(TRANSLATE_KEY(seenKey));
+    return isChatTranslateTarget(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
 
 export type ChatMessage = {
   id: string;
@@ -55,7 +84,10 @@ export function ChatThread({
   composerLock,
   showVia,
   mediaLockedHref,
+  translator,
 }: {
+  /** Traductor del chat: mis mensajes salen en el idioma de la otra persona. Sin esto no se ofrece. */
+  translator?: ChatTranslator;
   /** Sin identidad verificada: sólo texto y una liga a la página para verificarse. */
   mediaLockedHref?: string;
   /** Fotos y notas de voz; sin esto el chat es sólo texto. */
@@ -68,7 +100,8 @@ export function ChatThread({
   me: "guest" | "host";
   seenKey: string;
   load: () => Promise<ChatMessage[]>;
-  send: (text: string) => Promise<string | null>;
+  /** `translateTo` viene cuando el traductor está activo (membresía). */
+  send: (text: string, translateTo?: ChatTranslateTarget) => Promise<string | null>;
   emptyText: string;
   headerRight?: React.ReactNode;
   /** Si viene, la conversación se muestra pero ya no se puede escribir. */
@@ -86,6 +119,23 @@ export function ChatThread({
   const [err, setErr] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastCount = useRef(0);
+  const [translateTo, setTranslateTo] = useState<ChatTranslateTarget | null>(null);
+  const [langSheet, setLangSheet] = useState(false);
+
+  useEffect(() => {
+    if (translator?.allowed) setTranslateTo(readTranslateTarget(seenKey));
+  }, [seenKey, translator?.allowed]);
+
+  const pickTranslate = (v: ChatTranslateTarget | null) => {
+    setTranslateTo(v);
+    setLangSheet(false);
+    try {
+      if (v) window.localStorage.setItem(TRANSLATE_KEY(seenKey), v);
+      else window.localStorage.removeItem(TRANSLATE_KEY(seenKey));
+    } catch {
+      /* sin almacenamiento: sólo dura esta pantalla */
+    }
+  };
 
   const refresh = useCallback(async (sentId?: string) => {
     try {
@@ -130,7 +180,7 @@ export function ChatThread({
     setErr(null);
     setText("");
     setMessages((m) => [...(m ?? []), temp]);
-    const error = await send(body);
+    const error = await send(body, translator?.allowed && translateTo ? translateTo : undefined);
     setBusy(false);
     if (error) {
       setErr(error);
@@ -195,10 +245,72 @@ export function ChatThread({
   const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
   const iconBtn = "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#222] hover:bg-[#f2f2f2] disabled:opacity-40";
 
+  const translating = Boolean(translator?.allowed && translateTo);
+  const translateButton = translator ? (
+    <button
+      type="button"
+      onClick={() => setLangSheet(true)}
+      aria-label={t("Traductor del chat")}
+      aria-pressed={translating}
+      className={`flex h-10 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${
+        translating ? "bg-[#fdf6d8] text-[#5c4a0a]" : "text-[#555] hover:bg-[#f5f5f5]"
+      }`}
+    >
+      <IconGlobe />
+      {translating && <span className="uppercase">{translateTo === "auto" ? t("auto") : translateTo}</span>}
+    </button>
+  ) : null;
+
   return (
     <div className="flex h-dvh flex-col">
-      <TopBar title={title} back={back} right={headerRight} />
+      <TopBar
+        title={title}
+        back={back}
+        right={
+          translateButton || headerRight ? (
+            <span className="flex items-center gap-1">
+              {translateButton}
+              {headerRight}
+            </span>
+          ) : undefined
+        }
+      />
       {subtitle && <p className="border-b border-[#f0f0f0] px-5 py-2 text-xs text-[#717171]">{subtitle}</p>}
+      {translating && (
+        <p className="border-b border-[#f3e9b8] bg-[#fdf6d8] px-5 py-1.5 text-xs text-[#5c4a0a]">
+          {translateTo === "auto"
+            ? t("Traductor activo: tus mensajes se envían en el idioma en que escribe la otra persona.")
+            : t("Traductor activo: tus mensajes se envían en {lang}.", { lang: chatLangName(translateTo!) })}
+        </p>
+      )}
+
+      {translator && (
+        <Sheet open={langSheet} onClose={() => setLangSheet(false)} title={t("Traductor del chat")}>
+          {translator.allowed ? (
+            <div className="space-y-3">
+              <p className="text-sm leading-relaxed text-[#555]">
+                {t("Escribe en tu idioma: el mensaje se envía traducido y la otra persona puede ver lo que escribiste. Lo que te escriben ya lo ves traducido.")}
+              </p>
+              <ul className="divide-y divide-[#f0f0f0] overflow-hidden rounded-2xl border border-[#ebebeb]">
+                <LangOption on={!translateTo} label={t("Apagado: enviar tal cual")} onClick={() => pickTranslate(null)} />
+                <LangOption on={translateTo === "auto"} label={t("Automático: idioma de la otra persona")} onClick={() => pickTranslate("auto")} />
+                {CHAT_LANGS.map((l) => (
+                  <LangOption key={l.code} on={translateTo === l.code} label={l.name} onClick={() => pickTranslate(l.code)} />
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm leading-relaxed text-[#555]">
+                {t("Con la membresía de identidad verificada escribes en tu idioma y tus mensajes llegan traducidos al idioma de la otra persona, además de mandar fotos y notas de voz.")}
+              </p>
+              <Link href={translator.lockedHref} className="block rounded-xl bg-[#111] py-3 text-center text-[15px] font-semibold text-white">
+                {t("Ver membresía")}
+              </Link>
+            </div>
+          )}
+        </Sheet>
+      )}
 
       <div className="flex-1 overflow-y-auto bg-[#fafafa] px-4 py-4">
         {messages === null ? (
@@ -221,6 +333,7 @@ export function ChatThread({
                       <MessageBody
                         body={m.body}
                         original={m.original}
+                        mine={mine}
                         className={`whitespace-pre-wrap break-words ${m.attachment?.kind === "image" ? "px-2 pt-1.5" : m.attachment ? "pt-1" : ""}`}
                       />
                     )}
@@ -333,5 +446,16 @@ export function ChatThread({
       </form>
       )}
     </div>
+  );
+}
+
+function LangOption({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
+  return (
+    <li>
+      <button type="button" onClick={onClick} aria-pressed={on} className="flex w-full items-center justify-between px-4 py-3 text-left text-[15px] text-[#222]">
+        <span>{label}</span>
+        <span className={`h-5 w-5 shrink-0 rounded-full border-2 ${on ? "border-[#222] bg-[#222] shadow-[inset_0_0_0_3px_#fff]" : "border-[#bbb]"}`} aria-hidden />
+      </button>
+    </li>
   );
 }

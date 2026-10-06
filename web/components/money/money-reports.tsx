@@ -18,11 +18,11 @@ function YearChips({ years, year, basePath, t }: { years: number[]; year: number
   return (
     <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
       {years.map((y) => (
-        <Link key={y} href={`${basePath}?anio=${y}`} className={chip(year === y)} scroll={false}>
+        <Link key={y} href={`${basePath}?anio=${y}`} className={chip(year === y)} scroll={false} prefetch={false}>
           {y}
         </Link>
       ))}
-      <Link href={`${basePath}?anio=todos`} className={chip(year === null)} scroll={false}>
+      <Link href={`${basePath}?anio=todos`} className={chip(year === null)} scroll={false} prefetch={false}>
         {t("Todos")}
       </Link>
     </div>
@@ -145,6 +145,7 @@ export function EarningsReport({
                   key={x.i}
                   href={href(on ? null : x.i + 1)}
                   scroll={false}
+                  prefetch={false}
                   aria-label={`${monthName(x.i, lang)}: ${mxn(x.v)}`}
                   className="flex h-full flex-1 flex-col items-center justify-end gap-1"
                 >
@@ -163,6 +164,7 @@ export function EarningsReport({
             <Link
               href={href(null)}
               scroll={false}
+              prefetch={false}
               className={`shrink-0 rounded-full border px-3 py-1 text-xs ${month === null ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#222]"}`}
             >
               {t("Todo el año")}
@@ -174,6 +176,7 @@ export function EarningsReport({
                   key={x.i}
                   href={href(x.i + 1)}
                   scroll={false}
+                  prefetch={false}
                   className={`shrink-0 rounded-full border px-3 py-1 text-xs first-letter:uppercase ${month === x.i + 1 ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#222]"}`}
                 >
                   {monthName(x.i, lang, "short")} · {mxn(x.v).replace(" MXN", "")}

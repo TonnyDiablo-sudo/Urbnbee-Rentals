@@ -30,6 +30,7 @@ import { useT } from "@/components/i18n-provider";
 import { COUNTRY_OPTIONS, isMexico, MX_STATE_LIST } from "@/lib/geo-places";
 import { exactAddressProblem, listingNeedsUnit } from "@/lib/listing-address";
 import { StreetFields } from "@/components/host/street-fields";
+import { ContractClausesEditor, pruneClauseOverrides, useContractDefaults } from "@/components/host/contract-clauses-editor";
 import { ContractReviewNotice } from "@/components/host/contract-review-notice";
 import { ContractTips, MIN_STAY_CLAUSE } from "@/components/host/contract-tips";
 
@@ -1425,6 +1426,7 @@ function ContractTab({
 
   const [preview, setPreview] = useState<string[] | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
+  const defaults = useContractDefaults(listing.id);
 
   function patch(partial: Partial<ListingContractSettings>, persist = false) {
     const next = defaultListingContract({ ...draft, ...partial });
@@ -1553,6 +1555,21 @@ function ContractTab({
           onBlur={() => onSave(draft)}
         />
       </Field>
+      <div>
+        <p className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Texto del contrato")}</p>
+        <p className="mb-2 text-xs text-[#888]">
+          {t("Toca una cláusula para cambiar su texto o quitarla. Los datos de las partes, fechas y montos se llenan solos en cada reserva.")}
+        </p>
+        <div onBlur={() => onSave(draft)}>
+          <ContractClausesEditor
+            defaults={defaults}
+            overrides={draft.clauseOverrides}
+            onOverrides={(v) => patch({ clauseOverrides: pruneClauseOverrides(v, defaults) })}
+            law={draft.governingLawOverride}
+            onLaw={(v) => patch({ governingLawOverride: v })}
+          />
+        </div>
+      </div>
       <label className={`flex items-start gap-2 text-sm text-[#484848] ${draft.hostReviewed ? "" : "opacity-50"}`}>
         <input
           type="checkbox"
