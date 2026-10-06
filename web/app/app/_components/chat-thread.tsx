@@ -100,10 +100,17 @@ export function ChatThread({
 
   useEffect(() => {
     void refresh();
-    const timer = window.setInterval(() => {
+    const onVisible = () => {
       if (document.visibilityState === "visible") void refresh();
-    }, POLL_MS);
-    return () => window.clearInterval(timer);
+    };
+    const timer = window.setInterval(onVisible, POLL_MS);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
   }, [refresh]);
 
   useEffect(() => {

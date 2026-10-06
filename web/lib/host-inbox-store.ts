@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
 import type { HostInboxMessageRecord } from "@/lib/host-inbox-types";
+import { getMysqlPool } from "@/lib/db";
 import { scheduleMysql, upsertInboxRow } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
 
@@ -11,19 +12,22 @@ const DATA_FILE = join(getDataDir(), "host-inbox-messages.json");
 const rows: HostInboxMessageRecord[] = [];
 let cachedMtimeMs = 0;
 
-function persist() {
+function persist(changed?: HostInboxMessageRecord) {
   try {
     ensureDir(getDataDir());
     writeFileSync(DATA_FILE, JSON.stringify({ version: 1, messages: rows }, null, 2), "utf8");
     if (existsSync(DATA_FILE)) {
       cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
     }
-    scheduleMysql(async () => {
-      for (const m of rows) await upsertInboxRow(m);
-    });
+    if (changed) scheduleMysql(() => upsertInboxRow(changed));
   } catch (e) {
     console.warn("[host-inbox-store] persist failed:", e);
   }
+}
+
+/** Un mensaje puede ser sólo foto o audio, sin texto. */
+function isValidRow(m: HostInboxMessageRecord | undefined): m is HostInboxMessageRecord {
+  return Boolean(m?.id && m.listingId && m.hostId && m.guestSessionId && m.sender && m.createdAt && (m.body || m.attachment));
 }
 
 function reloadFromDisk() {
@@ -33,9 +37,7 @@ function reloadFromDisk() {
     const data = JSON.parse(raw) as { messages?: HostInboxMessageRecord[] };
     rows.length = 0;
     for (const m of data.messages ?? []) {
-      if (m?.id && m.listingId && m.hostId && m.guestSessionId && m.sender && m.body && m.createdAt) {
-        rows.push(m);
-      }
+      if (isValidRow(m)) rows.push(m);
     }
     cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
   } catch (e) {
@@ -72,8 +74,33 @@ export function appendMessage(rec: Omit<HostInboxMessageRecord, "id" | "createdA
     createdAt: nowIso(),
   };
   rows.push(message);
-  persist();
+  persist(message);
   return message;
+}
+
+/**
+ * Las versiones anteriores descartaban al recargar los mensajes sin texto (fotos/audios);
+ * MySQL sí los conserva. Sólo se recuperan en hilos que siguen existiendo.
+ */
+export async function restoreAttachmentMessagesFromMysql(): Promise<number> {
+  const pool = getMysqlPool();
+  if (!pool) return 0;
+  const [result] = await pool.query(
+    "SELECT payload FROM urb_host_inbox_messages WHERE JSON_EXTRACT(payload, '$.attachment') IS NOT NULL",
+  );
+  syncIfStale();
+  const have = new Set(rows.map((m) => m.id));
+  const threads = new Set(rows.map((m) => `${m.listingId}:${m.guestSessionId}`));
+  let added = 0;
+  for (const r of result as { payload: unknown }[]) {
+    const m = (typeof r.payload === "string" ? JSON.parse(r.payload) : r.payload) as HostInboxMessageRecord;
+    if (!isValidRow(m) || have.has(m.id) || !threads.has(`${m.listingId}:${m.guestSessionId}`)) continue;
+    rows.push(m);
+    have.add(m.id);
+    added++;
+  }
+  if (added) persist();
+  return added;
 }
 
 export function listAllMessages(): readonly HostInboxMessageRecord[] {

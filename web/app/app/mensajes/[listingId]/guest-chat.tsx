@@ -32,6 +32,7 @@ export function GuestChat({
   const t = useT();
   const load = useCallback(async (): Promise<ChatMessage[]> => {
     const res = await fetch(`/api/listings/${encodeURIComponent(listingId)}/messages`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`messages ${res.status}`);
     const data = await res.json();
     return Array.isArray(data.messages) ? data.messages : [];
   }, [listingId]);

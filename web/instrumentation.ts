@@ -18,6 +18,10 @@ export async function register() {
   startReviewModerationWorker();
   const { startAddressReminderWorker } = await import("@/lib/address-reminders");
   startAddressReminderWorker();
+  const { restoreAttachmentMessagesFromMysql } = await import("@/lib/host-inbox-store");
+  void restoreAttachmentMessagesFromMysql()
+    .then((n) => n && console.log(`[host-inbox] ${n} mensajes con adjunto recuperados`))
+    .catch((e) => console.warn("[host-inbox] restore", e));
   const { ensureDemoStayMedia } = await import("@/lib/demo-stay-media");
   void ensureDemoStayMedia().catch((e) => console.warn("[demo stay media]", e));
 }

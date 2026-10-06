@@ -194,6 +194,7 @@ export function VoiceNote({ a, mine = false, wide = false }: { a: Pick<ChatAttac
         ref={audio}
         src={a.url}
         preload="metadata"
+        playsInline
         onPlay={() => setPlaying(true)}
         onPlaying={() => setLoading(false)}
         onWaiting={() => setLoading(true)}
