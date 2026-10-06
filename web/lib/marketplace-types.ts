@@ -135,8 +135,10 @@ export type HostListingRecord = {
   agentCanShareAccessCode?: boolean;
   /** Mensaje con los datos de llegada que se le manda al huésped de una reserva del motor. */
   arrivalMessage?: ArrivalMessageSettings;
-  /** Bienvenida, media estancia y salida, por el chat de la reserva. */
+  /** Bienvenida, durante la estancia y salida, por el chat de la reserva. */
   stayMessages?: StayMessagesSettings;
+  /** Sólo en las cuentas demo: "pending" hasta que el servidor les pone fotos y audios de muestra. */
+  demoStayMedia?: "pending" | "done";
   photos: string[];
   amenities: string[];
   rules: ListingDetail["rules"];

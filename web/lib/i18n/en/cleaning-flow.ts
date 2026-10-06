@@ -202,4 +202,13 @@ export const cleaningFlow: Record<string, string> = {
   "No se pudo publicar.": "Couldn't publish.",
   "Para volver a publicar falta completar la dirección. Al guardar, tu anuncio se publica.":
     "To publish again, finish the address. Your listing goes live when you save.",
+  "Mensaje durante la estancia": "During-stay message",
+  "Mensajes durante la estancia": "During-stay messages",
+  "Durante la estancia {n}": "During the stay {n}",
+  "Durante la estancia": "During the stay",
+  "+ Agregar mensaje durante la estancia": "+ Add during-stay message",
+  "Llegan al chat después del texto: la puerta, la caja de llaves o una nota de voz explicando la entrada.":
+    "They reach the chat after the text: the door, the key box or a voice note explaining how to get in.",
+  "Se mandó sólo por correo: este huésped no tiene cuenta en Cabibee, así que no aparece en el chat.":
+    "Sent by email only: this guest has no Cabibee account, so it doesn't show up in the chat.",
 };

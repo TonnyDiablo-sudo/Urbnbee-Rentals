@@ -1,5 +1,6 @@
 "use client";
 
+import { Attachments } from "@/components/host/stay-messages-editor";
 import { useT } from "@/components/i18n-provider";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
 import {
@@ -114,6 +115,12 @@ export function ArrivalMessageEditor({
           </span>
         </span>
       </label>
+
+      <div>
+        <p className="mb-1 text-sm font-medium text-[#222]">{t("Fotos y audios")}</p>
+        <p className="mb-2 text-xs text-[#717171]">{t("Llegan al chat después del texto: la puerta, la caja de llaves o una nota de voz explicando la entrada.")}</p>
+        <Attachments listingId={listing.id} files={value.attachments ?? []} onChange={(attachments) => set({ attachments })} />
+      </div>
 
       <div className="rounded-2xl border border-[#ebebeb] p-4">
         <p className="text-sm font-semibold text-[#222]">{t("Datos que puedes usar")}</p>

@@ -748,6 +748,114 @@ if (hosts.some((h) => h.id === SOFIA)) {
     writeJson("team-chats.json", chats3);
     changes++;
   }
+
+  // Huéspedes con cuenta en las reservas en curso y próximas: así los mensajes llegan a su chat
+  const GUESTS = [
+    ["bkg_sofia_seed_ana_current", "usr_seed_guest_ana", "ana.torres@urbnbee.test", "Ana Torres"],
+    ["bkg_sofia_seed_luis_upcoming", "usr_seed_guest_luis", "luis.perez@urbnbee.test", "Luis Pérez"],
+    ["bkg_sofia_seed_carla_upcoming", "usr_seed_guest_carla", "carla.mendez@urbnbee.test", "Carla Méndez"],
+  ];
+  const s4 = readJson("marketplace-store.json", null);
+  const bk4 = readJson("bookings.json", null);
+  if (s4?.users && Array.isArray(bk4?.bookings)) {
+    let touched = false;
+    for (const [bookingId, userId, email, fullName] of GUESTS) {
+      if (!s4.users.some((u) => u.id === userId) && !s4.emailToUserId?.[email]) {
+        hash ??= bcrypt.hashSync(PASSWORD, 10);
+        s4.users.push({ id: userId, email, passwordHash: hash, fullName, role: "guest", createdAt: ago(30) });
+        s4.emailToUserId = { ...(s4.emailToUserId ?? {}), [email]: userId };
+        touched = true;
+        changes++;
+      }
+      const u = s4.users.find((x) => x.id === userId);
+      if (u && !u.emailVerifiedAt) {
+        u.emailVerifiedAt = ago(30);
+        touched = true;
+        changes++;
+      }
+      const b = bk4.bookings.find((x) => x.id === bookingId);
+      if (b && !b.guestUserId) {
+        b.guestUserId = userId;
+        b.guestEmail = email;
+        changes++;
+      }
+    }
+    if (touched) writeJson("marketplace-store.json", s4);
+    writeJson("bookings.json", bk4);
+  }
+
+  // Guía de llegada y mensajes de la estancia de sus anuncios, para probar los envíos.
+  // Las fotos y audios los pone el servidor al arrancar (lib/demo-stay-media.ts): van al almacenamiento privado.
+  const CONTENT = {
+    [S_ROMA]: {
+      guide: {
+        checkInTime: "15:00",
+        checkOutTime: "11:00",
+        checkInMethod: "Caja de llaves junto a la puerta del edificio (la gris, a la derecha del timbre).",
+        accessCode: "4821",
+        wifiName: "Roma_Cabibee",
+        wifiPassword: "colibri2026",
+        directions: "Estás a dos cuadras del metrobús Álvaro Obregón. El edificio tiene portón negro y una jacaranda enfrente.",
+        houseManual: "No se fuma adentro. Silencio después de las 22:00. La basura va en el cuarto del fondo del pasillo.",
+        checkoutInstructions: "Deja las llaves en la caja, apaga el aire acondicionado y cierra las ventanas.",
+      },
+      welcome: "¡Hola {huesped}, bienvenido a {anuncio}!\n\nTe dejo una foto de la sala y una nota de voz con cómo funciona el aire y el agua caliente.\n📶 Wifi: {wifi}\n🔒 Contraseña: {wifi_clave}\n\nCualquier cosa, escríbeme por aquí.\n{anfitrion}",
+      mid: "Hola {huesped}, ¿cómo va todo en {anuncio}?\n\n¿Necesitas toallas o sábanas limpias, o algo de la casa? Dime y lo resolvemos hoy mismo.\n{anfitrion}",
+      checkout: "Hola {huesped}, gracias por quedarte en {anuncio}.\n\nLa salida es el {fecha_salida} antes de las {salida}. Deja las llaves en la caja y cierra bien la puerta.\n\n¡Buen viaje!\n{anfitrion}",
+    },
+    [S_CONDESA]: {
+      guide: {
+        checkInTime: "14:00",
+        checkOutTime: "12:00",
+        checkInMethod: "Cerradura con código en la puerta del departamento (piso 3, puerta 302).",
+        accessCode: "7319#",
+        wifiName: "Condesa302",
+        wifiPassword: "parqueMexico",
+        directions: "Frente al Parque México. Si llegas en auto, hay estacionamiento público en Michoacán 78.",
+        houseManual: "Las mascotas son bienvenidas pero no en la cama. Silencio después de las 22:00.",
+        checkoutInstructions: "Cierra con el código, deja los platos lavados y la basura en el contenedor de la planta baja.",
+      },
+      welcome: "¡Hola {huesped}, bienvenida a {anuncio}!\n\nAquí tienes una foto de la entrada y una nota de voz con lo básico del departamento.\n📶 Wifi: {wifi}\n🔒 Contraseña: {wifi_clave}\n\nQue disfrutes la Condesa.\n{anfitrion}",
+      mid: "Hola {huesped}, ¿todo bien en {anuncio}?\n\nSi te falta algo (café, papel, toallas) o tienes una duda, escríbeme y te ayudo.\n{anfitrion}",
+      checkout: "Hola {huesped}, mañana es tu salida de {anuncio}.\n\nSal antes de las {salida}, cierra con el código y deja la basura abajo.\n\n¡Gracias por tu visita!\n{anfitrion}",
+    },
+    [S_COYO]: {
+      guide: {
+        checkInTime: "16:00",
+        checkOutTime: "11:00",
+        checkInMethod: "Toca el timbre de la casa azul; Lupita te entrega las llaves en persona.",
+        accessCode: "Portón: 1590",
+        wifiName: "CasaCoyoacan",
+        wifiPassword: "fridakahlo",
+        directions: "A tres cuadras de la Casa Azul. Entra por Allende y gira en Londres; es la casa con buganvilia.",
+        houseManual: "El jardín es para los huéspedes. El boiler se prende con el botón rojo de la cocina.",
+        checkoutInstructions: "Deja las llaves en la mesa del comedor y jala el portón al salir.",
+      },
+      welcome: "¡Hola {huesped}, bienvenido a {anuncio}!\n\nTe mando una foto del jardín y una nota de voz explicando el boiler.\n📶 Wifi: {wifi}\n🔒 Contraseña: {wifi_clave}\n\nDisfruta Coyoacán.\n{anfitrion}",
+      mid: "Hola {huesped}, ¿cómo vas en {anuncio}?\n\n¿Todo bien con la casa? Si necesitas algo, aquí estoy.\n{anfitrion}",
+      checkout: "Hola {huesped}, gracias por cuidar {anuncio}.\n\nLa salida es el {fecha_salida} antes de las {salida}. Deja las llaves en el comedor y jala el portón.\n{anfitrion}",
+    },
+  };
+  const s5 = readJson("marketplace-store.json", null);
+  if (s5?.listings) {
+    let touched = false;
+    for (const [listingId, c] of Object.entries(CONTENT)) {
+      const l = s5.listings.find((x) => x.id === listingId && x.hostId === SOFIA);
+      if (!l || l.demoStayMedia) continue;
+      l.arrivalGuide = { ...c.guide, ...(l.arrivalGuide ?? {}) };
+      l.arrivalMessage = { mode: "manual", daysBefore: 1, template: l.arrivalMessage?.template ?? "", attachments: [] };
+      if (!l.arrivalMessage.template) delete l.arrivalMessage.template;
+      l.stayMessages = {
+        welcome: { id: "welcome", enabled: true, mode: "manual", text: c.welcome, attachments: [] },
+        mid: [{ id: "mid1", enabled: true, mode: "manual", text: c.mid, attachments: [], everyDays: 2 }],
+        checkout: { id: "checkout", enabled: true, mode: "manual", text: c.checkout, attachments: [], daysBefore: 1 },
+      };
+      l.demoStayMedia = "pending";
+      touched = true;
+      changes++;
+    }
+    if (touched) writeJson("marketplace-store.json", s5);
+  }
 }
 
 console.log(changes ? `[seed-demo-tools] ${changes} cambios` : "[seed-demo-tools] ya estaba al día");

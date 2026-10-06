@@ -238,6 +238,8 @@ function ContractPayBox({ booking, onDone }: { booking: HostBooking; onDone: () 
   );
 }
 
+const NO_CHAT_NOTE = "Se mandó sólo por correo: este huésped no tiene cuenta en Cabibee, así que no aparece en el chat.";
+
 /** Manda (o vuelve a mandar) los datos de llegada por el chat y por correo. */
 function ArrivalMessageBox({ bookingId, sentAt: initialSentAt }: { bookingId: string; sentAt?: string }) {
   const t = useT();
@@ -245,6 +247,7 @@ function ArrivalMessageBox({ bookingId, sentAt: initialSentAt }: { bookingId: st
   const [sentAt, setSentAt] = useState(initialSentAt);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
   const send = async () => {
     if (sentAt && !window.confirm(t("Ya se mandaron. ¿Enviarlas otra vez?"))) return;
@@ -260,6 +263,7 @@ function ArrivalMessageBox({ bookingId, sentAt: initialSentAt }: { bookingId: st
       return;
     }
     setSentAt(j.sentAt);
+    setNote(j.chat === false ? NO_CHAT_NOTE : null);
   };
 
   return (
@@ -268,7 +272,9 @@ function ArrivalMessageBox({ bookingId, sentAt: initialSentAt }: { bookingId: st
       <p className="mt-1 text-sm text-[#717171]">
         {sentAt
           ? t("Enviadas el {date}.", {
-              date: new Date(sentAt).toLocaleString(lang === "en" ? "en-US" : "es-MX", { dateStyle: "medium", timeStyle: "short" }),
+              date: new Date(sentAt)
+                .toLocaleString(lang === "en" ? "en-US" : "es-MX", { dateStyle: "medium", timeStyle: "short" })
+                .replace(/\.$/, ""),
             })
           : t("Dirección, llegada, código y wifi, con la plantilla de tu anuncio. Van por el chat y por correo.")}
       </p>
@@ -282,6 +288,7 @@ function ArrivalMessageBox({ bookingId, sentAt: initialSentAt }: { bookingId: st
       >
         {busy ? t("Enviando…") : sentAt ? t("Volver a enviar") : t("Enviar instrucciones de llegada")}
       </button>
+      {note && <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">{t(note)}</p>}
       {err && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{t(err)}</p>}
     </div>
   );
@@ -291,7 +298,7 @@ type StayRow = { key: string; kind: "welcome" | "mid" | "checkout"; mode: "auto"
 
 const STAY_LABEL: Record<StayRow["kind"], string> = {
   welcome: "Bienvenida",
-  mid: "Media estancia",
+  mid: "Durante la estancia",
   checkout: "Salida",
 };
 
@@ -303,6 +310,7 @@ function StayMessagesBox({ bookingId }: { bookingId: string }) {
   const [rows, setRows] = useState<StayRow[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -333,6 +341,7 @@ function StayMessagesBox({ bookingId }: { bookingId: string }) {
       return;
     }
     setRows((rs) => rs?.map((r) => (r.key === row.key ? { ...r, sentAt: j.sentAt } : r)) ?? rs);
+    setNote(j.chat === false ? NO_CHAT_NOTE : null);
   };
 
   return (
@@ -369,6 +378,7 @@ function StayMessagesBox({ bookingId }: { bookingId: string }) {
           </li>
         ))}
       </ul>
+      {note && <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">{t(note)}</p>}
       {err && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{t(err)}</p>}
     </div>
   );

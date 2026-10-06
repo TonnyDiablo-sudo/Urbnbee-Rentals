@@ -9,6 +9,8 @@ import {
 import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
 import { applyBookingLifecycle } from "@/lib/booking-deposit";
 import { listingHasEngine } from "@/lib/booking-engine-slots";
+import { copyIntoChat } from "@/lib/chat-attachments";
+import type { ChatAttachment } from "@/lib/host-inbox-types";
 import type { BookingRecord } from "@/lib/booking-types";
 import { getBookingById, listAllBookings, patchBookingRecord } from "@/lib/bookings-store";
 import { publicNameOf } from "@/lib/display-name";
@@ -19,6 +21,7 @@ import { pricingToday } from "@/lib/listing-pricing";
 import { findUserById, getListingById } from "@/lib/marketplace-store";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import { notifyGuestHostReply } from "@/lib/push";
+import { readStayMessageFile } from "@/lib/stay-messages";
 
 export {
   ARRIVAL_PLACEHOLDERS,
@@ -93,15 +96,17 @@ export async function sendArrivalMessage(bookingId: string, opts: { manual: bool
   let chat = false;
   if (b.guestUserId) {
     const guestSessionId = guestSessionIdForUser(b.guestUserId);
-    const msg = appendMessage({
-      listingId: listing.id,
-      hostId: listing.hostId,
-      guestSessionId,
-      sender: "host",
-      guestName: "",
-      body: text,
-    });
-    bridgeChatMessage(msg);
+    const post = (body: string, attachment?: ChatAttachment) => {
+      const msg = appendMessage({ listingId: listing.id, hostId: listing.hostId, guestSessionId, sender: "host", guestName: "", body, attachment });
+      bridgeChatMessage(msg);
+    };
+    post(text);
+    for (const a of arrivalMessageOf(listing.arrivalMessage).attachments ?? []) {
+      const src = await readStayMessageFile(listing.id, a.file).catch(() => null);
+      if (!src) continue;
+      const copy = await copyIntoChat({ listingId: listing.id, guestSessionId, data: src.data, attachment: a }).catch(() => null);
+      if (copy) post("", copy);
+    }
     notifyGuestHostReply({ listingId: listing.id, guestSessionId, body: text });
     chat = true;
   }

@@ -58,7 +58,7 @@ Te recuerdo que la salida es el {fecha_salida} antes de las {salida}.
 
 export const STAY_KIND_LABEL: Record<StayMessageKind, string> = {
   welcome: "Mensaje de bienvenida",
-  mid: "Mensaje de media estancia",
+  mid: "Mensaje durante la estancia",
   checkout: "Mensaje de salida",
 };
 
@@ -73,14 +73,15 @@ export function newMidRule(): StayMidRule {
 export function defaultStayMessages(): StayMessagesSettings {
   return {
     welcome: { id: "welcome", enabled: true, mode: "manual", text: DEFAULT_WELCOME_TEXT, attachments: [] },
-    mid: [],
+    mid: [{ id: "mid1", enabled: true, mode: "manual", text: DEFAULT_MID_TEXT, attachments: [], everyDays: 2 }],
     checkout: { id: "checkout", enabled: true, mode: "manual", text: DEFAULT_CHECKOUT_TEXT, attachments: [], daysBefore: 0 },
   };
 }
 
 const FILE = /^[a-f0-9]{24}\.(webp|webm|ogg|m4a|aac|mp3|wav)$/;
 
-function cleanAttachments(raw: unknown): ChatAttachment[] {
+/** Fotos y audios ya subidos de una plantilla (estancia o llegada). */
+export function cleanMessageAttachments(raw: unknown): ChatAttachment[] {
   if (!Array.isArray(raw)) return [];
   const out: ChatAttachment[] = [];
   for (const a of raw) {
@@ -112,7 +113,7 @@ function cleanRule(raw: unknown, fallback: StayMessageRule): StayMessageRule {
     enabled: o.enabled === true,
     mode: o.mode === "manual" ? "manual" : "auto",
     text: text || fallback.text,
-    attachments: cleanAttachments(o.attachments),
+    attachments: cleanMessageAttachments(o.attachments),
   };
 }
 
@@ -141,7 +142,7 @@ export function stayMessagesOf(s: StayMessagesSettings | undefined): StayMessage
   const d = defaultStayMessages();
   return {
     welcome: s.welcome ?? d.welcome,
-    mid: Array.isArray(s.mid) ? s.mid : [],
+    mid: Array.isArray(s.mid) ? s.mid : d.mid,
     checkout: s.checkout ?? d.checkout,
   };
 }

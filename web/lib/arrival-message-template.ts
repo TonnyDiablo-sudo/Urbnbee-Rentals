@@ -1,4 +1,6 @@
 import type { ArrivalGuide } from "@/lib/arrival-guide";
+import type { ChatAttachment } from "@/lib/host-inbox-types";
+import { cleanMessageAttachments } from "@/lib/stay-messages-template";
 
 /** Cómo se manda el mensaje de llegada de las reservas del motor. */
 export type ArrivalMessageSettings = {
@@ -6,6 +8,8 @@ export type ArrivalMessageSettings = {
   /** Días antes de la llegada en que sale el mensaje automático (0 = el mismo día). */
   daysBefore: number;
   template: string;
+  /** Fotos o audios (la puerta, la caja de llaves…) que van en el chat después del texto. */
+  attachments?: ChatAttachment[];
 };
 
 export const ARRIVAL_MESSAGE_MAX = 4000;
@@ -57,6 +61,7 @@ export function arrivalMessageOf(s: ArrivalMessageSettings | undefined): Arrival
     mode: s.mode === "auto" ? "auto" : "manual",
     daysBefore: Number.isFinite(s.daysBefore) ? s.daysBefore : d.daysBefore,
     template: s.template?.trim() ? s.template : d.template,
+    attachments: Array.isArray(s.attachments) ? s.attachments : [],
   };
 }
 
@@ -70,6 +75,7 @@ export function sanitizeArrivalMessage(raw: unknown): ArrivalMessageSettings {
     mode: o.mode === "auto" ? "auto" : "manual",
     daysBefore: Number.isFinite(days) ? Math.min(ARRIVAL_DAYS_BEFORE_MAX, Math.max(0, days)) : d.daysBefore,
     template: template || d.template,
+    attachments: cleanMessageAttachments(o.attachments),
   };
 }
 

@@ -17,7 +17,7 @@ import {
   type StayMidRule,
 } from "@/lib/stay-messages-template";
 
-/** Bienvenida, media estancia (varios, cada N días) y salida: activar, auto/manual, texto, fotos y audios. */
+/** Bienvenida, durante la estancia (varios, cada N días) y salida: activar, auto/manual, texto, fotos y audios. */
 export function StayMessagesEditor({
   listingId,
   value,
@@ -45,7 +45,7 @@ export function StayMessagesEditor({
       />
 
       <div className="space-y-3">
-        <p className="text-[15px] font-semibold text-[#222]">{t("Mensajes de media estancia")}</p>
+        <p className="text-[15px] font-semibold text-[#222]">{t("Mensajes durante la estancia")}</p>
         {value.mid.length === 0 && (
           <p className="text-sm text-[#717171]">{t("Ninguno todavía. Sirven para preguntar cómo va todo o recordar algo en estancias largas.")}</p>
         )}
@@ -53,7 +53,7 @@ export function StayMessagesEditor({
           <RuleCard
             key={m.id}
             listingId={listingId}
-            title={t("Media estancia {n}", { n: i + 1 })}
+            title={t("Durante la estancia {n}", { n: i + 1 })}
             rule={m}
             onChange={(r) => setMid(i, { ...m, ...r })}
             onRemove={() => onChange({ ...value, mid: value.mid.filter((_, j) => j !== i) })}
@@ -84,7 +84,7 @@ export function StayMessagesEditor({
             onClick={() => onChange({ ...value, mid: [...value.mid, newMidRule()] })}
             className="w-full rounded-xl border border-dashed border-[#bbb] py-2.5 text-sm font-semibold text-[#222]"
           >
-            {t("+ Agregar mensaje de media estancia")}
+            {t("+ Agregar mensaje durante la estancia")}
           </button>
         )}
       </div>
@@ -204,7 +204,7 @@ function RuleCard({
   );
 }
 
-function Attachments({
+export function Attachments({
   listingId,
   files,
   onChange,

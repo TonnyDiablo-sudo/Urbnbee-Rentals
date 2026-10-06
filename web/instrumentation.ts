@@ -18,4 +18,6 @@ export async function register() {
   startReviewModerationWorker();
   const { startAddressReminderWorker } = await import("@/lib/address-reminders");
   startAddressReminderWorker();
+  const { ensureDemoStayMedia } = await import("@/lib/demo-stay-media");
+  void ensureDemoStayMedia().catch((e) => console.warn("[demo stay media]", e));
 }
