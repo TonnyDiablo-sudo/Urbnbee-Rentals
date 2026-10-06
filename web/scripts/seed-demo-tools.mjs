@@ -506,6 +506,173 @@ if (hosts.some((h) => h.id === SOFIA)) {
     });
     writeJson("notifications.json", nf);
   }
+
+  // Limpieza de Sofía: prioridad por anuncio, aprobación y limpiezas con fotos y comentarios
+  const cl = readJson("cleaning-tasks.json", { version: 1, tasks: [], defaults: {}, settings: {} });
+  if (cl) {
+    cl.tasks = Array.isArray(cl.tasks) ? cl.tasks : [];
+    cl.defaults = cl.defaults ?? {};
+    cl.settings = cl.settings ?? {};
+    const PRIORITY = { [S_ROMA]: [LUPITA_TM, ROSA_TM], [S_CONDESA]: [ROSA_TM, LUPITA_TM], [S_COYO]: [ROSA_TM, LUPITA_TM] };
+    for (const [id, list] of Object.entries(PRIORITY)) {
+      // Sólo se toca lo que dejó este mismo script (Lupita sola); lo que Sofía cambió se respeta.
+      if (cl.defaults[id] === LUPITA_TM) {
+        cl.defaults[id] = id === S_ROMA ? [LUPITA_TM] : list;
+        changes++;
+      }
+    }
+    const st = (cl.settings[SOFIA] ??= { assignMode: "auto", requirePhoto: true });
+    for (const [k, v] of Object.entries({ requireApproval: true, confirmHours: 24, cancelHours: 24 })) {
+      if (st[k] === undefined) {
+        st[k] = v;
+        changes++;
+      }
+    }
+    const photosOf = (listingId, n, by, at) =>
+      (s?.listings?.find((l) => l.id === listingId)?.photos ?? []).slice(0, n).map((url, i) => ({ id: `seedph${i}`, key: "", url, by, at }));
+    const dayAgo = (d) => ago(d).slice(0, 10);
+    const DONE = [
+      ["review_condesa", S_CONDESA, ROSA_TM, ROSA.id, 1, "pending", "Cambié sábanas y toallas, y ya no gotea la llave del lavabo. Dejé el garrafón nuevo en la cocina.", 3],
+      ["review_roma", S_ROMA, LUPITA_TM, "usr_demo_lupita_clean", 2, "pending", "Todo listo. Faltó shampoo de cortesía, ya lo bajé en insumos para que se compre.", 2],
+      ["ok_coyoacan", S_COYO, ROSA_TM, ROSA.id, 6, "approved", "Limpieza profunda del patio y la cocina. El huésped dejó una botella de vino de regalo.", 3],
+      ["ok_roma", S_ROMA, LUPITA_TM, "usr_demo_lupita_clean", 9, "approved", "Recámara y baño listos, cambié las cortinas del cuarto.", 2],
+      ["ok_condesa", S_CONDESA, LUPITA_TM, "usr_demo_lupita_clean", 12, "approved", "Sin novedades. Repuse papel y jabón.", 1],
+    ];
+    for (const [key, listingId, tm, userId, d, approval, note, nPhotos] of DONE) {
+      const id = `cl_seed_sofia_${key}`;
+      if (cl.tasks.some((t) => t.id === id)) continue;
+      const doneAt = ago(d, -4);
+      cl.tasks.push({
+        id,
+        hostId: SOFIA,
+        listingId,
+        date: dayAgo(d),
+        time: "11:00",
+        assignee: tm,
+        status: "done",
+        note,
+        doneAt,
+        doneBy: userId,
+        confirmAskedAt: ago(d + 3),
+        confirmedAt: ago(d + 2),
+        photos: photosOf(listingId, nPhotos, userId, doneAt),
+        approval,
+        ...(approval === "approved" ? { approvedAt: ago(d, -6) } : {}),
+        createdAt: ago(d + 4),
+        updatedAt: doneAt,
+      });
+      changes++;
+    }
+    // Rosa no puede ir: queda el motivo y pasa a Lupita, que todavía no confirma
+    const inDays = (d) => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10);
+    if (!cl.tasks.some((t) => t.id === "cl_seed_sofia_cancelled_rosa")) {
+      cl.tasks.push({
+        id: "cl_seed_sofia_cancelled_rosa",
+        hostId: SOFIA,
+        listingId: S_COYO,
+        date: inDays(4),
+        time: "12:00",
+        assignee: LUPITA_TM,
+        status: "pending",
+        note: "Antes de que llegue Carla: revisar la llave del lavabo.",
+        confirmAskedAt: ago(0, 5),
+        cancellations: [{ assignee: ROSA_TM, at: ago(0, 5), reason: "Tengo cita en el IMSS ese día y no alcanzo a llegar." }],
+        createdAt: ago(3),
+        updatedAt: ago(0, 5),
+      });
+      changes++;
+    }
+    if (!cl.tasks.some((t) => t.id === "cl_seed_sofia_confirmed_roma")) {
+      cl.tasks.push({
+        id: "cl_seed_sofia_confirmed_roma",
+        hostId: SOFIA,
+        listingId: S_ROMA,
+        date: inDays(6),
+        time: "10:00",
+        assignee: LUPITA_TM,
+        status: "pending",
+        note: "Limpieza de ventanas y terraza.",
+        confirmAskedAt: ago(1),
+        confirmedAt: ago(0, 20),
+        createdAt: ago(1),
+        updatedAt: ago(0, 20),
+      });
+      changes++;
+    }
+    writeJson("cleaning-tasks.json", cl);
+
+    const nf2 = readJson("notifications.json", { version: 1, notifications: [] });
+    if (nf2) {
+      nf2.notifications = Array.isArray(nf2.notifications) ? nf2.notifications : [];
+      const N = [
+        {
+          id: "ntf_seed_sofia_clean_cancel_rosa",
+          userId: SOFIA,
+          kind: "cleaning",
+          title: "{name} canceló una limpieza",
+          body: "{listing} · {date}. Motivo: «{reason}». Se la pasamos a {next}.",
+          vars: { name: ROSA.fullName, listing: titleOf(S_COYO), date: inDays(4), reason: "Tengo cita en el IMSS ese día y no alcanzo a llegar.", next: "Lupita Hernández" },
+          url: "/host/limpieza",
+          groupKey: "cleaning-cancel:cl_seed_sofia_cancelled_rosa:1",
+          createdAt: ago(0, 5),
+        },
+        {
+          id: "ntf_seed_sofia_clean_review",
+          userId: SOFIA,
+          kind: "cleaning",
+          title: "Revisa y aprueba una limpieza",
+          body: "{name} terminó {listing} ({date}).",
+          vars: { name: ROSA.fullName, listing: titleOf(S_CONDESA), date: dayAgo(1) },
+          url: "/host/limpieza",
+          groupKey: "cleaning:cl_seed_sofia_review_condesa",
+          createdAt: ago(1, -4),
+        },
+        {
+          id: "ntf_seed_lupita_clean_confirm",
+          userId: "usr_demo_lupita_clean",
+          kind: "cleaning",
+          title: "Te pasaron una limpieza",
+          body: "{listing} · {date}. Confirma que sí puedes, a más tardar {hours} h antes.",
+          vars: { listing: titleOf(S_COYO), date: inDays(4), hours: 24 },
+          url: "/equipo",
+          groupKey: "cleaning:cl_seed_sofia_cancelled_rosa",
+          createdAt: ago(0, 5),
+        },
+      ];
+      for (const n of N) {
+        if (nf2.notifications.some((x) => x.id === n.id)) continue;
+        nf2.notifications.push(n);
+        changes++;
+      }
+      writeJson("notifications.json", nf2);
+    }
+  }
+
+  // Un grupo de chat sólo con Rosa (los demás chats son de todo el equipo)
+  const chats2 = readJson("team-chats.json", { version: 1, channels: [], messages: [] });
+  if (chats2 && !chats2.channels?.some((c) => c.id === "tch_seed_sofia_rosa")) {
+    chats2.channels = Array.isArray(chats2.channels) ? chats2.channels : [];
+    chats2.messages = Array.isArray(chats2.messages) ? chats2.messages : [];
+    chats2.channels.push({
+      id: "tch_seed_sofia_rosa",
+      hostId: SOFIA,
+      name: "Condesa y Coyoacán",
+      emoji: "🏡",
+      createdBy: SOFIA,
+      createdAt: ago(5),
+      lastAt: ago(0, 4),
+      memberIds: [ROSA.id],
+    });
+    [
+      [SOFIA, "Rosa, armé este grupo sólo para Condesa y Coyoacán.", 5, 0],
+      [ROSA.id, "Perfecto. No pude con la de Coyoacán del viernes, ya dejé el motivo en la limpieza.", 0, 5],
+      [SOFIA, "Sin problema, ya le llegó a Lupita. Gracias por avisar con tiempo.", 0, 4],
+    ].forEach(([by, body, d, h], i) => {
+      chats2.messages.push({ id: `tcm_seed_sofia_rosa_${i}`, channelId: "tch_seed_sofia_rosa", hostId: SOFIA, by, body, at: ago(d, h) });
+    });
+    writeJson("team-chats.json", chats2);
+    changes++;
+  }
 }
 
 console.log(changes ? `[seed-demo-tools] ${changes} cambios` : "[seed-demo-tools] ya estaba al día");

@@ -10,17 +10,32 @@ export type CleaningStatus = "pending" | "done" | "cancelled";
 /** "host" = el anfitrión mismo; si no, el id del miembro del equipo. */
 export type CleaningAssignee = "host" | string;
 
-export type CleaningPhoto = { id: string; key: string; by: string; at: string };
+/** `key` vive en archivos privados; las fotos de muestra traen `url` pública y no tienen archivo. */
+export type CleaningPhoto = { id: string; key: string; url?: string; by: string; at: string };
 
-/** CÃ³mo trabaja cada anfitriÃ³n su limpieza. */
+/** Cómo trabaja cada anfitrión su limpieza. */
 export type CleaningSettings = {
-  /** auto: cada limpieza nueva va a quien limpia ese anuncio; manual: el anfitriÃ³n elige. */
+  /** auto: cada limpieza nueva va a quien limpia ese anuncio; manual: el anfitrión elige. */
   assignMode: "auto" | "manual";
   /** Pedir al menos una foto para marcarla como hecha. */
   requirePhoto: boolean;
+  /** El anfitrión revisa y aprueba cada limpieza terminada. */
+  requireApproval: boolean;
+  /** Horas antes de la limpieza en que quien limpia ya debe haber confirmado. */
+  confirmHours: number;
+  /** Quien limpia puede cancelar sólo con al menos estas horas de anticipación (0 = cuando sea). */
+  cancelHours: number;
 };
 
-export const DEFAULT_CLEANING_SETTINGS: CleaningSettings = { assignMode: "auto", requirePhoto: false };
+export const DEFAULT_CLEANING_SETTINGS: CleaningSettings = {
+  assignMode: "auto",
+  requirePhoto: false,
+  requireApproval: false,
+  confirmHours: 24,
+  cancelHours: 24,
+};
+
+export type CleaningCancellation = { assignee: CleaningAssignee; at: string; reason: string };
 
 export type CleaningTask = {
   id: string;
@@ -44,14 +59,26 @@ export type CleaningTask = {
   doneBy?: string;
   remindedAt?: string;
   photos?: CleaningPhoto[];
+  /** Cuándo se le pidió confirmar a la persona asignada ahora. */
+  confirmAskedAt?: string;
+  confirmedAt?: string;
+  /** Ya se le avisó al anfitrión que nadie ha confirmado. */
+  unconfirmedWarnedAt?: string;
+  /** Quienes la cancelaron y por qué; no se les vuelve a asignar en automático. */
+  cancellations?: CleaningCancellation[];
+  /** Sólo cuando el anfitrión pide aprobar: la limpieza hecha espera su revisión. */
+  approval?: "pending" | "approved";
+  approvedAt?: string;
+  /** Lo que el anfitrión pidió corregir al regresarla. */
+  redoNote?: string;
   createdAt: string;
   updatedAt: string;
 };
 
 const DATA_FILE = join(getDataDir(), "cleaning-tasks.json");
 let tasks: CleaningTask[] = [];
-/** Quién limpia cada anuncio por defecto, por anuncio. */
-let defaults: Record<string, CleaningAssignee> = {};
+/** Quién limpia cada anuncio, en orden de prioridad (antes era una sola persona). */
+let defaults: Record<string, CleaningAssignee | CleaningAssignee[]> = {};
 let settings: Record<string, CleaningSettings> = {};
 let cachedMtimeMs = 0;
 
@@ -62,7 +89,7 @@ function load() {
     if (m === cachedMtimeMs) return;
     const data = JSON.parse(readFileSync(DATA_FILE, "utf8")) as {
       tasks?: CleaningTask[];
-      defaults?: Record<string, CleaningAssignee>;
+      defaults?: Record<string, CleaningAssignee | CleaningAssignee[]>;
       settings?: Record<string, CleaningSettings>;
     };
     tasks = Array.isArray(data.tasks) ? data.tasks : [];
@@ -139,14 +166,21 @@ export function deleteCleaningTask(id: string): boolean {
   return true;
 }
 
-export function getListingCleaner(listingId: string): CleaningAssignee | undefined {
+export function getListingCleaners(listingId: string): CleaningAssignee[] {
   load();
-  return defaults[listingId];
+  const v = defaults[listingId];
+  return Array.isArray(v) ? v : v ? [v] : [];
 }
 
-export function setListingCleaner(listingId: string, assignee: CleaningAssignee | undefined) {
+/** La primera en la lista de prioridad. */
+export function getListingCleaner(listingId: string): CleaningAssignee | undefined {
+  return getListingCleaners(listingId)[0];
+}
+
+export function setListingCleaners(listingId: string, list: CleaningAssignee[]) {
   load();
-  if (assignee) defaults[listingId] = assignee;
+  const clean = [...new Set(list.filter(Boolean))];
+  if (clean.length) defaults[listingId] = clean;
   else delete defaults[listingId];
   persist();
 }

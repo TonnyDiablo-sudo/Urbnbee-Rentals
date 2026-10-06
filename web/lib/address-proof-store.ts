@@ -35,13 +35,13 @@ export type AddressProof = {
   hostId: string;
   fileName: string;
   mime: string;
-  /** DirecciÃ³n del anuncio cuando se subiÃ³: si el anfitriÃ³n la cambia, la insignia se cae. */
+  /** Dirección del anuncio cuando se subió: si el anfitrión la cambia, la insignia se cae. */
   addressSnapshot: string;
   addressKey: string;
   status: AddressProofStatus;
   ai?: AddressProofAi;
   aiError?: string;
-  /** Lo que ve el anfitriÃ³n cuando no se aprobÃ³. */
+  /** Lo que ve el anfitrión cuando no se aprobó. */
   hostMessage?: string;
   reviewedBy?: string;
   reviewedAt?: string;
@@ -164,7 +164,7 @@ export function latestProofForListing(listingId: string): AddressProof | undefin
   return rows.filter((r) => r.listingId === listingId).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
 }
 
-/** Insignia "UbicaciÃ³n verificada": comprobante aprobado y la direcciÃ³n del anuncio no ha cambiado desde entonces. */
+/** Insignia "Ubicación verificada": comprobante aprobado y la dirección del anuncio no ha cambiado desde entonces. */
 export function isListingLocationVerified(l: HostListingRecord): boolean {
   load();
   const key = addressKeyOf(l);

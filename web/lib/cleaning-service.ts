@@ -13,8 +13,9 @@ import {
   type CleaningSettings,
   getCleaningTask,
   getListingCleaner,
+  getListingCleaners,
   listCleaningTasksForHost,
-  setListingCleaner,
+  setListingCleaners,
   updateCleaningTask,
   type CleaningAssignee,
   type CleaningTask,
@@ -36,6 +37,14 @@ export const CLEANING_TOOL_OFF_ERROR = "Activa la herramienta de limpieza en la 
 const listingOf = (b: BookingRecord) => b.hostAdjustedListingId ?? b.listingId;
 const dayOf = (iso: string) => iso.slice(0, 10);
 
+/** Sin hora acordada se toma la hora típica de salida. */
+const DEFAULT_TIME = "11:00";
+const HOUR_MS = 3_600_000;
+/** Si la limpieza nace dentro del plazo para confirmar, se le dan estas horas antes de avisar al anfitrión. */
+const LATE_GRACE_HOURS = 2;
+export const CONFIRM_HOUR_OPTIONS = [0, 12, 24, 48, 72];
+export const CANCEL_HOUR_OPTIONS = [0, 12, 24, 48, 72];
+
 export function formatCleaningDay(day: string): string {
   const [y, m, d] = day.split("-").map(Number);
   return new Intl.DateTimeFormat("es-MX", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(
@@ -43,23 +52,40 @@ export function formatCleaningDay(day: string): string {
   );
 }
 
+/** Inicio de la limpieza en hora de México (UTC−6, sin horario de verano). */
+function startMs(t: Pick<CleaningTask, "date" | "time">): number {
+  return Date.parse(`${t.date}T${t.time ?? DEFAULT_TIME}:00-06:00`);
+}
+
 function listingTitle(listingId: string) {
   return getListingById(listingId)?.title || "tu anuncio";
 }
 
+const byMember = (a: CleaningAssignee | undefined): a is string => Boolean(a && a !== "host");
+
 /** A quién avisar de una tarea: la persona asignada o, si no hay, el anfitrión. */
 function recipientOf(task: CleaningTask): { userId: string; url: string } | null {
-  if (task.assignee && task.assignee !== "host") {
+  if (byMember(task.assignee)) {
     const m = getTeamMember(task.assignee);
     if (m?.status === "active" && m.userId) return { userId: m.userId, url: "/equipo" };
   }
   return { userId: task.hostId, url: "/host/limpieza" };
 }
 
-function notify(task: CleaningTask, title: string, body: string) {
+type Vars = Record<string, string | number>;
+
+function taskVars(t: CleaningTask, extra: Vars = {}): Vars {
+  return { listing: listingTitle(t.listingId), date: formatCleaningDay(t.date) + (t.time ? ` · ${t.time}` : ""), ...extra };
+}
+
+function notify(task: CleaningTask, title: string, body: string, vars: Vars = taskVars(task), tag = `cleaning:${task.id}`) {
   const to = recipientOf(task);
   if (!to) return;
-  notifyUser(to.userId, { kind: "cleaning", title, body, rawBody: true, url: to.url, tag: `cleaning:${task.id}` });
+  notifyUser(to.userId, { kind: "cleaning", title, body, vars, url: to.url, tag });
+}
+
+function notifyHost(task: CleaningTask, title: string, body: string, vars: Vars, tag = `cleaning:${task.id}`) {
+  notifyUser(task.hostId, { kind: "cleaning", title, body, vars, url: "/host/limpieza", tag });
 }
 
 const MAX_PHOTOS = 6;
@@ -94,12 +120,40 @@ function validCleaner(hostId: string, listingId: string, assignee: CleaningAssig
   );
 }
 
-/** En modo automático: quien limpia ese anuncio por defecto, o la única persona que puede. */
-function autoCleaner(hostId: string, listingId: string): CleaningAssignee | undefined {
-  const preset = getListingCleaner(listingId);
-  if (preset && validCleaner(hostId, listingId, preset)) return preset;
-  const able = listTeamForHost(hostId).filter((m) => validCleaner(hostId, listingId, m.id));
+/**
+ * En automático: la primera de la lista de prioridad que puede y no la ha cancelado.
+ * Sin lista, la única persona que puede limpiar ese anuncio.
+ */
+function autoCleaner(hostId: string, listingId: string, skip: Set<string> = new Set()): CleaningAssignee | undefined {
+  const list = getListingCleaners(listingId);
+  if (list.length) return list.find((a) => !skip.has(a) && validCleaner(hostId, listingId, a));
+  const able = listTeamForHost(hostId).filter((m) => !skip.has(m.id) && validCleaner(hostId, listingId, m.id));
   return able.length === 1 ? able[0].id : undefined;
+}
+
+/** Al cambiar de persona se vuelve a pedir confirmación. */
+function freshAssignment(a: CleaningAssignee | undefined): Partial<CleaningTask> {
+  const now = new Date().toISOString();
+  return {
+    assignee: a,
+    remindedAt: undefined,
+    unconfirmedWarnedAt: undefined,
+    confirmAskedAt: byMember(a) ? now : undefined,
+    confirmedAt: a === "host" ? now : undefined,
+  };
+}
+
+function askToConfirm(t: CleaningTask, title = "Confirma tu limpieza") {
+  if (!byMember(t.assignee)) return;
+  const { confirmHours } = getCleaningSettings(t.hostId);
+  notify(
+    t,
+    title,
+    confirmHours > 0
+      ? "{listing} · {date}. Confirma que sí puedes, a más tardar {hours} h antes."
+      : "{listing} · {date}. Confirma que sí puedes.",
+    taskVars(t, { hours: confirmHours })
+  );
 }
 
 function nextArrival(bookings: BookingRecord[], listingId: string, after: string, exceptId: string): string | undefined {
@@ -124,7 +178,7 @@ export function syncCleaningForHost(hostId: string) {
     if (DEAD.includes(b.status)) {
       if (existing?.status === "pending") {
         const t = updateCleaningTask(existing.id, { status: "cancelled" });
-        if (t) notify(t, "Limpieza cancelada", `Se canceló la reserva de ${listingTitle(listingId)} del ${formatCleaningDay(t.date)}.`);
+        if (t) notify(t, "Limpieza cancelada", "Se canceló la reserva de {listing} del {date}.");
       }
       continue;
     }
@@ -138,12 +192,17 @@ export function syncCleaningForHost(hostId: string) {
       }
       if (existing.status === "pending" && (existing.date !== date || existing.nextCheckIn !== nextCheckIn)) {
         const moved = existing.date !== date;
-        const t = updateCleaningTask(existing.id, { date, nextCheckIn, ...(moved ? { remindedAt: undefined } : {}) });
-        if (t && moved) notify(t, "Cambió una limpieza", `${listingTitle(listingId)}: ahora es el ${formatCleaningDay(date)}.`);
+        const t = updateCleaningTask(existing.id, {
+          date,
+          nextCheckIn,
+          ...(moved ? { remindedAt: undefined, ...(byMember(existing.assignee) ? freshAssignment(existing.assignee) : {}) } : {}),
+        });
+        if (t && moved) notify(t, "Cambió una limpieza", "{listing}: ahora es el {date}. Vuelve a confirmar que sí puedes.");
       }
       continue;
     }
     if (date < since) continue;
+    const assignee = assignMode === "auto" ? autoCleaner(hostId, listingId) : undefined;
     const task = addCleaningTask({
       hostId,
       listingId,
@@ -151,26 +210,40 @@ export function syncCleaningForHost(hostId: string) {
       date,
       nextCheckIn,
       guestName: b.guestName,
-      assignee: assignMode === "auto" ? autoCleaner(hostId, listingId) : undefined,
+      ...freshAssignment(assignee),
     });
-    notify(
-      task,
-      task.assignee ? "Nueva limpieza" : "Nueva limpieza sin asignar",
-      `${listingTitle(listingId)} · ${formatCleaningDay(date)}${nextCheckIn ? ` · siguiente llegada ${formatCleaningDay(nextCheckIn)}` : ""}.`
-    );
+    if (byMember(task.assignee)) askToConfirm(task, "Nueva limpieza: confirma que sí puedes");
+    else if (!task.assignee) notify(task, "Nueva limpieza sin asignar", "{listing} · {date}. Elige quién va.");
   }
 }
 
-/** Avisa el día anterior (y el mismo día si no se avisó) a quien limpia. */
+/**
+ * Recordatorios: a quien limpia el día anterior y, si al vencer el plazo
+ * todavía no confirma, se le avisa al anfitrión (una sola vez).
+ */
 export function runCleaningReminders(hostId: string) {
   if (!hostHasCleaningTool(hostId)) return;
+  const { confirmHours } = getCleaningSettings(hostId);
   const today = analyticsDayKey();
   const tomorrow = shiftDayKey(today, 1);
+  const now = Date.now();
   for (const t of listCleaningTasksForHost(hostId)) {
-    if (t.status !== "pending" || t.remindedAt || (t.date !== today && t.date !== tomorrow)) continue;
-    const when = t.date === today ? "Hoy" : "Mañana";
-    const who = t.assignee ? "" : " (sin asignar)";
-    notify(t, `${when}: limpieza${who}`, `${listingTitle(t.listingId)} · ${formatCleaningDay(t.date)}${t.nextCheckIn ? ` · llega huésped ${formatCleaningDay(t.nextCheckIn)}` : ""}.`);
+    if (t.status !== "pending") continue;
+
+    if (byMember(t.assignee) && !t.confirmedAt && !t.unconfirmedWarnedAt && startMs(t) > now - 12 * HOUR_MS) {
+      const deadline = startMs(t) - confirmHours * HOUR_MS;
+      const asked = t.confirmAskedAt ? Date.parse(t.confirmAskedAt) : Date.parse(t.createdAt);
+      if (now >= Math.max(deadline, asked + LATE_GRACE_HOURS * HOUR_MS)) {
+        notifyHost(t, "{name} no ha confirmado una limpieza", "{listing} · {date}. Escríbele o asígnala a alguien más.", taskVars(t, { name: assigneeLabel(t.assignee) }), `cleaning-unconfirmed:${t.id}`);
+        askToConfirm(t, "Falta que confirmes tu limpieza");
+        updateCleaningTask(t.id, { unconfirmedWarnedAt: new Date().toISOString() });
+      }
+    }
+
+    if (t.remindedAt || (t.date !== today && t.date !== tomorrow)) continue;
+    const vars = taskVars(t, { next: t.nextCheckIn ? formatCleaningDay(t.nextCheckIn) : "" });
+    const title = t.date === today ? (t.assignee ? "Hoy: limpieza" : "Hoy: limpieza sin asignar") : t.assignee ? "Mañana: limpieza" : "Mañana: limpieza sin asignar";
+    notify(t, title, t.nextCheckIn ? "{listing} · {date} · llega huésped {next}." : "{listing} · {date}.", vars);
     updateCleaningTask(t.id, { remindedAt: new Date().toISOString() });
   }
 }
@@ -201,7 +274,7 @@ async function purgeOldPhotos() {
   const cutoff = shiftDayKey(analyticsDayKey(), -PHOTO_RETENTION_DAYS);
   for (const t of allCleaningTasks()) {
     if (!t.photos?.length || t.date >= cutoff) continue;
-    for (const p of t.photos) await deletePrivateFile(p.key);
+    for (const p of t.photos) if (p.key) await deletePrivateFile(p.key);
     updateCleaningTask(t.id, { photos: [] });
   }
 }
@@ -219,6 +292,8 @@ function assigneeLabel(a: CleaningAssignee | undefined): string {
 }
 
 function taskView(t: CleaningTask) {
+  const s = getCleaningSettings(t.hostId);
+  const start = startMs(t);
   return {
     id: t.id,
     listingId: t.listingId,
@@ -235,9 +310,20 @@ function taskView(t: CleaningTask) {
     note: t.note ?? "",
     manual: !t.bookingId,
     doneAt: t.doneAt,
-    photos: (t.photos ?? []).map((p) => ({ id: p.id, url: `/api/cleaning/${t.id}/photos/${p.id}` })),
+    photos: (t.photos ?? []).map((p) => ({ id: p.id, url: p.url ?? `/api/cleaning/${t.id}/photos/${p.id}` })),
     /** Cuenta de quien limpia, para abrir el chat con el anfitrión. */
-    cleanerUserId: t.assignee && t.assignee !== "host" ? (getTeamMember(t.assignee)?.userId ?? null) : null,
+    cleanerUserId: byMember(t.assignee) ? (getTeamMember(t.assignee)?.userId ?? null) : null,
+    /** Hace falta que la persona asignada diga que sí puede. */
+    needsConfirm: t.status === "pending" && byMember(t.assignee) && !t.confirmedAt,
+    confirmedAt: t.confirmedAt ?? null,
+    confirmBy: new Date(start - s.confirmHours * HOUR_MS).toISOString(),
+    /** Hasta cuándo quien limpia puede cancelar por su cuenta. */
+    cancelBy: new Date(start - s.cancelHours * HOUR_MS).toISOString(),
+    canCancel: t.status === "pending" && Date.now() <= start - s.cancelHours * HOUR_MS,
+    cancellations: (t.cancellations ?? []).map((c) => ({ name: assigneeLabel(c.assignee), at: c.at, reason: c.reason })),
+    approval: t.approval ?? null,
+    approvedAt: t.approvedAt ?? null,
+    redoNote: t.redoNote ?? "",
   };
 }
 
@@ -246,7 +332,7 @@ export type CleaningTaskView = ReturnType<typeof taskView>;
 function visibleTasks(list: CleaningTask[], doneDays = 14) {
   const since = shiftDayKey(analyticsDayKey(), -doneDays);
   return list
-    .filter((t) => t.status === "pending" || (t.date >= since && t.status === "done"))
+    .filter((t) => t.status === "pending" || (t.status === "done" && (t.date >= since || t.approval === "pending")))
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(taskView);
 }
@@ -262,11 +348,15 @@ export function hostCleaningView(hostId: string) {
     capacity: cleaningCapacity(hostId),
     used: included.size,
     settings: getCleaningSettings(hostId),
+    confirmHourOptions: CONFIRM_HOUR_OPTIONS,
+    cancelHourOptions: CANCEL_HOUR_OPTIONS,
     listings: listListingsForHost(hostId).map((l) => ({
       id: l.id,
       title: l.title || "Sin título",
       on: included.has(l.id),
       cleaner: getListingCleaner(l.id) ?? null,
+      /** Quién limpia, en orden de prioridad. */
+      cleaners: getListingCleaners(l.id),
     })),
     cleaners: [
       { id: "host", name: "Yo", listingIds: "all" as string[] | "all" },
@@ -283,17 +373,24 @@ export function hostCleaningView(hostId: string) {
 
 type Result = { ok: true } | { ok: false; error: string; status: number };
 
-export function setListingCleaning(hostId: string, listingId: string, patch: { on?: boolean; cleaner?: string | null }): Result {
+export function setListingCleaning(
+  hostId: string,
+  listingId: string,
+  patch: { on?: boolean; cleaner?: string | null; cleaners?: string[] }
+): Result {
   if (!hostHasCleaningTool(hostId)) return { ok: false, error: CLEANING_TOOL_OFF_ERROR, status: 402 };
   const listing = getListingById(listingId);
   if (!listing || listing.hostId !== hostId) return { ok: false, error: "Anuncio no encontrado.", status: 404 };
-  if (patch.cleaner !== undefined) {
-    const c = patch.cleaner || undefined;
-    if (!validCleaner(hostId, listingId, c)) return { ok: false, error: "Esa persona no limpia este anuncio.", status: 400 };
-    setListingCleaner(listingId, c);
-    if (getCleaningSettings(hostId).assignMode === "auto") {
+  const list = patch.cleaners ?? (patch.cleaner !== undefined ? (patch.cleaner ? [patch.cleaner] : []) : undefined);
+  if (list) {
+    if (list.length > 10) return { ok: false, error: "Máximo 10 personas por anuncio.", status: 400 };
+    if (!list.every((c) => validCleaner(hostId, listingId, c))) return { ok: false, error: "Esa persona no limpia este anuncio.", status: 400 };
+    setListingCleaners(listingId, list);
+    if (getCleaningSettings(hostId).assignMode === "auto" && list.length) {
       for (const t of listCleaningTasksForHost(hostId)) {
-        if (t.listingId === listingId && t.status === "pending" && !t.assignee && c) assignCleaningTask(hostId, t.id, c);
+        if (t.listingId !== listingId || t.status !== "pending" || t.assignee) continue;
+        const next = autoCleaner(hostId, listingId, new Set((t.cancellations ?? []).map((c) => c.assignee)));
+        if (next) assignCleaningTask(hostId, t.id, next);
       }
     }
   }
@@ -311,11 +408,18 @@ export function setListingCleaning(hostId: string, listingId: string, patch: { o
   return { ok: true };
 }
 
+const pickHours = (raw: unknown, options: number[]) => (typeof raw === "number" && options.includes(raw) ? raw : undefined);
+
 export function updateCleaningSettings(hostId: string, raw: Record<string, unknown>): Result {
   if (!hostHasCleaningTool(hostId)) return { ok: false, error: CLEANING_TOOL_OFF_ERROR, status: 402 };
   const patch: Partial<CleaningSettings> = {};
   if (raw.assignMode === "auto" || raw.assignMode === "manual") patch.assignMode = raw.assignMode;
   if (typeof raw.requirePhoto === "boolean") patch.requirePhoto = raw.requirePhoto;
+  if (typeof raw.requireApproval === "boolean") patch.requireApproval = raw.requireApproval;
+  const confirmHours = pickHours(raw.confirmHours, CONFIRM_HOUR_OPTIONS);
+  if (confirmHours !== undefined) patch.confirmHours = confirmHours;
+  const cancelHours = pickHours(raw.cancelHours, CANCEL_HOUR_OPTIONS);
+  if (cancelHours !== undefined) patch.cancelHours = cancelHours;
   setCleaningSettings(hostId, patch);
   return { ok: true };
 }
@@ -325,10 +429,9 @@ export function assignCleaningTask(hostId: string, taskId: string, assignee: str
   if (!t || t.hostId !== hostId) return { ok: false, error: "No encontrado.", status: 404 };
   const a = assignee || undefined;
   if (!validCleaner(hostId, t.listingId, a)) return { ok: false, error: "Esa persona no limpia este anuncio.", status: 400 };
-  const next = updateCleaningTask(taskId, { assignee: a, remindedAt: undefined });
-  if (next && a && a !== "host") {
-    notify(next, "Te asignaron una limpieza", `${listingTitle(next.listingId)} · ${formatCleaningDay(next.date)}.`);
-  }
+  if (a === t.assignee) return { ok: true };
+  const next = updateCleaningTask(taskId, freshAssignment(a));
+  if (next) askToConfirm(next, "Te asignaron una limpieza");
   return { ok: true };
 }
 
@@ -352,14 +455,9 @@ export function rescheduleCleaning(hostId: string, taskId: string, input: { date
     if ((input.time || undefined) !== t.time) patch.time = (input.time as string | null) || undefined;
   }
   if (Object.keys(patch).length === 0) return { ok: true };
+  if (byMember(t.assignee)) Object.assign(patch, freshAssignment(t.assignee));
   const next = updateCleaningTask(taskId, patch);
-  if (next) {
-    notify(
-      next,
-      "Cambió una limpieza",
-      `${listingTitle(next.listingId)}: ahora es el ${formatCleaningDay(next.date)}${next.time ? ` a las ${next.time}` : ""}.`
-    );
-  }
+  if (next) notify(next, "Cambió una limpieza", "{listing}: ahora es el {date}. Vuelve a confirmar que sí puedes.");
   return { ok: true };
 }
 
@@ -376,23 +474,21 @@ export function addManualCleaning(
   }
   const date = typeof input.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.date) ? input.date : "";
   if (!date) return { ok: false, error: "Elige la fecha.", status: 400 };
-  const assignee = typeof input.assignee === "string" && input.assignee ? input.assignee : getListingCleaner(listingId);
+  const assignee = typeof input.assignee === "string" && input.assignee ? input.assignee : autoCleaner(hostId, listingId);
   if (!validCleaner(hostId, listingId, assignee)) return { ok: false, error: "Esa persona no limpia este anuncio.", status: 400 };
   const task = addCleaningTask({
     hostId,
     listingId,
     date,
     note: typeof input.note === "string" ? input.note.trim().slice(0, 500) || undefined : undefined,
-    assignee,
+    ...freshAssignment(assignee),
   });
-  if (assignee && assignee !== "host") {
-    notify(task, "Te asignaron una limpieza", `${listingTitle(listingId)} · ${formatCleaningDay(date)}.`);
-  }
+  askToConfirm(task, "Te asignaron una limpieza");
   return { ok: true };
 }
 
 function isAssignedCleaner(userId: string, t: CleaningTask): boolean {
-  const member = t.assignee && t.assignee !== "host" ? getTeamMember(t.assignee) : undefined;
+  const member = byMember(t.assignee) ? getTeamMember(t.assignee) : undefined;
   return Boolean(member && member.userId === userId && validCleaner(t.hostId, t.listingId, t.assignee));
 }
 
@@ -427,21 +523,91 @@ export async function removeCleaningPhoto(userId: string, taskId: string, photoI
   const p = t?.photos?.find((x) => x.id === photoId);
   if (!t || !p) return { ok: false, error: "No encontrada.", status: 404 };
   if (t.status !== "pending") return { ok: false, error: "La limpieza ya está cerrada.", status: 409 };
-  await deletePrivateFile(p.key);
+  if (p.key) await deletePrivateFile(p.key);
   updateCleaningTask(taskId, { photos: (t.photos ?? []).filter((x) => x.id !== photoId) });
   return { ok: true };
 }
 
 export async function readCleaningPhoto(userId: string, taskId: string, photoId: string): Promise<Buffer | null> {
   const p = canSeeCleaning(userId, taskId)?.photos?.find((x) => x.id === photoId);
-  return p ? getPrivateFile(p.key) : null;
+  return p?.key ? getPrivateFile(p.key) : null;
 }
 
-/** Marcar hecha/pendiente o cambiar la nota: el anfitrión o la persona asignada. */
+/** Quien limpia dice que sí puede. */
+function confirmCleaning(t: CleaningTask): Result {
+  if (t.status !== "pending") return { ok: false, error: "La limpieza ya está cerrada.", status: 409 };
+  if (t.confirmedAt) return { ok: true };
+  const next = updateCleaningTask(t.id, { confirmedAt: new Date().toISOString() });
+  if (next) {
+    notifyHost(next, "{name} confirmó una limpieza", "{listing} · {date}.", taskVars(next, { name: assigneeLabel(next.assignee) }));
+  }
+  return { ok: true };
+}
+
+/**
+ * Quien limpia ya no puede ir: deja el motivo, se guarda en las notificaciones del anfitrión
+ * y, en automático, pasa a la siguiente persona de la lista.
+ */
+function declineCleaning(t: CleaningTask, reasonRaw: unknown): Result {
+  if (t.status !== "pending") return { ok: false, error: "La limpieza ya está cerrada.", status: 409 };
+  const reason = typeof reasonRaw === "string" ? reasonRaw.replace(/\s+/g, " ").trim().slice(0, 300) : "";
+  if (reason.length < 3) return { ok: false, error: "Cuéntale al anfitrión por qué no puedes.", status: 400 };
+  const s = getCleaningSettings(t.hostId);
+  if (Date.now() > startMs(t) - s.cancelHours * HOUR_MS) {
+    return { ok: false, error: "Ya no puedes cancelar con tan poca anticipación. Escríbele al anfitrión.", status: 409 };
+  }
+  const who = assigneeLabel(t.assignee);
+  const cancellations = [...(t.cancellations ?? []), { assignee: t.assignee!, at: new Date().toISOString(), reason }];
+  const skip = new Set(cancellations.map((c) => c.assignee));
+  const nextAssignee = s.assignMode === "auto" ? autoCleaner(t.hostId, t.listingId, skip) : undefined;
+  const next = updateCleaningTask(t.id, { cancellations, ...freshAssignment(nextAssignee) });
+  if (!next) return { ok: false, error: "No encontrado.", status: 404 };
+  notifyHost(
+    next,
+    "{name} canceló una limpieza",
+    nextAssignee
+      ? "{listing} · {date}. Motivo: «{reason}». Se la pasamos a {next}."
+      : "{listing} · {date}. Motivo: «{reason}». Quedó sin asignar: elige a alguien.",
+    taskVars(next, { name: who, reason, next: assigneeLabel(nextAssignee) }),
+    `cleaning-cancel:${t.id}:${cancellations.length}`
+  );
+  if (byMember(nextAssignee)) askToConfirm(next, "Te pasaron una limpieza");
+  return { ok: true };
+}
+
+/** El anfitrión aprueba la limpieza o la regresa con lo que falta. */
+function reviewCleaning(t: CleaningTask, approve: boolean, noteRaw: unknown): Result {
+  if (t.status !== "done") return { ok: false, error: "La limpieza todavía no está terminada.", status: 409 };
+  const cleaner = recipientOf(t);
+  if (approve) {
+    updateCleaningTask(t.id, { approval: "approved", approvedAt: new Date().toISOString(), redoNote: undefined });
+    if (byMember(t.assignee) && cleaner) {
+      notifyUser(cleaner.userId, { kind: "cleaning", title: "Aprobaron tu limpieza", body: "{listing} · {date}. ¡Gracias!", vars: taskVars(t), url: cleaner.url, tag: `cleaning:${t.id}` });
+    }
+    return { ok: true };
+  }
+  const note = typeof noteRaw === "string" ? noteRaw.replace(/\s+/g, " ").trim().slice(0, 300) : "";
+  if (note.length < 3) return { ok: false, error: "Escribe qué falta corregir.", status: 400 };
+  updateCleaningTask(t.id, { status: "pending", approval: undefined, approvedAt: undefined, doneAt: undefined, doneBy: undefined, redoNote: note });
+  if (byMember(t.assignee) && cleaner) {
+    notifyUser(cleaner.userId, { kind: "cleaning", title: "Hay que corregir una limpieza", body: "{listing} · {date}: {note}", vars: taskVars(t, { note }), url: cleaner.url, tag: `cleaning:${t.id}` });
+  }
+  return { ok: true };
+}
+
+/** Marcar hecha/pendiente, confirmar, cancelar, aprobar o dejar nota: el anfitrión o la persona asignada. */
 export function updateCleaningByActor(
   userId: string,
   taskId: string,
-  patch: { done?: boolean; note?: unknown; cancel?: boolean }
+  patch: {
+    done?: boolean;
+    note?: unknown;
+    cancel?: boolean;
+    confirm?: boolean;
+    decline?: unknown;
+    approve?: boolean;
+    redo?: unknown;
+  }
 ): Result {
   const t = getCleaningTask(taskId);
   if (!t) return { ok: false, error: "No encontrado.", status: 404 };
@@ -450,44 +616,76 @@ export function updateCleaningByActor(
   if (patch.cancel) {
     if (!owner) return { ok: false, error: "Sólo el anfitrión puede cancelar.", status: 403 };
     updateCleaningTask(taskId, { status: "cancelled" });
+    if (byMember(t.assignee)) notify(t, "Limpieza cancelada", "El anfitrión canceló la limpieza de {listing} del {date}.");
     return { ok: true };
+  }
+  if (patch.approve !== undefined || patch.redo !== undefined) {
+    if (!owner) return { ok: false, error: "Sólo el anfitrión aprueba las limpiezas.", status: 403 };
+    return reviewCleaning(t, patch.approve === true, patch.redo);
+  }
+  if (patch.confirm) {
+    if (owner && !isAssignedCleaner(userId, t)) return { ok: false, error: "La confirma quien limpia.", status: 403 };
+    return confirmCleaning(t);
+  }
+  if (patch.decline !== undefined) {
+    if (!isAssignedCleaner(userId, t)) return { ok: false, error: "La cancela quien limpia; tú puedes reasignarla.", status: 403 };
+    return declineCleaning(t, patch.decline);
   }
   const next: Partial<CleaningTask> = {};
   if (typeof patch.note === "string") next.note = patch.note.trim().slice(0, 500) || undefined;
-  if (patch.done && getCleaningSettings(t.hostId).requirePhoto && !(t.photos?.length)) {
+  const settings = getCleaningSettings(t.hostId);
+  if (patch.done && settings.requirePhoto && !(t.photos?.length)) {
     return { ok: false, error: "Sube al menos una foto para marcarla como hecha.", status: 400 };
   }
   if (patch.done !== undefined) {
+    const now = new Date().toISOString();
     next.status = patch.done ? "done" : "pending";
-    next.doneAt = patch.done ? new Date().toISOString() : undefined;
+    next.doneAt = patch.done ? now : undefined;
     next.doneBy = patch.done ? userId : undefined;
+    next.approval = patch.done && settings.requireApproval ? (owner ? "approved" : "pending") : undefined;
+    next.approvedAt = patch.done && settings.requireApproval && owner ? now : undefined;
+    if (patch.done) {
+      next.redoNote = undefined;
+      if (!t.confirmedAt) next.confirmedAt = now;
+    }
   }
   updateCleaningTask(taskId, next);
   if (patch.done && !owner) {
-    notifyUser(t.hostId, {
-    rawBody: true,
-      kind: "cleaning",
-      title: "Limpieza terminada",
-      body: `${memberName(t.assignee!)} terminó ${listingTitle(t.listingId)} (${formatCleaningDay(t.date)}).`,
-      url: "/host/limpieza",
-      tag: `cleaning:${t.id}`,
-    });
+    notifyHost(
+      t,
+      settings.requireApproval ? "Revisa y aprueba una limpieza" : "Limpieza terminada",
+      "{name} terminó {listing} ({date}).",
+      taskVars(t, { name: assigneeLabel(t.assignee) })
+    );
   }
   return { ok: true };
 }
 
 /** Lo que ve quien limpia: sus tareas en cada equipo. */
 export function cleanerTasksView(user: { id: string; email: string }) {
-  const groups: { hostId: string; hostName: string; requirePhoto: boolean; attendanceEnabled: boolean; tasks: CleaningTaskView[] }[] = [];
+  const groups: {
+    hostId: string;
+    hostName: string;
+    requirePhoto: boolean;
+    requireApproval: boolean;
+    confirmHours: number;
+    cancelHours: number;
+    attendanceEnabled: boolean;
+    tasks: CleaningTaskView[];
+  }[] = [];
   for (const m of listMembershipsForUser(user.id, user.email)) {
     if (m.status !== "active" || !memberEffectiveRoles(m).includes("cleaning")) continue;
     refreshCleaning(m.hostId);
     const mine = listCleaningTasksForHost(m.hostId).filter((t) => t.assignee === m.id);
     const host = findUserById(m.hostId);
+    const s = getCleaningSettings(m.hostId);
     groups.push({
       hostId: m.hostId,
       hostName: (host && publicNameOf(host)) || "Anfitrión",
-      requirePhoto: getCleaningSettings(m.hostId).requirePhoto,
+      requirePhoto: s.requirePhoto,
+      requireApproval: s.requireApproval,
+      confirmHours: s.confirmHours,
+      cancelHours: s.cancelHours,
       attendanceEnabled: attendanceEnabled(),
       tasks: visibleTasks(mine),
     });

@@ -41,21 +41,49 @@ function nameOf(userId: string): string {
   return (u && publicNameOf(u)) || u?.email || "—";
 }
 
-/** Todos los que ven los chats de este anfitrión. */
-function audience(hostId: string): string[] {
-  const ids = new Set([hostId]);
-  for (const m of listTeamForHost(hostId)) if (m.status === "active" && m.userId) ids.add(m.userId);
+/** El anfitrión y su equipo activo con cuenta: quienes pueden estar en un chat. */
+function teamPeople(hostId: string): { id: string; name: string; host: boolean }[] {
+  const out = [{ id: hostId, name: nameOf(hostId), host: true }];
+  for (const m of listTeamForHost(hostId)) {
+    if (m.status === "active" && m.userId && !out.some((p) => p.id === m.userId)) out.push({ id: m.userId, name: nameOf(m.userId), host: false });
+  }
+  return out;
+}
+
+function inChannel(c: TeamChannel, userId: string): boolean {
+  return userId === c.hostId || !c.memberIds || c.memberIds.includes(userId);
+}
+
+/** Todos los que ven este chat. */
+function audience(channel: TeamChannel): string[] {
+  return teamPeople(channel.hostId)
+    .map((p) => p.id)
+    .filter((id) => inChannel(channel, id));
+}
+
+/** Lista válida de miembros (sin el anfitrión, que siempre está); `null` = todo el equipo. */
+function cleanMembers(hostId: string, raw: unknown, creator: string): string[] | undefined | null {
+  if (raw === undefined) return undefined;
+  if (raw === null || raw === "all") return null;
+  if (!Array.isArray(raw)) return undefined;
+  const valid = new Set(teamPeople(hostId).filter((p) => !p.host).map((p) => p.id));
+  const ids = new Set(raw.filter((x): x is string => typeof x === "string" && valid.has(x)));
+  if (creator !== hostId && valid.has(creator)) ids.add(creator);
   return [...ids];
 }
 
 function channelView(c: TeamChannel) {
   const last = listMessages(c.id, 1)[0];
+  const members = audience(c);
   return {
     id: c.id,
     name: c.name,
     emoji: c.emoji,
     createdBy: c.createdBy,
     lastAt: c.lastAt,
+    everyone: !c.memberIds,
+    memberIds: members,
+    memberNames: members.map(nameOf),
     preview: last ? `${nameOf(last.by)}: ${last.body || (last.attachment ? attachmentLabel(last.attachment) : "")}` : "",
   };
 }
@@ -84,9 +112,20 @@ function messageView(m: TeamChatMessage, me: string) {
   };
 }
 
-export function teamChannelsView(userId: string, hostId: string): Result<{ channels: ReturnType<typeof channelView>[] }> {
+export function teamChannelsView(
+  userId: string,
+  hostId: string
+): Result<{ channels: ReturnType<typeof channelView>[]; people: ReturnType<typeof teamPeople>; me: string; isHost: boolean }> {
   if (!teamChatActor(userId, hostId)) return { ok: false, error: TEAM_CHAT_NO_TEAM, status: 403 };
-  return { ok: true, channels: listChannels(hostId).map(channelView) };
+  return {
+    ok: true,
+    channels: listChannels(hostId)
+      .filter((c) => inChannel(c, userId))
+      .map(channelView),
+    people: teamPeople(hostId),
+    me: userId,
+    isHost: userId === hostId,
+  };
 }
 
 function cleanName(raw: unknown): string {
@@ -98,14 +137,32 @@ function cleanEmoji(raw: unknown): string {
   return s ? Array.from(s).slice(0, 2).join("") : "💬";
 }
 
-export function createTeamChannel(userId: string, hostId: string, raw: { name?: unknown; emoji?: unknown }): Result<{ id: string }> {
+export function createTeamChannel(
+  userId: string,
+  hostId: string,
+  raw: { name?: unknown; emoji?: unknown; memberIds?: unknown }
+): Result<{ id: string }> {
   if (!teamChatActor(userId, hostId)) return { ok: false, error: TEAM_CHAT_NO_TEAM, status: 403 };
   const name = cleanName(raw.name);
   if (!name) return { ok: false, error: "Ponle nombre al chat.", status: 400 };
   if (listChannels(hostId).length >= MAX_CHANNELS) {
     return { ok: false, error: `Máximo ${MAX_CHANNELS} chats de equipo.`, status: 409 };
   }
-  const c = addChannel({ hostId, name, emoji: cleanEmoji(raw.emoji), createdBy: userId });
+  const memberIds = cleanMembers(hostId, raw.memberIds, userId) ?? undefined;
+  const c = addChannel({ hostId, name, emoji: cleanEmoji(raw.emoji), createdBy: userId, memberIds });
+  if (memberIds) {
+    for (const id of audience(c)) {
+      if (id === userId) continue;
+      notifyUser(id, {
+        kind: "team",
+        title: "Te agregaron al chat {chat}",
+        body: "{name} te agregó a un chat de equipo.",
+        vars: { chat: `${c.emoji} ${c.name}`, name: nameOf(userId) },
+        url: id === hostId ? `/host/colaboradores?chat=${c.id}` : `/equipo?chat=${c.id}`,
+        tag: `team-chat:${c.id}`,
+      });
+    }
+  }
   return { ok: true, id: c.id };
 }
 
@@ -113,21 +170,37 @@ function channelFor(userId: string, channelId: string): { channel: TeamChannel; 
   const channel = getChannel(channelId);
   if (!channel) return null;
   const actor = teamChatActor(userId, channel.hostId);
-  return actor ? { channel, owner: actor.owner } : null;
+  return actor && inChannel(channel, userId) ? { channel, owner: actor.owner } : null;
 }
 
-export function editTeamChannel(userId: string, channelId: string, raw: { name?: unknown; emoji?: unknown }): Result {
+export function editTeamChannel(userId: string, channelId: string, raw: { name?: unknown; emoji?: unknown; memberIds?: unknown }): Result {
   const c = channelFor(userId, channelId);
   if (!c) return { ok: false, error: "No encontrado.", status: 404 };
   if (!c.owner && c.channel.createdBy !== userId) return { ok: false, error: "Sólo quien lo creó o el anfitrión.", status: 403 };
-  const patch: { name?: string; emoji?: string } = {};
+  const patch: { name?: string; emoji?: string; memberIds?: string[] } = {};
   if (raw.name !== undefined) {
     const n = cleanName(raw.name);
     if (!n) return { ok: false, error: "Ponle nombre al chat.", status: 400 };
     patch.name = n;
   }
   if (raw.emoji !== undefined) patch.emoji = cleanEmoji(raw.emoji);
-  updateChannel(channelId, patch);
+  const members = cleanMembers(c.channel.hostId, raw.memberIds, c.channel.createdBy);
+  const before = new Set(audience(c.channel));
+  if (members !== undefined) patch.memberIds = members ?? undefined;
+  const next = updateChannel(channelId, patch);
+  if (next && members !== undefined) {
+    for (const id of audience(next)) {
+      if (before.has(id) || id === userId) continue;
+      notifyUser(id, {
+        kind: "team",
+        title: "Te agregaron al chat {chat}",
+        body: "{name} te agregó a un chat de equipo.",
+        vars: { chat: `${next.emoji} ${next.name}`, name: nameOf(userId) },
+        url: id === next.hostId ? `/host/colaboradores?chat=${next.id}` : `/equipo?chat=${next.id}`,
+        tag: `team-chat:${next.id}`,
+      });
+    }
+  }
   return { ok: true };
 }
 
@@ -143,15 +216,17 @@ export function teamMessagesView(userId: string, channelId: string) {
   const c = channelFor(userId, channelId);
   if (!c) return null;
   return {
-    channel: { id: c.channel.id, name: c.channel.name, emoji: c.channel.emoji },
+    channel: channelView(c.channel),
     canManage: c.owner || c.channel.createdBy === userId,
+    isHost: c.owner,
+    people: teamPeople(c.channel.hostId),
     messages: listMessages(channelId).map((m) => messageView(m, userId)),
   };
 }
 
 function announce(channel: TeamChannel, from: string, text: string) {
   const who = nameOf(from);
-  for (const id of audience(channel.hostId)) {
+  for (const id of audience(channel)) {
     if (id === from) continue;
     notifyUser(id, {
       kind: "team",

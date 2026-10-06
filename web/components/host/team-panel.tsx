@@ -265,7 +265,7 @@ export function TeamPanel({ storeHref = "/tienda" }: { storeHref?: string }) {
         )}
       </section>
 
-      <form onSubmit={invite} className="rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
+      <form id="invitar" onSubmit={invite} className="scroll-mt-20 rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[#222]">{t("Invitar a alguien")}</h2>
         <p className="mt-1 text-sm text-[#717171]">
           {t("La persona necesita una cuenta de Cabibee (es gratis). Escribe el correo con el que se registró.")}

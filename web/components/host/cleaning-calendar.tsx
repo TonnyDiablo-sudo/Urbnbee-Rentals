@@ -12,12 +12,15 @@ export function CleaningCalendar({
   tasks,
   today,
   listings,
+  people = [],
   renderTask,
 }: {
   tasks: CleaningTaskItem[];
   /** YYYY-MM-DD en hora de México. */
   today: string;
   listings: { id: string; title: string }[];
+  /** Para filtrar por a quién le toca. */
+  people?: { id: string; name: string }[];
   renderTask: (task: CleaningTaskItem) => ReactNode;
 }) {
   const t = useT();
@@ -26,6 +29,7 @@ export function CleaningCalendar({
   const [ty, tm] = today.split("-").map(Number);
   const [month, setMonth] = useState({ y: ty, m: tm - 1 });
   const [listingId, setListingId] = useState("");
+  const [person, setPerson] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
 
   const byDay = useMemo(() => {
@@ -33,10 +37,11 @@ export function CleaningCalendar({
     for (const task of tasks) {
       if (task.status === "cancelled") continue;
       if (listingId && task.listingId !== listingId) continue;
+      if (person && (person === "none" ? task.assignee : task.assignee !== person)) continue;
       map.set(task.date, [...(map.get(task.date) ?? []), task]);
     }
     return map;
-  }, [tasks, listingId]);
+  }, [tasks, listingId, person]);
 
   const first = new Date(Date.UTC(month.y, month.m, 1));
   const daysInMonth = new Date(Date.UTC(month.y, month.m + 1, 0)).getUTCDate();
@@ -70,22 +75,43 @@ export function CleaningCalendar({
     <section id="calendario" className="scroll-mt-20 rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-[#222]">{t("Calendario de limpiezas")}</h2>
-        <select
-          value={listingId}
-          onChange={(e) => {
-            setListingId(e.target.value);
-            setSelected(null);
-          }}
-          aria-label={t("Anuncio")}
-          className="max-w-full rounded-lg border border-[#ddd] bg-white px-2 py-1.5 text-sm text-[#222]"
-        >
-          <option value="">{t("Todos los anuncios")}</option>
-          {listings.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.title}
-            </option>
-          ))}
-        </select>
+        <div className="flex max-w-full flex-wrap gap-2">
+          <select
+            value={listingId}
+            onChange={(e) => {
+              setListingId(e.target.value);
+              setSelected(null);
+            }}
+            aria-label={t("Anuncio")}
+            className="max-w-full rounded-lg border border-[#ddd] bg-white px-2 py-1.5 text-sm text-[#222]"
+          >
+            <option value="">{t("Todos los anuncios")}</option>
+            {listings.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.title}
+              </option>
+            ))}
+          </select>
+          {people.length > 1 && (
+            <select
+              value={person}
+              onChange={(e) => {
+                setPerson(e.target.value);
+                setSelected(null);
+              }}
+              aria-label={t("Quién limpia")}
+              className="max-w-full rounded-lg border border-[#ddd] bg-white px-2 py-1.5 text-sm text-[#222]"
+            >
+              <option value="">{t("Todas las personas")}</option>
+              {people.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {t(p.name)}
+                </option>
+              ))}
+              <option value="none">{t("Sin asignar")}</option>
+            </select>
+          )}
+        </div>
       </div>
 
       <div className="mt-4 flex items-center justify-between">

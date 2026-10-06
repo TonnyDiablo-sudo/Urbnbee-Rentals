@@ -56,7 +56,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   const { channelId } = await ctx.params;
-  const body = (await req.json().catch(() => ({}))) as { name?: unknown; emoji?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { name?: unknown; emoji?: unknown; memberIds?: unknown };
   const r = editTeamChannel(user.id, channelId, body);
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   return NextResponse.json({ ok: true });

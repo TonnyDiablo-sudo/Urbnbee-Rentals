@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { EmojiPicker } from "@/components/ui/emoji-picker";
 
 type Item = {
   id: string;
@@ -32,7 +33,12 @@ const PRESETS = [
   { emoji: "🧺", name: "Detergente" },
   { emoji: "🫧", name: "Limpiador multiusos" },
   { emoji: "☕", name: "Café" },
+  { emoji: "🛏️", name: "Juegos de sábanas" },
+  { emoji: "🛁", name: "Toallas" },
+  { emoji: "💧", name: "Garrafón de agua" },
 ];
+
+const GENERAL = "general";
 
 type Draft = { emoji: string; name: string; qty: string; min: string; listingId: string; alertTo: string[] };
 const EMPTY: Draft = { emoji: "📦", name: "", qty: "0", min: "2", listingId: "", alertTo: ["host"] };
@@ -83,6 +89,12 @@ export function SuppliesPanel({ hostId }: { hostId?: string }) {
     await load();
   }
 
+  function startAdding() {
+    const fromFilter = filter !== "all" ? filter : (data?.listings[0]?.id ?? GENERAL);
+    setDraft({ ...EMPTY, listingId: fromFilter });
+    setAdding(true);
+  }
+
   async function add(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
@@ -92,7 +104,7 @@ export function SuppliesPanel({ hostId }: { hostId?: string }) {
       name: draft.name,
       qty: Number(draft.qty),
       min: Number(draft.min),
-      listingId: draft.listingId || null,
+      listingId: draft.listingId && draft.listingId !== GENERAL ? draft.listingId : null,
       alertTo: draft.alertTo,
     });
     if (!r.ok) return setErr(typeof r.j.error === "string" ? r.j.error : "No se pudo guardar.");
@@ -109,8 +121,19 @@ export function SuppliesPanel({ hostId }: { hostId?: string }) {
   }
 
   if (!data) return null;
-  const shown = data.items.filter((i) => filter === "all" || (filter === "general" ? !i.listingId : i.listingId === filter));
-  const low = data.items.filter((i) => i.low);
+  const shown = data.items.filter((i) => filter === "all" || (filter === GENERAL ? !i.listingId : i.listingId === filter));
+  const low = shown.filter((i) => i.low);
+  /** En «Todos», un bloque por anuncio para ver a cuál le falta qué. */
+  const groups =
+    filter === "all"
+      ? [
+          ...data.listings.map((l) => ({ id: l.id, title: l.title, items: shown.filter((i) => i.listingId === l.id) })),
+          { id: GENERAL, title: t("Bodega / general"), items: shown.filter((i) => !i.listingId) },
+        ].filter((g) => g.items.length > 0)
+      : [{ id: filter, title: "", items: shown }];
+  const lowByPlace = groups
+    .map((g) => ({ title: g.title || (filter === GENERAL ? t("Bodega / general") : (data.listings.find((l) => l.id === filter)?.title ?? "")), items: g.items.filter((i) => i.low) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <section id="insumos" className="scroll-mt-20 rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
@@ -122,16 +145,44 @@ export function SuppliesPanel({ hostId }: { hostId?: string }) {
           </p>
         </div>
         {!adding && (
-          <button type="button" onClick={() => setAdding(true)} className="rounded-xl bg-[#222] px-4 py-2 text-sm font-semibold text-white">
+          <button type="button" onClick={startAdding} className="rounded-xl bg-[#222] px-4 py-2 text-sm font-semibold text-white">
             {t("+ Agregar insumo")}
           </button>
         )}
       </div>
 
+      {(data.listings.length > 0 || data.items.length > 0) && (
+        <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 text-sm">
+          {[
+            ["all", t("Todos los anuncios")],
+            ...data.listings.map((l) => [l.id, l.title]),
+            ...(data.items.some((i) => !i.listingId) ? [[GENERAL, t("Bodega / general")]] : []),
+          ].map(([id, label]) => {
+            const lowHere = data.items.filter((i) => i.low && (id === "all" || (id === GENERAL ? !i.listingId : i.listingId === id))).length;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setFilter(id)}
+                className={`shrink-0 rounded-full border px-3 py-1.5 ${filter === id ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] bg-white text-[#222]"}`}
+              >
+                {label}
+                {lowHere > 0 && <span className="ml-1.5 rounded-full bg-red-600 px-1.5 text-[11px] font-semibold text-white">{lowHere}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {low.length > 0 && (
         <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
           <p className="text-sm font-semibold text-red-800">🛒 {t("Lista de compras ({n})", { n: low.length })}</p>
-          <p className="mt-1 text-sm text-red-800">{low.map((i) => `${i.emoji} ${t(i.name)}`).join(" · ")}</p>
+          {lowByPlace.map((g) => (
+            <p key={g.title} className="mt-1 text-sm text-red-800">
+              {lowByPlace.length > 1 || filter === "all" ? <strong>{g.title}: </strong> : null}
+              {g.items.map((i) => `${i.emoji} ${t(i.name)}`).join(" · ")}
+            </p>
+          ))}
         </div>
       )}
 
@@ -152,12 +203,7 @@ export function SuppliesPanel({ hostId }: { hostId?: string }) {
             ))}
           </div>
           <div className="flex gap-2">
-            <input
-              value={draft.emoji}
-              onChange={(e) => setDraft({ ...draft, emoji: e.target.value })}
-              aria-label={t("Emoji")}
-              className="w-14 rounded-xl border border-[#ddd] px-2 py-2 text-center text-lg"
-            />
+            <EmojiPicker value={draft.emoji} onChange={(emoji) => setDraft({ ...draft, emoji })} />
             <input
               required
               value={draft.name}
@@ -191,18 +237,19 @@ export function SuppliesPanel({ hostId }: { hostId?: string }) {
               />
             </label>
             <label className="col-span-2 text-xs text-[#555] sm:col-span-1">
-              {t("Dónde está")}
+              {t("¿De qué anuncio?")}
               <select
+                required
                 value={draft.listingId}
                 onChange={(e) => setDraft({ ...draft, listingId: e.target.value })}
                 className="mt-1 w-full rounded-xl border border-[#ddd] bg-white px-3 py-2 text-[15px] text-[#222]"
               >
-                <option value="">{t("Bodega / general")}</option>
                 {data.listings.map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.title}
                   </option>
                 ))}
+                <option value={GENERAL}>{t("Bodega / general")}</option>
               </select>
             </label>
           </div>
@@ -224,31 +271,27 @@ export function SuppliesPanel({ hostId }: { hostId?: string }) {
         </form>
       )}
 
-      {data.items.length > 0 && (data.listings.length > 0 || data.items.some((i) => i.listingId)) && (
-        <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 text-sm">
-          {[
-            ["all", t("Todos")],
-            ["general", t("Bodega / general")],
-            ...data.listings.filter((l) => data.items.some((i) => i.listingId === l.id)).map((l) => [l.id, l.title]),
-          ].map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setFilter(id)}
-              className={`shrink-0 rounded-full border px-3 py-1.5 ${filter === id ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] bg-white text-[#222]"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-
       {data.items.length === 0 && !adding && (
         <p className="mt-4 text-sm text-[#888]">{t("Agrega lo que usan en tus limpiezas: papel de baño, jabones, bolsas… lo que quieras.")}</p>
       )}
+      {data.items.length > 0 && shown.length === 0 && !adding && (
+        <p className="mt-4 text-sm text-[#888]">{t("Este anuncio todavía no tiene insumos. Agrégalos para saber qué le falta.")}</p>
+      )}
 
-      <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {shown.map((i) => {
+      {groups.map((g) => (
+      <div key={g.id} className="mt-4">
+      {g.title && (
+        <h3 className="mb-2 flex items-center gap-2 text-[15px] font-semibold text-[#222]">
+          <span className="truncate">{g.title}</span>
+          {g.items.some((i) => i.low) && (
+            <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+              {t("Faltan {n}", { n: g.items.filter((i) => i.low).length })}
+            </span>
+          )}
+        </h3>
+      )}
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {g.items.map((i) => {
           const pct = Math.min(100, Math.round((i.qty / Math.max(1, i.min * 3)) * 100));
           const color = i.low ? "bg-red-500" : i.qty <= i.min * 2 ? "bg-amber-400" : "bg-emerald-500";
           return (
@@ -316,6 +359,8 @@ export function SuppliesPanel({ hostId }: { hostId?: string }) {
           );
         })}
       </ul>
+      </div>
+      ))}
     </section>
   );
 }
@@ -367,8 +412,20 @@ function ItemSettings({
   const t = useT();
   const [min, setMin] = useState(String(item.min));
   const [alertTo, setAlertTo] = useState(item.alertTo);
+  const [emoji, setEmoji] = useState(item.emoji);
+  const [name, setName] = useState(item.name);
   return (
     <div className="mt-2 space-y-2 rounded-xl bg-white p-2 ring-1 ring-[#eee]">
+      <div className="flex gap-1.5">
+        <EmojiPicker value={emoji} onChange={setEmoji} size="sm" />
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={50}
+          aria-label={t("Nombre")}
+          className="min-w-0 flex-1 rounded-lg border border-[#ddd] px-2 py-1.5 text-sm text-[#222]"
+        />
+      </div>
       <label className="block text-xs text-[#555]">
         {t("Avisar al llegar a")}
         <input
@@ -384,7 +441,7 @@ function ItemSettings({
       <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() => onSave({ min: Number(min), alertTo })}
+          onClick={() => onSave({ min: Number(min), alertTo, emoji, ...(name.trim() ? { name } : {}) })}
           className="rounded-lg bg-[#222] px-3 py-1.5 text-xs font-semibold text-white"
         >
           {t("Guardar")}

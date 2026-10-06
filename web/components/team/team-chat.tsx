@@ -3,8 +3,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { shrinkImage, useVoiceRecorder, VOICE_MAX_SEC } from "@/components/chat/media-input";
+import { EmojiPicker } from "@/components/ui/emoji-picker";
 
-type Channel = { id: string; name: string; emoji: string; lastAt: string; preview: string };
+type Person = { id: string; name: string; host: boolean };
+type Channel = {
+  id: string;
+  name: string;
+  emoji: string;
+  lastAt: string;
+  preview: string;
+  everyone: boolean;
+  memberIds: string[];
+  memberNames: string[];
+};
 type Msg = {
   id: string;
   byName: string;
@@ -13,7 +24,57 @@ type Msg = {
   at: string;
   attachment?: { kind: "image" | "audio" | "file"; name?: string; size: number; durationSec?: number; url: string };
 };
-type Thread = { channel: { id: string; name: string; emoji: string }; canManage: boolean; messages: Msg[] };
+type Thread = { channel: Channel; canManage: boolean; isHost: boolean; people: Person[]; messages: Msg[] };
+
+/** Elegir quién está en el grupo: todo el equipo o sólo algunas personas. El anfitrión siempre está. */
+function MembersPicker({
+  people,
+  me,
+  value,
+  onChange,
+}: {
+  people: Person[];
+  me: string;
+  /** null = todo el equipo. */
+  value: string[] | null;
+  onChange: (v: string[] | null) => void;
+}) {
+  const t = useT();
+  const others = people.filter((p) => !p.host && p.id !== me);
+  if (others.length === 0) return null;
+  return (
+    <fieldset>
+      <legend className="text-sm font-medium text-[#222]">{t("¿Quién está en este chat?")}</legend>
+      <div className="mt-1.5 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className={`rounded-full border px-3 py-1.5 text-sm ${value === null ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] bg-white text-[#222]"}`}
+        >
+          👥 {t("Todo el equipo")}
+        </button>
+        {others.map((p) => {
+          const on = value !== null && value.includes(p.id);
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => {
+                const base = value ?? [];
+                onChange(on ? base.filter((x) => x !== p.id) : [...base, p.id]);
+              }}
+              className={`rounded-full border px-3 py-1.5 text-sm ${on ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] bg-white text-[#222]"}`}
+            >
+              {on ? "✓ " : "+ "}
+              {p.name}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-1 text-xs text-[#888]">{t("El anfitrión siempre ve todos los chats.")}</p>
+    </fieldset>
+  );
+}
 
 const SUGGESTED = [
   { emoji: "💰", name: "Cuentas" },
@@ -44,14 +105,20 @@ export function TeamChat({ hostId }: { hostId?: string }) {
   const [locked, setLocked] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [draft, setDraft] = useState({ emoji: "💬", name: "" });
+  const [draft, setDraft] = useState<{ emoji: string; name: string; members: string[] | null }>({ emoji: "💬", name: "", members: null });
   const [err, setErr] = useState<string | null>(null);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [me, setMe] = useState("");
+  const [isHost, setIsHost] = useState(false);
 
   const load = useCallback(async () => {
     const r = await call(`/api/team-chat${q}`);
     if (r.ok) {
       setLocked(null);
       setChannels((r.j.channels as Channel[]) ?? []);
+      setPeople((r.j.people as Person[]) ?? []);
+      setMe(typeof r.j.me === "string" ? r.j.me : "");
+      setIsHost(r.j.isHost === true);
     } else {
       setLocked(typeof r.j.error === "string" ? r.j.error : "No se pudo cargar.");
       setChannels([]);
@@ -65,12 +132,12 @@ export function TeamChat({ hostId }: { hostId?: string }) {
     return () => clearTimeout(id);
   }, [load]);
 
-  async function create(name: string, emoji: string) {
+  async function create(name: string, emoji: string, members: string[] | null) {
     setErr(null);
-    const r = await call("/api/team-chat", "POST", { host: hostId, name, emoji });
+    const r = await call("/api/team-chat", "POST", { host: hostId, name, emoji, memberIds: members ?? "all" });
     if (!r.ok) return setErr(typeof r.j.error === "string" ? r.j.error : "No se pudo crear.");
     setCreating(false);
-    setDraft({ emoji: "💬", name: "" });
+    setDraft({ emoji: "💬", name: "", members: null });
     await load();
     setOpen(r.j.id as string);
   }
@@ -81,6 +148,7 @@ export function TeamChat({ hostId }: { hostId?: string }) {
     return (
       <ChannelView
         id={open}
+        me={me}
         onBack={() => {
           setOpen(null);
           void load();
@@ -115,7 +183,7 @@ export function TeamChat({ hostId }: { hostId?: string }) {
           className="mt-4 space-y-3 rounded-xl bg-[#fafafa] p-4"
           onSubmit={(e) => {
             e.preventDefault();
-            void create(draft.name, draft.emoji);
+            void create(draft.name, draft.emoji, draft.members);
           }}
         >
           <div className="flex flex-wrap gap-2">
@@ -123,20 +191,15 @@ export function TeamChat({ hostId }: { hostId?: string }) {
               <button
                 key={s.name}
                 type="button"
-                onClick={() => void create(t(s.name), s.emoji)}
-                className="rounded-full border border-[#ddd] bg-white px-3 py-1.5 text-sm text-[#222]"
+                onClick={() => setDraft({ ...draft, name: t(s.name), emoji: s.emoji })}
+                className={`rounded-full border px-3 py-1.5 text-sm ${draft.name === t(s.name) ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] bg-white text-[#222]"}`}
               >
                 {s.emoji} {t(s.name)}
               </button>
             ))}
           </div>
           <div className="flex gap-2">
-            <input
-              value={draft.emoji}
-              onChange={(e) => setDraft({ ...draft, emoji: e.target.value })}
-              aria-label={t("Emoji")}
-              className="w-14 rounded-xl border border-[#ddd] px-2 py-2 text-center text-lg"
-            />
+            <EmojiPicker value={draft.emoji} onChange={(emoji) => setDraft({ ...draft, emoji })} />
             <input
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
@@ -145,6 +208,12 @@ export function TeamChat({ hostId }: { hostId?: string }) {
               className="min-w-0 flex-1 rounded-xl border border-[#ddd] px-3 py-2 text-[15px] text-[#222]"
             />
           </div>
+          <MembersPicker people={people} me={me} value={draft.members} onChange={(members) => setDraft({ ...draft, members })} />
+          {isHost && (
+            <a href="/host/colaboradores#invitar" className="block text-xs font-semibold text-[#222] underline">
+              {t("¿Falta alguien? Invítalo como colaborador")}
+            </a>
+          )}
           <div className="flex gap-2">
             <button type="submit" disabled={!draft.name.trim()} className="rounded-xl bg-[#222] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
               {t("Crear")}
@@ -168,6 +237,9 @@ export function TeamChat({ hostId }: { hostId?: string }) {
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fff6d6] text-xl">{c.emoji}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[15px] font-semibold text-[#222]">{c.name}</span>
+                  <span className="block truncate text-[11px] text-[#aaa]">
+                    👥 {c.everyone ? t("Todo el equipo") : c.memberNames.join(", ")}
+                  </span>
                   <span className="block truncate text-xs text-[#888]">{c.preview || t("Sin mensajes")}</span>
                 </span>
                 <span className="shrink-0 text-xs text-[#aaa]">{time(c.lastAt)}</span>
@@ -180,9 +252,11 @@ export function TeamChat({ hostId }: { hostId?: string }) {
   );
 }
 
-function ChannelView({ id, onBack }: { id: string; onBack: () => void }) {
+function ChannelView({ id, me, onBack }: { id: string; me: string; onBack: () => void }) {
   const t = useT();
   const [data, setData] = useState<Thread | null>(null);
+  const [showMembers, setShowMembers] = useState(false);
+  const [members, setMembers] = useState<string[] | null>(null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -261,6 +335,20 @@ function ChannelView({ id, onBack }: { id: string; onBack: () => void }) {
     await load();
   }
 
+  function openMembers() {
+    if (!data) return;
+    setMembers(data.channel.everyone ? null : data.channel.memberIds.filter((x) => !data.people.find((p) => p.id === x)?.host));
+    setShowMembers(!showMembers);
+  }
+
+  async function saveMembers() {
+    setErr(null);
+    const r = await call(`/api/team-chat/${id}`, "PATCH", { memberIds: members ?? "all" });
+    if (!r.ok) return setErr(typeof r.j.error === "string" ? r.j.error : "No se pudo guardar.");
+    setShowMembers(false);
+    await load();
+  }
+
   async function removeChannel() {
     if (!confirm(t("¿Borrar este chat con todos sus mensajes y archivos?"))) return;
     const r = await call(`/api/team-chat/${id}`, "DELETE");
@@ -277,6 +365,14 @@ function ChannelView({ id, onBack }: { id: string; onBack: () => void }) {
         </button>
         <span className="text-xl">{data.channel.emoji}</span>
         <h2 className="min-w-0 flex-1 truncate text-[16px] font-semibold text-[#222]">{data.channel.name}</h2>
+        <button
+          type="button"
+          onClick={openMembers}
+          aria-label={t("Personas en el chat")}
+          className="shrink-0 rounded-full border border-[#ddd] px-2.5 py-1 text-sm text-[#222]"
+        >
+          👥 {data.channel.memberIds.length}
+        </button>
         {data.canManage && (
           <>
             <button type="button" onClick={() => void rename()} className="text-sm text-[#555] underline">
@@ -288,6 +384,29 @@ function ChannelView({ id, onBack }: { id: string; onBack: () => void }) {
           </>
         )}
       </header>
+
+      {showMembers && (
+        <div className="space-y-3 border-b border-[#f0f0f0] bg-[#fafafa] px-4 py-3">
+          <p className="text-sm text-[#555]">
+            {data.channel.everyone ? t("Todo el equipo") : data.channel.memberNames.join(", ")}
+          </p>
+          {data.canManage && (
+            <>
+              <MembersPicker people={data.people} me={me} value={members} onChange={setMembers} />
+              <div className="flex flex-wrap items-center gap-3">
+                <button type="button" onClick={() => void saveMembers()} className="rounded-lg bg-[#222] px-3 py-1.5 text-sm font-semibold text-white">
+                  {t("Guardar")}
+                </button>
+                {data.isHost && (
+                  <a href="/host/colaboradores#invitar" className="text-xs font-semibold text-[#222] underline">
+                    {t("¿Falta alguien? Invítalo como colaborador")}
+                  </a>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
         {data.messages.length === 0 && <p className="text-center text-sm text-[#999]">{t("Escribe el primer mensaje.")}</p>}

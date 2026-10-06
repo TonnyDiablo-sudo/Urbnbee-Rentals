@@ -47,6 +47,15 @@ type Thread = {
 
 const day = (iso: string) => iso.slice(0, 10);
 
+type CleaningGroup = {
+  requirePhoto: boolean;
+  requireApproval: boolean;
+  confirmHours: number;
+  cancelHours: number;
+  attendanceEnabled: boolean;
+  tasks: CleaningTaskItem[];
+};
+
 async function jsonCall(url: string, method = "GET", body?: unknown) {
   const res = await fetch(url, {
     method,
@@ -277,12 +286,16 @@ function CleaningBlock({
   hostName,
   reload,
   attendance,
+  cancelHours,
+  confirmHours,
 }: {
   tasks: CleaningTaskItem[];
   requirePhoto: boolean;
   attendance: boolean;
   hostName: string;
   reload: () => Promise<void>;
+  cancelHours: number;
+  confirmHours: number;
 }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
@@ -300,6 +313,14 @@ function CleaningBlock({
   return (
     <div>
       <h3 className="text-base font-semibold text-[#222]">{t("Mis limpiezas")}</h3>
+      <p className="text-xs text-[#888]">
+        {confirmHours > 0
+          ? t("Confirma cada limpieza a más tardar {n} horas antes.", { n: confirmHours })
+          : t("Confirma cada limpieza antes de empezar.")}{" "}
+        {cancelHours > 0
+          ? t("Si no puedes ir, cancela con al menos {n} horas de anticipación y di por qué.", { n: cancelHours })
+          : t("Si no puedes ir, cancela y di por qué.")}
+      </p>
       {err && <p className="mt-1 text-sm text-red-700">{t(err)}</p>}
       {tasks.length === 0 ? (
         <p className="mt-1 text-sm text-[#888]">{t("No tienes limpiezas asignadas.")}</p>
@@ -316,6 +337,9 @@ function CleaningBlock({
               onChanged={reload}
               onDone={(done) => void patch(task.id, { done })}
               onNote={(note) => void patch(task.id, { note })}
+              onConfirm={() => void patch(task.id, { confirm: true })}
+              onDecline={(reason) => void patch(task.id, { decline: reason })}
+              cancelHours={cancelHours}
               attendance={attendance}
             />
           ))}
@@ -329,22 +353,15 @@ function CleaningBlock({
 export function TeamWorkspace() {
   const t = useT();
   const [teams, setTeams] = useState<Team[] | null>(null);
-  const [cleaning, setCleaning] = useState<
-    Record<string, { requirePhoto: boolean; attendanceEnabled: boolean; tasks: CleaningTaskItem[] }>
-  >({});
+  const [cleaning, setCleaning] = useState<Record<string, CleaningGroup>>({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const loadCleaning = useCallback(async () => {
     const r = await jsonCall("/api/team/cleaning");
     if (!r.ok) return;
-    const groups =
-      (r.j.groups as { hostId: string; requirePhoto: boolean; attendanceEnabled?: boolean; tasks: CleaningTaskItem[] }[]) ?? [];
-    setCleaning(
-      Object.fromEntries(
-        groups.map((g) => [g.hostId, { requirePhoto: g.requirePhoto, attendanceEnabled: Boolean(g.attendanceEnabled), tasks: g.tasks }])
-      )
-    );
+    const groups = (r.j.groups as (CleaningGroup & { hostId: string })[]) ?? [];
+    setCleaning(Object.fromEntries(groups.map((g) => [g.hostId, g])));
   }, []);
 
   const load = useCallback(async () => {
@@ -432,6 +449,8 @@ export function TeamWorkspace() {
               hostName={team.hostName}
               reload={loadCleaning}
               attendance={cleaning[team.hostId]?.attendanceEnabled ?? false}
+              cancelHours={cleaning[team.hostId]?.cancelHours ?? 24}
+              confirmHours={cleaning[team.hostId]?.confirmHours ?? 24}
             />
           )}
           {team.roles.includes("cleaning") && <SuppliesPanel hostId={team.hostId} />}

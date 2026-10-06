@@ -31,6 +31,7 @@ export async function PATCH(req: NextRequest) {
     listingId?: string;
     on?: boolean;
     cleaner?: string | null;
+    cleaners?: unknown;
     settings?: Record<string, unknown>;
   };
   if (body.settings && typeof body.settings === "object") {
@@ -42,6 +43,7 @@ export async function PATCH(req: NextRequest) {
   const r = setListingCleaning(user.id, body.listingId, {
     on: typeof body.on === "boolean" ? body.on : undefined,
     cleaner: body.cleaner === null || typeof body.cleaner === "string" ? body.cleaner : undefined,
+    cleaners: Array.isArray(body.cleaners) ? body.cleaners.filter((c): c is string => typeof c === "string") : undefined,
   });
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   return NextResponse.json(hostCleaningView(user.id));

@@ -22,6 +22,8 @@ export function cleaningPartnerView(t: CleaningTask) {
     note: t.note ?? null,
     done_at: t.doneAt ?? null,
     photos: t.photos?.length ?? 0,
+    confirmed_at: t.confirmedAt ?? null,
+    approval: t.approval ?? null,
   };
 }
 
@@ -30,7 +32,19 @@ export function cleaningTeamPartnerView(hostId: string) {
   const v = hostCleaningView(hostId);
   return {
     cleaners: v.cleaners.map((c) => ({ id: c.id, name: c.name, listing_ids: c.listingIds })),
-    listings: v.listings.map((l) => ({ id: l.id, title: l.title, in_cleaning_tool: l.on, default_cleaner_id: l.cleaner })),
-    settings: { assign_mode: v.settings.assignMode, require_photo: v.settings.requirePhoto },
+    listings: v.listings.map((l) => ({
+      id: l.id,
+      title: l.title,
+      in_cleaning_tool: l.on,
+      default_cleaner_id: l.cleaner,
+      cleaner_ids_by_priority: l.cleaners,
+    })),
+    settings: {
+      assign_mode: v.settings.assignMode,
+      require_photo: v.settings.requirePhoto,
+      require_approval: v.settings.requireApproval,
+      confirm_hours_before: v.settings.confirmHours,
+      cancel_hours_before: v.settings.cancelHours,
+    },
   };
 }

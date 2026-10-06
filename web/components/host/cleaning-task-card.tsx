@@ -20,7 +20,25 @@ export type CleaningTaskItem = {
   manual: boolean;
   photos: { id: string; url: string }[];
   cleanerUserId: string | null;
+  needsConfirm?: boolean;
+  confirmedAt?: string | null;
+  confirmBy?: string;
+  cancelBy?: string;
+  canCancel?: boolean;
+  cancellations?: { name: string; at: string; reason: string }[];
+  approval?: "pending" | "approved" | null;
+  redoNote?: string;
 };
+
+function whenLabel(iso: string, lang: "es" | "en"): string {
+  return new Date(iso).toLocaleString(lang === "en" ? "en-US" : "es-MX", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function dayLabel(day: string, lang: "es" | "en"): string {
   const [y, m, d] = day.split("-").map(Number);
@@ -54,7 +72,21 @@ export function CleaningTaskCard({
   onChanged,
   showAssignee = false,
   attendance = false,
+  onConfirm,
+  onDecline,
+  onApprove,
+  onRedo,
+  cancelHours = 24,
 }: {
+  /** Quien limpia: «Sí puedo». */
+  onConfirm?: () => void;
+  /** Quien limpia: no puede ir, con el motivo. */
+  onDecline?: (reason: string) => void;
+  /** Anfitrión: aprobar la limpieza terminada. */
+  onApprove?: () => void;
+  /** Anfitrión: regresarla con lo que falta corregir. */
+  onRedo?: (note: string) => void;
+  cancelHours?: number;
   /** Mostrar «Marcar entrada / salida» con ubicación. */
   attendance?: boolean;
   task: CleaningTaskItem;
@@ -78,9 +110,12 @@ export function CleaningTaskCard({
   const [note, setNote] = useState(task.note);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [asking, setAsking] = useState<"decline" | "redo" | null>(null);
+  const [reason, setReason] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const done = task.status === "done";
   const needsPhoto = requirePhoto && task.photos.length === 0 && !done;
+  const byMember = Boolean(task.assignee && task.assignee !== "host");
 
   async function upload(files: FileList | null) {
     if (!files?.length) return;
@@ -144,6 +179,140 @@ export function CleaningTaskCard({
           {done ? t("Hecha") : t("Marcar hecha")}
         </label>
       </div>
+
+      <div className="mt-2 flex flex-wrap gap-1.5 text-xs font-semibold">
+        {!done && byMember && task.confirmedAt && (
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800">✅ {t("Confirmada")}</span>
+        )}
+        {!done && task.needsConfirm && (
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">
+            ⏳ {onConfirm ? t("Confirma antes del {when}", { when: whenLabel(task.confirmBy!, lang) }) : t("Falta que confirme")}
+          </span>
+        )}
+        {done && task.approval === "pending" && (
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">🔎 {t("Por aprobar")}</span>
+        )}
+        {done && task.approval === "approved" && (
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800">👍 {t("Aprobada")}</span>
+        )}
+      </div>
+
+      {!done && task.redoNote && (
+        <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          ↩️ {t("El anfitrión pidió corregir:")} {task.redoNote}
+        </p>
+      )}
+
+      {task.cancellations && task.cancellations.length > 0 && (
+        <ul className="mt-2 space-y-1 text-xs text-[#717171]">
+          {task.cancellations.map((c) => (
+            <li key={c.at}>
+              🚫 {t("{name} canceló el {when}: «{reason}»", { name: t(c.name), when: whenLabel(c.at, lang), reason: c.reason })}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!done && (onConfirm || onDecline) && byMember && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {onConfirm && task.needsConfirm && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onConfirm}
+              className="rounded-lg bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {t("Sí puedo")}
+            </button>
+          )}
+          {onDecline &&
+            (task.canCancel ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setAsking(asking === "decline" ? null : "decline");
+                  setReason("");
+                }}
+                className="rounded-lg border border-[#ddd] px-3 py-2 text-sm text-[#222]"
+              >
+                {task.needsConfirm ? t("No puedo") : t("Cancelar mi limpieza")}
+              </button>
+            ) : (
+              <span className="text-xs text-[#888]">
+                {cancelHours > 0
+                  ? t("Ya no puedes cancelar: faltan menos de {n} h. Escríbele al anfitrión.", { n: cancelHours })
+                  : t("Ya no puedes cancelar. Escríbele al anfitrión.")}
+              </span>
+            ))}
+        </div>
+      )}
+
+      {done && task.approval === "pending" && (onApprove || onRedo) && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {onApprove && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onApprove}
+              className="rounded-lg bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {t("Aprobar")}
+            </button>
+          )}
+          {onRedo && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setAsking(asking === "redo" ? null : "redo");
+                setReason("");
+              }}
+              className="rounded-lg border border-[#ddd] px-3 py-2 text-sm text-[#222]"
+            >
+              {t("Pedir corrección")}
+            </button>
+          )}
+        </div>
+      )}
+
+      {asking && (
+        <form
+          className="mt-2 space-y-2 rounded-xl bg-[#fafafa] p-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (reason.trim().length < 3) return;
+            if (asking === "decline") onDecline?.(reason.trim());
+            else onRedo?.(reason.trim());
+            setAsking(null);
+          }}
+        >
+          <label className="block text-sm font-medium text-[#222]">
+            {asking === "decline" ? t("¿Por qué no puedes? Le llega al anfitrión.") : t("¿Qué falta corregir?")}
+            <textarea
+              required
+              minLength={3}
+              maxLength={300}
+              rows={2}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm text-[#222]"
+            />
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={busy || reason.trim().length < 3}
+              className="rounded-lg bg-[#222] px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {asking === "decline" ? t("Cancelar limpieza") : t("Mandar")}
+            </button>
+            <button type="button" onClick={() => setAsking(null)} className="rounded-lg border border-[#ddd] px-3 py-1.5 text-sm text-[#222]">
+              {t("Volver")}
+            </button>
+          </div>
+        </form>
+      )}
 
       {attendance && <AttendanceButtons taskId={task.id} />}
 

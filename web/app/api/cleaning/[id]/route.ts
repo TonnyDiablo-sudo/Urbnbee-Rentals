@@ -4,7 +4,10 @@ import { getSessionUser } from "@/lib/session";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-/** El anfitrión asigna; el anfitrión o quien limpia marca como hecha o deja nota. */
+/**
+ * El anfitrión asigna, cancela y aprueba (o regresa con `redo`);
+ * quien limpia confirma, cancela con motivo (`decline`), marca como hecha o deja nota.
+ */
 export async function PATCH(req: NextRequest, ctx: Ctx) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
@@ -14,16 +17,32 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     done?: boolean;
     note?: string;
     cancel?: boolean;
+    confirm?: boolean;
+    decline?: string;
+    approve?: boolean;
+    redo?: string;
   };
   if (body.assignee !== undefined) {
     const r = assignCleaningTask(user.id, id, body.assignee);
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   }
-  if (body.done !== undefined || body.note !== undefined || body.cancel) {
+  if (
+    body.done !== undefined ||
+    body.note !== undefined ||
+    body.cancel ||
+    body.confirm ||
+    body.decline !== undefined ||
+    body.approve !== undefined ||
+    body.redo !== undefined
+  ) {
     const r = updateCleaningByActor(user.id, id, {
       done: typeof body.done === "boolean" ? body.done : undefined,
       note: body.note,
       cancel: Boolean(body.cancel),
+      confirm: body.confirm === true,
+      decline: body.decline,
+      approve: typeof body.approve === "boolean" ? body.approve : undefined,
+      redo: body.redo,
     });
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   }
