@@ -30,7 +30,7 @@ import { useT } from "@/components/i18n-provider";
 import { COUNTRY_OPTIONS, isMexico, MX_STATE_LIST } from "@/lib/geo-places";
 import { exactAddressProblem, listingNeedsUnit } from "@/lib/listing-address";
 import { StreetFields } from "@/components/host/street-fields";
-import { ContractClausesEditor, pruneClauseOverrides, useContractDefaults } from "@/components/host/contract-clauses-editor";
+import { ContractClausesEditor, useContractDefaults } from "@/components/host/contract-clauses-editor";
 import { ContractReviewNotice } from "@/components/host/contract-review-notice";
 import { ContractTips, MIN_STAY_CLAUSE } from "@/components/host/contract-tips";
 
@@ -135,11 +135,12 @@ export function ListingEditor({ listingId }: { listingId: string }) {
   }
 
   async function saveListing(
-    patch: Omit<Partial<HostListingRecord>, "bathroomType" | "selfCheckIn"> & {
+    patch: Omit<Partial<HostListingRecord>, "bathroomType" | "selfCheckIn" | "contract"> & {
       regenerateSlug?: boolean;
       /** null borra el dato. */
       bathroomType?: HostListingRecord["bathroomType"] | null;
       selfCheckIn?: boolean | null;
+      contract?: Omit<ListingContractSettings, "clauseLayout"> & { clauseLayout?: ListingContractSettings["clauseLayout"] | null };
     }
   ) {
     const res = await fetch(`/api/host/listings/${listingId}`, {
@@ -1280,7 +1281,8 @@ export function ListingEditor({ listingId }: { listingId: string }) {
           hostName={fullName}
           onSave={(contract) => {
             setListing({ ...listing, contract });
-            void saveListing({ contract });
+            // `null` para que el servidor sí borre el layout al volver al texto de fábrica.
+            void saveListing({ contract: { ...contract, clauseLayout: contract.clauseLayout ?? null } });
           }}
         />
       )}
@@ -1558,13 +1560,14 @@ function ContractTab({
       <div>
         <p className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Texto del contrato")}</p>
         <p className="mb-2 text-xs text-[#888]">
-          {t("Toca una cláusula para cambiar su texto o quitarla. Los datos de las partes, fechas y montos se llenan solos en cada reserva.")}
+          {t("Toca una sección para cambiar su texto o su título. También puedes reordenarlas, quitarlas o agregar nuevas. Los datos de las partes, fechas y montos se llenan solos en cada reserva.")}
         </p>
         <div onBlur={() => onSave(draft)}>
           <ContractClausesEditor
             defaults={defaults}
-            overrides={draft.clauseOverrides}
-            onOverrides={(v) => patch({ clauseOverrides: pruneClauseOverrides(v, defaults) })}
+            layout={draft.clauseLayout}
+            legacyOverrides={draft.clauseOverrides}
+            onLayout={(v) => patch({ clauseLayout: v, clauseOverrides: {} }, v === undefined)}
             law={draft.governingLawOverride}
             onLaw={(v) => patch({ governingLawOverride: v })}
           />

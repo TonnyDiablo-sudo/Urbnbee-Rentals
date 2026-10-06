@@ -425,4 +425,30 @@ export const cleaningFlow: Record<string, string> = {
   "Restaurar texto original": "Restore original text",
   "Quitar esta cláusula": "Remove this clause",
   "Ley aplicable y tribunales": "Governing law and courts",
+  "Toca una sección para cambiar su texto o su título. También puedes reordenarlas, quitarlas o agregar nuevas. Los datos de las partes, fechas y montos se llenan solos en cada reserva.":
+    "Tap a section to change its text or title. You can also reorder, remove or add sections. Party details, dates and amounts are filled in automatically for each booking.",
+  "Se quitan todos tus cambios al texto del contrato y vuelve el de fábrica. ¿Continuar?":
+    "All your changes to the contract text will be removed and the default text restored. Continue?",
+  Fija: "Fixed",
+  Editada: "Edited",
+  Renombrada: "Renamed",
+  Original: "Original",
+  "Volver al contrato original": "Back to the original contract",
+  "Editar «{title}»": "Edit “{title}”",
+  "Sin texto": "No text",
+  Leer: "Read",
+  "Quitar sección": "Remove section",
+  "Agregar sección": "Add section",
+  "Secciones quitadas ({n})": "Removed sections ({n})",
+  "Cláusula fija": "Fixed clause",
+  "Editar sección": "Edit section",
+  "Esta cláusula explica que el contrato es entre tú y el huésped. No se puede cambiar ni quitar.":
+    "This clause explains that the contract is between you and the guest. It can't be changed or removed.",
+  "Título de la sección": "Section title",
+  "Los datos de las partes, fechas y montos se llenan solos en cada reserva.":
+    "Party details, dates and amounts are filled in automatically for each booking.",
+  "Nueva sección": "New section",
+  "Ej. MASCOTAS": "E.g. PETS",
+  "Ej. Se permite una mascota pequeña previo aviso. El huésped responde por los daños que cause.":
+    "E.g. One small pet is allowed with prior notice. The guest is responsible for any damage it causes.",
 };

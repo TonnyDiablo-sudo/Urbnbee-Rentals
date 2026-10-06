@@ -1,9 +1,11 @@
 import "server-only";
 import { createHash } from "crypto";
 import {
+  applyClauseLayout,
   contractDepositNote,
   defaultListingContract,
   getContractTemplate,
+  type EditableContractClause,
   type ListingContractSettings,
 } from "@/lib/booking-contract-templates";
 import {
@@ -64,7 +66,7 @@ function cleanName(v: string | undefined, fallback: string): string {
   return t || fallback;
 }
 
-export type EditableContractClause = { title: string; text: string; locked: boolean };
+export type { EditableContractClause };
 
 /** Cláusulas tal como vienen de fábrica para un alojamiento; la de la herramienta va bloqueada. */
 export function defaultContractClauses(maxGuests: number, localClauses: { title: string; text: string }[]): EditableContractClause[] {
@@ -74,6 +76,12 @@ export function defaultContractClauses(maxGuests: number, localClauses: { title:
     { ...THIRD_PARTY_CLAUSE, locked: true },
     { ...SEVERABILITY_CLAUSE, locked: false },
   ];
+}
+
+/** Secciones finales: el layout del anfitrión si lo hay; si no, el formato anterior por título. */
+function resolveContractClauses(base: EditableContractClause[], settings: ListingContractSettings): { title: string; text: string }[] {
+  if (settings.clauseLayout) return applyClauseLayout(base, settings.clauseLayout);
+  return applyClauseOverrides(base, settings.clauseOverrides);
 }
 
 /** Aplica el texto del anfitrión por cláusula; vacío = se quita. Las bloqueadas no cambian. */
@@ -146,7 +154,7 @@ export function buildContractSnapshot(
       label: place.label,
       governingLaw: lawOverride || place.governingLaw,
       courts: lawOverride ? "" : place.courts,
-      clauses: applyClauseOverrides(defaultContractClauses(maxGuests, place.localClauses), settings.clauseOverrides),
+      clauses: resolveContractClauses(defaultContractClauses(maxGuests, place.localClauses), settings),
     },
     templateId: template.id,
     templateTitle: template.title,

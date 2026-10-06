@@ -84,6 +84,11 @@ export type ListingContractSettings = {
    * Cadena vacía = la cláusula se quita del contrato. La cláusula de la herramienta no se edita.
    */
   clauseOverrides: Record<string, string>;
+  /**
+   * Secciones del contrato tal como las dejó el anfitrión: orden, renombres, textos propios y secciones nuevas.
+   * Si falta, se usa el texto de fábrica (o `clauseOverrides`, el formato anterior).
+   */
+  clauseLayout?: ContractClauseEdit[];
   /** Sustituye el apartado de ley aplicable y tribunales. */
   governingLawOverride?: string;
   /** El anfitrión confirmó esta plantilla en el anuncio (firma de oferta para reservas instantáneas). */
@@ -105,6 +110,7 @@ export function defaultListingContract(partial?: Partial<ListingContractSettings
     extraClauses: (partial?.extraClauses ?? template.defaultExtraClauses).trim(),
     cancellationOverride: partial?.cancellationOverride?.trim() || undefined,
     clauseOverrides: cleanClauseOverrides(partial?.clauseOverrides),
+    clauseLayout: cleanClauseLayout(partial?.clauseLayout),
     governingLawOverride: partial?.governingLawOverride?.trim() || undefined,
     hostAcknowledged: Boolean(partial?.hostAcknowledged),
     hostReviewed: Boolean(partial?.hostReviewed),
@@ -125,6 +131,91 @@ function cleanClauseOverrides(raw: unknown): Record<string, string> {
     if (Object.keys(out).length >= MAX_CLAUSE_OVERRIDES) break;
   }
   return out;
+}
+
+/** Una sección del contrato como la ve el anfitrión en el editor. */
+export type ContractClauseEdit = {
+  /** Título de la cláusula de fábrica que representa; si falta, es una sección nueva del anfitrión. */
+  base?: string;
+  title: string;
+  /** Texto propio; si falta (y hay `base`) se usa el de fábrica, que puede llevar datos del anuncio. */
+  text?: string;
+};
+
+/** Cláusula de fábrica tal como la recibe el editor. */
+export type EditableContractClause = { title: string; text: string; locked: boolean };
+
+export function cleanClauseLayout(raw: unknown): ContractClauseEdit[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: ContractClauseEdit[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const base = typeof o.base === "string" ? o.base.trim().slice(0, 120) : "";
+    const title = typeof o.title === "string" ? o.title.trim().slice(0, 120) : "";
+    const text = typeof o.text === "string" ? o.text.trim().slice(0, MAX_CLAUSE_CHARS) : undefined;
+    if (!title && !base) continue;
+    out.push({ ...(base ? { base } : {}), title: title || base, ...(text !== undefined ? { text } : {}) });
+    if (out.length >= MAX_CLAUSE_OVERRIDES) break;
+  }
+  return out;
+}
+
+/** Las secciones de fábrica, sin cambios, en forma de layout. */
+export function defaultClauseLayout(clauses: EditableContractClause[]): ContractClauseEdit[] {
+  return clauses.map((c) => ({ base: c.title, title: c.title }));
+}
+
+/** Convierte el formato anterior (texto por título, vacío = quitada) al layout. */
+export function layoutFromClauseOverrides(clauses: EditableContractClause[], overrides: Record<string, string>): ContractClauseEdit[] {
+  return clauses.flatMap((c) => {
+    const o = c.locked ? undefined : overrides[c.title];
+    if (o === undefined) return [{ base: c.title, title: c.title }];
+    if (!o.trim()) return [];
+    return [{ base: c.title, title: c.title, text: o.trim() }];
+  });
+}
+
+/** Secciones finales del contrato a partir del layout. La cláusula bloqueada siempre va, con su texto. */
+export function applyClauseLayout(clauses: EditableContractClause[], layout: ContractClauseEdit[]): { title: string; text: string }[] {
+  const out: { title: string; text: string }[] = [];
+  const lockedSeen = new Set<string>();
+  for (const e of layout) {
+    const b = e.base ? clauses.find((c) => c.title === e.base) : undefined;
+    if (b?.locked) {
+      if (!lockedSeen.has(b.title)) {
+        lockedSeen.add(b.title);
+        out.push({ title: b.title, text: b.text });
+      }
+      continue;
+    }
+    const title = e.title.trim() || b?.title || "";
+    const text = (e.text ?? b?.text ?? "").trim();
+    if (!title || !text) continue;
+    out.push({ title, text });
+  }
+  for (const c of clauses) if (c.locked && !lockedSeen.has(c.title)) out.push({ title: c.title, text: c.text });
+  return out;
+}
+
+/** `undefined` si el layout es igual al de fábrica (así no se guarda nada de más). */
+export function normalizeClauseLayout(layout: ContractClauseEdit[], clauses: EditableContractClause[]): ContractClauseEdit[] | undefined {
+  const cleaned = layout.map((e) => {
+    const b = e.base ? clauses.find((c) => c.title === e.base) : undefined;
+    if (b?.locked) return { base: b.title, title: b.title };
+    const title = e.title.trim();
+    const text = e.text?.trim();
+    const sameText = b && (text === undefined || text === b.text.trim());
+    return {
+      ...(b ? { base: b.title } : {}),
+      title: title || b?.title || "",
+      ...(sameText || text === undefined ? {} : { text }),
+    };
+  });
+  const same =
+    cleaned.length === clauses.length &&
+    cleaned.every((e, i) => e.base === clauses[i].title && e.title === clauses[i].title && e.text === undefined);
+  return same ? undefined : cleaned;
 }
 
 export function sanitizeListingContract(raw: unknown, fallback?: ListingContractSettings): ListingContractSettings {
@@ -148,6 +239,8 @@ export function sanitizeListingContract(raw: unknown, fallback?: ListingContract
     cancellationOverride:
       o.cancellationOverride !== undefined ? String(o.cancellationOverride).slice(0, 2000) : prev.cancellationOverride,
     clauseOverrides: o.clauseOverrides !== undefined ? cleanClauseOverrides(o.clauseOverrides) : prev.clauseOverrides,
+    // `null` = volver al texto de fábrica.
+    clauseLayout: o.clauseLayout !== undefined ? cleanClauseLayout(o.clauseLayout) : prev.clauseLayout,
     governingLawOverride:
       o.governingLawOverride !== undefined ? String(o.governingLawOverride).slice(0, 2000) : prev.governingLawOverride,
     hostAcknowledged: o.hostAcknowledged !== undefined ? Boolean(o.hostAcknowledged) : prev.hostAcknowledged,

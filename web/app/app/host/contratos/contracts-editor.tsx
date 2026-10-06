@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { ContractClausesEditor, pruneClauseOverrides, useContractDefaults } from "@/components/host/contract-clauses-editor";
+import { ContractClausesEditor, useContractDefaults } from "@/components/host/contract-clauses-editor";
 import { ContractReviewNotice } from "@/components/host/contract-review-notice";
 import type { ContractDefaults } from "@/components/host/contract-clauses-editor";
 import { ContractTips, MIN_STAY_CLAUSE } from "@/components/host/contract-tips";
@@ -11,7 +11,9 @@ import {
   BOOKING_CONTRACT_TEMPLATES,
   defaultListingContract,
   getContractTemplate,
+  normalizeClauseLayout,
   type BookingContractTemplateId,
+  type ContractClauseEdit,
 } from "@/lib/booking-contract-templates";
 import { listingStreet } from "@/lib/listing-address";
 import { useCached } from "../../_components/cached-fetch";
@@ -29,7 +31,9 @@ type Form = {
   depositMxn: string;
   cancellation: string;
   extraClauses: string;
+  /** Formato anterior; se convierte a `clauseLayout` en cuanto el anfitrión toca algo. */
   clauseOverrides: Record<string, string>;
+  clauseLayout?: ContractClauseEdit[];
   governingLaw?: string;
   hostAcknowledged: boolean;
   hostReviewed: boolean;
@@ -46,7 +50,8 @@ function formFor(l: HostListing): Form {
     depositMxn: c.depositMxn ? String(c.depositMxn) : "",
     cancellation: c.cancellationOverride || tpl.defaultCancellation,
     extraClauses: c.extraClauses,
-    clauseOverrides: c.clauseOverrides,
+    clauseOverrides: c.clauseLayout ? {} : c.clauseOverrides,
+    clauseLayout: c.clauseLayout,
     governingLaw: c.governingLawOverride,
     hostAcknowledged: c.hostAcknowledged,
     hostReviewed: c.hostReviewed,
@@ -64,7 +69,9 @@ function payload(f: Form, includeProperty: boolean, defaults?: ContractDefaults 
     depositMxn: Math.max(0, Math.round(Number(f.depositMxn) || 0)),
     cancellationOverride: f.cancellation.trim() === tpl.defaultCancellation ? "" : f.cancellation.trim(),
     extraClauses: f.extraClauses.trim(),
-    clauseOverrides: pruneClauseOverrides(f.clauseOverrides, defaults),
+    // `null` = volver a las secciones de fábrica. Si hay layout, el formato anterior ya no aplica.
+    clauseLayout: f.clauseLayout && defaults ? (normalizeClauseLayout(f.clauseLayout, defaults.clauses) ?? null) : (f.clauseLayout ?? null),
+    clauseOverrides: f.clauseLayout ? {} : f.clauseOverrides,
     governingLawOverride: !law || (defaults && law === defaults.law.trim()) ? "" : law,
     hostAcknowledged: f.hostReviewed && f.hostAcknowledged,
     hostReviewed: f.hostReviewed,
@@ -301,14 +308,15 @@ function ListingContractForm({
         <div>
           <h2 className="text-lg font-semibold text-[#222]">{t("Texto del contrato")}</h2>
           <p className="mt-0.5 text-sm text-[#717171]">
-            {t("Toca una cláusula para cambiar su texto o quitarla. Los datos de las partes, fechas y montos se llenan solos en cada reserva.")}
+            {t("Toca una sección para cambiar su texto o su título. También puedes reordenarlas, quitarlas o agregar nuevas. Los datos de las partes, fechas y montos se llenan solos en cada reserva.")}
           </p>
         </div>
         <ContractClausesEditor
           compact
           defaults={defaults}
-          overrides={f.clauseOverrides}
-          onOverrides={(v) => set("clauseOverrides", v)}
+          layout={f.clauseLayout}
+          legacyOverrides={f.clauseOverrides}
+          onLayout={(v) => setF((p) => ({ ...p, clauseLayout: v, clauseOverrides: {} }))}
           law={f.governingLaw}
           onLaw={(v) => set("governingLaw", v)}
         />
