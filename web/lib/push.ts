@@ -8,6 +8,8 @@ import { findUserById, getListingById } from "@/lib/marketplace-store";
 import { localizeVars } from "@/lib/notification-vars";
 import { addNotification, type NotificationKind } from "@/lib/notifications-store";
 import { removeSubscription, subscriptionsForUser } from "@/lib/push-store";
+import { memberEffectiveRoles } from "@/lib/team-access";
+import { listTeamForHost, memberCoversListing } from "@/lib/team-store";
 
 export type PushPayload = {
   title: string;
@@ -155,14 +157,32 @@ export function notifyGuestHostReply(p: { listingId: string; guestSessionId: str
 
 export function notifyHostBookingPaid(booking: BookingRecord): void {
   const instant = booking.status === "AWAITING_DETAILS" || booking.status === "CONFIRMED";
+  const listingId = booking.hostAdjustedListingId ?? booking.listingId;
+  const body = booking.nights === 1 ? "{name} · {listing} · 1 noche" : "{name} · {listing} · {nights} noches";
+  const vars = { name: booking.guestName, listing: listingTitle(listingId), nights: booking.nights };
   notifyUser(booking.hostId, {
     kind: instant ? "booking" : "request",
     title: instant ? "Nueva reserva confirmada" : "Nueva solicitud de reserva",
-    body: booking.nights === 1 ? "{name} · {listing} · 1 noche" : "{name} · {listing} · {nights} noches",
-    vars: { name: booking.guestName, listing: listingTitle(booking.hostAdjustedListingId ?? booking.listingId), nights: booking.nights },
+    body,
+    vars,
     url: instant ? "/host/calendario" : "/host",
     tag: `b:${booking.id}`,
   });
+  if (instant) return;
+  /** También a los colaboradores que pueden aceptarla; la resuelven desde «Equipos donde colaboro». */
+  const hostName = findUserById(booking.hostId)?.fullName?.trim() || "el anfitrión";
+  for (const m of listTeamForHost(booking.hostId)) {
+    if (m.status !== "active" || !m.userId || !memberCoversListing(m, listingId)) continue;
+    if (!memberEffectiveRoles(m).includes("bookings")) continue;
+    notifyUser(m.userId, {
+      kind: "request",
+      title: "Solicitud por aprobar de {host}",
+      body,
+      vars: { ...vars, host: hostName },
+      url: "/equipo",
+      tag: `b:${booking.id}`,
+    });
+  }
 }
 
 export function notifyGuestBookingDecision(booking: BookingRecord, accepted: boolean, balanceDueMxn = 0): void {

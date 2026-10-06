@@ -385,4 +385,5 @@ export const cleaningFlow: Record<string, string> = {
   "Lo que dicen los huéspedes": "What guests say",
   "Lo que dicen los anfitriones": "What hosts say",
   "Todavía no hay reseñas.": "No reviews yet.",
+  "Solicitud por aprobar de {host}": "Booking request for {host} to approve",
 };
