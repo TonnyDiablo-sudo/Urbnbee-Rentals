@@ -158,4 +158,8 @@ export const cleaningFlow: Record<string, string> = {
   "El anfitrión siempre ve todos los chats.": "The host always sees every chat.",
   "¿Falta alguien? Invítalo como colaborador": "Missing someone? Invite them as a collaborator",
   "Personas en el chat": "People in the chat",
+  "Guardar y publicar": "Save and publish",
+  "No se pudo publicar.": "Couldn't publish.",
+  "Para volver a publicar falta completar la dirección. Al guardar, tu anuncio se publica.":
+    "To publish again, finish the address. Your listing goes live when you save.",
 };

@@ -71,6 +71,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [publishErr, setPublishErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [importWarnings, setImportWarnings] = useState<string[] | null>(null);
@@ -149,10 +150,11 @@ export function ListingEditor({ listingId }: { listingId: string }) {
     const data = await res.json();
     if (!res.ok) {
       notify(data.error ?? "Error al guardar");
-      return;
+      return (data.error as string | undefined) ?? "Error al guardar";
     }
     if (data.listing) setListing(data.listing);
     notify("Cambios guardados");
+    return null;
   }
 
   /** El servidor reemplaza `pricing` completo: se manda lo guardado con el cambio encima. */
@@ -330,11 +332,14 @@ export function ListingEditor({ listingId }: { listingId: string }) {
             <input
               type="checkbox"
               checked={listing.published}
-              onChange={(e) => saveListing({ published: e.target.checked })}
+              onChange={async (e) => setPublishErr(await saveListing({ published: e.target.checked }))}
               className="h-4 w-4 rounded border-[#ccc]"
             />
             <span className="font-medium text-[#484848]">{t("Publicado en el directorio")}</span>
           </label>
+          {publishErr && !listing.published && (
+            <p className="basis-full rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{t(publishErr)}</p>
+          )}
           {previewUrl && (
             <Link
               href={previewUrl}

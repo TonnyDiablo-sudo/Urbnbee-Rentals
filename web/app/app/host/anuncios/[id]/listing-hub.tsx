@@ -145,6 +145,8 @@ export function ListingHub({ listingId }: { listingId: string }) {
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [publishAfterFix, setPublishAfterFix] = useState<string | null>(null);
+  const publishErrRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -155,8 +157,25 @@ export function ListingHub({ listingId }: { listingId: string }) {
   const saved = (l: HostListing, msg = "Cambios guardados.") => {
     putListing(l);
     setPanel(null);
+    setErr(null);
     setToast(msg);
   };
+
+  const publishNow = async (id: string) => {
+    setBusy(true);
+    setErr(null);
+    const r = await patchListing(id, { published: true });
+    setBusy(false);
+    if (r.listing) saved(r.listing, "¡Publicado! Ya aparece en Cabibee.");
+    else {
+      setPanel(null);
+      setErr(r.error ?? "No se pudo publicar.");
+    }
+  };
+
+  useEffect(() => {
+    if (err) publishErrRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [err]);
 
   if (missing) {
     return (
@@ -192,7 +211,8 @@ export function ListingHub({ listingId }: { listingId: string }) {
       return;
     }
     if (!listing.published && addressProblem) {
-      setErr(addressProblem);
+      setErr(null);
+      setPublishAfterFix(addressProblem);
       setPanel("location");
       return;
     }
@@ -280,8 +300,6 @@ export function ListingHub({ listingId }: { listingId: string }) {
           ))}
         </div>
       </div>
-
-      {err && <p className="mx-5 mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(err)}</p>}
 
       {tab === "space" ? (
         <ul className="mt-2 divide-y divide-[#f0f0f0] px-5">
@@ -466,6 +484,11 @@ export function ListingHub({ listingId }: { listingId: string }) {
       )}
 
       <div className="mt-6 space-y-3 px-5">
+        {err && (
+          <p ref={publishErrRef} className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+            {t(err)}
+          </p>
+        )}
         <button
           type="button"
           disabled={busy}
@@ -508,7 +531,26 @@ export function ListingHub({ listingId }: { listingId: string }) {
       />
 
       {panel && (
-        <PanelBody key={panel} id={panel} listing={listing} onClose={() => setPanel(null)} onSaved={(l) => saved(l)} onPhotos={putListing} />
+        <PanelBody
+          key={panel}
+          id={panel}
+          listing={listing}
+          initialError={panel === "location" ? publishAfterFix : null}
+          publishing={panel === "location" && Boolean(publishAfterFix)}
+          onClose={() => {
+            setPanel(null);
+            setPublishAfterFix(null);
+          }}
+          onSaved={(l) => {
+            const publish = panel === "location" && publishAfterFix && !l.published;
+            setPublishAfterFix(null);
+            if (publish) {
+              putListing(l);
+              void publishNow(l.id);
+            } else saved(l);
+          }}
+          onPhotos={putListing}
+        />
       )}
     </div>
   );
@@ -569,9 +611,13 @@ function PanelBody({
   onClose,
   onSaved,
   onPhotos,
+  initialError = null,
+  publishing = false,
 }: {
   id: PanelId;
   listing: HostListing;
+  initialError?: string | null;
+  publishing?: boolean;
   onClose: () => void;
   onSaved: (l: HostListing) => void;
   onPhotos: (l: HostListing) => void;
@@ -613,7 +659,7 @@ function PanelBody({
   const [addr, setAddr] = useState(() => splitStreet(listing.addressLine));
   const addressLine = joinStreet(addr);
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(initialError);
   const editAddr = (next: typeof addr) => {
     setAddr(next);
     setErr(null);
@@ -755,6 +801,11 @@ function PanelBody({
         </header>
 
         <div ref={bodyRef} className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
+          {publishing && (
+            <p className="rounded-xl bg-[#fff8db] px-4 py-3 text-sm text-[#5c4a00]">
+              {t("Para volver a publicar falta completar la dirección. Al guardar, tu anuncio se publica.")}
+            </p>
+          )}
           {id === "photos" && <PhotoManager listing={listing} onChange={onPhotos} />}
 
           {id === "title" && (
@@ -1304,7 +1355,7 @@ function PanelBody({
               onClick={() => void save()}
               className="w-full rounded-xl bg-[#dcb81e] py-3.5 text-[15px] font-semibold text-black disabled:opacity-50"
             >
-              {busy ? t("Guardando…") : t("Guardar")}
+              {busy ? t("Guardando…") : publishing ? t("Guardar y publicar") : t("Guardar")}
             </button>
           </div>
         )}
