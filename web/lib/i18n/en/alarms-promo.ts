@@ -2,6 +2,7 @@
 export const alarmsPromo: Record<string, string> = {
   "Centro de alarmas": "Alert center",
   Alarmas: "Alerts",
+  "Configurar alarmas": "Set up alerts",
   "Prende o apaga los avisos de cada tema": "Turn alerts on or off for each topic",
   "Elige de qué te avisamos. Todo viene encendido; si apagas algo, deja de llegarte la notificación, el aviso en el celular y el correo de ese tema.":
     "Choose what we alert you about. Everything starts on; if you turn something off, you stop getting the notification, the phone alert and the email for that topic.",

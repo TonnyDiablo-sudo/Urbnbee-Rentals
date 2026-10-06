@@ -59,9 +59,14 @@ export function HostReviews() {
 
   if (focus && stays && !opened) {
     setOpened(true);
-    const s = stays.find((x) => x.id === focus && x.canReview);
+    const s = stays.find((x) => x.id === focus && x.canReview && !x.guestReviewOfListing);
     if (s) setReviewing(s);
   }
+
+  useEffect(() => {
+    if (!focus || !stays) return;
+    document.getElementById(`stay-${focus}`)?.scrollIntoView({ block: "center" });
+  }, [focus, stays]);
 
   if (stays === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
 
@@ -71,7 +76,11 @@ export function HostReviews() {
     .sort((a, b) => (b.hostAdjustedCheckOut ?? b.checkOut).localeCompare(a.hostAdjustedCheckOut ?? a.checkOut));
 
   const card = (s: Stay) => (
-    <li key={s.id} className="rounded-2xl border border-[#ebebeb] bg-white p-4">
+    <li
+      key={s.id}
+      id={`stay-${s.id}`}
+      className={`rounded-2xl border bg-white p-4 ${s.id === focus ? "border-[#dcb81e] ring-2 ring-[#dcb81e]/40" : "border-[#ebebeb]"}`}
+    >
       <p className="text-[15px] font-semibold text-[#222]">{s.guestName}</p>
       <p className="text-[13px] text-[#717171]">
         {s.effectiveListingTitle ?? s.listingTitle} · {fmtDay(s.hostAdjustedCheckIn ?? s.checkIn, lang)} →{" "}

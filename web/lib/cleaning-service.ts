@@ -22,6 +22,7 @@ import {
 } from "@/lib/cleaning-store";
 import { publicNameOf } from "@/lib/display-name";
 import { findUserById, getListingById, listListingsForHost, updateListing } from "@/lib/marketplace-store";
+import { dayVar } from "@/lib/notification-vars";
 import { notifyUser } from "@/lib/push";
 import { getHostEntitlement } from "@/lib/host-entitlements-store";
 import { HOST_SKU_CLEANING } from "@/lib/host-entitlement-types";
@@ -75,7 +76,7 @@ function recipientOf(task: CleaningTask): { userId: string; url: string } | null
 type Vars = Record<string, string | number>;
 
 function taskVars(t: CleaningTask, extra: Vars = {}): Vars {
-  return { listing: listingTitle(t.listingId), date: formatCleaningDay(t.date) + (t.time ? ` · ${t.time}` : ""), ...extra };
+  return { listing: listingTitle(t.listingId), date: dayVar(t.date, t.time), ...extra };
 }
 
 function notify(task: CleaningTask, title: string, body: string, vars: Vars = taskVars(task), tag = `cleaning:${task.id}`) {
@@ -241,7 +242,7 @@ export function runCleaningReminders(hostId: string) {
     }
 
     if (t.remindedAt || (t.date !== today && t.date !== tomorrow)) continue;
-    const vars = taskVars(t, { next: t.nextCheckIn ? formatCleaningDay(t.nextCheckIn) : "" });
+    const vars = taskVars(t, { next: t.nextCheckIn ? dayVar(t.nextCheckIn) : "" });
     const title = t.date === today ? (t.assignee ? "Hoy: limpieza" : "Hoy: limpieza sin asignar") : t.assignee ? "Mañana: limpieza" : "Mañana: limpieza sin asignar";
     notify(t, title, t.nextCheckIn ? "{listing} · {date} · llega huésped {next}." : "{listing} · {date}.", vars);
     updateCleaningTask(t.id, { remindedAt: new Date().toISOString() });

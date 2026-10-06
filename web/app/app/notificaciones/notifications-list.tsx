@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
+import { localizeVars } from "@/lib/notification-vars";
 import { useCached } from "../_components/cached-fetch";
 import { IconCalendar, IconChat, IconStar, IconToday } from "../_components/icons";
 import {
@@ -99,8 +100,12 @@ export function NotificationsList() {
         title={t("Notificaciones")}
         back="/"
         right={
-          <Link href="/alarmas" className="text-sm font-semibold text-[#222] underline">
-            {t("Alarmas")}
+          <Link
+            href="/alarmas"
+            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#222] bg-white px-3 py-1.5 text-[13px] font-semibold text-[#222] active:bg-[#f2f2f2]"
+          >
+            <span aria-hidden>⚙️</span>
+            {t("Configurar alarmas")}
           </Link>
         }
       />
@@ -147,6 +152,7 @@ export function NotificationsList() {
                 <ul>
                   {g.items.map((n) => {
                     const isNew = fresh?.has(n.id) ?? !n.readAt;
+                    const vars = localizeVars(n.vars, lang);
                     return (
                       <li key={n.id}>
                         <Link
@@ -155,9 +161,9 @@ export function NotificationsList() {
                         >
                           <KindIcon kind={n.kind} />
                           <div className="min-w-0 flex-1">
-                            <p className="text-[15px] font-semibold leading-snug text-[#222]">{t(n.title, n.vars)}</p>
+                            <p className="text-[15px] font-semibold leading-snug text-[#222]">{t(n.title, vars)}</p>
                             <p className="mt-0.5 line-clamp-2 text-sm text-[#555]">
-                              {n.rawBody ? n.body : t(n.body, n.vars)}
+                              {n.rawBody ? n.body : t(n.body, vars)}
                             </p>
                             <p className="mt-1 text-xs text-[#999]">{time(n.createdAt)}</p>
                           </div>

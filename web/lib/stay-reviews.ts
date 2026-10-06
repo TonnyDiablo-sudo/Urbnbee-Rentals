@@ -50,6 +50,7 @@ function notifyPublished(review: StayReviewRecord, booking: BookingRecord | unde
     notifyHostNewReview({
       hostId: review.hostId,
       listingId: review.listingId,
+      bookingId: review.bookingId,
       guestName: findUserById(review.authorUserId)?.fullName?.trim() || booking?.guestName || "",
       rating: review.rating,
     });

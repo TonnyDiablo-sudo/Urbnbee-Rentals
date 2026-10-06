@@ -493,6 +493,23 @@ if (hosts.some((h) => h.id === SOFIA)) {
       url: "/host/resenas?b=bkg_sofia_seed_roberto_done",
       createdAt: ago(15),
     });
+    const received = (readJson("stay-reviews.json", { reviews: [] }).reviews ?? [])
+      .filter((r) => r.hostId === SOFIA && r.kind === "guest_to_listing" && (r.status ?? "published") === "published")
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, 4);
+    for (const r of received) {
+      const guest = s?.users?.find((u) => u.id === r.authorUserId)?.fullName?.trim() || "Un huésped";
+      add({
+        id: `ntf_seed_got_${r.id}`,
+        userId: SOFIA,
+        kind: "review",
+        title: "{name} te dejó una reseña · {stars}",
+        body: "Calificó su estancia en {listing}. Toca para verla y reseñar tú también.",
+        vars: { name: guest, stars: "★".repeat(Math.max(1, Math.min(5, Math.round(r.rating)))), listing: titleOf(r.listingId) },
+        url: `/host/resenas?b=${r.bookingId}`,
+        createdAt: r.createdAt,
+      });
+    }
     add({
       id: "ntf_seed_sofia_chat_insumos",
       userId: SOFIA,

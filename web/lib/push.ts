@@ -5,6 +5,7 @@ import { alarmOn } from "@/lib/notification-prefs-store";
 import type { BookingRecord } from "@/lib/booking-types";
 import { isLang, makeT } from "@/lib/i18n";
 import { findUserById, getListingById } from "@/lib/marketplace-store";
+import { localizeVars } from "@/lib/notification-vars";
 import { addNotification, type NotificationKind } from "@/lib/notifications-store";
 import { removeSubscription, subscriptionsForUser } from "@/lib/push-store";
 
@@ -101,11 +102,13 @@ export function notifyUser(userId: string, n: NotifyInput): void {
   } catch (e) {
     console.warn("[notifications] add failed:", e);
   }
-  const lang = findUserById(userId)?.lang;
-  const t = makeT(isLang(lang) ? lang : "es");
+  const userLang = findUserById(userId)?.lang;
+  const lang = isLang(userLang) ? userLang : "es";
+  const t = makeT(lang);
+  const vars = localizeVars(n.vars, lang);
   void sendPushToUser(userId, {
-    title: t(n.title, n.vars),
-    body: n.rawBody ? n.body : t(n.body, n.vars),
+    title: t(n.title, vars),
+    body: n.rawBody ? n.body : t(n.body, vars),
     url: n.url,
     tag: n.tag,
   });
@@ -279,13 +282,13 @@ export function notifyHostScreeningReady(p: { hostId: string; guestName: string 
 
 const starsOf = (rating: number) => "★".repeat(Math.max(1, Math.min(5, Math.round(rating))));
 
-export function notifyHostNewReview(p: { hostId: string; listingId: string; guestName: string; rating: number }): void {
+export function notifyHostNewReview(p: { hostId: string; listingId: string; bookingId: string; guestName: string; rating: number }): void {
   notifyUser(p.hostId, {
     kind: "review",
     title: "{name} te dejó una reseña · {stars}",
     body: "Calificó su estancia en {listing}. Toca para verla y reseñar tú también.",
     vars: { stars: starsOf(p.rating), name: p.guestName, listing: listingTitle(p.listingId) },
-    url: "/host/resenas",
+    url: `/host/resenas?b=${encodeURIComponent(p.bookingId)}`,
   });
 }
 
