@@ -29,6 +29,7 @@ import type { ListingImportUsageSummary } from "@/lib/listing-import-usage";
 import { useT } from "@/components/i18n-provider";
 import { COUNTRY_OPTIONS, isMexico, MX_STATE_LIST } from "@/lib/geo-places";
 import { exactAddressProblem, listingNeedsUnit } from "@/lib/listing-address";
+import { StreetFields } from "@/components/host/street-fields";
 import { ContractReviewNotice } from "@/components/host/contract-review-notice";
 import { ContractTips, MIN_STAY_CLAUSE } from "@/components/host/contract-tips";
 
@@ -640,16 +641,14 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 onBlur={() => saveListing({ zone: listing.zone })}
               />
             </Field>
-            <Field label="Calle, número exterior y código postal">
-              <input
-                className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
-                value={listing.addressLine}
-                placeholder={t("Ej.: Colima 123, CP 06700")}
-                onChange={(e) => setListing({ ...listing, addressLine: e.target.value })}
-                onBlur={() => saveListing({ addressLine: listing.addressLine })}
-              />
-            </Field>
           </div>
+          <StreetFields
+            key={listing.id}
+            value={listing.addressLine}
+            inputClassName="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+            onChange={(line) => setListing((l) => (l ? { ...l, addressLine: line } : l))}
+            onCommit={(line) => void saveListing({ addressLine: line })}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={listingNeedsUnit(listing) ? "Número interior o departamento" : "Número interior, depto o piso (si aplica)"}>
               <input

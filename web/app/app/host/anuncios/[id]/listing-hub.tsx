@@ -15,7 +15,7 @@ import { bathroomsKey, selfCheckInKey } from "@/lib/listing-facts";
 import { isMonthlyRental } from "@/lib/listing-pricing";
 import { getContractTemplate } from "@/lib/booking-contract-templates";
 import { COUNTRY_OPTIONS, isMexico, MX_STATE_LIST } from "@/lib/geo-places";
-import { exactAddressProblem, listingFullAddress, listingNeedsUnit } from "@/lib/listing-address";
+import { exactAddressProblem, joinStreet, listingFullAddress, listingNeedsUnit, splitStreet } from "@/lib/listing-address";
 import { sizedImage } from "@/lib/image-url";
 import { taxActive, type HostTaxSettings } from "@/lib/stay-tax";
 import type { ListingCategory } from "@/lib/mock-data";
@@ -610,8 +610,28 @@ function PanelBody({
     agentFaq: (listing.agentFaq ?? []).map((f) => ({ ...f })) as AgentFaqItem[],
     agentNotes: listing.agentNotes ?? "",
   }));
+  const [addr, setAddr] = useState(() => splitStreet(listing.addressLine));
+  const addressLine = joinStreet(addr);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const editAddr = (next: typeof addr) => {
+    setAddr(next);
+    setErr(null);
+  };
+  const errRef = useRef<HTMLParagraphElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const addrErr = (field: "street" | "number" | "unit") =>
+    id === "location" && err && (field === "street" ? /calle/i : field === "number" ? /exterior/i : /interior/i).test(err) ? (
+      <span data-field-error className="mt-1 block text-sm font-medium text-red-700">
+        {t(err)}
+      </span>
+    ) : null;
+
+  useEffect(() => {
+    if (!err) return;
+    const target = bodyRef.current?.querySelector("[data-field-error]") ?? errRef.current;
+    target?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [err]);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -654,7 +674,7 @@ function PanelBody({
           county: draft.county,
           state: draft.state,
           country: draft.country,
-          addressLine: draft.addressLine.trim(),
+          addressLine,
           addressUnit: draft.noAddressUnit ? "" : draft.addressUnit.trim(),
           noAddressUnit: draft.noAddressUnit,
           locationPrecision: draft.locationPrecision,
@@ -684,7 +704,7 @@ function PanelBody({
       return;
     }
     if (id === "location" && listing.published) {
-      const problem = exactAddressProblem({ ...listing, ...draft, categoryKey: listing.categoryKey });
+      const problem = exactAddressProblem({ ...listing, ...draft, addressLine, categoryKey: listing.categoryKey });
       if (problem) {
         setErr(problem);
         return;
@@ -698,7 +718,7 @@ function PanelBody({
     setErr(null);
     const body = bodyFor();
     if (id === "location") {
-      const q = [draft.addressLine, draft.zone, draft.city, draft.county, draft.state, draft.country]
+      const q = [addressLine, draft.zone, draft.city, draft.county, draft.state, draft.country]
         .map((x) => x.trim())
         .filter(Boolean)
         .join(", ");
@@ -734,7 +754,7 @@ function PanelBody({
           <h2 className="min-w-0 flex-1 truncate text-base font-semibold text-[#222]">{t(PANEL_TITLE[id])}</h2>
         </header>
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
+        <div ref={bodyRef} className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
           {id === "photos" && <PhotoManager listing={listing} onChange={onPhotos} />}
 
           {id === "title" && (
@@ -889,32 +909,83 @@ function PanelBody({
                 {t("La dirección exacta siempre es obligatoria: va en el contrato, en la guía de llegada y la usa tu agente de IA. Tú eliges abajo qué ve el público antes de reservar.")}
               </p>
               <label className="block text-sm font-medium text-[#222]">
-                {t("Calle, número exterior y código postal")}
+                {t("Calle")}
                 <input
-                  value={draft.addressLine}
-                  onChange={(e) => set("addressLine", e.target.value)}
-                  placeholder={t("Ej.: Colima 123, CP 06700")}
+                  value={addr.street}
+                  onChange={(e) => editAddr({ ...addr, street: e.target.value })}
+                  placeholder={t("Ej.: Colima")}
                   className={inputCls}
-                  autoComplete="street-address"
+                  autoComplete="address-line1"
                 />
-                <span className="mt-1 block text-xs text-[#717171]">{t("Al guardar, el mapa se centra con esta dirección.")}</span>
+                {addrErr("street")}
               </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-sm font-medium text-[#222]">
+                  {t("Número exterior")}
+                  <input
+                    value={addr.number === "S/N" ? "" : addr.number}
+                    disabled={addr.number === "S/N"}
+                    onChange={(e) => editAddr({ ...addr, number: e.target.value })}
+                    placeholder={t("Ej.: 123")}
+                    maxLength={20}
+                    className={`${inputCls} disabled:bg-[#f2f2f2]`}
+                  />
+                </label>
+                <label className="block text-sm font-medium text-[#222]">
+                  {t("Código postal")}
+                  <input
+                    value={addr.postalCode}
+                    onChange={(e) => editAddr({ ...addr, postalCode: e.target.value.replace(/\D/g, "").slice(0, 5) })}
+                    placeholder="06700"
+                    inputMode="numeric"
+                    className={inputCls}
+                    autoComplete="postal-code"
+                  />
+                </label>
+              </div>
+              <label className="flex items-center gap-3 text-sm text-[#222]">
+                <input
+                  type="checkbox"
+                  checked={addr.number === "S/N"}
+                  onChange={(e) => editAddr({ ...addr, number: e.target.checked ? "S/N" : "" })}
+                  className="h-5 w-5"
+                />
+                {t("No tiene número exterior (S/N)")}
+              </label>
+              {addrErr("number")}
+              {addressLine && (
+                <p className="-mt-2 text-xs text-[#717171]">
+                  {t("Así queda: {address}", { address: addressLine })} · {t("Al guardar, el mapa se centra con esta dirección.")}
+                </p>
+              )}
               <label className="block text-sm font-medium text-[#222]">
                 {t(listingNeedsUnit(listing) ? "Número interior o departamento" : "Número interior, depto o piso (si aplica)")}
                 <input
                   value={draft.noAddressUnit ? "" : draft.addressUnit}
                   disabled={draft.noAddressUnit}
                   maxLength={60}
-                  onChange={(e) => set("addressUnit", e.target.value)}
+                  onChange={(e) => {
+                    set("addressUnit", e.target.value);
+                    setErr(null);
+                  }}
                   placeholder={t("Ej.: Depto 4B, Torre 2")}
                   className={`${inputCls} disabled:bg-[#f2f2f2]`}
                   autoComplete="address-line2"
                 />
               </label>
               <label className="flex items-center gap-3 text-sm text-[#222]">
-                <input type="checkbox" checked={draft.noAddressUnit} onChange={(e) => set("noAddressUnit", e.target.checked)} className="h-5 w-5" />
+                <input
+                  type="checkbox"
+                  checked={draft.noAddressUnit}
+                  onChange={(e) => {
+                    set("noAddressUnit", e.target.checked);
+                    setErr(null);
+                  }}
+                  className="h-5 w-5"
+                />
                 {t("No tiene número interior")}
               </label>
+              {addrErr("unit")}
               <div className="space-y-2 rounded-xl border border-[#ebebeb] p-3">
                 <p className="text-sm font-semibold text-[#222]">{t("¿Qué ven los huéspedes antes de reservar?")}</p>
                 {(
@@ -1218,7 +1289,11 @@ function PanelBody({
           {id === "manual" && ta("houseManual", "Cómo usar el boiler, la tele, la basura, reglas de los vecinos…")}
           {id === "checkout" && ta("checkoutInstructions", "Ej.: Deja las llaves en la caja, saca la basura y apaga el aire.")}
 
-          {err && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{t(err)}</p>}
+          {err && (
+            <p ref={errRef} className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+              {t(err)}
+            </p>
+          )}
         </div>
 
         {id !== "photos" && (

@@ -34,7 +34,9 @@ import {
   type HostListing,
 } from "../_shared/host-data";
 import { ReservationSheet } from "../_shared/reservation-sheet";
+import { AllListingsMonth, BookingsDayList, DaySheet, scopedBookings } from "./bookings-overview";
 
+const ALL = "todos";
 const MONTHS_AHEAD = 12;
 const FIRST_PAINT_MONTHS = 2;
 const inputCls = "mt-1 w-full rounded-xl border border-[#ccc] px-3.5 py-3 text-base outline-none focus:border-[#222]";
@@ -77,18 +79,37 @@ export function HostCalendar() {
 
   const [wanted, setWanted] = useState(() => params.get("anuncio"));
   const [picked, setPicked] = useState(wanted);
+  const [view, setView] = useState<"cal" | "list">(() => (params.get("vista") === "lista" ? "list" : "cal"));
+  const [dayOpen, setDayOpen] = useState<string | null>(null);
   const [switching, startSwitch] = useTransition();
-  const listing = listings?.find((l) => l.id === wanted) ?? listings?.[0] ?? null;
+  const all = wanted === ALL;
+  const listing = all ? null : (listings?.find((l) => l.id === wanted) ?? listings?.[0] ?? null);
   const pickedId = picked ?? listing?.id;
 
+  const syncUrl = (anuncio: string | null, vista: "cal" | "list") => {
+    const q = new URLSearchParams();
+    if (anuncio) q.set("anuncio", anuncio);
+    if (vista === "list") q.set("vista", "lista");
+    const s = q.toString();
+    window.history.replaceState(null, "", `/host/calendario${s ? `?${s}` : ""}`);
+  };
+
   const choose = (id: string) => {
-    window.history.replaceState(null, "", `/host/calendario?anuncio=${encodeURIComponent(id)}`);
+    syncUrl(id, view);
     setPicked(id);
     startSwitch(() => {
       setSel(NO_NIGHTS);
       setWanted(id);
     });
   };
+
+  const switchView = (v: "cal" | "list") => {
+    syncUrl(pickedId ?? null, v);
+    setSel(NO_NIGHTS);
+    setView(v);
+  };
+
+  const scoped = useMemo(() => scopedBookings(bookings, all ? null : (listing?.id ?? null)), [bookings, all, listing]);
 
   /** Noche → reserva que la ocupa, para este anuncio. */
   const nightToBooking = useMemo(() => {
@@ -142,7 +163,7 @@ export function HostCalendar() {
 
   if (listings === null) return <p className="px-5 py-6 text-sm text-[#999]">{t("Cargando…")}</p>;
 
-  if (!listing) {
+  if (!listings.length) {
     return (
       <div className="px-5 py-8">
         <p className="text-base font-semibold text-[#222]">{t("Todavía no tienes anuncios")}</p>
@@ -159,7 +180,39 @@ export function HostCalendar() {
 
   return (
     <div className="pb-40">
+      <div className="px-5 pb-3">
+        <div role="tablist" className="grid grid-cols-2 gap-1 rounded-full border border-[#e5e5e5] bg-white p-1">
+          {(
+            [
+              ["cal", "📅", "Calendario"],
+              ["list", "☰", "Lista por días"],
+            ] as const
+          ).map(([v, icon, label]) => (
+            <button
+              key={v}
+              type="button"
+              role="tab"
+              aria-selected={view === v}
+              onClick={() => switchView(v)}
+              className={`flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold ${view === v ? "bg-[#222] text-white" : "text-[#484848]"}`}
+            >
+              <span aria-hidden>{icon}</span>
+              {t(label)}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="flex gap-2.5 overflow-x-auto px-5 pb-3 [scrollbar-width:none]">
+        {listings.length > 1 && (
+          <button
+            type="button"
+            onClick={() => choose(ALL)}
+            className={`flex w-28 shrink-0 items-center gap-2 rounded-2xl border p-1.5 pr-3 text-left ${pickedId === ALL ? "border-[#222] ring-1 ring-[#222]" : "border-[#e5e5e5]"}`}
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fdf6d8] text-lg">🏘️</span>
+            <span className="text-xs font-semibold leading-tight text-[#222]">{t("Todos")}</span>
+          </button>
+        )}
         {listings.map((l) => {
           const on = l.id === pickedId;
           return (
@@ -181,46 +234,69 @@ export function HostCalendar() {
         })}
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-y border-[#f0f0f0] px-5 py-2.5">
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#717171]">
-          <Legend cls="bg-[#111]" label={t("Reservada")} />
-          <Legend cls="bg-[#f3d45c]" label={t("Por responder")} />
-          <Legend cls="bg-[#e9e9e9] bg-[repeating-linear-gradient(135deg,transparent_0_4px,#cfcfcf_4px_5px)]" label={t("Bloqueada")} />
+      {view === "list" ? (
+        <div className={`border-t border-[#f0f0f0] transition-opacity ${switching ? "opacity-50" : ""}`}>
+          <BookingsDayList bookings={scoped} today={today} showListing={all} onOpen={setOpenBooking} />
         </div>
-        <button
-          type="button"
-          onClick={() => setSettingsOpen(true)}
-          className="shrink-0 rounded-full border border-[#222] px-3.5 py-1.5 text-sm font-semibold text-[#222]"
-        >
-          {t("Precios")}
-        </button>
-      </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-3 border-y border-[#f0f0f0] px-5 py-2.5">
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#717171]">
+              {all ? (
+                <>
+                  <Legend cls="bg-[#111]" label={t("Todos ocupados")} />
+                  <Legend cls="bg-[#555]" label={t("Algunos ocupados")} />
+                  <Legend cls="bg-[#f3d45c]" label={t("Por responder")} />
+                  <Legend cls="bg-[#1e7a3a]" label={t("Llegadas")} />
+                </>
+              ) : (
+                <>
+                  <Legend cls="bg-[#111]" label={t("Reservada")} />
+                  <Legend cls="bg-[#f3d45c]" label={t("Por responder")} />
+                  <Legend cls="bg-[#e9e9e9] bg-[repeating-linear-gradient(135deg,transparent_0_4px,#cfcfcf_4px_5px)]" label={t("Bloqueada")} />
+                </>
+              )}
+            </div>
+            {listing && (
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                className="shrink-0 rounded-full border border-[#222] px-3.5 py-1.5 text-sm font-semibold text-[#222]"
+              >
+                {t("Precios")}
+              </button>
+            )}
+          </div>
 
-      <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-[#f0f0f0] bg-white px-3 py-2 text-center text-[11px] font-medium text-[#999]">
-        {["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"].map((d) => (
-          <span key={d}>{t(d)}</span>
-        ))}
-      </div>
+          <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-[#f0f0f0] bg-white px-3 py-2 text-center text-[11px] font-medium text-[#999]">
+            {["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"].map((d) => (
+              <span key={d}>{t(d)}</span>
+            ))}
+          </div>
 
-      <div className={`transition-opacity ${switching ? "opacity-50" : ""}`}>
-        {months.slice(0, monthsShown).map((m) => {
-          const mk = monthKey(m);
-          return (
-            <MonthGrid
-              key={mk}
-              month={m}
-              lang={lang}
-              today={today}
-              listing={listing}
-              nightToBooking={nightToBooking}
-              selKey={selected.filter((d) => d.startsWith(mk)).join(",")}
-              onTap={tapDay}
-            />
-          );
-        })}
-      </div>
+          <div className={`transition-opacity ${switching ? "opacity-50" : ""}`}>
+            {months.slice(0, monthsShown).map((m) => {
+              const mk = monthKey(m);
+              return listing ? (
+                <MonthGrid
+                  key={mk}
+                  month={m}
+                  lang={lang}
+                  today={today}
+                  listing={listing}
+                  nightToBooking={nightToBooking}
+                  selKey={selected.filter((d) => d.startsWith(mk)).join(",")}
+                  onTap={tapDay}
+                />
+              ) : (
+                <AllListingsMonth key={mk} month={m} today={today} bookings={scoped} total={listings.length} onTap={setDayOpen} />
+              );
+            })}
+          </div>
+        </>
+      )}
 
-      {sel.size > 0 && (
+      {sel.size > 0 && listing && view === "cal" && (
         <div
           className="fixed inset-x-0 z-40 border-t border-[#ebebeb] bg-white"
           style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}
@@ -252,27 +328,42 @@ export function HostCalendar() {
         </p>
       )}
 
-      <NightsEditor
-        key={`${listing.id}:${editOpen}`}
-        open={editOpen}
-        listing={listing}
-        nights={selected}
-        onClose={() => setEditOpen(false)}
-        onSaved={() => {
-          setEditOpen(false);
-          setSel(NO_NIGHTS);
-          setToast("Calendario actualizado.");
-        }}
-      />
+      {listing && (
+        <>
+          <NightsEditor
+            key={`${listing.id}:${editOpen}`}
+            open={editOpen}
+            listing={listing}
+            nights={selected}
+            onClose={() => setEditOpen(false)}
+            onSaved={() => {
+              setEditOpen(false);
+              setSel(NO_NIGHTS);
+              setToast("Calendario actualizado.");
+            }}
+          />
 
-      <PriceSettings
-        key={`${listing.id}:${settingsOpen}`}
-        open={settingsOpen}
-        listing={listing}
-        onClose={() => setSettingsOpen(false)}
-        onSaved={() => {
-          setSettingsOpen(false);
-          setToast("Precios guardados.");
+          <PriceSettings
+            key={`${listing.id}:${settingsOpen}`}
+            open={settingsOpen}
+            listing={listing}
+            onClose={() => setSettingsOpen(false)}
+            onSaved={() => {
+              setSettingsOpen(false);
+              setToast("Precios guardados.");
+            }}
+          />
+        </>
+      )}
+
+      <DaySheet
+        iso={dayOpen}
+        today={today}
+        bookings={scoped}
+        onClose={() => setDayOpen(null)}
+        onOpen={(b) => {
+          setDayOpen(null);
+          setOpenBooking(b);
         }}
       />
 
