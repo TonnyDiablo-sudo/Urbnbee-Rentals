@@ -1,3 +1,4 @@
+import { ChatsSwitch } from "@/components/team/chats-switch";
 import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 import { AuthGate } from "../_components/auth-gate";
@@ -16,7 +17,9 @@ export default async function AppGuestMessagesPage() {
     <>
       <TabHeader title={t("Mensajes")} />
       {user ? (
-        <GuestThreadList />
+        <ChatsSwitch guestsLabel="Anfitriones">
+          <GuestThreadList />
+        </ChatsSwitch>
       ) : (
         <AuthGate
           title="Chatea con anfitriones"

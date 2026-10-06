@@ -517,10 +517,22 @@ if (hosts.some((h) => h.id === SOFIA)) {
       title: "📦 Insumos",
       body: "Rosa: Bolsas de basura y shampoo de cortesía para Roma. En Coyoacán queda poca crema.",
       rawBody: true,
-      url: "/host/colaboradores?chat=tch_seed_sofia_insumos",
+      url: "/host/mensajes?tab=equipo&chat=tch_seed_sofia_insumos",
       groupKey: "team-chat:tch_seed_sofia_insumos",
       createdAt: ago(1, 4),
     });
+    for (const n of nf.notifications) {
+      const url = typeof n.url === "string" ? n.url : "";
+      const moved = url.startsWith("/host/colaboradores?chat=")
+        ? url.replace("/host/colaboradores?", "/host/mensajes?tab=equipo&")
+        : url.startsWith("/equipo?chat=")
+          ? url.replace("/equipo?", "/mensajes?tab=equipo&")
+          : null;
+      if (moved) {
+        n.url = moved;
+        changes++;
+      }
+    }
     writeJson("notifications.json", nf);
   }
 

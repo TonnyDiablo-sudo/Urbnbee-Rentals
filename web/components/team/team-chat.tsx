@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useT } from "@/components/i18n-provider";
+import { useLang, useT } from "@/components/i18n-provider";
 import { shrinkImage, useVoiceRecorder, VOICE_MAX_SEC } from "@/components/chat/media-input";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
+import { numberLocale } from "@/lib/i18n";
 
 type Person = { id: string; name: string; host: boolean };
 type Channel = {
@@ -83,8 +84,8 @@ const SUGGESTED = [
   { emoji: "🔧", name: "Mantenimiento" },
 ];
 
-const time = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const time = (iso: string, locale: string) =>
+  new Date(iso).toLocaleString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 async function call(url: string, method = "GET", body?: unknown) {
   const res = await fetch(url, {
@@ -100,6 +101,7 @@ async function call(url: string, method = "GET", body?: unknown) {
 /** Chats de equipo: el anfitrión y su gente arman los que quieran (cuentas, limpiezas, insumos…). */
 export function TeamChat({ hostId }: { hostId?: string }) {
   const t = useT();
+  const locale = numberLocale(useLang());
   const q = hostId ? `?host=${encodeURIComponent(hostId)}` : "";
   const [channels, setChannels] = useState<Channel[] | null>(null);
   const [locked, setLocked] = useState<string | null>(null);
@@ -115,7 +117,10 @@ export function TeamChat({ hostId }: { hostId?: string }) {
     const r = await call(`/api/team-chat${q}`);
     if (r.ok) {
       setLocked(null);
-      setChannels((r.j.channels as Channel[]) ?? []);
+      const list = (r.j.channels as Channel[]) ?? [];
+      setChannels(list);
+      const want = new URLSearchParams(window.location.search).get("chat");
+      if (want && list.some((c) => c.id === want)) setOpen((cur) => cur ?? want);
       setPeople((r.j.people as Person[]) ?? []);
       setMe(typeof r.j.me === "string" ? r.j.me : "");
       setIsHost(r.j.isHost === true);
@@ -127,8 +132,6 @@ export function TeamChat({ hostId }: { hostId?: string }) {
 
   useEffect(() => {
     const id = setTimeout(() => void load(), 0);
-    const want = new URLSearchParams(window.location.search).get("chat");
-    if (want) setOpen(want);
     return () => clearTimeout(id);
   }, [load]);
 
@@ -151,6 +154,11 @@ export function TeamChat({ hostId }: { hostId?: string }) {
         me={me}
         onBack={() => {
           setOpen(null);
+          const url = new URL(window.location.href);
+          if (url.searchParams.has("chat")) {
+            url.searchParams.delete("chat");
+            window.history.replaceState(null, "", url.toString());
+          }
           void load();
         }}
       />
@@ -242,7 +250,7 @@ export function TeamChat({ hostId }: { hostId?: string }) {
                   </span>
                   <span className="block truncate text-xs text-[#888]">{c.preview || t("Sin mensajes")}</span>
                 </span>
-                <span className="shrink-0 text-xs text-[#aaa]">{time(c.lastAt)}</span>
+                <span className="shrink-0 text-xs text-[#aaa]">{time(c.lastAt, locale)}</span>
               </button>
             </li>
           ))}
@@ -254,6 +262,7 @@ export function TeamChat({ hostId }: { hostId?: string }) {
 
 function ChannelView({ id, me, onBack }: { id: string; me: string; onBack: () => void }) {
   const t = useT();
+  const locale = numberLocale(useLang());
   const [data, setData] = useState<Thread | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [members, setMembers] = useState<string[] | null>(null);
@@ -429,7 +438,7 @@ function ChannelView({ id, me, onBack }: { id: string; me: string; onBack: () =>
               {m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
             </div>
             <span className="mt-0.5 flex gap-2 text-[11px] text-[#aaa]">
-              {time(m.at)}
+              {time(m.at, locale)}
               {(m.mine || data.canManage) && (
                 <button type="button" onClick={() => void removeMessage(m.id)} className="hidden underline group-hover:inline">
                   {t("Borrar")}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { ChatsSwitch } from "@/components/team/chats-switch";
 import { numberLocale } from "@/lib/i18n";
 
 type Thread = {
@@ -15,6 +16,14 @@ type Thread = {
 };
 
 export default function GuestMessagesPage() {
+  return (
+    <ChatsSwitch web guestsLabel="Anfitriones">
+      <GuestHostChats />
+    </ChatsSwitch>
+  );
+}
+
+function GuestHostChats() {
   const t = useT();
   const locale = numberLocale(useLang());
   const [threads, setThreads] = useState<Thread[]>([]);

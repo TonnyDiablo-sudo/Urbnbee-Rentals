@@ -2,6 +2,7 @@
 
 import { ChatAttachmentView, type ChatAttachmentClient } from "@/components/chat/attachment-view";
 import { MessageBody } from "@/components/chat/message-body";
+import { ChatsSwitch } from "@/components/team/chats-switch";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
@@ -29,6 +30,16 @@ type Thread = {
 };
 
 export default function HostMessagesPage() {
+  return (
+    <div className="mx-auto max-w-3xl">
+      <ChatsSwitch web own guestsLabel="Huéspedes">
+        <HostGuestChats />
+      </ChatsSwitch>
+    </div>
+  );
+}
+
+function HostGuestChats() {
   const t = useT();
   const lang = useLang();
   const [threads, setThreads] = useState<Thread[]>([]);

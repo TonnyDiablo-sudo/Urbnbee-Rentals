@@ -158,12 +158,17 @@ export function createTeamChannel(
         title: "Te agregaron al chat {chat}",
         body: "{name} te agregó a un chat de equipo.",
         vars: { chat: `${c.emoji} ${c.name}`, name: nameOf(userId) },
-        url: id === hostId ? `/host/colaboradores?chat=${c.id}` : `/equipo?chat=${c.id}`,
+        url: chatUrl(id, c),
         tag: `team-chat:${c.id}`,
       });
     }
   }
   return { ok: true, id: c.id };
+}
+
+/** Los chats de equipo viven en Mensajes, pestaña «Colaboradores». */
+function chatUrl(userId: string, channel: TeamChannel) {
+  return `${userId === channel.hostId ? "/host/mensajes" : "/mensajes"}?tab=equipo&chat=${channel.id}`;
 }
 
 function channelFor(userId: string, channelId: string): { channel: TeamChannel; owner: boolean } | null {
@@ -196,7 +201,7 @@ export function editTeamChannel(userId: string, channelId: string, raw: { name?:
         title: "Te agregaron al chat {chat}",
         body: "{name} te agregó a un chat de equipo.",
         vars: { chat: `${next.emoji} ${next.name}`, name: nameOf(userId) },
-        url: id === next.hostId ? `/host/colaboradores?chat=${next.id}` : `/equipo?chat=${next.id}`,
+        url: chatUrl(id, next),
         tag: `team-chat:${next.id}`,
       });
     }
@@ -233,7 +238,7 @@ function announce(channel: TeamChannel, from: string, text: string) {
       title: `${channel.emoji} ${channel.name}`,
       body: `${who}: ${text}`.slice(0, 160),
       rawBody: true,
-      url: id === channel.hostId ? `/host/colaboradores?chat=${channel.id}` : `/equipo?chat=${channel.id}`,
+      url: chatUrl(id, channel),
       tag: `team-chat:${channel.id}`,
     });
   }

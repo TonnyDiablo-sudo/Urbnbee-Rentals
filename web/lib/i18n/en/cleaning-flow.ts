@@ -1,5 +1,7 @@
 /** Limpieza por pestañas, confirmación, cancelación con motivo, aprobación, insumos por anuncio y grupos de chat. */
 export const cleaningFlow: Record<string, string> = {
+  "Chats con huéspedes y con tu equipo. Es gratis.": "Chats with guests and with your team. Free.",
+  "Equipo de {name}": "{name}'s team",
   // Pestañas del panel
   "Secciones de limpieza": "Cleaning sections",
   "Por anuncio": "By listing",
