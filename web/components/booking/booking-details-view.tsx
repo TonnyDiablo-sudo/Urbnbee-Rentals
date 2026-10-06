@@ -9,6 +9,8 @@ import { useSiteUrl } from "@/app/app/_components/site-origin";
 import type { BookingDetails } from "@/lib/booking-details";
 import { numberLocale } from "@/lib/i18n";
 
+const profileHref = (userId: string) => `/persona/${encodeURIComponent(userId)}`;
+
 const METHOD: Record<string, string> = { stripe: "Tarjeta (Stripe)", clabe: "Transferencia (CLABE)", zelle: "Zelle", cashapp: "Cash App", oxxo: "Oxxo" };
 
 function longDay(iso: string, lang: string): string {
@@ -108,27 +110,58 @@ export function BookingDetailsView({ url, chatHref, actions }: { url: string; ch
           <section className={box}>
             <h2 className={h2}>{t("Quién se queda")}</h2>
             <ul className="mt-2 divide-y divide-[#f0f0f0]">
-              {d.people.map((p, i) => (
-                <li key={i} className="flex items-center gap-3 py-2.5">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#111] text-sm font-bold text-[#dcb81e]">
-                    {p.name.trim().charAt(0).toUpperCase() || "?"}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] font-medium text-[#222]">{p.name}</p>
-                    <p className="text-xs text-[#717171]">
-                      {p.booker ? t("Reservó") : t("Acompañante")}
-                      {p.hasAccount ? ` · ${t("con cuenta de Cabibee")}` : ""}
-                    </p>
-                  </div>
-                </li>
-              ))}
+              {d.people.map((p, i) => {
+                const avatar = p.booker ? d.booker.avatarUrl : undefined;
+                const inner = (
+                  <>
+                    {avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#111] text-sm font-bold text-[#dcb81e]">
+                        {p.name.trim().charAt(0).toUpperCase() || "?"}
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className={`truncate text-[15px] font-medium text-[#222] ${p.userId ? "underline-offset-2 group-hover:underline" : ""}`}>{p.name}</p>
+                      <p className="text-xs text-[#717171]">
+                        {p.booker ? t("Reservó") : t("Acompañante")}
+                        {p.hasAccount ? ` · ${t("con cuenta de Cabibee")}` : ""}
+                      </p>
+                    </div>
+                    {p.userId && (
+                      <span aria-hidden className="shrink-0 text-lg text-[#999]">
+                        ›
+                      </span>
+                    )}
+                  </>
+                );
+                return (
+                  <li key={i}>
+                    {p.userId ? (
+                      <Link href={profileHref(p.userId)} aria-label={t("Ver perfil de {name}", { name: p.name })} className="group flex items-center gap-3 py-2.5">
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-3 py-2.5">{inner}</div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
             {!d.guestCount && <p className="mt-1 text-xs text-[#999]">{t("Esta reserva se hizo antes de pedir el número de huéspedes.")}</p>}
           </section>
 
           {host ? (
             <section className={box}>
-              <h2 className={h2}>{t("Quién reserva")}</h2>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className={h2}>{t("Quién reserva")}</h2>
+                {d.booker.userId && (
+                  <Link href={profileHref(d.booker.userId)} className="shrink-0 rounded-full border border-[#ddd] px-3 py-1.5 text-xs font-semibold text-[#222]">
+                    {t("Ver perfil")}
+                  </Link>
+                )}
+              </div>
               <dl className="mt-2 space-y-1.5 text-[15px]">
                 <Row label={t("Nombre")} value={d.booker.name} />
                 {d.booker.email && <Row label={t("Correo")} value={d.booker.email} />}
@@ -142,22 +175,29 @@ export function BookingDetailsView({ url, chatHref, actions }: { url: string; ch
             <section className={box}>
               <h2 className={h2}>{t("Tu anfitrión")}</h2>
               <div className="mt-2 flex items-center gap-3">
-                {d.host.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={d.host.avatarUrl} alt="" className="h-11 w-11 rounded-full object-cover" />
-                ) : (
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#111] font-bold text-[#dcb81e]">
-                    {d.host.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
-                <div className="min-w-0">
-                  <p className="text-[15px] font-semibold text-[#222]">{d.host.name}</p>
+                <Link href={profileHref(d.host.id)} aria-label={t("Ver perfil de {name}", { name: d.host.name })} className="shrink-0">
+                  {d.host.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={d.host.avatarUrl} alt="" className="h-11 w-11 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#111] font-bold text-[#dcb81e]">
+                      {d.host.name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </Link>
+                <div className="min-w-0 flex-1">
+                  <Link href={profileHref(d.host.id)} className="block text-[15px] font-semibold text-[#222] hover:underline">
+                    {d.host.name}
+                  </Link>
                   {d.host.phone && (
                     <a href={`tel:${d.host.phone.replace(/\s+/g, "")}`} className="text-sm text-[#222] underline">
                       {d.host.phone}
                     </a>
                   )}
                 </div>
+                <Link href={profileHref(d.host.id)} className="shrink-0 rounded-full border border-[#ddd] px-3 py-1.5 text-xs font-semibold text-[#222]">
+                  {t("Ver perfil")}
+                </Link>
               </div>
             </section>
           )}
@@ -170,14 +210,23 @@ export function BookingDetailsView({ url, chatHref, actions }: { url: string; ch
                 <Row label={t("Huésped")} value={d.contract.guestSignedAt ? `✓ ${stamp(d.contract.guestSignedAt, lang)}` : t("Sin firmar")} />
               </dl>
               {d.role !== "companion" && (
-                <a
-                  href={siteUrl(d.contract.url)}
-                  target="_blank"
-                  rel="noopener"
-                  className="mt-3 block rounded-xl border border-[#222] py-2.5 text-center text-sm font-semibold text-[#222]"
-                >
-                  {t("Ver contrato")}
-                </a>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <a
+                    href={siteUrl(d.contract.url)}
+                    target="_blank"
+                    rel="noopener"
+                    className="rounded-xl border border-[#222] py-2.5 text-center text-sm font-semibold text-[#222]"
+                  >
+                    {t("Ver contrato")}
+                  </a>
+                  <a
+                    href={`/api/bookings/contract?token=${encodeURIComponent(d.token)}&format=pdf`}
+                    download={`contrato-${d.token}.pdf`}
+                    className="rounded-xl bg-[#111] py-2.5 text-center text-sm font-semibold text-white"
+                  >
+                    {t("Descargar PDF")}
+                  </a>
+                </div>
               )}
             </section>
           )}
@@ -215,6 +264,28 @@ export function BookingDetailsView({ url, chatHref, actions }: { url: string; ch
               {c.refundedMxn > 0 && <Row label={t("Reembolsado")} value={`${fmtMxn(c.refundedMxn)}${c.refundedAt ? ` · ${stamp(c.refundedAt, lang)}` : ""}`} />}
               <Row label={t("Reservada el")} value={stamp(d.createdAt, lang)} />
             </dl>
+            {d.stripe && (
+              <div className="mt-3 rounded-xl border border-[#ebebeb] px-3 py-2.5">
+                <p className="text-sm font-semibold text-[#222]">{t("Cargo bancario")}</p>
+                <dl className="mt-1.5 space-y-1 text-sm">
+                  <Row label={t("Cobrado")} value={`${fmtMxn(d.stripe.amountMxn)} · ${stamp(d.stripe.paidAt, lang)}`} />
+                  {d.stripe.card && (
+                    <Row label={t("Tarjeta")} value={`${d.stripe.card.brand.toUpperCase()} •••• ${d.stripe.card.last4}`} />
+                  )}
+                  <Row label={t("Referencia")} value={d.stripe.reference} />
+                </dl>
+                {d.stripe.receiptUrl && (
+                  <a
+                    href={d.stripe.receiptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-sm font-semibold text-[#222] underline print:hidden"
+                  >
+                    {t("Ver comprobante de Stripe")}
+                  </a>
+                )}
+              </div>
+            )}
             {d.deposit && d.deposit.amountMxn > 0 && (
               <p className="mt-3 rounded-xl bg-[#f7f7f7] px-3 py-2 text-xs text-[#555]">
                 {t("Depósito pactado: ${amount} MXN. Se entrega entre ustedes; Cabibee no lo cobra ni lo guarda.", {

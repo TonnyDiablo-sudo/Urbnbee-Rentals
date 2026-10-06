@@ -1,6 +1,6 @@
 import { HostStatsView } from "@/components/host/host-stats-view";
 import { StatsEmailGate } from "@/components/host/stats-email-gate";
-import { getT } from "@/lib/i18n/server";
+import { getLang, getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 import { statsLocked } from "@/lib/stats-access";
 
@@ -11,7 +11,7 @@ export async function generateMetadata() {
 
 export default async function WebHostStatsPage() {
   const user = (await getSessionUser())!;
-  const t = await getT();
+  const [t, lang] = await Promise.all([getT(), getLang()]);
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
       <h1 className="mb-1 text-2xl font-bold text-[#222]">{t("Estadísticas y sugerencias")}</h1>
@@ -19,7 +19,7 @@ export default async function WebHostStatsPage() {
       {statsLocked(user) ? (
         <StatsEmailGate email={user.email} placeholder={Boolean(user.placeholderEmail)} />
       ) : (
-        <HostStatsView hostId={user.id} t={t} surface="web" />
+        <HostStatsView hostId={user.id} t={t} lang={lang} surface="web" />
       )}
     </div>
   );

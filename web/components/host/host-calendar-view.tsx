@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { HostBookingSearch } from "@/components/host/booking-search";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 
 const MONTH_NAMES = [
@@ -443,6 +444,7 @@ export function HostCalendarView() {
               )}
             </p>
           </div>
+          <HostBookingSearch className="w-full sm:w-[420px]" />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-b border-[#ebebeb] pb-4">

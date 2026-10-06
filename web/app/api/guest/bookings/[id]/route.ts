@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bookingDetails, bookingRoleFor } from "@/lib/booking-details";
+import { bookingDetails, bookingRoleFor, withStripeReceipt } from "@/lib/booking-details";
 import { getBookingById } from "@/lib/bookings-store";
 import { getSessionUser } from "@/lib/session";
 
@@ -13,5 +13,5 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   const b = getBookingById(id);
   const role = b ? bookingRoleFor(user.id, b) : null;
   if (!b || !role) return NextResponse.json({ error: "No encontrada." }, { status: 404 });
-  return NextResponse.json({ booking: bookingDetails(b, role) });
+  return NextResponse.json({ booking: await withStripeReceipt(b, bookingDetails(b, role)) });
 }

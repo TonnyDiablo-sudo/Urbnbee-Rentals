@@ -4,7 +4,7 @@ import { listBookingsForHost } from "@/lib/bookings-store";
 import type { TFn } from "@/lib/i18n";
 import { getListingById } from "@/lib/marketplace-store";
 
-const STATUS_LABEL: Record<BookingStatus, string> = {
+export const STATUS_LABEL: Record<BookingStatus, string> = {
   AWAITING_PAYMENT: "Esperando pago",
   PENDING: "Pendiente",
   PENDING_HOST: "Por aceptar",
@@ -35,6 +35,7 @@ export type EarningsRow = {
   netMxn: number;
   paidAt: string;
   createdAt: string;
+  method?: string;
 };
 
 const round = (n: number) => Math.round(n * 100) / 100;
@@ -73,6 +74,7 @@ function rowOf(b: BookingRecord): EarningsRow {
     netMxn: round(collected - refunded),
     paidAt: b.paidAt?.slice(0, 10) ?? "",
     createdAt: b.createdAt.slice(0, 10),
+    method: b.payConfirmation?.method ?? (b.stripeCheckoutSessionId || b.stripePaymentIntentId ? "stripe" : undefined),
   };
 }
 
@@ -82,10 +84,11 @@ export function earningsYears(hostId: string): number[] {
   return [...years].filter(Number.isFinite).sort((a, b) => b - a);
 }
 
-/** Reservas del año (por llegada); `year` null = todas. */
-export function earningsRows(hostId: string, year: number | null): EarningsRow[] {
+/** Reservas del año (por llegada); `year` null = todas. Con `month` (1-12), sólo ese mes del año. */
+export function earningsRows(hostId: string, year: number | null, month?: number | null): EarningsRow[] {
+  const prefix = year === null ? "" : month ? `${year}-${String(month).padStart(2, "0")}-` : `${year}-`;
   return listBookingsForHost(hostId)
-    .filter((b) => counts(b) && (year === null || b.checkIn.startsWith(`${year}-`)))
+    .filter((b) => counts(b) && b.checkIn.startsWith(prefix))
     .sort((a, b) => a.checkIn.localeCompare(b.checkIn))
     .map(rowOf);
 }
@@ -151,6 +154,65 @@ export function earningsCsv(rows: EarningsRow[], t: TFn): string {
       r.paidAt,
       r.createdAt,
     ]
+      .map(cell)
+      .join(",")
+  );
+  return "\uFEFF" + [header.join(","), ...lines].join("\r\n") + "\r\n";
+}
+
+export type EarningsMonth = {
+  /** AAAA-MM */
+  month: string;
+  bookings: number;
+  nights: number;
+  collectedMxn: number;
+  refundedMxn: number;
+  netMxn: number;
+  taxMxn: number;
+};
+
+/** Totales por mes de llegada, del más viejo al más reciente. */
+export function earningsByMonth(rows: EarningsRow[]): EarningsMonth[] {
+  const map = new Map<string, EarningsRow[]>();
+  for (const r of rows) {
+    const k = r.checkIn.slice(0, 7);
+    map.set(k, [...(map.get(k) ?? []), r]);
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, list]) => {
+      const s = earningsSummary(list);
+      return {
+        month,
+        bookings: s.bookings,
+        nights: s.nights,
+        collectedMxn: round(list.reduce((n, r) => n + r.collectedMxn, 0)),
+        refundedMxn: round(list.reduce((n, r) => n + r.refundedMxn, 0)),
+        netMxn: s.netMxn,
+        taxMxn: s.taxMxn,
+      };
+    });
+}
+
+export function earningsMonthlyCsv(rows: EarningsRow[], t: TFn): string {
+  const header = ["Mes", "Reservas", "Noches", "Cobrado (MXN)", "Devuelto (MXN)", "Impuestos (MXN)", "Ingreso neto (MXN)"].map((h) => cell(t(h)));
+  const months = earningsByMonth(rows);
+  const lines = months.map((m) =>
+    [m.month, m.bookings, m.nights, m.collectedMxn.toFixed(2), m.refundedMxn.toFixed(2), m.taxMxn.toFixed(2), m.netMxn.toFixed(2)].map(cell).join(",")
+  );
+  const total = months.reduce(
+    (a, m) => ({
+      bookings: a.bookings + m.bookings,
+      nights: a.nights + m.nights,
+      collected: a.collected + m.collectedMxn,
+      refunded: a.refunded + m.refundedMxn,
+      tax: a.tax + m.taxMxn,
+      net: a.net + m.netMxn,
+    }),
+    { bookings: 0, nights: 0, collected: 0, refunded: 0, tax: 0, net: 0 }
+  );
+  lines.push(
+    [t("Total"), total.bookings, total.nights, total.collected.toFixed(2), total.refunded.toFixed(2), total.tax.toFixed(2), total.net.toFixed(2)]
       .map(cell)
       .join(",")
   );

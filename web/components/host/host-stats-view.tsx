@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { EarningsDownload } from "@/components/money/earnings-download";
 import { earningsRows, earningsSummary, earningsYears } from "@/lib/host-earnings-report";
-import type { TFn } from "@/lib/i18n";
+import type { Lang, TFn } from "@/lib/i18n";
 import { getListingStats, type ListingStats } from "@/lib/listing-stats-store";
 import { suggestionsForListing } from "@/lib/listing-suggestions";
 import { listListingsForHost } from "@/lib/marketplace-store";
@@ -25,10 +26,12 @@ function Sparkline({ daily }: { daily: ListingStats["daily"] }) {
 export function HostStatsView({
   hostId,
   t,
+  lang,
   surface,
 }: {
   hostId: string;
   t: TFn;
+  lang: Lang;
   surface: "app" | "web";
 }) {
   const newHref = surface === "app" ? "/host/anuncios/nuevo" : "/host/listings/new";
@@ -81,26 +84,12 @@ export function HostStatsView({
             <dd className="mt-0.5 text-[15px] font-bold text-[#222]">{report.bookings}</dd>
           </div>
         </dl>
-        <form action="/api/host/stats/bookings-csv" method="get" className="mt-3 flex flex-wrap items-center gap-2">
-          <select
-            name="year"
-            defaultValue={String(reportYear)}
-            aria-label={t("Año")}
-            className="rounded-xl border border-[#ddd] bg-white px-3 py-2 text-sm text-[#222]"
-          >
-            {[...new Set([thisYear, ...years])]
-              .sort((a, b) => b - a)
-              .map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            <option value="todas">{t("Todos los años")}</option>
-          </select>
-          <button type="submit" className="rounded-xl bg-[#222] px-4 py-2 text-sm font-semibold text-white">
-            {t("Descargar CSV")}
-          </button>
-        </form>
+        <div className="mt-3">
+          <EarningsDownload years={years} year={reportYear} t={t} lang={lang} />
+        </div>
+        <Link href="/host/pagos-recibidos" className="mt-2 inline-block text-sm font-semibold text-[#222] underline">
+          {t("Ver pagos recibidos")}
+        </Link>
         <p className="mt-2 text-xs text-[#999]">
           {t("Se abre en Excel o Google Sheets. Los impuestos son los que configuraste en tus anuncios; confirma con tu contador.")}
         </p>

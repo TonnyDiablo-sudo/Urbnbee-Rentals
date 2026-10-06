@@ -626,6 +626,9 @@ const PANEL_TITLE: Record<PanelId, string> = {
   agentNotes: "Información general",
 };
 
+const AGENT_PUBLIC_WARNING = (t: ReturnType<typeof useT>) =>
+  t("Tu agente le dice esto a cualquiera que pregunte, aunque no tenga reserva. Los códigos de acceso y el wifi van en la guía de llegada, que sólo reciben huéspedes confirmados.");
+
 /** Pantalla completa para editar una sección; guarda sólo lo de esa sección. */
 function PanelBody({
   id,
@@ -1128,6 +1131,7 @@ function PanelBody({
               <p className="text-sm leading-relaxed text-[#717171]">
                 {t("Lo que tus huéspedes siempre preguntan, con tu respuesta. Tu agente de urbnbeeai contesta con esto; el anuncio no lo muestra.")}
               </p>
+              <p className="rounded-xl bg-[#fdf6d8] px-3 py-2 text-sm text-[#6b5308]">{AGENT_PUBLIC_WARNING(t)}</p>
               {draft.agentFaq.map((f, i) => (
                 <div key={i} className="space-y-2 rounded-2xl border border-[#ebebeb] p-3">
                   <div className="flex items-start gap-2">
@@ -1194,7 +1198,8 @@ function PanelBody({
           )}
 
           {id === "agentNotes" && (
-            <label className="block text-sm font-medium text-[#222]">
+            <label className="block space-y-2 text-sm font-medium text-[#222]">
+              <span className="block rounded-xl bg-[#fdf6d8] px-3 py-2 font-normal text-[#6b5308]">{AGENT_PUBLIC_WARNING(t)}</span>
               {t("Todo lo que tu agente debe saber de tu negocio y que no está en otra sección.")}
               <textarea
                 value={draft.agentNotes}

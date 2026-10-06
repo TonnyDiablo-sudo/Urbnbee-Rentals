@@ -6,6 +6,7 @@ import type { BookingRecord } from "@/lib/booking-types";
 import { publicNameOf } from "@/lib/display-name";
 import { listingFullAddress } from "@/lib/listing-address";
 import { findUserById, getHostProfile, getListingById } from "@/lib/marketplace-store";
+import { stripeReceiptOf, type StripeReceipt } from "@/lib/stripe-receipt";
 import { isHostIdentityVerified } from "@/lib/verification-store";
 
 export type BookingDetailsRole = "host" | "guest" | "companion";
@@ -23,8 +24,9 @@ export type BookingDetails = {
   checkOutTime?: string;
   guestCount?: number;
   /** Quien reserva primero; después los acompañantes. */
-  people: { name: string; booker: boolean; hasAccount: boolean }[];
+  people: { name: string; booker: boolean; hasAccount: boolean; userId?: string }[];
   booker: {
+    userId?: string;
     name: string;
     email?: string;
     phone?: string;
@@ -32,7 +34,7 @@ export type BookingDetails = {
     memberSince?: string;
     avatarUrl?: string;
   };
-  host: { name: string; avatarUrl?: string; phone?: string };
+  host: { id: string; name: string; avatarUrl?: string; phone?: string };
   listing: { id: string; title: string; slug?: string; photo?: string; city?: string; lat?: number; lng?: number };
   cost: {
     stayMxn: number;
@@ -54,7 +56,20 @@ export type BookingDetails = {
   arrival?: ArrivalGuide & { address: string; exact: boolean };
   deposit?: { amountMxn: number; status: string; note: string };
   guestNotes?: string;
+  /** Cargo bancario según Stripe, si se pagó con tarjeta. */
+  stripe?: StripeReceipt;
 };
+
+/** El huésped ve su tarjeta y el comprobante de Stripe; el anfitrión sólo la referencia. Los acompañantes, nada. */
+export async function withStripeReceipt(raw: BookingRecord, details: BookingDetails): Promise<BookingDetails> {
+  if (details.role === "companion") return details;
+  const r = await stripeReceiptOf(raw);
+  if (!r) return details;
+  return {
+    ...details,
+    stripe: details.role === "guest" ? r : { reference: r.reference, amountMxn: r.amountMxn, paidAt: r.paidAt },
+  };
+}
 
 const LIVE = new Set(["CONFIRMED", "COMPLETED"]);
 
@@ -86,8 +101,8 @@ export function bookingDetails(raw: BookingRecord, role: BookingDetailsRole): Bo
   const method = b.payConfirmation?.method ?? (b.stripeCheckoutSessionId ? "stripe" : undefined);
 
   const people = [
-    { name: b.guestName, booker: true, hasAccount: Boolean(b.guestUserId) },
-    ...(b.party ?? []).map((p) => ({ name: p.name, booker: false, hasAccount: Boolean(p.userId) })),
+    { name: b.guestName, booker: true, hasAccount: Boolean(b.guestUserId), userId: b.guestUserId },
+    ...(b.party ?? []).map((p) => ({ name: p.name, booker: false, hasAccount: Boolean(p.userId), userId: p.userId })),
   ];
 
   return {
@@ -104,6 +119,7 @@ export function bookingDetails(raw: BookingRecord, role: BookingDetailsRole): Bo
     guestCount: b.guestCount,
     people,
     booker: {
+      userId: b.guestUserId,
       name: b.guestName,
       email: role === "host" || role === "guest" ? b.guestEmail : undefined,
       phone: role === "host" || role === "guest" ? b.guestPhone : undefined,
@@ -112,6 +128,7 @@ export function bookingDetails(raw: BookingRecord, role: BookingDetailsRole): Bo
       avatarUrl: guestProfile?.avatarUrl || undefined,
     },
     host: {
+      id: b.hostId,
       name: publicNameOf(hostUser) || "Anfitrión",
       avatarUrl: hostProfile?.avatarUrl || undefined,
       phone: role !== "host" && live ? hostUser?.phone : undefined,

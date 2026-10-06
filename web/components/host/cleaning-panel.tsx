@@ -34,8 +34,8 @@ type View = {
 type Tab = "calendario" | "equipo" | "anuncios" | "insumos" | "ajustes";
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: "calendario", icon: "🗓️", label: "Calendario" },
-  { id: "equipo", icon: "👥", label: "Quién limpia" },
   { id: "anuncios", icon: "🏠", label: "Por anuncio" },
+  { id: "equipo", icon: "👥", label: "Quién limpia" },
   { id: "insumos", icon: "🧴", label: "Insumos" },
   { id: "ajustes", icon: "⚙️", label: "Ajustes" },
 ];

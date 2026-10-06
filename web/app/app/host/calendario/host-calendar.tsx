@@ -16,6 +16,7 @@ import {
   type LongStayMonths,
   type MonthlyCharge,
 } from "@/lib/listing-pricing";
+import { BookingSearch } from "@/components/host/booking-search";
 import { LongStayDiscountFields } from "@/components/host/long-stay-discount-fields";
 import { sizedImage } from "@/lib/image-url";
 import { Sheet } from "../../_components/sheet";
@@ -180,6 +181,7 @@ export function HostCalendar() {
 
   return (
     <div className="pb-40">
+      <BookingSearch bookings={bookings} onOpen={setOpenBooking} className="px-5 pb-3" />
       <div className="px-5 pb-3">
         <div role="tablist" className="grid grid-cols-2 gap-1 rounded-full border border-[#e5e5e5] bg-white p-1">
           {(
