@@ -22,6 +22,13 @@ export async function register() {
   void restoreAttachmentMessagesFromMysql()
     .then((n) => n && console.log(`[host-inbox] ${n} mensajes con adjunto recuperados`))
     .catch((e) => console.warn("[host-inbox] restore", e));
+  const { ensureDemoContracts } = await import("@/lib/demo-contracts");
+  try {
+    const n = ensureDemoContracts();
+    if (n) console.log(`[demo contracts] ${n} reservas demo con contrato generado`);
+  } catch (e) {
+    console.warn("[demo contracts]", e);
+  }
   const { ensureDemoStayMedia } = await import("@/lib/demo-stay-media");
   void ensureDemoStayMedia().catch((e) => console.warn("[demo stay media]", e));
 }
