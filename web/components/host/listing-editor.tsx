@@ -1379,18 +1379,26 @@ function ArrivalTab({
         </button>
       </section>
 
-      <section className="space-y-4 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-[#484848]">{t("Mensajes de la estancia")}</h2>
-        <StayMessagesEditor listingId={listing.id} value={stay} onChange={setStay} />
-        <button
-          type="button"
-          onClick={() => onSave({ stayMessages: stay })}
-          className="rounded-full px-5 py-2.5 text-sm font-semibold text-black shadow transition hover:brightness-95"
-          style={{ backgroundColor: "#dcb81e" }}
-        >
-          {t("Guardar mensajes de la estancia")}
-        </button>
-      </section>
+      {(
+        [
+          ["welcome", "Mensaje de bienvenida"],
+          ["mid", "Mensaje durante la estancia"],
+          ["checkout", "Mensaje de salida"],
+        ] as const
+      ).map(([part, title]) => (
+        <section key={part} className="space-y-4 rounded-xl border border-[#ebebeb] bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-[#484848]">{t(title)}</h2>
+          <StayMessagesEditor listingId={listing.id} part={part} value={stay} onChange={setStay} />
+          <button
+            type="button"
+            onClick={() => onSave({ stayMessages: stay })}
+            className="rounded-full px-5 py-2.5 text-sm font-semibold text-black shadow transition hover:brightness-95"
+            style={{ backgroundColor: "#dcb81e" }}
+          >
+            {t("Guardar")}
+          </button>
+        </section>
+      ))}
     </div>
   );
 }

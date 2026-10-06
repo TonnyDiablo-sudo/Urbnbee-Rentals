@@ -142,6 +142,8 @@ type Props = {
   initialCheckIn?: string;
   initialCheckOut?: string;
   bookingRef?: string;
+  /** Cuántas personas admite el anuncio. */
+  maxGuests?: number;
   /** Rutas propias de la app instalada; sin esto se usan las del sitio web. */
   appRoutes?: {
     login: string;
@@ -167,6 +169,7 @@ export function AvailabilityCalendar({
   initialCheckIn,
   initialCheckOut,
   bookingRef,
+  maxGuests = 1,
   appRoutes,
 }: Props) {
   const t = useT();
@@ -185,6 +188,13 @@ export function AvailabilityCalendar({
   const [sessionLoading, setSessionLoading] = useState(true);
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [guestCount, setGuestCount] = useState(1);
+  const [party, setParty] = useState<{ name: string; email: string }[]>([]);
+  const changeGuests = (n: number) => {
+    const next = Math.min(Math.max(1, maxGuests), Math.max(1, n));
+    setGuestCount(next);
+    setParty((p) => Array.from({ length: next - 1 }, (_, i) => p[i] ?? { name: "", email: "" }));
+  };
   const [bookingBusy, setBookingBusy] = useState(false);
   const [bookingErr, setBookingErr] = useState<string | null>(null);
   const [needsVerificationGate, setNeedsVerificationGate] = useState(false);
@@ -474,6 +484,66 @@ export function AvailabilityCalendar({
               <p className="text-xs text-[#888]">{t("El anfitrión los usa para contactarte sobre esta reserva y van en el contrato.")}</p>
             </div>
           )}
+          {!sessionLoading && sessionUser && (
+            <div className="space-y-3 border-t pt-3" style={{ borderColor: "#ebebeb" }}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[#484848]">{t("¿Cuántas personas se quedan?")}</p>
+                  <p className="text-xs text-[#888]">{t("Contándote a ti. Máximo {n}.", { n: maxGuests })}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => changeGuests(guestCount - 1)}
+                    disabled={guestCount <= 1}
+                    aria-label={t("Menos")}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border text-lg disabled:opacity-30"
+                    style={{ borderColor: "#bbb" }}
+                  >
+                    −
+                  </button>
+                  <span className="w-5 text-center text-base font-semibold tabular-nums">{guestCount}</span>
+                  <button
+                    type="button"
+                    onClick={() => changeGuests(guestCount + 1)}
+                    disabled={guestCount >= maxGuests}
+                    aria-label={t("Más")}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border text-lg disabled:opacity-30"
+                    style={{ borderColor: "#bbb" }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              {party.map((p, i) => (
+                <div key={i} className="space-y-1.5 rounded-lg border p-3" style={{ borderColor: "#ebebeb" }}>
+                  <p className="text-xs font-semibold text-[#484848]">{t("Acompañante {n}", { n: i + 1 })}</p>
+                  <input
+                    value={p.name}
+                    onChange={(e) => setParty((all) => all.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                    placeholder={t("Nombre completo")}
+                    autoComplete="off"
+                    maxLength={80}
+                    className="w-full rounded border px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+                    style={{ borderColor: "#ddd" }}
+                  />
+                  <input
+                    type="email"
+                    inputMode="email"
+                    value={p.email}
+                    onChange={(e) => setParty((all) => all.map((x, j) => (j === i ? { ...x, email: e.target.value } : x)))}
+                    placeholder={t("Correo de su cuenta de Cabibee (opcional)")}
+                    autoComplete="off"
+                    className="w-full rounded border px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+                    style={{ borderColor: "#ddd" }}
+                  />
+                </div>
+              ))}
+              {party.length > 0 && (
+                <p className="text-xs text-[#888]">{t("Si tiene cuenta de Cabibee, con su correo también verá la estancia, la dirección y los datos de llegada.")}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -576,6 +646,10 @@ export function AvailabilityCalendar({
             setBookingErr(BOOKING_PHONE_ERROR);
             return;
           }
+          if (party.some((p) => p.name.trim().length < 2 && !p.email.trim())) {
+            setBookingErr("Escribe el nombre de cada persona que se queda.");
+            return;
+          }
           setBookingBusy(true);
           try {
             const res = await fetch("/api/bookings/request", {
@@ -589,6 +663,8 @@ export function AvailabilityCalendar({
                 ref: bookingRef || undefined,
                 guestEmail,
                 guestPhone,
+                guestCount,
+                party: party.map((p) => ({ name: p.name.trim(), email: p.email.trim() || undefined })),
               }),
             });
             const data = await res.json().catch(() => ({}));

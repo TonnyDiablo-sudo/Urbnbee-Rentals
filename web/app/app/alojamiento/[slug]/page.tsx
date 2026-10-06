@@ -297,6 +297,7 @@ export default async function AppListingPage({ params }: Props) {
         listingId={listing.id}
         slug={slug}
         pricePerNight={listing.pricePerNight}
+        maxGuests={listing.guests}
         pricePerMonth={listing.pricePerMonth}
         cleaningFee={listing.cleaningFee}
         depositMxn={listing.depositMxn}

@@ -74,7 +74,7 @@ export function PlaceMap({
   }, [lat, lng, zoom, interactive, exact]);
 
   return (
-    <div className={`relative h-full w-full ${className}`}>
+    <div className={`relative isolate h-full w-full ${className}`}>
       <div ref={boxRef} className="h-full w-full bg-[#eceae6]" />
       {interactive && (
         <button

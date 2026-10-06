@@ -34,6 +34,8 @@ type Trip = {
   listingCity?: string;
   arrival?: ArrivalGuide & { address?: string };
   canReview?: boolean;
+  companion?: boolean;
+  guestName?: string;
   myReview?: { rating: number; comment: string; status?: string; statusReason?: string } | null;
   hostReviewOfMe?: { rating: number; comment: string } | null;
   balanceDueMxn?: number;
@@ -161,7 +163,7 @@ export function TripsList() {
             const outD = trip.hostAdjustedCheckOut ?? trip.checkOut;
             return (
               <li key={trip.id} className="rounded-2xl border border-[#ebebeb] p-4">
-                <div className="flex items-start gap-3">
+                <Link href={`/viajes/${encodeURIComponent(trip.id)}`} className="flex items-start gap-3">
                   {trip.listingPhoto && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={trip.listingPhoto} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" loading="lazy" />
@@ -173,7 +175,12 @@ export function TripsList() {
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${TONE_CLS[st.tone]}`}>
                     {t(st.label)}
                   </span>
-                </div>
+                </Link>
+                {trip.companion && (
+                  <p className="mt-2 rounded-lg bg-[#fdf6d8] px-2.5 py-1.5 text-xs text-[#6b5308]">
+                    {t("Vas como acompañante de {name}.", { name: trip.guestName ?? "" })}
+                  </p>
+                )}
                 <p className="mt-1 text-sm text-[#555]">
                   {fmtDay(inD, lang)} – {fmtDay(outD, lang)} · {trip.nights} {trip.nights === 1 ? t("noche") : t("noches")}
                 </p>
@@ -238,6 +245,12 @@ export function TripsList() {
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/viajes/${encodeURIComponent(trip.id)}`}
+                    className="rounded-xl bg-[#111] px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    {t("Ver detalles de la reserva")}
+                  </Link>
                   {trip.canReview && (
                     <button
                       type="button"
@@ -251,7 +264,7 @@ export function TripsList() {
                     <button
                       type="button"
                       onClick={() => setGuide(trip)}
-                      className="rounded-xl bg-[#111] px-4 py-2 text-sm font-semibold text-white"
+                      className="rounded-xl border border-[#ddd] px-4 py-2 text-sm font-medium text-[#222]"
                     >
                       {t("Guía de llegada")}
                     </button>
@@ -264,7 +277,7 @@ export function TripsList() {
                       {t("Mensaje al anfitrión")}
                     </Link>
                   )}
-                  {trip.status === "AWAITING_PAYMENT" && (
+                  {trip.status === "AWAITING_PAYMENT" && !trip.companion && (
                     <WebLink
                       path={`/contrato/${trip.token}?pay=1`}
                       className="rounded-xl bg-[#dcb81e] px-4 py-2 text-sm font-semibold text-black"
@@ -272,7 +285,7 @@ export function TripsList() {
                       {t("Firmar y pagar")}
                     </WebLink>
                   )}
-                  {trip.status === "AWAITING_DETAILS" && (
+                  {trip.status === "AWAITING_DETAILS" && !trip.companion && (
                     <WebLink
                       path={`/finish/${trip.token}`}
                       className="rounded-xl bg-[#dcb81e] px-4 py-2 text-sm font-semibold text-black"

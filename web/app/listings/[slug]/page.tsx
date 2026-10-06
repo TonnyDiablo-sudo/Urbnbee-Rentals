@@ -354,6 +354,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                   initialCheckIn={q.checkIn}
                   initialCheckOut={q.checkOut}
                   bookingRef={q.ref}
+                  maxGuests={listing.guests}
                   pricePerNight={listing.pricePerNight}
                   cleaningFee={listing.cleaningFee}
                   depositMxn={listing.depositMxn}

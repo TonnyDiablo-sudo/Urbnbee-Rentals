@@ -46,6 +46,8 @@ export const ARRIVAL_PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "wifi", label: "Nombre del wifi" },
   { key: "wifi_clave", label: "Contraseña del wifi" },
   { key: "indicaciones", label: "Cómo llegar" },
+  { key: "reglas", label: "Reglas de la casa" },
+  { key: "instrucciones_salida", label: "Instrucciones de salida" },
   { key: "anfitrion", label: "Tu nombre" },
 ];
 
@@ -112,6 +114,8 @@ export function arrivalMessageVars(input: {
     wifi: g.wifiName ?? "",
     wifi_clave: g.wifiPassword ?? "",
     indicaciones: g.directions ?? "",
+    reglas: g.houseManual ?? "",
+    instrucciones_salida: g.checkoutInstructions ?? "",
     anfitrion: input.hostName.trim(),
   };
 }

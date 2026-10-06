@@ -16,6 +16,7 @@ import {
 } from "@/lib/bookings-store";
 import { countNights, nightsBlockedByListing } from "@/lib/booking-helpers";
 import { bookingTaxFields, quoteBookingMxn } from "@/lib/booking-quote";
+import { parseBookingParty } from "@/lib/booking-party";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { fullMonthsBetween, stayLengthError } from "@/lib/listing-pricing";
 import { getSessionUser } from "@/lib/session";
@@ -89,6 +90,9 @@ export async function POST(req: NextRequest) {
   if (user.id === listing.hostId) {
     return NextResponse.json({ error: "No puedes reservar tu propio alojamiento." }, { status: 403 });
   }
+
+  const who = parseBookingParty(body, { maxGuests: listing.guests, bookerId: user.id });
+  if ("error" in who) return NextResponse.json({ error: who.error, field: who.field }, { status: 400 });
 
   if (!listingAcceptsBookings(listing.id) || !hostCanTakeBookingPayments(listing.hostId)) {
     return NextResponse.json(
@@ -177,6 +181,8 @@ export async function POST(req: NextRequest) {
     status: "AWAITING_PAYMENT",
     paymentDueAt: paymentWindowEnd(checkIn),
     usedMembershipPass: usedMembershipPass || undefined,
+    guestCount: who.guestCount,
+    party: who.party.length ? who.party : undefined,
     beeagentRef: link && link.listingId === listingId ? link.ref : undefined,
     conversationKey: link && link.listingId === listingId ? link.conversationKey : undefined,
   });

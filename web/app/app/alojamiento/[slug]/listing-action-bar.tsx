@@ -15,6 +15,7 @@ type Props = {
   listingId: string;
   slug: string;
   pricePerNight: number;
+  maxGuests: number;
   /** Renta mensual: el precio principal es por mes. */
   pricePerMonth?: number;
   cleaningFee?: number;
@@ -109,6 +110,7 @@ export function ListingActionBar(p: Props) {
           listingId={p.listingId}
           listingSlug={p.slug}
           bookable={p.bookable}
+          maxGuests={p.maxGuests}
           pricePerNight={p.pricePerNight}
           cleaningFee={p.cleaningFee}
           depositMxn={p.depositMxn}

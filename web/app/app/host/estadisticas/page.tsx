@@ -2,6 +2,7 @@ import { HostStatsView } from "@/components/host/host-stats-view";
 import { StatsEmailGate } from "@/components/host/stats-email-gate";
 import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
+import { statsLocked } from "@/lib/stats-access";
 import { TopBar } from "../../_components/top-bar";
 
 export async function generateMetadata() {
@@ -12,7 +13,7 @@ export async function generateMetadata() {
 export default async function HostStatsPage() {
   const user = (await getSessionUser())!;
   const t = await getT();
-  const locked = user.role !== "admin" && !user.emailVerifiedAt;
+  const locked = statsLocked(user);
   return (
     <>
       <TopBar title={t("Estadísticas y sugerencias")} />

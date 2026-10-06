@@ -42,6 +42,7 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
           { href: "/host/colaboradores", label: t("Colaboradores"), hint: t("Da acceso a otras personas con roles") },
           { href: "/equipo", label: t("Equipos donde colaboro"), hint: t("Invitaciones, limpiezas, reservas y mensajes") },
           { href: "/host/anuncios", label: t("Mis anuncios") },
+          { href: "/host/pagos-recibidos", label: t("Pagos recibidos"), hint: t("Tu reporte de ingresos por año, exportable a CSV") },
           { href: "/host/estadisticas", label: t("Estadísticas y sugerencias"), hint: t("Quién ve tus anuncios y cómo destacar") },
           { href: "/cuenta/seguridad", label: t("Correo y contraseña") },
           { href: "/host/contratos", label: t("Contratos"), hint: t("Machotes, tus datos y cláusulas por anuncio") },
@@ -67,6 +68,10 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
           { href: "/viajes", label: t("Mis viajes") },
           ...(user
             ? [
+                { href: "/perfil/gastos", label: t("Mis gastos"), hint: t("Cuánto has pagado por año, exportable a CSV") },
+                ...(isHost
+                  ? [{ href: "/host/pagos-recibidos", label: t("Pagos recibidos"), hint: t("Tu reporte de ingresos por año, exportable a CSV") }]
+                  : []),
                 { href: "/tienda", label: t("Tienda"), hint: t("Membresías y herramientas de Cabibee") },
                 { href: "/equipo", label: t("Equipos donde colaboro"), hint: t("Invitaciones, limpiezas, reservas y mensajes") },
                 { href: "/notificaciones", label: t("Notificaciones") },

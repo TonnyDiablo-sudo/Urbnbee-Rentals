@@ -29,32 +29,158 @@ export type StayMessagesSettings = {
 export type StayMessageKind = "welcome" | "mid" | "checkout";
 
 export const STAY_MESSAGE_MAX = 2000;
-export const STAY_MESSAGE_MAX_FILES = 4;
+export const STAY_MESSAGE_MAX_IMAGES = 4;
+export const STAY_MESSAGE_MAX_AUDIOS = 4;
 export const STAY_MID_MAX = 5;
 export const STAY_MID_EVERY_MAX = 30;
 /** Los automáticos no salen de madrugada (hora de la Ciudad de México). */
 export const STAY_AUTO_FROM_HOUR = 9;
 
-export const DEFAULT_WELCOME_TEXT = `¡Hola {huesped}, bienvenido a {anuncio}!
+export type StayTemplate = { name: string; text: string };
 
-Espero que hayas llegado bien. Aquí va lo básico:
+/** Plantillas listas para cada mensaje: el anfitrión elige una y la ajusta. */
+export const STAY_TEMPLATES: Record<StayMessageKind, StayTemplate[]> = {
+  welcome: [
+    {
+      name: "Cálida",
+      text: `¡Hola {huesped}! Bienvenido a {anuncio} 🏡
+
+Qué gusto tenerte aquí. Espero que el viaje haya estado tranquilo.
+
 📶 Wifi: {wifi}
 🔒 Contraseña: {wifi_clave}
 
-Si necesitas algo, escríbeme por aquí.
-{anfitrion}`;
+Ponte cómodo y siéntete en casa. Si algo no está como esperabas o te hace falta cualquier cosa, escríbeme por aquí y lo resolvemos.
 
-export const DEFAULT_MID_TEXT = `Hola {huesped}, ¿cómo va todo en {anuncio}?
+{anfitrion}`,
+    },
+    {
+      name: "Breve",
+      text: `¡Bienvenido, {huesped}! Ya estás en {anuncio}.
 
-Si te hace falta algo (toallas, sábanas, alguna duda de la casa), dime y lo resolvemos.
-{anfitrion}`;
+📶 {wifi} · 🔒 {wifi_clave}
 
-export const DEFAULT_CHECKOUT_TEXT = `Hola {huesped}, gracias por quedarte en {anuncio}.
+Cualquier cosa, aquí estoy.
+{anfitrion}`,
+    },
+    {
+      name: "Con reglas de la casa",
+      text: `Hola {huesped}, ¡bienvenido a {anuncio}!
+
+Para que tu estancia sea perfecta, te dejo lo más importante:
+📶 Wifi: {wifi} — contraseña {wifi_clave}
+🕒 Salida: {fecha_salida} antes de las {salida}
+🏠 {reglas}
+
+Si tienes alguna duda sobre la casa, pregúntame cuando quieras.
+{anfitrion}`,
+    },
+    {
+      name: "Recomendaciones de la zona",
+      text: `¡Hola {huesped}! Bienvenido a {anuncio} 😊
+
+Ya con el wifi ({wifi} / {wifi_clave}) puedes descansar un poco. Cuando quieras salir, pídeme recomendaciones: te paso mis lugares favoritos para comer, tomar un café o pasear cerca.
+
+Estoy al pendiente por este chat.
+{anfitrion}`,
+    },
+    {
+      name: "Viaje de trabajo",
+      text: `Hola {huesped}, bienvenido a {anuncio}.
+
+Todo listo para que trabajes y descanses:
+📶 Wifi: {wifi}
+🔒 Contraseña: {wifi_clave}
+
+Si necesitas factura, un escritorio extra o algo para tu estancia, avísame por aquí.
+{anfitrion}`,
+    },
+  ],
+  mid: [
+    {
+      name: "¿Todo bien?",
+      text: `Hola {huesped}, ¿cómo va todo en {anuncio}?
+
+Sólo quería saber si estás cómodo y si te hace falta algo. Estamos para servirte.
+{anfitrion}`,
+    },
+    {
+      name: "Cambio de blancos",
+      text: `Hola {huesped} 👋 ¿Cómo va tu estancia?
+
+Si quieres toallas o sábanas limpias, o que pasemos a hacer limpieza, dime qué día te queda mejor y lo agendamos.
+{anfitrion}`,
+    },
+    {
+      name: "Estancia larga",
+      text: `Hola {huesped}, ¡ya llevas unos días en {anuncio}!
+
+¿Todo funciona bien? Si algo se descompuso, se acabó algo de la casa o necesitas cualquier cosa para que tu estancia siga siendo cómoda, escríbeme y lo resolvemos rápido.
+{anfitrion}`,
+    },
+    {
+      name: "Breve",
+      text: `Hola {huesped}, ¿todo bien en {anuncio}? Si necesitas algo, aquí estoy.
+{anfitrion}`,
+    },
+    {
+      name: "Recomendaciones",
+      text: `Hola {huesped}, ¿cómo la estás pasando?
+
+Si quieres ideas para esta semana (restaurantes, paseos, mercados), con gusto te paso mis favoritos. Y si te falta algo en la casa, sólo dime.
+{anfitrion}`,
+    },
+  ],
+  checkout: [
+    {
+      name: "Recordatorio amable",
+      text: `Hola {huesped}, gracias por quedarte en {anuncio} 🙏
 
 Te recuerdo que la salida es el {fecha_salida} antes de las {salida}.
+{instrucciones_salida}
 
-¡Buen viaje! Si te gustó la estancia, me ayudaría mucho tu reseña.
-{anfitrion}`;
+¡Buen viaje! Si te gustó la estancia, tu reseña nos ayuda muchísimo.
+{anfitrion}`,
+    },
+    {
+      name: "Instrucciones de salida",
+      text: `Hola {huesped}, mañana es tu salida de {anuncio}.
+
+Antes de irte, por favor:
+✅ Sal antes de las {salida}
+✅ {instrucciones_salida}
+✅ Revisa que no se te olvide nada
+
+Gracias por cuidar la casa.
+{anfitrion}`,
+    },
+    {
+      name: "Breve",
+      text: `Hola {huesped}, la salida es el {fecha_salida} a las {salida}. ¡Gracias por tu visita y buen viaje!
+{anfitrion}`,
+    },
+    {
+      name: "Pedir reseña",
+      text: `Hola {huesped}, fue un gusto recibirte en {anuncio}.
+
+La salida es el {fecha_salida} antes de las {salida}. Si todo estuvo bien, me ayudaría mucho que dejaras una reseña; y si algo pudo ser mejor, dímelo por aquí para mejorarlo.
+
+¡Esperamos verte pronto!
+{anfitrion}`,
+    },
+    {
+      name: "¿Necesitas más tiempo?",
+      text: `Hola {huesped}, se acerca tu salida de {anuncio} ({fecha_salida}, {salida}).
+
+Si necesitas salir un poco más tarde o quieres quedarte más noches, avísame y reviso si se puede.
+{anfitrion}`,
+    },
+  ],
+};
+
+export const DEFAULT_WELCOME_TEXT = STAY_TEMPLATES.welcome[0].text;
+export const DEFAULT_MID_TEXT = STAY_TEMPLATES.mid[0].text;
+export const DEFAULT_CHECKOUT_TEXT = STAY_TEMPLATES.checkout[0].text;
 
 export const STAY_KIND_LABEL: Record<StayMessageKind, string> = {
   welcome: "Mensaje de bienvenida",
@@ -100,9 +226,10 @@ export function cleanMessageAttachments(raw: unknown): ChatAttachment[] {
       height: image ? num(o.height) : undefined,
       durationSec: image ? undefined : num(o.durationSec),
     });
-    if (out.length >= STAY_MESSAGE_MAX_FILES) break;
   }
-  return out;
+  const images = out.filter((a) => a.kind === "image").slice(0, STAY_MESSAGE_MAX_IMAGES);
+  const audios = out.filter((a) => a.kind === "audio").slice(0, STAY_MESSAGE_MAX_AUDIOS);
+  return out.filter((a) => images.includes(a) || audios.includes(a));
 }
 
 function cleanRule(raw: unknown, fallback: StayMessageRule): StayMessageRule {

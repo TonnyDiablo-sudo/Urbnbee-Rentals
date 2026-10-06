@@ -119,7 +119,13 @@ export type BookingRecord = {
   /** Una de las partes la archivó tras anularse: ya no se puede reabrir. */
   archivedAt?: string;
   archivedBy?: "host" | "guest";
+  /** Cuántas personas se quedan, contando a quien reserva. Sin esto, reservas anteriores al dato. */
+  guestCount?: number;
+  /** Acompañantes (sin contar a quien reserva). Con `userId` también ven la estancia en su cuenta. */
+  party?: BookingCompanion[];
 };
+
+export type BookingCompanion = { name: string; userId?: string };
 
 export type PayProof = {
   uploadedAt: string;

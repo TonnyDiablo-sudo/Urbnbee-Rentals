@@ -6,6 +6,7 @@ import { getLang, getT } from "@/lib/i18n/server";
 import { listingInsights, parseInsightRange } from "@/lib/listing-insights";
 import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
+import { statsLocked } from "@/lib/stats-access";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function WebListingStatsPage({
   const listing = getListingById(id);
   if (!user || !listing || (listing.hostId !== user.id && user.role !== "admin")) notFound();
   const [t, lang] = await Promise.all([getT(), getLang()]);
-  const locked = user.role !== "admin" && !user.emailVerifiedAt;
+  const locked = statsLocked(user);
   const data = locked ? null : listingInsights(listing.id, listing.hostId, parseInsightRange(d));
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">

@@ -15,6 +15,8 @@ export type HostBooking = {
   guestName: string;
   guestEmail: string;
   guestPhone?: string;
+  guestCount?: number;
+  party?: { name: string; userId?: string }[];
   guestUserId?: string;
   checkIn: string;
   checkOut: string;

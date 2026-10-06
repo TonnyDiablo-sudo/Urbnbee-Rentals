@@ -127,6 +127,12 @@ export function listBookingsForGuest(guestUserId: string): BookingRecord[] {
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 }
 
+/** Estancias donde el usuario va como acompañante (lo agregó quien reservó). */
+export function listBookingsAsCompanion(userId: string): BookingRecord[] {
+  syncIfStale();
+  return rows.filter((r) => r.guestUserId !== userId && r.party?.some((p) => p.userId === userId));
+}
+
 /** Solapa reservas activas en el mismo listing (excluye optional bookingId al editar). */
 export function hasOverlappingActiveBooking(
   listingId: string,

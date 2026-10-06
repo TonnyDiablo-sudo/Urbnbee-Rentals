@@ -31,14 +31,15 @@ type View = {
   attendanceEnabled: boolean;
 };
 
-type Tab = "calendario" | "anuncios" | "insumos" | "ajustes";
+type Tab = "calendario" | "equipo" | "anuncios" | "insumos" | "ajustes";
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: "calendario", icon: "🗓️", label: "Calendario" },
+  { id: "equipo", icon: "👥", label: "Quién limpia" },
   { id: "anuncios", icon: "🏠", label: "Por anuncio" },
   { id: "insumos", icon: "🧴", label: "Insumos" },
   { id: "ajustes", icon: "⚙️", label: "Ajustes" },
 ];
-const HASH_TAB: Record<string, Tab> = { insumos: "insumos", anuncios: "anuncios", ajustes: "ajustes", como: "ajustes" };
+const HASH_TAB: Record<string, Tab> = { equipo: "equipo", insumos: "insumos", anuncios: "anuncios", ajustes: "ajustes", como: "ajustes" };
 
 type StatusFilter = "open" | "done" | "all";
 const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
@@ -174,6 +175,88 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
     />
   );
 
+  const whoSummary = (list: string[]) =>
+    list.length === 0
+      ? t("Nadie asignado todavía")
+      : list.length === 1
+        ? t("Limpia: {name}", { name: nameOf(list[0]) })
+        : t("Limpia: {name} · Respaldo: {backups}", { name: nameOf(list[0]), backups: list.slice(1).map(nameOf).join(", ") });
+
+  const saveList = (listingId: string, list: string[]) => void send("/api/host/cleaning", "PATCH", { listingId, cleaners: list });
+
+  const copyToAll = async (from: View["listings"][number]) => {
+    const targets = onListings.filter((x) => x.id !== from.id);
+    if (!targets.length || !confirm(t("¿Usar este mismo orden en tus otros {n} anuncios?", { n: targets.length }))) return;
+    for (const x of targets) {
+      const list = from.cleaners.filter((id) => data.cleaners.some((c) => c.id === id && covers(c, x.id)));
+      if (!(await send("/api/host/cleaning", "PATCH", { listingId: x.id, cleaners: list }))) return;
+    }
+  };
+
+  const priorityEditor = (l: View["listings"][number]) => {
+    const notInList = data.cleaners.filter((c) => covers(c, l.id) && !l.cleaners.includes(c.id));
+    const move = (i: number, d: number) => {
+      const list = [...l.cleaners];
+      const j = i + d;
+      if (j < 0 || j >= list.length) return;
+      [list[i], list[j]] = [list[j], list[i]];
+      saveList(l.id, list);
+    };
+    return (
+      <section key={l.id} className={`${card} min-w-0`}>
+        <h3 className="truncate text-[16px] font-semibold text-[#222]">{l.title}</h3>
+        {l.cleaners.length === 0 ? (
+          <p className="mt-2 text-sm text-amber-700">{t("Nadie asignado todavía")}</p>
+        ) : (
+          <ol className="mt-2 space-y-1.5">
+            {l.cleaners.map((id, i) => (
+              <li key={id} className="flex items-center gap-2 rounded-xl bg-[#fafafa] px-3 py-2">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#222] text-xs font-semibold text-white">{i + 1}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] text-[#222]">{nameOf(id)}</span>
+                  <span className={`block text-xs font-semibold ${i === 0 ? "text-[#b8860b]" : "text-[#888]"}`}>
+                    {i === 0 ? t("Principal") : t("Respaldo {n}", { n: i })}
+                  </span>
+                </span>
+                <button type="button" disabled={busy || i === 0} onClick={() => move(i, -1)} aria-label={t("Subir")} className="h-9 w-9 shrink-0 rounded-full border border-[#ddd] bg-white disabled:opacity-30">
+                  ↑
+                </button>
+                <button type="button" disabled={busy || i === l.cleaners.length - 1} onClick={() => move(i, 1)} aria-label={t("Bajar")} className="h-9 w-9 shrink-0 rounded-full border border-[#ddd] bg-white disabled:opacity-30">
+                  ↓
+                </button>
+                <button type="button" disabled={busy} onClick={() => saveList(l.id, l.cleaners.filter((x) => x !== id))} aria-label={t("Quitar")} className="h-9 w-9 shrink-0 rounded-full border border-[#ddd] bg-white text-[#888]">
+                  ×
+                </button>
+              </li>
+            ))}
+          </ol>
+        )}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {notInList.length > 0 && (
+            <select
+              value=""
+              disabled={busy}
+              onChange={(e) => e.target.value && saveList(l.id, [...l.cleaners, e.target.value])}
+              className="rounded-lg border border-[#ddd] bg-white px-2 py-2 text-sm text-[#222]"
+            >
+              <option value="">{l.cleaners.length ? t("+ Agregar respaldo") : t("+ Agregar persona")}</option>
+              {notInList.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {t(c.name)}
+                </option>
+              ))}
+            </select>
+          )}
+          {l.cleaners.length > 0 && onListings.length > 1 && (
+            <button type="button" disabled={busy} onClick={() => void copyToAll(l)} className="text-sm font-medium text-[#555] underline disabled:opacity-50">
+              {t("Usar este orden en todos")}
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  };
+
   return (
     <div className="space-y-5">
       <nav className="sticky top-0 z-10 -mx-1 flex gap-1 overflow-x-auto bg-white/95 px-1 py-2 backdrop-blur" aria-label={t("Secciones de limpieza")}>
@@ -301,6 +384,65 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
         </>
       )}
 
+      {tab === "equipo" && (
+        <>
+          <section className={card}>
+            <h2 className="text-lg font-semibold text-[#222]">{t("Quién limpia cada anuncio")}</h2>
+            <p className="mt-1 text-sm text-[#717171]">
+              {settings.assignMode === "auto"
+                ? t("La persona principal recibe cada limpieza nueva. Si no puede o cancela, pasa sola al respaldo 1, luego al 2, y así.")
+                : t("Estás en asignación manual: este orden es tu referencia y tú eliges quién va a cada limpieza.")}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+              <button type="button" onClick={() => openTab("ajustes")} className="text-sm font-semibold text-[#222] underline">
+                {settings.assignMode === "auto" ? t("Cambiar a asignación manual") : t("Cambiar a asignación automática")}
+              </button>
+              <a href={teamHref} className="text-sm font-semibold text-[#222] underline">
+                {data.pendingInvites > 0 ? t("Tienes invitaciones pendientes") : t("Invitar a quien limpia")}
+              </a>
+            </div>
+          </section>
+
+          {onListings.length === 0 ? (
+            <section className={card}>
+              <p className="text-sm text-[#555]">{t("Todavía no tienes anuncios en la herramienta.")}</p>
+              <button type="button" onClick={() => openTab("ajustes")} className="mt-3 rounded-xl bg-[#222] px-4 py-2 text-sm font-semibold text-white">
+                {t("Elegir anuncios en Ajustes")}
+              </button>
+            </section>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">{onListings.map((l) => priorityEditor(l))}</div>
+          )}
+
+          {data.cleaners.length > 0 && onListings.length > 0 && (
+            <section className={card}>
+              <h2 className="text-lg font-semibold text-[#222]">{t("Por persona")}</h2>
+              <ul className="mt-2 divide-y divide-[#f0f0f0]">
+                {data.cleaners.map((c) => {
+                  const main = onListings.filter((l) => l.cleaners[0] === c.id);
+                  const backup = onListings.filter((l) => l.cleaners.indexOf(c.id) > 0);
+                  return (
+                    <li key={c.id} className="py-3">
+                      <p className="text-[15px] font-semibold text-[#222]">{t(c.name)}</p>
+                      <p className="text-sm text-[#717171]">
+                        {main.length === 0 && backup.length === 0
+                          ? t("Sin anuncios asignados")
+                          : [
+                              main.length ? t("Principal en: {list}", { list: main.map((l) => l.title).join(", ") }) : "",
+                              backup.length ? t("Respaldo en: {list}", { list: backup.map((l) => l.title).join(", ") }) : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
+
       {tab === "anuncios" && (
         <>
           {onListings.length === 0 ? (
@@ -329,6 +471,7 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
                                 {t("{n} por hacer", { n: todo })}
                                 {review > 0 && ` · ${t("{n} por aprobar", { n: review })}`}
                               </span>
+                              <span className={`block truncate text-xs ${l.cleaners.length ? "text-[#888]" : "text-amber-700"}`}>{whoSummary(l.cleaners)}</span>
                             </span>
                             <span className="text-xl text-[#bbb]" aria-hidden>
                               ›
@@ -343,21 +486,11 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
               {onListings
                 .filter((l) => l.id === picked)
                 .map((l) => {
-                  const able = data.cleaners.filter((c) => covers(c, l.id));
-                  const notInList = able.filter((c) => !l.cleaners.includes(c.id));
                   const shown = data.tasks
                     .filter((x) => x.listingId === l.id)
                     .filter((x) => (statusFilter === "open" ? x.status === "pending" : statusFilter === "done" ? x.status === "done" : true))
                     .filter((x) => period === null || Math.abs(dayDiff(x.date, data.today)) <= period)
                     .sort((a, b) => (statusFilter === "open" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)));
-                  const saveList = (list: string[]) => void send("/api/host/cleaning", "PATCH", { listingId: l.id, cleaners: list });
-                  const move = (i: number, d: number) => {
-                    const list = [...l.cleaners];
-                    const j = i + d;
-                    if (j < 0 || j >= list.length) return;
-                    [list[i], list[j]] = [list[j], list[i]];
-                    saveList(list);
-                  };
                   return (
                     <div key={l.id} className="space-y-4">
                     <button type="button" onClick={() => setPicked(null)} className="text-sm font-semibold text-[#222]">
@@ -365,6 +498,12 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
                     </button>
                     <section className={card}>
                       <h2 className="text-lg font-semibold text-[#222]">{l.title}</h2>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-[#fafafa] px-3 py-2 text-sm text-[#444]">
+                        <span className="min-w-0 flex-1">{whoSummary(l.cleaners)}</span>
+                        <button type="button" onClick={() => openTab("equipo")} className="shrink-0 font-semibold text-[#222] underline">
+                          {t("Cambiar")}
+                        </button>
+                      </div>
                       <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
                         {STATUS_FILTERS.map((f) => (
                           <button key={f.id} type="button" onClick={() => setStatusFilter(f.id)} className={chip(statusFilter === f.id)}>
@@ -386,59 +525,6 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
                           <p className="mt-3 text-sm text-[#717171]">{t(shown.length === 1 ? "{n} limpieza" : "{n} limpiezas", { n: shown.length })}</p>
                           <ul className="mt-2 space-y-3">{shown.map((task) => hostCard(task))}</ul>
                         </>
-                      )}
-                    </section>
-
-                    <section className={card}>
-                      <h3 className="text-[15px] font-semibold text-[#222]">{t("Quién limpia (en orden de prioridad)")}</h3>
-                      <p className="text-xs text-[#888]">
-                        {settings.assignMode === "auto"
-                          ? t("A la primera le llega cada limpieza nueva. Si cancela, pasa sola a la siguiente.")
-                          : t("Estás en asignación manual: esta lista es tu referencia y tú eliges quién va.")}
-                      </p>
-                      {l.cleaners.length === 0 ? (
-                        <p className="mt-2 text-sm text-amber-700">{t("Nadie asignado todavía")}</p>
-                      ) : (
-                        <ol className="mt-2 space-y-1.5">
-                          {l.cleaners.map((id, i) => (
-                            <li key={id} className="flex items-center gap-2 rounded-xl bg-[#fafafa] px-3 py-2">
-                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#222] text-xs font-semibold text-white">{i + 1}</span>
-                              <span className="min-w-0 flex-1 truncate text-[15px] text-[#222]">
-                                {nameOf(id)}
-                                {i === 0 && <span className="ml-2 text-xs font-semibold text-[#b8860b]">{t("Prioridad")}</span>}
-                              </span>
-                              <button type="button" disabled={busy || i === 0} onClick={() => move(i, -1)} aria-label={t("Subir")} className="h-8 w-8 rounded-full border border-[#ddd] bg-white disabled:opacity-30">
-                                ↑
-                              </button>
-                              <button type="button" disabled={busy || i === l.cleaners.length - 1} onClick={() => move(i, 1)} aria-label={t("Bajar")} className="h-8 w-8 rounded-full border border-[#ddd] bg-white disabled:opacity-30">
-                                ↓
-                              </button>
-                              <button type="button" disabled={busy} onClick={() => saveList(l.cleaners.filter((x) => x !== id))} aria-label={t("Quitar")} className="h-8 w-8 rounded-full border border-[#ddd] bg-white text-[#888]">
-                                ×
-                              </button>
-                            </li>
-                          ))}
-                        </ol>
-                      )}
-                      {notInList.length > 0 && (
-                        <select
-                          value=""
-                          disabled={busy}
-                          onChange={(e) => e.target.value && saveList([...l.cleaners, e.target.value])}
-                          className="mt-2 rounded-lg border border-[#ddd] bg-white px-2 py-1.5 text-sm text-[#222]"
-                        >
-                          <option value="">{t("+ Agregar persona")}</option>
-                          {notInList.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {t(c.name)}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      {data.cleaners.length === 1 && (
-                        <a href={teamHref} className="ml-3 text-sm font-semibold text-[#222] underline">
-                          {data.pendingInvites > 0 ? t("Tienes invitaciones pendientes") : t("Invita a quien te limpia")}
-                        </a>
                       )}
                     </section>
                     </div>

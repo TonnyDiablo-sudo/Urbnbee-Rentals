@@ -755,6 +755,11 @@ if (hosts.some((h) => h.id === SOFIA)) {
     ["bkg_sofia_seed_luis_upcoming", "usr_seed_guest_luis", "luis.perez@urbnbee.test", "Luis Pérez"],
     ["bkg_sofia_seed_carla_upcoming", "usr_seed_guest_carla", "carla.mendez@urbnbee.test", "Carla Méndez"],
   ];
+  // Quién se queda: Carla va como acompañante de Ana con su cuenta (ve la estancia en sus Viajes)
+  const PARTY = {
+    bkg_sofia_seed_ana_current: [{ name: "Carla Méndez", userId: "usr_seed_guest_carla" }, { name: "Mateo Torres" }],
+    bkg_sofia_seed_luis_upcoming: [{ name: "Andrea Ríos" }],
+  };
   const s4 = readJson("marketplace-store.json", null);
   const bk4 = readJson("bookings.json", null);
   if (s4?.users && Array.isArray(bk4?.bookings)) {
@@ -777,6 +782,11 @@ if (hosts.some((h) => h.id === SOFIA)) {
       if (b && !b.guestUserId) {
         b.guestUserId = userId;
         b.guestEmail = email;
+        changes++;
+      }
+      if (b && b.guestCount === undefined) {
+        b.party = PARTY[bookingId] ?? [];
+        b.guestCount = b.party.length + 1;
         changes++;
       }
     }

@@ -9,7 +9,13 @@ import { TONE_CLS, fmtDay, fmtMxn, hostStatusOf } from "../../_components/bookin
 import { Sheet } from "../../_components/sheet";
 import { WebLink } from "../../_components/site-origin";
 import { HostPayStatus } from "@/components/booking/pay-status";
-import { hostChatHref, isPending, stayOf, type HostBooking } from "./host-data";
+import { revalidate } from "../../_components/cached-fetch";
+import { AcceptSheet } from "./accept-sheet";
+import { HOST_URLS, hostChatHref, isPending, stayOf, type HostBooking } from "./host-data";
+
+async function refreshHostData() {
+  await Promise.all([revalidate(HOST_URLS.bookings), revalidate(HOST_URLS.status), revalidate(HOST_URLS.listings), revalidate(HOST_URLS.inbox)]);
+}
 
 /** Detalle de una reserva: quién viene, cuándo, cuánto y cómo escribirle. */
 export function ReservationSheet({
@@ -19,16 +25,54 @@ export function ReservationSheet({
 }: {
   booking: HostBooking | null;
   onClose: () => void;
-  /** Si viene, las solicitudes pendientes muestran «Revisar y aceptar». */
+  /** Si viene, «Revisar y aceptar» lo resuelve quien abrió la hoja; si no, se acepta aquí mismo. */
   onReview?: (b: HostBooking) => void;
 }) {
   const t = useT();
   const lang = useLang();
+  const [accepting, setAccepting] = useState<HostBooking | null>(null);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectErr, setRejectErr] = useState<string | null>(null);
+
+  if (accepting) {
+    return (
+      <AcceptSheet
+        key={accepting.id}
+        booking={accepting}
+        onClose={() => setAccepting(null)}
+        onDone={async () => {
+          await refreshHostData();
+          setAccepting(null);
+          onClose();
+        }}
+      />
+    );
+  }
   if (!booking) return null;
   const stay = stayOf(booking);
   const st = hostStatusOf(booking);
   const chat = hostChatHref(booking);
   const payout = booking.estimatedTotalMxn;
+  const details = `/host/reservas/${encodeURIComponent(booking.id)}`;
+
+  const reject = async () => {
+    if (!window.confirm(t("¿Rechazar la solicitud de {name}? Si ya pagó, se le devuelve el dinero.", { name: booking.guestName }))) return;
+    setRejecting(true);
+    setRejectErr(null);
+    const res = await fetch(`/api/host/bookings/${encodeURIComponent(booking.id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reject" }),
+    }).catch(() => null);
+    const j = res ? await res.json().catch(() => ({})) : {};
+    setRejecting(false);
+    if (!res?.ok) {
+      setRejectErr(typeof j.error === "string" ? j.error : "No se pudo rechazar.");
+      return;
+    }
+    await refreshHostData();
+    onClose();
+  };
 
   return (
     <Sheet open onClose={onClose} title={t("Reservación")}>
@@ -57,12 +101,20 @@ export function ReservationSheet({
 
         <dl className="space-y-2 text-[15px]">
           <Row label={t("Noches")} value={String(booking.nights)} />
+          {booking.guestCount ? <Row label={t("Huéspedes")} value={String(booking.guestCount)} /> : null}
           <Row label={t("Estancia y limpieza")} value={fmtMxn(payout)} />
           <Row label={t("Pago")} value={booking.paidAt ? t("Pagado") : t("Sin pagar")} />
           <Row label={t("Código de reservación")} value={booking.token} />
           {booking.guestEmail && <Row label={t("Correo")} value={booking.guestEmail} />}
           {booking.guestPhone && <Row label={t("Teléfono")} value={booking.guestPhone} />}
         </dl>
+
+        {booking.party && booking.party.length > 0 && (
+          <div className="rounded-2xl bg-[#f7f7f7] px-4 py-3">
+            <p className="text-xs font-semibold uppercase text-[#717171]">{t("Acompañantes")}</p>
+            <p className="mt-1 text-[15px] text-[#222]">{booking.party.map((p) => p.name).join(", ")}</p>
+          </div>
+        )}
 
         <HostPayStatus
           bookingId={booking.id}
@@ -88,15 +140,34 @@ export function ReservationSheet({
         {(booking.status === "CONFIRMED" || booking.status === "COMPLETED") && <StayMessagesBox key={`stay-${booking.id}`} bookingId={booking.id} />}
 
         <div className="grid gap-2">
-          {isPending(booking.status) && onReview && (
-            <button
-              type="button"
-              onClick={() => onReview(booking)}
-              className="w-full rounded-xl bg-[#dcb81e] py-3 text-[15px] font-semibold text-black"
-            >
-              {t("Revisar y aceptar")}
-            </button>
+          {isPending(booking.status) && (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={rejecting}
+                onClick={() => void reject()}
+                className="rounded-xl border border-[#222] py-3 text-[15px] font-semibold text-[#222] disabled:opacity-50"
+              >
+                {rejecting ? t("Rechazando…") : t("Rechazar")}
+              </button>
+              <button
+                type="button"
+                onClick={() => (onReview ? onReview(booking) : setAccepting(booking))}
+                className="rounded-xl bg-[#dcb81e] py-3 text-[15px] font-semibold text-black"
+              >
+                {t("Revisar y aceptar")}
+              </button>
+            </div>
           )}
+          {rejectErr && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{t(rejectErr)}</p>}
+          <div className="grid grid-cols-2 gap-2">
+            <Link href={details} className="rounded-xl bg-[#111] py-3 text-center text-[15px] font-semibold text-white">
+              {t("Ver detalles")}
+            </Link>
+            <Link href={`${details}#recibo`} className="rounded-xl border border-[#ddd] py-3 text-center text-[15px] font-medium text-[#222]">
+              {t("Ver recibo")}
+            </Link>
+          </div>
           {chat && (
             <Link href={chat} className="w-full rounded-xl border border-[#222] py-3 text-center text-[15px] font-semibold text-[#222]">
               {t("Enviar mensaje al huésped")}

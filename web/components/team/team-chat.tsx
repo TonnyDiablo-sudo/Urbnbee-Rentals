@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { VoiceNote } from "@/components/chat/attachment-view";
 import { shrinkImage, useVoiceRecorder, VOICE_MAX_SEC } from "@/components/chat/media-input";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { chatMatches, useChatSearch } from "@/components/chat/chat-search";
@@ -500,7 +501,11 @@ function ChannelView({ id, me, pad, onBack }: { id: string; me: string; pad: str
                   <img src={m.attachment.url} alt={t("Foto")} className="mb-1 max-h-64 rounded-xl object-cover" />
                 </a>
               )}
-              {m.attachment?.kind === "audio" && <audio controls src={m.attachment.url} className="mb-1 max-w-full" preload="none" />}
+              {m.attachment?.kind === "audio" && (
+                <div className={m.mine ? "rounded-xl bg-[#dcb81e] px-2" : ""}>
+                  <VoiceNote a={{ url: m.attachment.url }} mine={m.mine} />
+                </div>
+              )}
               {m.attachment?.kind === "file" && (
                 <a href={m.attachment.url} className="mb-1 block underline">
                   📎 {m.attachment.name} ({Math.max(1, Math.round(m.attachment.size / 1024))} KB)

@@ -197,6 +197,10 @@ export function HostRequestsClient() {
                     {t("Código huésped:")} <span className="font-mono tracking-wide">{b.token}</span>
                   </p>
                   <p className="mt-2 text-xs text-[#3a3a3a]">
+                    <Link href={`/host/reservas/${encodeURIComponent(b.id)}`} className="font-semibold text-[#222] underline">
+                      {t("Ver detalles de la reserva")}
+                    </Link>
+                    {" · "}
                     <Link href={`/contrato/${b.token}`} className="font-medium text-[#dcb81e] underline">
                       {t("Ver contrato")}
                     </Link>

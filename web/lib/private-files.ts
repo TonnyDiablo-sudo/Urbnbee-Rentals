@@ -51,6 +51,7 @@ function localPath(key: string): string {
 }
 
 export async function putPrivateFile(key: string, body: Buffer, contentType: string): Promise<void> {
+  forget(key);
   const s = r2();
   if (s) {
     const res = await s.client.fetch(`${s.base}/${safeKey(key)}`, {
@@ -66,19 +67,56 @@ export async function putPrivateFile(key: string, body: Buffer, contentType: str
   writeFileSync(p, body);
 }
 
+/**
+ * Los audios se piden por pedazos (Range) y cada pedazo bajaba el archivo entero de R2.
+ * Las llaves llevan un nombre aleatorio y no se reescriben, así que se pueden guardar en memoria.
+ */
+const CACHE_MAX_BYTES = 64 * 1024 * 1024;
+const CACHE_MAX_FILE = 4 * 1024 * 1024;
+const cache = new Map<string, Buffer>();
+let cacheBytes = 0;
+
+function remember(key: string, data: Buffer) {
+  if (data.byteLength > CACHE_MAX_FILE) return;
+  forget(key);
+  cache.set(key, data);
+  cacheBytes += data.byteLength;
+  for (const [k, v] of cache) {
+    if (cacheBytes <= CACHE_MAX_BYTES) break;
+    cache.delete(k);
+    cacheBytes -= v.byteLength;
+  }
+}
+
+function forget(key: string) {
+  const old = cache.get(key);
+  if (!old) return;
+  cache.delete(key);
+  cacheBytes -= old.byteLength;
+}
+
 export async function getPrivateFile(key: string): Promise<Buffer | null> {
+  const hit = cache.get(key);
+  if (hit) {
+    cache.delete(key);
+    cache.set(key, hit);
+    return hit;
+  }
   const s = r2();
   if (s) {
     const res = await s.client.fetch(`${s.base}/${safeKey(key)}`);
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`R2 GET ${res.status}`);
-    return Buffer.from(await res.arrayBuffer());
+    const data = Buffer.from(await res.arrayBuffer());
+    remember(key, data);
+    return data;
   }
   const p = localPath(key);
   return existsSync(p) ? readFileSync(p) : null;
 }
 
 export async function deletePrivateFile(key: string): Promise<void> {
+  forget(key);
   try {
     const s = r2();
     if (s) {

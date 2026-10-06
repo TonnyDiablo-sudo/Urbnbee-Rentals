@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { bookingBalanceDueMxn, paidStayOf } from "@/lib/booking-adjustments";
 import { applyBookingLifecycle } from "@/lib/booking-deposit";
-import { listBookingsForGuest } from "@/lib/bookings-store";
+import { listBookingsAsCompanion, listBookingsForGuest } from "@/lib/bookings-store";
 import { translateTexts } from "@/lib/content-translate";
 import { getLang } from "@/lib/i18n/server";
 import { listingFullAddress } from "@/lib/listing-address";
@@ -18,8 +18,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
-  const rows = listBookingsForGuest(user.id).map((b) => applyBookingLifecycle(b));
-  const bookings = rows.map((b) => {
+  const companionIds = new Set<string>();
+  const rows = [
+    ...listBookingsForGuest(user.id),
+    ...listBookingsAsCompanion(user.id).map((b) => {
+      companionIds.add(b.id);
+      return b;
+    }),
+  ].map((b) => applyBookingLifecycle(b));
+  const bookings = rows.map((raw) => {
+    const companion = companionIds.has(raw.id);
+    const b = companion
+      ? {
+          ...raw,
+          guestEmail: "",
+          guestPhone: undefined,
+          payProof: undefined,
+          payInstruction: undefined,
+          contract: undefined,
+          adjustments: undefined,
+          stripeCheckoutSessionId: undefined,
+        }
+      : raw;
     const listing = getListingById(b.listingId);
     const effId = b.hostAdjustedListingId ?? b.listingId;
     const effListing = effId !== b.listingId ? getListingById(effId) : listing;
@@ -30,6 +50,7 @@ export async function GET(req: NextRequest) {
     const stayListing = effListing ?? listing;
     return {
       ...b,
+      companion: companion || undefined,
       listingTitle: listing?.title ?? "Alojamiento",
       listingSlug: effListing?.slug ?? listing?.slug,
       listingPhoto: stayListing?.photos?.[0],
@@ -38,12 +59,12 @@ export async function GET(req: NextRequest) {
         confirmed && stayListing
           ? { ...(stayListing.arrivalGuide ?? {}), address: listingFullAddress(stayListing) }
           : undefined,
-      balanceDueMxn: bookingBalanceDueMxn(b),
+      balanceDueMxn: companion ? 0 : bookingBalanceDueMxn(b),
       paidStayMxn: b.paidAt ? paidStayOf(b) : 0,
-      canReview: stayReviewEligible(b) && (!reviews.guestToListing || reviews.guestToListing.status === "rejected"),
-      myReview: reviews.guestToListing,
-      hostReviewOfMe: reviews.hostToGuest,
-      screening: screening ? screeningPublicView(screening) : null,
+      canReview: !companion && stayReviewEligible(b) && (!reviews.guestToListing || reviews.guestToListing.status === "rejected"),
+      myReview: companion ? null : reviews.guestToListing,
+      hostReviewOfMe: companion ? null : reviews.hostToGuest,
+      screening: screening && !companion ? screeningPublicView(screening) : null,
     };
   });
 

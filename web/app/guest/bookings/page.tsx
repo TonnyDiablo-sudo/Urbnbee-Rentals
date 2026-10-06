@@ -130,6 +130,9 @@ export default function GuestBookingsPage() {
               </span>
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
+              <Link href={`/guest/bookings/${encodeURIComponent(b.id)}`} className="text-sm font-semibold text-[#222] underline">
+                {t("Ver detalles de la reserva")}
+              </Link>
               {b.listingSlug && (
                 <Link
                   href={`/listings/${b.listingSlug}`}

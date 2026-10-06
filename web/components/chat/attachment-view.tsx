@@ -63,36 +63,82 @@ function ChatImage({ a }: { a: ChatAttachmentClient }) {
   );
 }
 
-function VoiceNote({ a, mine }: { a: ChatAttachmentClient; mine: boolean }) {
+const SPEEDS = [1, 1.5, 2];
+
+/** Nota de voz como en WhatsApp: se arrastra la bolita para adelantar o regresar y se cambia la velocidad. */
+export function VoiceNote({ a, mine = false, wide = false }: { a: Pick<ChatAttachmentClient, "url" | "durationSec">; mine?: boolean; wide?: boolean }) {
   const t = useT();
   const audio = useRef<HTMLAudioElement>(null);
+  const track = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [pos, setPos] = useState(0);
   const [dur, setDur] = useState(a.durationSec ?? 0);
+  const [dragging, setDragging] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  /** WebM de Chrome llega sin duración: se brinca al final para que el navegador la calcule. */
+  const fixing = useRef(false);
 
   const toggle = () => {
     const el = audio.current;
     if (!el) return;
-    if (el.paused) void el.play().catch(() => setPlaying(false));
-    else el.pause();
+    if (el.paused) {
+      setLoading(el.readyState < 3);
+      void el.play().catch(() => {
+        setPlaying(false);
+        setLoading(false);
+      });
+    } else el.pause();
   };
-  const seek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const timeAt = (clientX: number) => {
+    const r = track.current?.getBoundingClientRect();
+    if (!r || !dur) return 0;
+    return Math.min(dur, Math.max(0, ((clientX - r.left) / r.width) * dur));
+  };
+  const onDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dur) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDragging(true);
+    setPos(timeAt(e.clientX));
+  };
+  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragging) setPos(timeAt(e.clientX));
+  };
+  const onUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging) return;
+    setDragging(false);
+    const el = audio.current;
+    const at = timeAt(e.clientX);
+    setPos(at);
+    if (el) el.currentTime = at;
+  };
+  const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const el = audio.current;
     if (!el || !dur) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    el.currentTime = Math.min(dur, Math.max(0, ((e.clientX - r.left) / r.width) * dur));
+    const step = e.key === "ArrowRight" ? 5 : e.key === "ArrowLeft" ? -5 : 0;
+    if (!step) return;
+    e.preventDefault();
+    el.currentTime = Math.min(dur, Math.max(0, el.currentTime + step));
+    setPos(el.currentTime);
+  };
+  const nextSpeed = () => {
+    const s = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    setSpeed(s);
+    if (audio.current) audio.current.playbackRate = s;
   };
   const pct = dur ? Math.min(100, (pos / dur) * 100) : 0;
 
   return (
-    <div className="flex w-56 max-w-full items-center gap-2.5 py-0.5">
+    <div className={`flex ${wide ? "w-full" : "w-64"} max-w-full items-center gap-2.5 py-0.5`}>
       <button
         type="button"
         onClick={toggle}
         aria-label={playing ? t("Pausar") : t("Reproducir nota de voz")}
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${mine ? "bg-black text-[#dcb81e]" : "bg-[#222] text-white"}`}
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${mine ? "bg-black text-[#dcb81e]" : "bg-[#222] text-white"}`}
       >
-        {playing ? (
+        {loading ? (
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+        ) : playing ? (
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
             <rect x="6" y="5" width="4" height="14" rx="1" />
             <rect x="14" y="5" width="4" height="14" rx="1" />
@@ -104,31 +150,79 @@ function VoiceNote({ a, mine }: { a: ChatAttachmentClient; mine: boolean }) {
         )}
       </button>
       <div className="min-w-0 flex-1">
-        <div className="relative h-5 cursor-pointer" onClick={seek}>
-          <span className={`absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full ${mine ? "bg-black/20" : "bg-[#e3e3e3]"}`} />
+        <div
+          ref={track}
+          role="slider"
+          tabIndex={0}
+          aria-label={t("Posición de la nota de voz")}
+          aria-valuemin={0}
+          aria-valuemax={Math.round(dur)}
+          aria-valuenow={Math.round(pos)}
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerCancel={() => setDragging(false)}
+          onKeyDown={onKey}
+          className="relative h-8 cursor-pointer touch-none select-none"
+        >
+          <span className={`absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full ${mine ? "bg-black/20" : "bg-[#e3e3e3]"}`} />
           <span
-            className={`absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full ${mine ? "bg-black" : "bg-[#222]"}`}
+            className={`absolute left-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full ${mine ? "bg-black" : "bg-[#222]"}`}
             style={{ width: `${pct}%` }}
           />
+          <span
+            className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full shadow ${mine ? "bg-black" : "bg-[#222]"} ${
+              dragging ? "h-5 w-5" : "h-3.5 w-3.5"
+            }`}
+            style={{ left: `${pct}%` }}
+          />
         </div>
-        <p className={`text-[11px] ${mine ? "text-black/60" : "text-[#888]"}`}>
-          🎤 {clock(playing || pos ? pos : dur)}
+        <p className={`-mt-1 flex items-center justify-between text-[11px] ${mine ? "text-black/60" : "text-[#888]"}`}>
+          <span>🎤 {clock(playing || pos ? pos : dur)}</span>
+          {dur > 0 && <span>{clock(dur)}</span>}
         </p>
       </div>
+      <button
+        type="button"
+        onClick={nextSpeed}
+        aria-label={t("Velocidad")}
+        className={`shrink-0 rounded-full px-2 py-1 text-xs font-bold ${mine ? "bg-black/10 text-black" : "bg-[#f0f0f0] text-[#222]"}`}
+      >
+        {speed}×
+      </button>
       <audio
         ref={audio}
         src={a.url}
         preload="metadata"
         onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
+        onPlaying={() => setLoading(false)}
+        onWaiting={() => setLoading(true)}
+        onPause={() => {
+          setPlaying(false);
+          setLoading(false);
+        }}
         onEnded={() => {
           setPlaying(false);
           setPos(0);
         }}
-        onTimeUpdate={(e) => setPos(e.currentTarget.currentTime)}
+        onTimeUpdate={(e) => !dragging && !fixing.current && setPos(e.currentTarget.currentTime)}
         onLoadedMetadata={(e) => {
-          const d = e.currentTarget.duration;
-          if (Number.isFinite(d) && d > 0) setDur(d);
+          const el = e.currentTarget;
+          el.playbackRate = speed;
+          if (Number.isFinite(el.duration) && el.duration > 0) setDur(el.duration);
+          else {
+            fixing.current = true;
+            el.currentTime = 1e101;
+          }
+        }}
+        onDurationChange={(e) => {
+          const el = e.currentTarget;
+          if (!Number.isFinite(el.duration) || el.duration <= 0) return;
+          setDur(el.duration);
+          if (fixing.current) {
+            fixing.current = false;
+            el.currentTime = 0;
+          }
         }}
         className="hidden"
       />

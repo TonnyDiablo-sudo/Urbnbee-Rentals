@@ -138,7 +138,7 @@ export type HostListingRecord = {
   /** Bienvenida, durante la estancia y salida, por el chat de la reserva. */
   stayMessages?: StayMessagesSettings;
   /** Sólo en las cuentas demo: "pending" hasta que el servidor les pone fotos y audios de muestra. */
-  demoStayMedia?: "pending" | "done";
+  demoStayMedia?: "pending" | "done" | "voice";
   photos: string[];
   amenities: string[];
   rules: ListingDetail["rules"];

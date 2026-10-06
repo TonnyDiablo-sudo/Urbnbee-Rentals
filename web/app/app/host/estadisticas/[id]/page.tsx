@@ -5,6 +5,7 @@ import { getLang, getT } from "@/lib/i18n/server";
 import { listingInsights, parseInsightRange } from "@/lib/listing-insights";
 import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
+import { statsLocked } from "@/lib/stats-access";
 import { TopBar } from "../../../_components/top-bar";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function AppListingStatsPage({
   const listing = getListingById(id);
   if (!user || !listing || (listing.hostId !== user.id && user.role !== "admin")) notFound();
   const [t, lang] = await Promise.all([getT(), getLang()]);
-  if (user.role !== "admin" && !user.emailVerifiedAt) {
+  if (statsLocked(user)) {
     return (
       <>
         <TopBar title={t("Estadísticas del anuncio")} back="/host/estadisticas" />
