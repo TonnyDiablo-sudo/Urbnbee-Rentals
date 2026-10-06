@@ -15,11 +15,12 @@ import {
 } from "../_components/notifications";
 import { TopBar } from "../_components/top-bar";
 
-type Filter = "all" | "bookings" | "messages" | "reviews";
+type Filter = "all" | "bookings" | "payments" | "messages" | "reviews";
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "Todas" },
   { id: "bookings", label: "Reservas y solicitudes" },
+  { id: "payments", label: "Pagos" },
   { id: "messages", label: "Mensajes" },
   { id: "reviews", label: "Reseñas" },
 ];
@@ -28,7 +29,8 @@ function inFilter(n: AppNotification, f: Filter): boolean {
   if (f === "all") return true;
   if (f === "messages") return n.kind === "message";
   if (f === "reviews") return n.kind === "review";
-  return n.kind !== "message" && n.kind !== "review";
+  if (f === "payments") return n.kind === "payment";
+  return n.kind !== "message" && n.kind !== "review" && n.kind !== "payment";
 }
 
 function KindIcon({ kind }: { kind: AppNotification["kind"] }) {
@@ -49,6 +51,8 @@ function KindIcon({ kind }: { kind: AppNotification["kind"] }) {
         <IconStar className={cls} />
       ) : kind === "request" ? (
         <IconToday className={cls} />
+      ) : kind === "payment" ? (
+        <span className="text-lg font-bold leading-none">$</span>
       ) : (
         <IconCalendar className={cls} />
       )}

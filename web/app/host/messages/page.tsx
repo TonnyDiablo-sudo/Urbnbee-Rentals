@@ -2,6 +2,7 @@
 
 import { ChatAttachmentView, type ChatAttachmentClient } from "@/components/chat/attachment-view";
 import { MessageBody } from "@/components/chat/message-body";
+import { chatMatches, useChatSearch } from "@/components/chat/chat-search";
 import { ChatsSwitch } from "@/components/team/chats-switch";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -48,6 +49,7 @@ function HostGuestChats() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
+  const query = useChatSearch();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -123,7 +125,9 @@ function HostGuestChats() {
         </div>
       ) : (
         <ul className="space-y-4">
-          {threads.map((th) => {
+          {threads
+            .filter((th) => chatMatches(query, th.guestName, th.listingTitle, ...th.messages.map((m) => m.body)))
+            .map((th) => {
             const key = `${th.listingId}:${th.guestSessionId}`;
             const open = expanded === key;
             const last = th.messages[th.messages.length - 1];

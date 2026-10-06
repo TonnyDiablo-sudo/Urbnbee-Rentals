@@ -511,6 +511,26 @@ if (hosts.some((h) => h.id === SOFIA)) {
       });
     }
     add({
+      id: "ntf_seed_sofia_paid_jorge",
+      userId: SOFIA,
+      kind: "payment",
+      title: "Pago recibido",
+      body: "{name} pagó ${amount} MXN por {listing}.",
+      vars: { name: "Jorge Castillo", amount: "4,350", listing: titleOf(S_CONDESA) },
+      url: "/host/calendario",
+      createdAt: ago(0, 5),
+    });
+    add({
+      id: "ntf_seed_sofia_paid_roberto",
+      userId: SOFIA,
+      kind: "payment",
+      title: "Pago recibido",
+      body: "{name} pagó ${amount} MXN por {listing}.",
+      vars: { name: "Roberto Silva", amount: "6,200", listing: titleOf(S_COYO) },
+      url: "/host/calendario",
+      createdAt: ago(18),
+    });
+    add({
       id: "ntf_seed_sofia_chat_insumos",
       userId: SOFIA,
       kind: "team",
@@ -700,6 +720,32 @@ if (hosts.some((h) => h.id === SOFIA)) {
       chats2.messages.push({ id: `tcm_seed_sofia_rosa_${i}`, channelId: "tch_seed_sofia_rosa", hostId: SOFIA, by, body, at: ago(d, h) });
     });
     writeJson("team-chats.json", chats2);
+    changes++;
+  }
+
+  // Un chat de uno a uno con Lupita, en la misma lista que los grupos
+  const chats3 = readJson("team-chats.json", { version: 1, channels: [], messages: [] });
+  if (chats3 && !chats3.channels?.some((c) => c.id === "tch_seed_sofia_lupita_dm")) {
+    chats3.channels = Array.isArray(chats3.channels) ? chats3.channels : [];
+    chats3.messages = Array.isArray(chats3.messages) ? chats3.messages : [];
+    const LUPITA_USER = "usr_demo_lupita_clean";
+    chats3.channels.push({
+      id: "tch_seed_sofia_lupita_dm",
+      hostId: SOFIA,
+      name: "Directo",
+      emoji: "👤",
+      createdBy: SOFIA,
+      createdAt: ago(3),
+      lastAt: ago(0, 2),
+      pair: [SOFIA, LUPITA_USER].sort(),
+    });
+    [
+      [SOFIA, "Lupita, ¿me puedes cubrir la de Coyoacán del viernes?", 0, 3],
+      [LUPITA_USER, "Sí, ahí estoy a las 11. ¿Dejo las llaves en la caja como siempre?", 0, 2],
+    ].forEach(([by, body, d, h], i) => {
+      chats3.messages.push({ id: `tcm_seed_sofia_lupita_dm_${i}`, channelId: "tch_seed_sofia_lupita_dm", hostId: SOFIA, by, body, at: ago(d, h) });
+    });
+    writeJson("team-chats.json", chats3);
     changes++;
   }
 }

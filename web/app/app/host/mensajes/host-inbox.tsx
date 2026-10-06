@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { chatMatches, useChatSearch } from "@/components/chat/chat-search";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
 import type { ChatAttachmentView } from "@/lib/host-inbox-types";
@@ -39,6 +40,7 @@ export function HostInbox() {
   const inbox = useCached<{ threads?: HostThread[] }>(HOST_URLS.inbox);
   const threads = inbox.data ? (Array.isArray(inbox.data.threads) ? inbox.data.threads : []) : inbox.error ? [] : null;
   const [onlyUnread, setOnlyUnread] = useState(false);
+  const query = useChatSearch();
 
   useEffect(() => {
     const timer = window.setInterval(() => document.visibilityState === "visible" && void revalidate(HOST_URLS.inbox), 20_000);
@@ -60,7 +62,9 @@ export function HostInbox() {
   const isUnread = (th: HostThread) =>
     th.messages[th.messages.length - 1]?.sender === "guest" && threadIsUnread(`h:${th.listingId}:${th.guestSessionId}`, th.lastAt);
   const unreadCount = threads.filter(isUnread).length;
-  const shown = onlyUnread ? threads.filter(isUnread) : threads;
+  const shown = (onlyUnread ? threads.filter(isUnread) : threads).filter((th) =>
+    chatMatches(query, th.guestName, th.listingTitle, ...th.messages.map((m) => m.body))
+  );
 
   return (
     <>
@@ -79,7 +83,9 @@ export function HostInbox() {
         </button>
       ))}
     </div>
-    {shown.length === 0 && <p className="px-5 py-6 text-sm text-[#717171]">{t("No tienes mensajes sin leer.")}</p>}
+    {shown.length === 0 && (
+      <p className="px-5 py-6 text-sm text-[#717171]">{query.trim() ? t("No hay chats que coincidan.") : t("No tienes mensajes sin leer.")}</p>
+    )}
     <ul className="divide-y divide-[#f0f0f0]">
       {shown.map((th) => {
         const last = th.messages[th.messages.length - 1];

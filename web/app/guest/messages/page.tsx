@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { chatMatches, useChatSearch } from "@/components/chat/chat-search";
 import { ChatsSwitch } from "@/components/team/chats-switch";
 import { numberLocale } from "@/lib/i18n";
 
@@ -28,6 +29,7 @@ function GuestHostChats() {
   const locale = numberLocale(useLang());
   const [threads, setThreads] = useState<Thread[]>([]);
   const [err, setErr] = useState<string | null>(null);
+  const query = useChatSearch();
 
   const load = useCallback(async () => {
     setErr(null);
@@ -57,7 +59,7 @@ function GuestHostChats() {
       </p>
       {err && <p className="mt-4 text-sm text-red-600">{t(err)}</p>}
       <ul className="mt-8 space-y-3">
-        {threads.map((th) => (
+        {threads.filter((th) => chatMatches(query, th.listingTitle, th.lastPreview)).map((th) => (
           <li key={th.listingId}>
             <Link
               href={th.listingSlug ? `/listings/${th.listingSlug}#section-chat-anfitrion` : "/alojamientos"}

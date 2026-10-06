@@ -7,7 +7,7 @@ type Summary = {
   capacity: number | "all";
   used: number;
   identityReady: boolean;
-  listings: { id: string; title: string; city: string; published: boolean; on: boolean; addressReady: boolean }[];
+  listings: { id: string; title: string; city: string; published: boolean; on: boolean; bound: boolean; addressReady: boolean }[];
 };
 
 /** Elige qué anuncios usan los lugares pagados del motor de reservas. */
@@ -28,6 +28,8 @@ export function EngineListingsPanel({ storeHref = "/tienda" }: { storeHref?: str
   }, [load]);
 
   async function toggle(listingId: string, on: boolean) {
+    const l = data?.listings.find((x) => x.id === listingId);
+    if (on && l && !l.bound && !confirm(t("El lugar se queda con «{title}» y ya no se puede pasar a otro anuncio. ¿Continuar?", { title: l.title }))) return;
     setBusy(listingId);
     setErr(null);
     const res = await fetch("/api/host/booking-engine", {
@@ -57,6 +59,9 @@ export function EngineListingsPanel({ storeHref = "/tienda" }: { storeHref?: str
           {data.capacity === 0 ? t("Ir a la Tienda") : t("Agregar más en la Tienda")}
         </a>
       </p>
+      {!all && data.capacity !== 0 && (
+        <p className="mt-1 text-xs text-[#888]">{t("Cada lugar pagado se queda con el anuncio que elijas; no se puede pasar a otro.")}</p>
+      )}
       {err && <p className="mt-2 text-sm text-red-700">{t(err)}</p>}
       {!data.identityReady && (
         <p className="mt-3 rounded-xl bg-[#fdf6d8] px-4 py-3 text-sm text-[#5c4a0a]">
@@ -69,7 +74,7 @@ export function EngineListingsPanel({ storeHref = "/tienda" }: { storeHref?: str
             <div className="min-w-0">
               <p className="truncate text-[15px] text-[#222]">{l.title}</p>
               <p className="text-xs text-[#888]">
-                {[l.city, l.published ? t("Publicado") : t("Borrador")].filter(Boolean).join(" · ")}
+                {[l.city, l.published ? t("Publicado") : t("Borrador"), !all && l.bound ? t("🔒 Lugar de este anuncio") : ""].filter(Boolean).join(" · ")}
               </p>
               {l.on && !l.addressReady && (
                 <p className="text-xs text-[#a15c00]">
@@ -82,7 +87,7 @@ export function EngineListingsPanel({ storeHref = "/tienda" }: { storeHref?: str
                 type="checkbox"
                 className="h-5 w-5 accent-[#dcb81e]"
                 checked={l.on}
-                disabled={all || busy !== null || data.capacity === 0}
+                disabled={all || busy !== null || data.capacity === 0 || (!l.bound && data.used >= (data.capacity as number))}
                 onChange={(e) => void toggle(l.id, e.target.checked)}
               />
               {l.on ? t("Activo") : t("Apagado")}

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-  const body = (await req.json().catch(() => ({}))) as { host?: string; name?: unknown; emoji?: unknown; memberIds?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { host?: string; name?: unknown; emoji?: unknown; memberIds?: unknown; direct?: unknown };
   const r = createTeamChannel(user.id, typeof body.host === "string" && body.host ? body.host : user.id, body);
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   return NextResponse.json({ ok: true, id: r.id });

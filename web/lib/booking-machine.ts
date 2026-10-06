@@ -177,8 +177,35 @@ export function markBookingPaid(
         ref: opts?.stripePaymentIntentId ?? opts?.stripeCheckoutSessionId,
       }) ?? moved)
     : moved;
-  if (next) enqueueBookingOutbound("booking.paid", next);
+  if (next) {
+    enqueueBookingOutbound("booking.paid", next);
+    notifyPayment(next, "paid");
+  }
   return next;
+}
+
+function notifyPayment(b: BookingRecord, what: "paid" | "refunded") {
+  const listing = getListingById(b.hostAdjustedListingId ?? b.listingId)?.title || "tu reserva";
+  const vars = { name: b.guestName, listing, amount: Math.round(b.estimatedTotalMxn).toLocaleString("es-MX") };
+  const tag = `${what}:${b.id}`;
+  notifyUser(b.hostId, {
+    kind: "payment",
+    title: what === "paid" ? "Pago recibido" : "Reembolso de reserva",
+    body: what === "paid" ? "{name} pagó ${amount} MXN por {listing}." : "Se le reembolsó a {name} el pago de {listing}.",
+    vars,
+    url: "/host/calendario",
+    tag,
+  });
+  if (b.guestUserId) {
+    notifyUser(b.guestUserId, {
+      kind: "payment",
+      title: what === "paid" ? "Pago confirmado" : "Te reembolsamos tu reserva",
+      body: what === "paid" ? "Recibimos tu pago de ${amount} MXN por {listing}." : "{listing}: tu reembolso ya va en camino.",
+      vars,
+      url: "/viajes",
+      tag,
+    });
+  }
 }
 
 /**
@@ -337,6 +364,9 @@ export function markBookingPaymentRefunded(bookingId: string): BookingRecord | u
   if (!prev) return undefined;
   if (paymentStatusOf(prev) === "refunded" || prev.refundedAt) return prev;
   const next = patchBookingRecord(bookingId, { paymentStatus: "refunded" });
-  if (next) enqueueBookingOutbound("booking.refunded", next);
+  if (next) {
+    enqueueBookingOutbound("booking.refunded", next);
+    notifyPayment(next, "refunded");
+  }
   return next;
 }

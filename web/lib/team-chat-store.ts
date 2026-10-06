@@ -15,6 +15,8 @@ export type TeamChannel = {
   lastAt: string;
   /** Cuentas que están en el grupo (el anfitrión siempre ve todo). Sin lista = todo el equipo. */
   memberIds?: string[];
+  /** Chat de uno a uno: las dos cuentas, ordenadas. */
+  pair?: [string, string];
 };
 
 export type TeamChatAttachment = {
@@ -80,7 +82,14 @@ export function getChannel(id: string): TeamChannel | undefined {
   return channels.find((c) => c.id === id);
 }
 
-export function addChannel(input: { hostId: string; name: string; emoji: string; createdBy: string; memberIds?: string[] }): TeamChannel {
+export function addChannel(input: {
+  hostId: string;
+  name: string;
+  emoji: string;
+  createdBy: string;
+  memberIds?: string[];
+  pair?: [string, string];
+}): TeamChannel {
   load();
   const now = new Date().toISOString();
   const c: TeamChannel = { ...input, id: `tc_${randomBytes(8).toString("hex")}`, createdAt: now, lastAt: now };

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { shrinkImage, useVoiceRecorder, VOICE_MAX_SEC } from "@/components/chat/media-input";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
+import { chatMatches, useChatSearch } from "@/components/chat/chat-search";
 import { numberLocale } from "@/lib/i18n";
 
 type Person = { id: string; name: string; host: boolean };
@@ -11,7 +12,9 @@ type Channel = {
   id: string;
   name: string;
   emoji: string;
+  direct: boolean;
   lastAt: string;
+  lastMine: boolean;
   preview: string;
   everyone: boolean;
   memberIds: string[];
@@ -99,14 +102,15 @@ async function call(url: string, method = "GET", body?: unknown) {
 }
 
 /** Chats de equipo: el anfitrión y su gente arman los que quieran (cuentas, limpiezas, insumos…). */
-export function TeamChat({ hostId }: { hostId?: string }) {
+export function TeamChat({ hostId, pad = "px-5" }: { hostId?: string; pad?: string }) {
   const t = useT();
   const locale = numberLocale(useLang());
+  const query = useChatSearch();
+  const [creating, setCreating] = useState<"group" | "direct" | false>(false);
   const q = hostId ? `?host=${encodeURIComponent(hostId)}` : "";
   const [channels, setChannels] = useState<Channel[] | null>(null);
   const [locked, setLocked] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<{ emoji: string; name: string; members: string[] | null }>({ emoji: "💬", name: "", members: null });
   const [err, setErr] = useState<string | null>(null);
   const [people, setPeople] = useState<Person[]>([]);
@@ -145,6 +149,15 @@ export function TeamChat({ hostId }: { hostId?: string }) {
     setOpen(r.j.id as string);
   }
 
+  async function openDirect(personId: string) {
+    setErr(null);
+    const r = await call("/api/team-chat", "POST", { host: hostId, direct: personId });
+    if (!r.ok) return setErr(typeof r.j.error === "string" ? r.j.error : "No se pudo abrir.");
+    setCreating(false);
+    await load();
+    setOpen(r.j.id as string);
+  }
+
   if (!channels) return null;
 
   if (open) {
@@ -152,6 +165,7 @@ export function TeamChat({ hostId }: { hostId?: string }) {
       <ChannelView
         id={open}
         me={me}
+        pad={pad}
         onBack={() => {
           setOpen(null);
           const url = new URL(window.location.href);
@@ -165,37 +179,73 @@ export function TeamChat({ hostId }: { hostId?: string }) {
     );
   }
 
+  const others = people.filter((p) => p.id !== me);
+  const shown = channels.filter((c) => chatMatches(query, c.name, c.preview, ...c.memberNames));
+  const groupNames = new Set(channels.filter((c) => !c.direct).map((c) => c.name));
+
   return (
-    <section className="rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-[#222]">{t("Chats de equipo")}</h2>
-          <p className="text-sm text-[#717171]">{t("Gratis. Arma los chats que quieras y guarda ahí fotos, audios y archivos.")}</p>
-        </div>
-        {!locked && !creating && (
+    <section>
+      {locked && <p className={`${pad} py-3 text-sm text-[#555]`}>{t(locked)}</p>}
+
+      {!locked && (
+        <div className={`${pad} flex gap-2 pb-2`}>
           <button
             type="button"
-            onClick={() => setCreating(true)}
-            className="shrink-0 rounded-xl bg-[#222] px-4 py-2 text-sm font-semibold text-white"
+            onClick={() => setCreating(creating === "direct" ? false : "direct")}
+            className={`rounded-full border px-4 py-2 text-sm font-medium ${creating === "direct" ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#222]"}`}
           >
-            {t("+ Nuevo chat")}
+            {t("👤 Nuevo chat")}
           </button>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={() => setCreating(creating === "group" ? false : "group")}
+            className={`rounded-full border px-4 py-2 text-sm font-medium ${creating === "group" ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#222]"}`}
+          >
+            {t("👥 Nuevo grupo")}
+          </button>
+        </div>
+      )}
 
-      {locked && <p className="mt-3 rounded-xl bg-[#f7f7f7] px-4 py-3 text-sm text-[#555]">{t(locked)}</p>}
-      {err && <p className="mt-3 text-sm text-red-700">{t(err)}</p>}
+      {err && <p className={`${pad} pb-2 text-sm text-red-700`}>{t(err)}</p>}
 
-      {creating && (
+      {creating === "direct" && (
+        <div className={`${pad} pb-3`}>
+          <p className="pb-1 text-sm text-[#717171]">{t("¿Con quién quieres hablar?")}</p>
+          {others.length === 0 ? (
+            <p className="text-sm text-[#888]">{t("Todavía no hay nadie más en el equipo.")}</p>
+          ) : (
+            <ul className="divide-y divide-[#f0f0f0] rounded-2xl bg-[#fafafa]">
+              {others.map((p) => (
+                <li key={p.id}>
+                  <button type="button" onClick={() => void openDirect(p.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#111] text-sm font-bold text-[#dcb81e]">
+                      {p.name.trim().charAt(0).toUpperCase() || "?"}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[15px] text-[#222]">{p.name}</span>
+                    {p.host && <span className="shrink-0 text-xs text-[#888]">{t("Anfitrión")}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {isHost && (
+            <a href="/host/colaboradores#invitar" className="mt-2 block text-xs font-semibold text-[#222] underline">
+              {t("¿Falta alguien? Invítalo como colaborador")}
+            </a>
+          )}
+        </div>
+      )}
+
+      {creating === "group" && (
         <form
-          className="mt-4 space-y-3 rounded-xl bg-[#fafafa] p-4"
+          className={`${pad} space-y-3 pb-4`}
           onSubmit={(e) => {
             e.preventDefault();
             void create(draft.name, draft.emoji, draft.members);
           }}
         >
           <div className="flex flex-wrap gap-2">
-            {SUGGESTED.filter((s) => !channels.some((c) => c.name === t(s.name))).map((s) => (
+            {SUGGESTED.filter((s) => !groupNames.has(t(s.name))).map((s) => (
               <button
                 key={s.name}
                 type="button"
@@ -211,7 +261,7 @@ export function TeamChat({ hostId }: { hostId?: string }) {
             <input
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              placeholder={t("Nombre del chat")}
+              placeholder={t("Nombre del grupo")}
               maxLength={40}
               className="min-w-0 flex-1 rounded-xl border border-[#ddd] px-3 py-2 text-[15px] text-[#222]"
             />
@@ -234,23 +284,36 @@ export function TeamChat({ hostId }: { hostId?: string }) {
       )}
 
       {!locked && channels.length === 0 && !creating && (
-        <p className="mt-3 text-sm text-[#888]">{t("Todavía no hay chats. Crea uno para cuentas, limpiezas, insumos o lo que necesiten.")}</p>
+        <p className={`${pad} py-6 text-sm text-[#717171]`}>
+          {t("Todavía no hay chats. Escríbele a alguien o arma un grupo para cuentas, limpiezas o insumos.")}
+        </p>
       )}
+      {channels.length > 0 && shown.length === 0 && <p className={`${pad} py-6 text-sm text-[#717171]`}>{t("No hay chats que coincidan.")}</p>}
 
-      {channels.length > 0 && (
-        <ul className="mt-4 divide-y divide-[#f0f0f0]">
-          {channels.map((c) => (
+      {shown.length > 0 && (
+        <ul className="divide-y divide-[#f0f0f0]">
+          {shown.map((c) => (
             <li key={c.id}>
-              <button type="button" onClick={() => setOpen(c.id)} className="flex w-full items-center gap-3 py-3 text-left">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fff6d6] text-xl">{c.emoji}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-semibold text-[#222]">{c.name}</span>
-                  <span className="block truncate text-[11px] text-[#aaa]">
-                    👥 {c.everyone ? t("Todo el equipo") : c.memberNames.join(", ")}
+              <button type="button" onClick={() => setOpen(c.id)} className={`${pad} flex w-full items-start gap-3 py-4 text-left active:bg-[#fafafa]`}>
+                {c.direct ? (
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#111] text-base font-bold text-[#dcb81e]">
+                    {c.name.trim().charAt(0).toUpperCase() || "?"}
                   </span>
-                  <span className="block truncate text-xs text-[#888]">{c.preview || t("Sin mensajes")}</span>
+                ) : (
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#fdf6d8] text-xl">{c.emoji}</span>
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="truncate text-[15px] font-semibold text-[#222]">{c.name}</span>
+                    <span className="shrink-0 text-xs text-[#999]">{time(c.lastAt, locale)}</span>
+                  </span>
+                  <span className="block truncate text-xs text-[#999]">
+                    {c.direct ? t("Chat directo") : `👥 ${c.everyone ? t("Todo el equipo") : c.memberNames.join(", ")}`}
+                  </span>
+                  <span className="mt-0.5 line-clamp-2 text-sm text-[#717171]">
+                    {c.preview ? `${c.lastMine ? t("Tú: ") : ""}${c.preview}` : t("Sin mensajes")}
+                  </span>
                 </span>
-                <span className="shrink-0 text-xs text-[#aaa]">{time(c.lastAt, locale)}</span>
               </button>
             </li>
           ))}
@@ -260,7 +323,7 @@ export function TeamChat({ hostId }: { hostId?: string }) {
   );
 }
 
-function ChannelView({ id, me, onBack }: { id: string; me: string; onBack: () => void }) {
+function ChannelView({ id, me, pad, onBack }: { id: string; me: string; pad: string; onBack: () => void }) {
   const t = useT();
   const locale = numberLocale(useLang());
   const [data, setData] = useState<Thread | null>(null);
@@ -364,24 +427,32 @@ function ChannelView({ id, me, onBack }: { id: string; me: string; onBack: () =>
     if (r.ok) onBack();
   }
 
-  if (!data) return <p className="text-sm text-[#999]">{t("Cargando…")}</p>;
+  if (!data) return <p className={`${pad} text-sm text-[#999]`}>{t("Cargando…")}</p>;
 
   return (
-    <section className="flex h-[70vh] min-h-[420px] flex-col rounded-2xl border border-[#e5e5e5] bg-white shadow-sm">
-      <header className="flex items-center gap-3 border-b border-[#f0f0f0] px-4 py-3">
-        <button type="button" onClick={onBack} aria-label={t("Volver")} className="text-xl text-[#222]">
+    <section className="flex h-[calc(100dvh-230px)] min-h-[420px] flex-col bg-white">
+      <header className={`${pad || "px-1"} flex items-center gap-3 border-b border-[#f0f0f0] py-3`}>
+        <button type="button" onClick={onBack} aria-label={t("Volver")} className="text-2xl leading-none text-[#222]">
           ‹
         </button>
-        <span className="text-xl">{data.channel.emoji}</span>
+        {data.channel.direct ? (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#111] text-sm font-bold text-[#dcb81e]">
+            {data.channel.name.trim().charAt(0).toUpperCase() || "?"}
+          </span>
+        ) : (
+          <span className="text-xl">{data.channel.emoji}</span>
+        )}
         <h2 className="min-w-0 flex-1 truncate text-[16px] font-semibold text-[#222]">{data.channel.name}</h2>
-        <button
-          type="button"
-          onClick={openMembers}
-          aria-label={t("Personas en el chat")}
-          className="shrink-0 rounded-full border border-[#ddd] px-2.5 py-1 text-sm text-[#222]"
-        >
-          👥 {data.channel.memberIds.length}
-        </button>
+        {!data.channel.direct && (
+          <button
+            type="button"
+            onClick={openMembers}
+            aria-label={t("Personas en el chat")}
+            className="shrink-0 rounded-full border border-[#ddd] px-2.5 py-1 text-sm text-[#222]"
+          >
+            👥 {data.channel.memberIds.length}
+          </button>
+        )}
         {data.canManage && (
           <>
             <button type="button" onClick={() => void rename()} className="text-sm text-[#555] underline">

@@ -21,6 +21,7 @@ import {
   type CleaningTask,
 } from "@/lib/cleaning-store";
 import { publicNameOf } from "@/lib/display-name";
+import { bindListing, boundListings } from "@/lib/listing-slots-store";
 import { findUserById, getListingById, listListingsForHost, updateListing } from "@/lib/marketplace-store";
 import { dayVar } from "@/lib/notification-vars";
 import { notifyUser } from "@/lib/push";
@@ -99,15 +100,28 @@ export function cleaningCapacity(hostId: string): number {
   return Math.max(0, getHostEntitlement(hostId, HOST_SKU_CLEANING)?.quantity ?? 1);
 }
 
-/** Anuncios que hoy están en la herramienta: los primeros N que encendió (por fecha de alta). */
-export function cleaningListingIds(hostId: string): Set<string> {
+/** Anuncios con lugar pagado de limpieza; los encendidos antes del candado se quedan con el suyo. */
+export function cleaningSlots(hostId: string): string[] {
   const cap = cleaningCapacity(hostId);
-  if (cap === 0) return new Set();
+  let bound = boundListings(hostId, "cleaning");
+  const legacy = listListingsForHost(hostId)
+    .filter((l) => l.cleaningOn && !bound.includes(l.id))
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  for (const l of legacy) {
+    if (bound.length >= cap) break;
+    bindListing(hostId, "cleaning", l.id);
+    bound = [...bound, l.id];
+  }
+  return bound.slice(0, cap);
+}
+
+/** Anuncios que hoy están en la herramienta: encendidos y con su lugar. */
+export function cleaningListingIds(hostId: string): Set<string> {
+  if (cleaningCapacity(hostId) === 0) return new Set();
+  const slots = new Set(cleaningSlots(hostId));
   return new Set(
     listListingsForHost(hostId)
-      .filter((l) => l.cleaningOn)
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      .slice(0, cap)
+      .filter((l) => l.cleaningOn && slots.has(l.id))
       .map((l) => l.id)
   );
 }
@@ -344,10 +358,11 @@ export function hostCleaningView(hostId: string) {
   if (active) refreshCleaning(hostId);
   const team = listTeamForHost(hostId).filter((m) => m.status === "active" && memberEffectiveRoles(m).includes("cleaning"));
   const included = cleaningListingIds(hostId);
+  const slots = new Set(active ? cleaningSlots(hostId) : []);
   return {
     active,
     capacity: cleaningCapacity(hostId),
-    used: included.size,
+    used: slots.size,
     settings: getCleaningSettings(hostId),
     confirmHourOptions: CONFIRM_HOUR_OPTIONS,
     cancelHourOptions: CANCEL_HOUR_OPTIONS,
@@ -355,6 +370,8 @@ export function hostCleaningView(hostId: string) {
       id: l.id,
       title: l.title || "Sin título",
       on: included.has(l.id),
+      /** Ya tiene su lugar pagado; no se puede pasar a otro anuncio. */
+      bound: slots.has(l.id),
       cleaner: getListingCleaner(l.id) ?? null,
       /** Quién limpia, en orden de prioridad. */
       cleaners: getListingCleaners(l.id),
@@ -364,8 +381,8 @@ export function hostCleaningView(hostId: string) {
       ...team.map((m) => ({ id: m.id, name: memberName(m.id), listingIds: m.listingIds })),
     ],
     pendingInvites: listTeamForHost(hostId).filter((m) => m.status === "pending" && m.roles.includes("cleaning")).length,
-    /** Las terminadas de los últimos 4 meses, para que el calendario muestre el historial. */
-    tasks: visibleTasks(listCleaningTasksForHost(hostId), 120),
+    /** Todo el historial: «Por anuncio» filtra hasta «Todas». */
+    tasks: visibleTasks(listCleaningTasksForHost(hostId), 100_000),
     today: analyticsDayKey(),
     recentSince: shiftDayKey(analyticsDayKey(), -14),
     attendanceEnabled: attendanceEnabled(),
@@ -395,14 +412,18 @@ export function setListingCleaning(
       }
     }
   }
-  if (patch.on === true && !cleaningListingIds(hostId).has(listingId)) {
+  if (patch.on === true) {
     const cap = cleaningCapacity(hostId);
-    if (cleaningListingIds(hostId).size >= cap) {
-      return {
-        ok: false,
-        error: `Ya usas tus ${cap} anuncios pagados de limpieza. Quita uno o agrega otro en la Tienda.`,
-        status: 409,
-      };
+    const slots = cleaningSlots(hostId);
+    if (!slots.includes(listingId)) {
+      if (slots.length >= cap) {
+        return {
+          ok: false,
+          error: `Tus ${cap} lugares de limpieza ya son de otros anuncios. Cada lugar se queda con el anuncio que elegiste; para este, agrega uno en la Tienda.`,
+          status: 409,
+        };
+      }
+      bindListing(hostId, "cleaning", listingId);
     }
   }
   if (patch.on !== undefined) updateListing(listingId, hostId, { cleaningOn: patch.on });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useT } from "@/components/i18n-provider";
+import { ChatSearchContext } from "@/components/chat/chat-search";
 import { TeamChat } from "@/components/team/team-chat";
 
 type Team = { id: string; hostId: string; hostName: string; status: string };
@@ -19,6 +20,7 @@ export function ChatsSwitch({ guestsLabel, own = false, web = false, children }:
   const t = useT();
   const [tab, setTab] = useState<Tab>("guests");
   const [teams, setTeams] = useState<Team[] | null>(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     const id = setTimeout(() => setTab(tabFromUrl()), 0);
@@ -34,7 +36,6 @@ export function ChatsSwitch({ guestsLabel, own = false, web = false, children }:
   }, []);
 
   const showSwitch = own || (teams?.length ?? 0) > 0;
-  if (!showSwitch) return <>{children}</>;
 
   function pick(next: Tab) {
     setTab(next);
@@ -60,29 +61,47 @@ export function ChatsSwitch({ guestsLabel, own = false, web = false, children }:
     </button>
   );
 
+  const pad = web ? "" : "px-5";
+  const current = showSwitch ? tab : "guests";
+
   return (
-    <>
-      <div className={web ? "mb-6 max-w-md" : "px-5 pb-2 pt-1"}>
-        <div role="tablist" className="flex gap-1 rounded-full border border-[#e5e5e5] bg-white p-1">
-          {pill("guests", t(guestsLabel), "💬")}
-          {pill("team", t("Colaboradores"), "👥")}
-        </div>
+    <ChatSearchContext.Provider value={query}>
+      <div className={web ? "mb-4 max-w-md space-y-3" : "space-y-3 px-5 pb-3 pt-1"}>
+        {showSwitch && (
+          <div role="tablist" className="flex gap-1 rounded-full border border-[#e5e5e5] bg-white p-1">
+            {pill("guests", t(guestsLabel), "💬")}
+            {pill("team", t("Colaboradores"), "👥")}
+          </div>
+        )}
+        <label className="flex items-center gap-2 rounded-full bg-[#f3f3f3] px-4 py-2.5">
+          <span aria-hidden className="text-[#888]">
+            🔎
+          </span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("Buscar en chats")}
+            aria-label={t("Buscar en chats")}
+            className="min-w-0 flex-1 bg-transparent text-[15px] text-[#222] outline-none placeholder:text-[#999]"
+          />
+        </label>
       </div>
-      {tab === "guests" ? (
+      {current === "guests" ? (
         children
       ) : (
-        <div className={web ? "max-w-4xl space-y-5" : "space-y-5 px-5 pb-10 pt-2"}>
-          {own && <TeamChat />}
+        <div className={web ? "max-w-4xl space-y-6" : "space-y-6 pb-10"}>
+          {own && <TeamChat pad={pad} />}
           {(teams ?? []).map((team) => (
-            <div key={team.id} className="space-y-2">
+            <div key={team.id}>
               {(own || (teams?.length ?? 0) > 1) && (
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#999]">{t("Equipo de {name}", { name: team.hostName })}</p>
+                <p className={`${pad} pb-1 text-xs font-semibold uppercase tracking-wide text-[#999]`}>{t("Equipo de {name}", { name: team.hostName })}</p>
               )}
-              <TeamChat hostId={team.hostId} />
+              <TeamChat hostId={team.hostId} pad={pad} />
             </div>
           ))}
         </div>
       )}
-    </>
+    </ChatSearchContext.Provider>
   );
 }

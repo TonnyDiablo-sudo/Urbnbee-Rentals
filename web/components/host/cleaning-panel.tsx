@@ -22,7 +22,7 @@ type View = {
   settings: Settings;
   confirmHourOptions: number[];
   cancelHourOptions: number[];
-  listings: { id: string; title: string; on: boolean; cleaner: string | null; cleaners: string[] }[];
+  listings: { id: string; title: string; on: boolean; bound: boolean; cleaner: string | null; cleaners: string[] }[];
   cleaners: { id: string; name: string; listingIds: string[] | "all" }[];
   pendingInvites: number;
   tasks: CleaningTaskItem[];
@@ -40,6 +40,29 @@ const TABS: { id: Tab; icon: string; label: string }[] = [
 ];
 const HASH_TAB: Record<string, Tab> = { insumos: "insumos", anuncios: "anuncios", ajustes: "ajustes", como: "ajustes" };
 
+type StatusFilter = "open" | "done" | "all";
+const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
+  { id: "open", label: "No hechas" },
+  { id: "done", label: "Hechas" },
+  { id: "all", label: "Todas" },
+];
+
+/** Días alrededor de hoy (para atrás y para adelante); null = sin límite. */
+const PERIODS: { days: number | null; label: string }[] = [
+  { days: 0, label: "Hoy" },
+  { days: 7, label: "7 días" },
+  { days: 30, label: "Mes" },
+  { days: 90, label: "3 meses" },
+  { days: 180, label: "6 meses" },
+  { days: 365, label: "Año" },
+  { days: null, label: "Todas" },
+];
+
+const dayDiff = (a: string, b: string) => Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000);
+
+const chip = (on: boolean) =>
+  `shrink-0 rounded-full border px-3 py-1.5 text-sm ${on ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] bg-white text-[#222]"}`;
+
 const covers = (c: View["cleaners"][number], listingId: string) => c.listingIds === "all" || c.listingIds.includes(listingId);
 
 /** El chat de la app con quien limpia: es el mismo hilo que usa cualquier persona con el anuncio. */
@@ -55,7 +78,10 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("calendario");
-  const [listingFilter, setListingFilter] = useState("all");
+  const [picked, setPicked] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
+  const [period, setPeriod] = useState<number | null>(30);
+  const [extraOpen, setExtraOpen] = useState(false);
   const [manual, setManual] = useState({ listingId: "", date: "", note: "" });
 
   const load = useCallback(async () => {
@@ -117,7 +143,6 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
   const settings = data.settings;
   const pending = data.tasks.filter((x) => x.status === "pending");
   const toApprove = data.tasks.filter((x) => x.status === "done" && x.approval === "pending");
-  const done = data.tasks.filter((x) => x.status === "done" && x.date >= data.recentSince && x.approval !== "pending");
   const unconfirmed = pending.filter((x) => x.needsConfirm);
   const unassigned = pending.filter((x) => !x.assignee);
   const onListings = data.listings.filter((l) => l.on);
@@ -176,30 +201,6 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
 
       {tab === "calendario" && (
         <>
-          {(toApprove.length > 0 || unconfirmed.length > 0 || unassigned.length > 0) && (
-            <div className="grid gap-2 sm:grid-cols-3">
-              {[
-                [toApprove.length, "🔎", "Por aprobar"],
-                [unconfirmed.length, "⏳", "Sin confirmar"],
-                [unassigned.length, "⚠️", "Sin asignar"],
-              ]
-                .filter(([n]) => (n as number) > 0)
-                .map(([n, icon, label]) => (
-                  <div key={label as string} className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    <span className="text-lg">{icon}</span> <strong>{n as number}</strong> {t(label as string)}
-                  </div>
-                ))}
-            </div>
-          )}
-
-          {toApprove.length > 0 && (
-            <section className={card}>
-              <h2 className="text-lg font-semibold text-[#222]">{t("Por aprobar")}</h2>
-              <p className="mt-1 text-sm text-[#717171]">{t("Revisa las fotos y comentarios de quien limpió y apruébala o pide que corrija algo.")}</p>
-              <ul className="mt-3 space-y-3">{toApprove.map((task) => hostCard(task))}</ul>
-            </section>
-          )}
-
           <CleaningCalendar
             tasks={data.tasks}
             today={data.today}
@@ -208,26 +209,48 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
             renderTask={(task) => hostCard(task, { calendar: true })}
           />
 
-          <section id="limpiezas" className={card}>
-            <h2 className="text-lg font-semibold text-[#222]">{t("Próximas limpiezas")}</h2>
-            {pending.length === 0 ? (
-              <p className="mt-2 text-sm text-[#888]">
-                {onListings.length === 0
-                  ? t("Agrega en Ajustes los anuncios que quieres en la herramienta.")
-                  : t("No hay limpiezas pendientes. Se crean solas cuando se confirma una reserva.")}
-              </p>
-            ) : (
-              <ul className="mt-3 space-y-3">{pending.map((task) => hostCard(task))}</ul>
-            )}
-          </section>
+          {(toApprove.length > 0 || unconfirmed.length > 0 || unassigned.length > 0) && (
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  [toApprove.length, "🔎", "Por aprobar"],
+                  [unconfirmed.length, "⏳", "Sin confirmar"],
+                  [unassigned.length, "⚠️", "Sin asignar"],
+                ] as const
+              )
+                .filter(([n]) => n > 0)
+                .map(([n, icon, label]) => (
+                  <span key={label} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-900">
+                    {icon} <strong>{n}</strong> {t(label)}
+                  </span>
+                ))}
+            </div>
+          )}
 
-          {onListings.length > 0 && (
+          {onListings.length === 0 && (
+            <p className="text-sm text-[#888]">{t("Agrega en Ajustes los anuncios que quieres en la herramienta.")}</p>
+          )}
+
+          {onListings.length > 0 && !extraOpen && (
+            <button
+              type="button"
+              onClick={() => setExtraOpen(true)}
+              className="rounded-xl border border-[#222] px-4 py-2.5 text-sm font-semibold text-[#222]"
+            >
+              {t("+ Agregar limpieza extra")}
+            </button>
+          )}
+
+          {onListings.length > 0 && extraOpen && (
             <form
               id="extra"
               className={card}
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (await send("/api/host/cleaning", "POST", manual)) setManual({ listingId: "", date: "", note: "" });
+                if (await send("/api/host/cleaning", "POST", manual)) {
+                  setManual({ listingId: "", date: "", note: "" });
+                  setExtraOpen(false);
+                }
               }}
             >
               <h2 className="text-lg font-semibold text-[#222]">{t("Agregar limpieza extra")}</h2>
@@ -259,31 +282,22 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
                 placeholder={t("Nota (opcional): cambiar sábanas, revisar alberca…")}
                 className="mt-3 w-full rounded-xl border border-[#ddd] px-3 py-2.5 text-[15px] text-[#222]"
               />
-              <button
-                type="submit"
-                disabled={busy}
-                className="mt-3 rounded-xl bg-[#222] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {t("Agregar")}
-              </button>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="rounded-xl bg-[#222] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {t("Agregar")}
+                </button>
+                <button type="button" onClick={() => setExtraOpen(false)} className="rounded-xl border border-[#ddd] px-4 py-2.5 text-sm text-[#222]">
+                  {t("Cancelar")}
+                </button>
+              </div>
             </form>
           )}
 
-          {done.length > 0 && (
-            <section className={card}>
-              <h2 className="text-lg font-semibold text-[#222]">{t("Terminadas (últimas 2 semanas)")}</h2>
-              <ul className="mt-3 space-y-3">{done.map((task) => hostCard(task))}</ul>
-            </section>
-          )}
-
-          {data.attendanceEnabled ? (
-            <AttendanceHistory cleaners={data.cleaners} />
-          ) : (
-            <p className="rounded-2xl border border-dashed border-[#ddd] bg-white px-5 py-4 text-sm text-[#555]">
-              📍 <strong>{t("Próximamente incluido")}:</strong>{" "}
-              {t("quien limpia marcará su entrada y salida desde el alojamiento, y verás el historial de cada persona por día.")}
-            </p>
-          )}
+          {data.attendanceEnabled && <AttendanceHistory cleaners={data.cleaners} />}
         </>
       )}
 
@@ -298,27 +312,44 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
             </section>
           ) : (
             <>
-              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 text-sm">
-                {[["all", t("Todos los anuncios")], ...onListings.map((l) => [l.id, l.title])].map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setListingFilter(id)}
-                    className={`shrink-0 rounded-full border px-3 py-1.5 ${listingFilter === id ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] bg-white text-[#222]"}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {!picked && (
+                <section className={card}>
+                  <h2 className="text-lg font-semibold text-[#222]">{t("Elige un anuncio")}</h2>
+                  <ul className="mt-2 divide-y divide-[#f0f0f0]">
+                    {onListings.map((l) => {
+                      const mine = data.tasks.filter((x) => x.listingId === l.id);
+                      const todo = mine.filter((x) => x.status === "pending").length;
+                      const review = mine.filter((x) => x.status === "done" && x.approval === "pending").length;
+                      return (
+                        <li key={l.id}>
+                          <button type="button" onClick={() => setPicked(l.id)} className="flex w-full items-center gap-3 py-3.5 text-left">
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[15px] font-semibold text-[#222]">{l.title}</span>
+                              <span className="block text-sm text-[#717171]">
+                                {t("{n} por hacer", { n: todo })}
+                                {review > 0 && ` · ${t("{n} por aprobar", { n: review })}`}
+                              </span>
+                            </span>
+                            <span className="text-xl text-[#bbb]" aria-hidden>
+                              ›
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              )}
               {onListings
-                .filter((l) => listingFilter === "all" || l.id === listingFilter)
+                .filter((l) => l.id === picked)
                 .map((l) => {
                   const able = data.cleaners.filter((c) => covers(c, l.id));
                   const notInList = able.filter((c) => !l.cleaners.includes(c.id));
-                  const mine = data.tasks.filter((x) => x.listingId === l.id);
-                  const open = mine.filter((x) => x.status === "pending");
-                  const review = mine.filter((x) => x.status === "done" && x.approval === "pending");
-                  const recent = mine.filter((x) => x.status === "done" && x.approval !== "pending" && x.date >= data.recentSince);
+                  const shown = data.tasks
+                    .filter((x) => x.listingId === l.id)
+                    .filter((x) => (statusFilter === "open" ? x.status === "pending" : statusFilter === "done" ? x.status === "done" : true))
+                    .filter((x) => period === null || Math.abs(dayDiff(x.date, data.today)) <= period)
+                    .sort((a, b) => (statusFilter === "open" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)));
                   const saveList = (list: string[]) => void send("/api/host/cleaning", "PATCH", { listingId: l.id, cleaners: list });
                   const move = (i: number, d: number) => {
                     const list = [...l.cleaners];
@@ -328,10 +359,38 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
                     saveList(list);
                   };
                   return (
-                    <section key={l.id} className={card}>
+                    <div key={l.id} className="space-y-4">
+                    <button type="button" onClick={() => setPicked(null)} className="text-sm font-semibold text-[#222]">
+                      ‹ {t("Todos los anuncios")}
+                    </button>
+                    <section className={card}>
                       <h2 className="text-lg font-semibold text-[#222]">{l.title}</h2>
+                      <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+                        {STATUS_FILTERS.map((f) => (
+                          <button key={f.id} type="button" onClick={() => setStatusFilter(f.id)} className={chip(statusFilter === f.id)}>
+                            {t(f.label)}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+                        {PERIODS.map((p) => (
+                          <button key={p.label} type="button" onClick={() => setPeriod(p.days)} className={chip(period === p.days)}>
+                            {t(p.label)}
+                          </button>
+                        ))}
+                      </div>
+                      {shown.length === 0 ? (
+                        <p className="mt-4 text-sm text-[#888]">{t("No hay limpiezas con estos filtros.")}</p>
+                      ) : (
+                        <>
+                          <p className="mt-3 text-sm text-[#717171]">{t(shown.length === 1 ? "{n} limpieza" : "{n} limpiezas", { n: shown.length })}</p>
+                          <ul className="mt-2 space-y-3">{shown.map((task) => hostCard(task))}</ul>
+                        </>
+                      )}
+                    </section>
 
-                      <h3 className="mt-4 text-[15px] font-semibold text-[#222]">{t("Quién limpia (en orden de prioridad)")}</h3>
+                    <section className={card}>
+                      <h3 className="text-[15px] font-semibold text-[#222]">{t("Quién limpia (en orden de prioridad)")}</h3>
                       <p className="text-xs text-[#888]">
                         {settings.assignMode === "auto"
                           ? t("A la primera le llega cada limpieza nueva. Si cancela, pasa sola a la siguiente.")
@@ -381,28 +440,8 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
                           {data.pendingInvites > 0 ? t("Tienes invitaciones pendientes") : t("Invita a quien te limpia")}
                         </a>
                       )}
-
-                      {review.length > 0 && (
-                        <>
-                          <h3 className="mt-5 text-[15px] font-semibold text-[#222]">{t("Por aprobar")}</h3>
-                          <ul className="mt-2 space-y-3">{review.map((task) => hostCard(task))}</ul>
-                        </>
-                      )}
-
-                      <h3 className="mt-5 text-[15px] font-semibold text-[#222]">{t("Próximas limpiezas")}</h3>
-                      {open.length === 0 ? (
-                        <p className="mt-1 text-sm text-[#888]">{t("No hay limpiezas pendientes.")}</p>
-                      ) : (
-                        <ul className="mt-2 space-y-3">{open.map((task) => hostCard(task))}</ul>
-                      )}
-
-                      {recent.length > 0 && (
-                        <>
-                          <h3 className="mt-5 text-[15px] font-semibold text-[#222]">{t("Terminadas (últimas 2 semanas)")}</h3>
-                          <ul className="mt-2 space-y-3">{recent.map((task) => hostCard(task))}</ul>
-                        </>
-                      )}
                     </section>
+                    </div>
                   );
                 })}
             </>
@@ -525,6 +564,7 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
                 {t("Agregar más en la Tienda")}
               </a>
             </p>
+            <p className="mt-1 text-xs text-[#888]">{t("Cada lugar pagado se queda con el anuncio que elijas; no se puede pasar a otro.")}</p>
             <ul className="mt-3 divide-y divide-[#f0f0f0]">
               {data.listings.map((l) => (
                 <li key={l.id} className="py-3">
@@ -533,10 +573,15 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
                       type="checkbox"
                       className="h-5 w-5 accent-[#dcb81e]"
                       checked={l.on}
-                      disabled={busy || (!l.on && data.used >= data.capacity)}
-                      onChange={(e) => void send("/api/host/cleaning", "PATCH", { listingId: l.id, on: e.target.checked })}
+                      disabled={busy || (!l.bound && data.used >= data.capacity)}
+                      onChange={(e) => {
+                        const on = e.target.checked;
+                        if (on && !l.bound && !confirm(t("El lugar se queda con «{title}» y ya no se puede pasar a otro anuncio. ¿Continuar?", { title: l.title }))) return;
+                        void send("/api/host/cleaning", "PATCH", { listingId: l.id, on });
+                      }}
                     />
-                    <span className="truncate">{l.title}</span>
+                    <span className="min-w-0 flex-1 truncate">{l.title}</span>
+                    {l.bound && <span className="shrink-0 text-xs text-[#888]">{t("🔒 Lugar de este anuncio")}</span>}
                   </label>
                 </li>
               ))}

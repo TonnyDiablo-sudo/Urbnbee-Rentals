@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { chatMatches, useChatSearch } from "@/components/chat/chat-search";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale } from "@/lib/i18n";
 import { GUEST_THREADS_URL, useCached } from "../_components/cached-fetch";
@@ -17,6 +18,7 @@ type Thread = {
 export function GuestThreadList() {
   const t = useT();
   const lang = useLang();
+  const query = useChatSearch();
   const res = useCached<{ threads?: Thread[] }>(GUEST_THREADS_URL);
   const threads = res.data ? (Array.isArray(res.data.threads) ? res.data.threads : []) : res.error ? [] : null;
 
@@ -35,9 +37,12 @@ export function GuestThreadList() {
     );
   }
 
+  const shown = threads.filter((th) => chatMatches(query, th.listingTitle, t(th.listingTitle), th.lastPreview));
+  if (shown.length === 0) return <p className="px-5 py-6 text-sm text-[#717171]">{t("No hay chats que coincidan.")}</p>;
+
   return (
     <ul className="divide-y divide-[#f0f0f0]">
-      {threads.map((th) => {
+      {shown.map((th) => {
         const unread = th.lastSender === "host" && threadIsUnread(`g:${th.listingId}`, th.lastAt);
         return (
           <li key={th.listingId}>

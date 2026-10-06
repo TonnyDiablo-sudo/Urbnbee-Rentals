@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { addressCoveredListingIds, addressProofSlots, listingShowsLocationBadge } from "@/lib/address-proof-access";
-import { engineCapacity, engineListingIds } from "@/lib/booking-engine-slots";
+import { engineCapacity, engineListingIds, engineSlots } from "@/lib/booking-engine-slots";
 import { featuredCapacity, featuredListingIds } from "@/lib/featured-slots";
-import { cleaningCapacity, cleaningListingIds } from "@/lib/cleaning-service";
+import { cleaningCapacity, cleaningListingIds, cleaningSlots } from "@/lib/cleaning-service";
 import { getListingCleaner } from "@/lib/cleaning-store";
 import { publicNameOf } from "@/lib/display-name";
 import { getHostEntitlement } from "@/lib/host-entitlements-store";
@@ -152,7 +152,7 @@ export function HostToolsView({ hostId, t, lang, surface }: { hostId: string; t:
           engineCap === "all"
             ? t("Tu suscripción cubre todos tus anuncios.")
             : engineCap > 0
-              ? t("Usas {used} de {cap} lugares pagados.", { used: engineOn.size, cap: engineCap })
+              ? t("Usas {used} de {cap} lugares pagados.", { used: engineSlots(hostId).length, cap: engineCap })
               : undefined
         }
         manage={engineCap !== 0 ? PATHS.engine[surface] : undefined}
@@ -172,7 +172,7 @@ export function HostToolsView({ hostId, t, lang, surface }: { hostId: string; t:
         status={statusOf(cleaningRow, cleaningActive)}
         usage={
           cleaningActive
-            ? t("Usas {used} de {cap} anuncios pagados.", { used: cleaningOn.size, cap: cleaningCapacity(hostId) })
+            ? t("Usas {used} de {cap} anuncios pagados.", { used: cleaningSlots(hostId).length, cap: cleaningCapacity(hostId) })
             : undefined
         }
         manage={cleaningActive ? PATHS.cleaning[surface] : undefined}

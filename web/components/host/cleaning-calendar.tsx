@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import type { CleaningTaskItem } from "@/components/host/cleaning-task-card";
 
@@ -31,6 +31,11 @@ export function CleaningCalendar({
   const [listingId, setListingId] = useState("");
   const [person, setPerson] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const dayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selected) dayRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [selected]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, CleaningTaskItem[]>();
@@ -76,22 +81,6 @@ export function CleaningCalendar({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-[#222]">{t("Calendario de limpiezas")}</h2>
         <div className="flex max-w-full flex-wrap gap-2">
-          <select
-            value={listingId}
-            onChange={(e) => {
-              setListingId(e.target.value);
-              setSelected(null);
-            }}
-            aria-label={t("Anuncio")}
-            className="max-w-full rounded-lg border border-[#ddd] bg-white px-2 py-1.5 text-sm text-[#222]"
-          >
-            <option value="">{t("Todos los anuncios")}</option>
-            {listings.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.title}
-              </option>
-            ))}
-          </select>
           {people.length > 1 && (
             <select
               value={person}
@@ -113,6 +102,26 @@ export function CleaningCalendar({
           )}
         </div>
       </div>
+
+      {listings.length > 1 && (
+        <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 text-sm [scrollbar-width:none]">
+          {[{ id: "", title: t("Todos los anuncios") }, ...listings].map((l) => (
+            <button
+              key={l.id || "all"}
+              type="button"
+              onClick={() => {
+                setListingId(l.id);
+                setSelected(null);
+              }}
+              className={`max-w-[220px] shrink-0 truncate rounded-full border px-3 py-1.5 ${
+                listingId === l.id ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] bg-white text-[#222]"
+              }`}
+            >
+              {l.title}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="mt-4 flex items-center justify-between">
         <button
@@ -199,7 +208,7 @@ export function CleaningCalendar({
       </p>
 
       {selected && (
-        <div className="mt-4 border-t border-[#f0f0f0] pt-4">
+        <div ref={dayRef} className="mt-4 scroll-mt-20 border-t border-[#f0f0f0] pt-4">
           <p className="text-[15px] font-semibold text-[#222] first-letter:uppercase">{selectedLabel}</p>
           {dayTasks.length === 0 ? (
             <p className="mt-1 text-sm text-[#888]">{t("No hay limpiezas este día.")}</p>
