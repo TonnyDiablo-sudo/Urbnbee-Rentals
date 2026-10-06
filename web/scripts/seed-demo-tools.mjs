@@ -782,6 +782,21 @@ if (hosts.some((h) => h.id === SOFIA)) {
     }
     if (touched) writeJson("marketplace-store.json", s4);
     writeJson("bookings.json", bk4);
+
+    // Identidad verificada: sin ella el chat del huésped es sólo texto (no puede mandar fotos ni audios)
+    const verif = readJson("guest-verification.json", { version: 1, verifications: [] });
+    if (verif) {
+      verif.verifications = Array.isArray(verif.verifications) ? verif.verifications : [];
+      let vTouched = false;
+      for (const [, userId] of GUESTS) {
+        if (!s4.users.some((u) => u.id === userId)) continue;
+        if (verif.verifications.some((v) => v.userId === userId)) continue;
+        verif.verifications.push({ userId, kycStatus: "verified", bookingPassesRemaining: 3, updatedAt: ago(30) });
+        vTouched = true;
+        changes++;
+      }
+      if (vTouched) writeJson("guest-verification.json", verif);
+    }
   }
 
   // Guía de llegada y mensajes de la estancia de sus anuncios, para probar los envíos.
