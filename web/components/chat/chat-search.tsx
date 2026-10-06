@@ -13,9 +13,10 @@ const fold = (s: string) =>
     .replace(/\p{M}/gu, "")
     .toLowerCase();
 
-/** Coincide si cualquiera de los textos contiene la búsqueda (sin acentos ni mayúsculas). */
+/** Sin búsqueda, todo coincide; si no, cada palabra tiene que aparecer en alguno de los textos (sin acentos ni mayúsculas). */
 export function chatMatches(query: string, ...texts: (string | undefined | null)[]): boolean {
-  const q = fold(query.trim());
-  if (!q) return true;
-  return texts.some((x) => x && fold(x).includes(q));
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const hay = fold(texts.filter(Boolean).join(" "));
+  return words.every((w) => hay.includes(w));
 }
