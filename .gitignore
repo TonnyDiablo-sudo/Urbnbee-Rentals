@@ -25,3 +25,6 @@ _backups/
 
 .DS_Store
 Thumbs.db
+
+# Documentos legales personales (no son parte de la plataforma)
+Legal/
