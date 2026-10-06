@@ -2,7 +2,10 @@ import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-ty
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import { mutateCached, prefetchCached, useCached } from "../../_components/cached-fetch";
 
-export type HostListing = HostListingRecord;
+/** Insignias que ve el huésped; sólo vienen en la lista de anuncios. */
+export type ListingBadges = { identity: boolean; location: boolean; bookable: boolean };
+
+export type HostListing = HostListingRecord & { badges?: ListingBadges };
 
 export type HostBooking = {
   id: string;
@@ -105,7 +108,7 @@ export const useHostBookings = () => useList<HostBooking>(HOST_URLS.bookings, "b
 
 export function putListing(l: HostListing) {
   mutateCached<{ listings?: HostListing[] }>(HOST_URLS.listings, (prev) =>
-    prev?.listings ? { ...prev, listings: prev.listings.map((x) => (x.id === l.id ? l : x)) } : prev
+    prev?.listings ? { ...prev, listings: prev.listings.map((x) => (x.id === l.id ? { ...l, badges: l.badges ?? x.badges } : x)) } : prev
   );
   mutateCached(HOST_URLS.listing(l.id), () => ({ listing: l }));
 }

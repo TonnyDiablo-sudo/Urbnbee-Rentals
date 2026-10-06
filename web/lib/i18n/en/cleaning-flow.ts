@@ -159,6 +159,11 @@ export const cleaningFlow: Record<string, string> = {
   "¿Falta alguien? Invítalo como colaborador": "Missing someone? Invite them as a collaborator",
   "Personas en el chat": "People in the chat",
   "Guardar y publicar": "Save and publish",
+  "✓ ID verificada": "✓ ID verified",
+  "📍 Dirección verificada": "📍 Address verified",
+  "Dirección verificada": "Address verified",
+  "Reserva con Cabibee": "Book with Cabibee",
+  "Falta: {list}": "Missing: {list}",
   "No se pudo publicar.": "Couldn't publish.",
   "Para volver a publicar falta completar la dirección. Al guardar, tu anuncio se publica.":
     "To publish again, finish the address. Your listing goes live when you save.",

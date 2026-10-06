@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useT } from "@/components/i18n-provider";
 import { sizedImage } from "@/lib/image-url";
 import { useCached } from "../../_components/cached-fetch";
-import { HOST_URLS, useHostListings } from "../_shared/host-data";
+import { HOST_URLS, useHostListings, type ListingBadges } from "../_shared/host-data";
 
 type Listing = {
   id: string;
@@ -18,7 +18,14 @@ type Listing = {
   photos: string[];
   published: boolean;
   verified: boolean;
+  badges?: ListingBadges;
 };
+
+const BADGES: { key: keyof ListingBadges; on: string; name: string; cls: string }[] = [
+  { key: "identity", on: "✓ ID verificada", name: "ID verificada", cls: "bg-white text-[#1e7a3a]" },
+  { key: "location", on: "📍 Dirección verificada", name: "Dirección verificada", cls: "bg-white text-[#1d4f91]" },
+  { key: "bookable", on: "Reserva con Cabibee", name: "Reserva con Cabibee", cls: "bg-[#dcb81e] text-black" },
+];
 
 export function HostListings() {
   const t = useT();
@@ -60,13 +67,20 @@ export function HostListings() {
                   ) : (
                     <span className="flex h-full items-center justify-center text-sm text-[#999]">{t("Sin fotos")}</span>
                   )}
-                  <span
-                    className={`absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-semibold shadow ${
-                      l.published ? "text-[#1e7a3a]" : "text-[#717171]"
-                    }`}
-                  >
-                    ● {l.published ? t("Publicado") : t("No publicado")}
-                  </span>
+                  <div className="absolute left-3 right-3 top-3 flex flex-wrap gap-1.5">
+                    <span
+                      className={`rounded-full bg-white px-3 py-1 text-xs font-semibold shadow ${
+                        l.published ? "text-[#1e7a3a]" : "text-[#717171]"
+                      }`}
+                    >
+                      ● {l.published ? t("Publicado") : t("No publicado")}
+                    </span>
+                    {BADGES.filter((b) => l.badges?.[b.key]).map((b) => (
+                      <span key={b.key} className={`rounded-full px-3 py-1 text-xs font-semibold shadow ${b.cls}`}>
+                        {t(b.on)}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <p className="mt-2.5 truncate text-[15px] font-semibold text-[#222]">{l.title}</p>
                 <p className="truncate text-sm text-[#717171]">
@@ -75,6 +89,15 @@ export function HostListings() {
                     ? `$${l.pricePerMonth.toLocaleString("es-MX")} ${t("MXN al mes")}`
                     : `$${l.pricePerNight.toLocaleString("es-MX")} ${t("MXN noche")}`}
                 </p>
+                {l.badges && BADGES.some((b) => !l.badges![b.key]) && (
+                  <p className="mt-0.5 text-xs text-[#999]">
+                    {t("Falta: {list}", {
+                      list: BADGES.filter((b) => !l.badges![b.key])
+                        .map((b) => t(b.name))
+                        .join(" · "),
+                    })}
+                  </p>
+                )}
               </Link>
             </li>
           ))}
