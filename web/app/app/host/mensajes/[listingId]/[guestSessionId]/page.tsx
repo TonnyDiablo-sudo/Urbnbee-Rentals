@@ -1,6 +1,7 @@
 import { attachmentView } from "@/lib/chat-attachments";
 import { getChatAi } from "@/lib/chat-ai-settings";
 import { chatMediaAllowed } from "@/lib/chat-media-access";
+import { threadBooking } from "@/lib/chat-thread-booking";
 import { nameForViewer, shareABooking } from "@/lib/display-name";
 import { groupThreads } from "@/lib/host-inbox-store";
 import { getT } from "@/lib/i18n/server";
@@ -37,6 +38,7 @@ export default async function AppHostThreadPage({ params }: Props) {
         "",
       guestEmail: firstGuest?.guestEmail,
       listingTitle: listing?.title ?? listingId,
+      booking: threadBooking(user.id, listingId, guestSessionId, firstGuest?.guestEmail),
       messages: msgs.map((m) => ({ id: m.id, sender: m.sender, body: m.body, createdAt: m.createdAt, attachment: attachmentView(m), via: m.via })),
     };
     if (msgs.length === 0) initial = undefined;

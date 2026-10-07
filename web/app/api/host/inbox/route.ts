@@ -12,6 +12,7 @@ import { getListingById } from "@/lib/marketplace-store";
 import { attachmentView } from "@/lib/chat-attachments";
 import { getChatAi } from "@/lib/chat-ai-settings";
 import type { ChatAttachmentView } from "@/lib/host-inbox-types";
+import { threadBooking, type ChatThreadBooking } from "@/lib/chat-thread-booking";
 
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();
@@ -41,6 +42,8 @@ export async function GET(req: NextRequest) {
       via?: "ai";
     }[];
     aiOn: boolean;
+    /** Reserva del huésped en ese alojamiento, si la hay: para saber de qué estancia habla. */
+    booking?: ChatThreadBooking;
   };
 
   const threads: ThreadOut[] = [];
@@ -93,6 +96,7 @@ export async function GET(req: NextRequest) {
         via: m.via,
       })),
       aiOn: getChatAi(scope.hostId, listingId, guestSessionId).enabled,
+      booking: threadBooking(scope.hostId, listingId, guestSessionId, firstGuest?.guestEmail),
     });
   }
 

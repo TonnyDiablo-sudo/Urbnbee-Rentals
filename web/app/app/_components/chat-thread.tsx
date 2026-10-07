@@ -85,7 +85,10 @@ export function ChatThread({
   showVia,
   mediaLockedHref,
   translator,
+  banner,
 }: {
+  /** Aviso fijo arriba de los mensajes (p. ej. de qué alojamiento viene el chat). */
+  banner?: React.ReactNode;
   /** Traductor del chat: lo que me escriben llega en mi idioma y puedo traducir lo que escribo antes de enviar. */
   translator?: ChatTranslator;
   /** Sin identidad verificada: sólo texto y una liga a la página para verificarse. */
@@ -335,6 +338,7 @@ export function ChatThread({
         }
       />
       {subtitle && <p className="border-b border-[#f0f0f0] px-5 py-2 text-xs text-[#717171]">{subtitle}</p>}
+      {banner}
       {translating && (
         <p className="border-b border-[#f3e9b8] bg-[#fdf6d8] px-5 py-1.5 text-xs text-[#5c4a0a]">
           {t("Traductor activo: lo que te escriben lo lees en {lang}. Toca Traducir antes de enviar para contestar en su idioma.", {

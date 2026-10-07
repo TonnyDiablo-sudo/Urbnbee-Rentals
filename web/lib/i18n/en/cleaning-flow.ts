@@ -528,4 +528,20 @@ export const cleaningFlow: Record<string, string> = {
   "Sello del sistema: pago recibido.": "System stamp: payment received.",
   "Sello del sistema: pago rechazado.": "System stamp: payment rejected.",
   "Sello del sistema: contrato anulado por falta de pago.": "System stamp: contract voided for non-payment.",
+
+  // Chats del anfitrión: de qué alojamiento y reserva viene cada conversación
+  "Este chat viene de tu anuncio": "This chat comes from your listing",
+  "Sin reserva en este alojamiento: te pregunta antes de reservar.": "No booking at this listing: they're asking before booking.",
+  "Chats por alojamiento": "Chats by listing",
+  "Todos los alojamientos": "All listings",
+  "Chats por reserva": "Chats by booking",
+  "Se busca la reserva de ese huésped en el alojamiento del chat: así sabes si te habla de una estancia que viene, que está en curso o que ya terminó.":
+    "We look up that guest's booking at the chat's listing, so you know whether they're talking about an upcoming stay, one in progress or one that already ended.",
+  "Todas las conversaciones": "All conversations",
+  "Hospedados ahora": "Staying now",
+  "Por llegar": "Arriving soon",
+  "Solicitud pendiente": "Pending request",
+  "Estancia terminada": "Stay ended",
+  "Sin reserva": "No booking",
+  todos: "all",
 };

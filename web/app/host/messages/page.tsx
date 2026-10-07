@@ -3,6 +3,13 @@
 import { ChatAttachmentView, type ChatAttachmentClient } from "@/components/chat/attachment-view";
 import { MessageBody } from "@/components/chat/message-body";
 import { chatMatches, useChatSearch } from "@/components/chat/chat-search";
+import {
+  BOOKING_FILTERS,
+  bookingLine,
+  threadMatchesBooking,
+  type BookingFilter,
+  type ThreadBooking,
+} from "@/components/chat/thread-booking";
 import { ChatsSwitch } from "@/components/team/chats-switch";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -31,6 +38,7 @@ type Thread = {
   guestEmail?: string;
   lastAt: string;
   messages: Msg[];
+  booking?: ThreadBooking;
 };
 
 export default function HostMessagesPage() {
@@ -53,6 +61,8 @@ function HostGuestChats() {
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
   const [translatorLocked, setTranslatorLocked] = useState(false);
+  const [listingFilter, setListingFilter] = useState("");
+  const [bookingFilter, setBookingFilter] = useState<BookingFilter | "">("");
   const query = useChatSearch();
 
   const load = useCallback(async () => {
@@ -112,6 +122,15 @@ function HostGuestChats() {
     }
   }
 
+  const listingOptions = [...new Map(threads.map((th) => [th.listingId, th.listingTitle])).entries()]
+    .map(([id, title]) => ({ id, title, count: threads.filter((th) => th.listingId === id).length }))
+    .sort((a, b) => a.title.localeCompare(b.title));
+  const shown = threads
+    .filter((th) => !listingFilter || th.listingId === listingFilter)
+    .filter((th) => threadMatchesBooking(th.booking, bookingFilter || null))
+    .filter((th) => chatMatches(query, th.guestName, th.listingTitle, ...th.messages.map((m) => m.body)));
+  const selectCls = "max-w-[16rem] rounded-full border border-[#ddd] bg-white px-3 py-1.5 text-sm text-[#222] outline-none focus:border-[#dcb81e]";
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
@@ -133,10 +152,49 @@ function HostGuestChats() {
           {t("Nadie ha escrito todavía en el chat de tus alojamientos.")}
         </div>
       ) : (
+        <>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="sr-only" htmlFor="chat-listing-filter">{t("Alojamiento")}</label>
+          <select
+            id="chat-listing-filter"
+            value={listingFilter}
+            onChange={(e) => setListingFilter(e.target.value)}
+            className={`${selectCls} ${listingFilter ? "border-[#222] font-medium" : ""}`}
+          >
+            <option value="">{t("Alojamiento")}: {t("todos")}</option>
+            {listingOptions.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.title} ({o.count})
+              </option>
+            ))}
+          </select>
+          <label className="sr-only" htmlFor="chat-booking-filter">{t("Reserva")}</label>
+          <select
+            id="chat-booking-filter"
+            value={bookingFilter}
+            onChange={(e) => setBookingFilter(e.target.value as BookingFilter | "")}
+            className={`${selectCls} ${bookingFilter ? "border-[#222] font-medium" : ""}`}
+          >
+            <option value="">{t("Reserva")}: {t("todas")}</option>
+            {BOOKING_FILTERS.map((f) => (
+              <option key={f.id} value={f.id}>
+                {t(f.label)} ({threads.filter((th) => threadMatchesBooking(th.booking, f.id)).length})
+              </option>
+            ))}
+          </select>
+          {(listingFilter || bookingFilter) && (
+            <button
+              type="button"
+              onClick={() => { setListingFilter(""); setBookingFilter(""); }}
+              className="text-xs text-[#888] underline"
+            >
+              {t("Quitar filtros")}
+            </button>
+          )}
+        </div>
+        {shown.length === 0 && <p className="text-sm text-[#888]">{t("No hay chats que coincidan.")}</p>}
         <ul className="space-y-4">
-          {threads
-            .filter((th) => chatMatches(query, th.guestName, th.listingTitle, ...th.messages.map((m) => m.body)))
-            .map((th) => {
+          {shown.map((th) => {
             const key = `${th.listingId}:${th.guestSessionId}`;
             const open = expanded === key;
             const last = th.messages[th.messages.length - 1];
@@ -149,7 +207,11 @@ function HostGuestChats() {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-[#484848]">{th.guestName}</p>
-                    <p className="truncate text-xs text-[#aaa]">{th.listingTitle}</p>
+                    <p className="truncate text-xs font-medium text-[#7a6412]">
+                      <span aria-hidden>🏠 </span>
+                      {th.listingTitle}
+                      {th.booking && <span className="font-normal text-[#aaa]"> · {bookingLine(th.booking, t, lang)}</span>}
+                    </p>
                     <p className="mt-1 line-clamp-2 text-xs text-[#888]">{last?.body}</p>
                   </div>
                   <span className="shrink-0 text-[10px] text-[#aaa]">
@@ -171,6 +233,7 @@ function HostGuestChats() {
             );
           })}
         </ul>
+        </>
       )}
     </div>
   );
@@ -193,6 +256,7 @@ function OpenThread({
   onSend: (meta: { original: string; lang?: string } | null, onSent: () => void, onLocked: () => void) => void;
 }) {
   const t = useT();
+  const lang = useLang();
   const tr = useWebChatTranslator({
     listingId: th.listingId,
     guestSessionId: th.guestSessionId,
@@ -202,6 +266,27 @@ function OpenThread({
   });
   return (
     <div className="border-t border-[#ebebeb] px-4 py-4">
+      <div className="mb-3 rounded-lg border border-[#f3e9b8] bg-[#fffbea] px-3 py-2 text-xs leading-relaxed text-[#5c4a0a]">
+        <p>
+          {t("Este chat viene de tu anuncio")}{" "}
+          <Link href={`/host/listings/${th.listingId}/edit`} className="font-semibold underline">
+            {th.listingTitle}
+          </Link>
+          .
+        </p>
+        <p className="mt-0.5 text-[#7a6412]">
+          {th.booking ? (
+            <>
+              {t("Reserva:")}{" "}
+              <Link href={`/host/reservas/${encodeURIComponent(th.booking.id)}`} className="underline">
+                {bookingLine(th.booking, t, lang)}
+              </Link>
+            </>
+          ) : (
+            t("Sin reserva en este alojamiento: te pregunta antes de reservar.")
+          )}
+        </p>
+      </div>
       {th.guestEmail && (
         <p className="mb-3 text-xs text-[#666]">
           {t("Correo del huésped (opcional):")}{" "}

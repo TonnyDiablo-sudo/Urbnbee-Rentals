@@ -1,14 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
-import { useT } from "@/components/i18n-provider";
+import { bookingLine, type ThreadBooking } from "@/components/chat/thread-booking";
+import { useLang, useT } from "@/components/i18n-provider";
 import { revalidate } from "../../../../_components/cached-fetch";
 import { uploadChatAttachment } from "@/components/chat/upload";
 import { ChatThread, type ChatMessage, type SendMeta } from "../../../../_components/chat-thread";
 import { HOST_URLS } from "../../../_shared/host-data";
 import type { HostThread } from "../../host-inbox";
 
-type Meta = { guestName: string; listingTitle: string; guestEmail?: string };
+type Meta = { guestName: string; listingTitle: string; guestEmail?: string; booking?: ThreadBooking };
 export type HostChatInitial = Meta & { messages: ChatMessage[] };
 export type HostChatAi = { available: boolean; enabled: boolean };
 
@@ -26,6 +28,7 @@ export function HostChat({
   initialAi: HostChatAi;
 }) {
   const t = useT();
+  const lang = useLang();
   const [meta, setMeta] = useState<Meta | null>(initial ?? null);
   const [ai, setAi] = useState(initialAi);
   const [aiBusy, setAiBusy] = useState(false);
@@ -37,7 +40,7 @@ export function HostChat({
     const threads: HostThread[] = Array.isArray(data.threads) ? data.threads : [];
     const th = threads.find((x) => x.listingId === listingId && x.guestSessionId === guestSessionId);
     if (!th) return [];
-    setMeta({ guestName: th.guestName, listingTitle: th.listingTitle, guestEmail: th.guestEmail });
+    setMeta({ guestName: th.guestName, listingTitle: th.listingTitle, guestEmail: th.guestEmail, booking: th.booking });
     if (typeof th.aiOn === "boolean") setAi((a) => (a.enabled === th.aiOn ? a : { ...a, enabled: th.aiOn === true }));
     return th.messages;
   }, [listingId, guestSessionId]);
@@ -86,7 +89,32 @@ export function HostChat({
   return (
     <ChatThread
       title={meta?.guestName || t("Conversación")}
-      subtitle={meta ? `${meta.listingTitle}${meta.guestEmail ? ` · ${meta.guestEmail}` : ""}` : undefined}
+      subtitle={meta?.guestEmail}
+      banner={
+        meta ? (
+          <div className="border-b border-[#f3e9b8] bg-[#fffbea] px-5 py-2.5 text-xs leading-relaxed text-[#5c4a0a]">
+            <p>
+              {t("Este chat viene de tu anuncio")}{" "}
+              <Link href={`/host/anuncios/${encodeURIComponent(listingId)}`} className="font-semibold underline">
+                {meta.listingTitle}
+              </Link>
+              .
+            </p>
+            <p className="mt-0.5 text-[#7a6412]">
+              {meta.booking ? (
+                <>
+                  {t("Reserva:")}{" "}
+                  <Link href={`/host/reservas/${encodeURIComponent(meta.booking.id)}`} className="underline">
+                    {bookingLine(meta.booking, t, lang)}
+                  </Link>
+                </>
+              ) : (
+                t("Sin reserva en este alojamiento: te pregunta antes de reservar.")
+              )}
+            </p>
+          </div>
+        ) : undefined
+      }
       back="/host/mensajes"
       me="host"
       initial={initial?.messages}
