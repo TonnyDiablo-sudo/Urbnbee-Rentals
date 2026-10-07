@@ -10,12 +10,16 @@ import { sanitizeBodyText } from "@/lib/host-inbox-sanitize";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { notifyGuestHostReply } from "@/lib/push";
 import { memberCan } from "@/lib/team-access";
+import { emailRequiredResponse } from "@/lib/email-gate";
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  // Publicar anuncios y recibir chats no pide nada; contestar sí pide el correo confirmado.
+  const blocked = emailRequiredResponse(user, "reply");
+  if (blocked) return blocked;
 
   if (!allowHostInboxPost(`host:${user.id}`, 8_000)) {
     return NextResponse.json({ error: "Espera unos segundos entre respuestas." }, { status: 429 });

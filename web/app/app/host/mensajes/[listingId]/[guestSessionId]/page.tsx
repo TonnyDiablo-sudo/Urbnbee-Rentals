@@ -2,6 +2,7 @@ import { attachmentView } from "@/lib/chat-attachments";
 import { getChatAi } from "@/lib/chat-ai-settings";
 import { chatMediaAllowed } from "@/lib/chat-media-access";
 import { threadBooking } from "@/lib/chat-thread-booking";
+import { emailConfirmed } from "@/lib/email-gate";
 import { nameForViewer, shareABooking } from "@/lib/display-name";
 import { groupThreads } from "@/lib/host-inbox-store";
 import { getT } from "@/lib/i18n/server";
@@ -51,6 +52,7 @@ export default async function AppHostThreadPage({ params }: Props) {
       initial={initial}
       initialAi={{ available: ai.available, enabled: ai.enabled }}
       mediaAllowed={Boolean(user && chatMediaAllowed(user, { as: "host", listingHostId: listing?.hostId }))}
+      emailGate={user && !emailConfirmed(user) ? { email: user.email, placeholder: Boolean(user.placeholderEmail) } : undefined}
     />
   );
 }

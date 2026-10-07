@@ -11,6 +11,7 @@ const ERRORS = {
   favorites: "Confirma tu correo para crear listas de favoritos.",
   message: "Confirma tu correo para escribirle al anfitrión.",
   contacts: "Confirma tu correo para ver los datos de contacto del anfitrión.",
+  reply: "Confirma tu correo para responder a tus huéspedes.",
 } as const;
 
 /** 403 con `needsEmail` si falta confirmar el correo; si no, null. */

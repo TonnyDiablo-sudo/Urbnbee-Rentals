@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { bookingLine, type ThreadBooking } from "@/components/chat/thread-booking";
 import { useLang, useT } from "@/components/i18n-provider";
 import { revalidate } from "../../../../_components/cached-fetch";
@@ -20,8 +21,11 @@ export function HostChat({
   initial,
   initialAi,
   mediaAllowed = false,
+  emailGate,
 }: {
   mediaAllowed?: boolean;
+  /** Falta confirmar el correo: puede leer, no contestar. */
+  emailGate?: { email?: string; placeholder?: boolean };
   listingId: string;
   guestSessionId: string;
   initial?: HostChatInitial;
@@ -143,7 +147,14 @@ export function HostChat({
         ) : undefined
       }
       composerLock={
-        aiOn ? (
+        emailGate ? (
+          <div className="space-y-2 pb-1">
+            <p className="text-sm text-[#555]">
+              {t("Puedes leer lo que te escriben, pero para contestar confirma tu correo. Así sabemos que la cuenta es tuya.")}
+            </p>
+            <VerifyEmailBox email={emailGate.email} placeholder={emailGate.placeholder} purpose="message" />
+          </div>
+        ) : aiOn ? (
           <div className="space-y-2.5">
             <p className="text-sm leading-relaxed text-[#484848]">
               {t("Tu agente de urbnbeeai está contestando esta conversación. Para escribir tú, desactiva la IA.")}

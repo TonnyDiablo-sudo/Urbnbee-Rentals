@@ -558,4 +558,7 @@ export const cleaningFlow: Record<string, string> = {
   "Buscar reserva: huésped, anuncio, código, mes o año": "Search bookings: guest, listing, code, month or year",
   "Desde hoy": "From today",
   "Últimos 30 días": "Last 30 days",
+  "Confirma tu correo para responder a tus huéspedes.": "Confirm your email to reply to your guests.",
+  "Puedes leer lo que te escriben, pero para contestar confirma tu correo. Así sabemos que la cuenta es tuya.":
+    "You can read what they write to you, but to reply you need to confirm your email. That's how we know the account is yours.",
 };

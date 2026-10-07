@@ -11,6 +11,7 @@ import {
   type ThreadBooking,
 } from "@/components/chat/thread-booking";
 import { ChatsSwitch } from "@/components/team/chats-switch";
+import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
@@ -61,6 +62,8 @@ function HostGuestChats() {
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
   const [translatorLocked, setTranslatorLocked] = useState(false);
+  /** Falta confirmar el correo: se leen los chats pero no se contesta. */
+  const [emailGate, setEmailGate] = useState<{ email?: string; placeholder?: boolean } | null>(null);
   const [listingFilter, setListingFilter] = useState("");
   const [bookingFilter, setBookingFilter] = useState<BookingFilter | "">("");
   const query = useChatSearch();
@@ -78,6 +81,7 @@ function HostGuestChats() {
       setThreads(data.threads ?? []);
       // `readingLang: null` = sin traductor (falta la verificación de identidad).
       setTranslatorLocked(data.readingLang === null);
+      setEmailGate(data.canReply === false ? { email: data.email, placeholder: Boolean(data.placeholderEmail) } : null);
     } catch {
       setError("Error de red.");
     } finally {
@@ -226,6 +230,7 @@ function HostGuestChats() {
                     onText={(v) => setReplyText((prev) => ({ ...prev, [key]: v }))}
                     sending={sending === key}
                     translatorLocked={translatorLocked}
+                    emailGate={emailGate}
                     onSend={(meta, onSent, onLocked) => void sendReply(th, meta, onSent, onLocked)}
                   />
                 )}
@@ -246,6 +251,7 @@ function OpenThread({
   onText,
   sending,
   translatorLocked,
+  emailGate,
   onSend,
 }: {
   th: Thread;
@@ -253,6 +259,7 @@ function OpenThread({
   onText: (v: string) => void;
   sending: boolean;
   translatorLocked: boolean;
+  emailGate: { email?: string; placeholder?: boolean } | null;
   onSend: (meta: { original: string; lang?: string } | null, onSent: () => void, onLocked: () => void) => void;
 }) {
   const t = useT();
@@ -324,6 +331,15 @@ function OpenThread({
           );
         })}
       </div>
+      {emailGate ? (
+        <div className="mt-3 space-y-2">
+          <p className="text-sm text-[#555]">
+            {t("Puedes leer lo que te escriben, pero para contestar confirma tu correo. Así sabemos que la cuenta es tuya.")}
+          </p>
+          <VerifyEmailBox email={emailGate.email} placeholder={emailGate.placeholder} purpose="message" />
+        </div>
+      ) : (
+      <>
       <div className="mt-3 rounded-lg bg-[#fafafa] px-3 py-2.5">
         <p className="mb-1.5 text-xs font-semibold text-[#666]">{t("Traductor del chat")}</p>
         <TranslatorBar tr={tr} lockedHref="/host/verificacion" lockedCta={t("Verificar mi identidad")} />
@@ -353,6 +369,8 @@ function OpenThread({
       <div className="mt-2">
         <DraftTranslateControls tr={tr} text={text} onText={onText} disabled={sending} />
       </div>
+      </>
+      )}
       <Link href={`/host/listings/${th.listingId}/edit`} className="mt-2 inline-block text-xs text-[#dcb81e] underline">
         {t("Editar este alojamiento")}
       </Link>

@@ -46,6 +46,9 @@ export async function POST(req: NextRequest) {
     if (!guestSessionId || (!owner && !memberCan(user.id, listing.hostId, "messages", listing.id))) {
       return NextResponse.json({ error: "No encontrado." }, { status: 404 });
     }
+    // Publicar anuncios y recibir chats no pide nada; contestar sí pide el correo confirmado.
+    const blocked = emailRequiredResponse(user, "reply");
+    if (blocked) return blocked;
   } else {
     if (!listing.published) return NextResponse.json({ error: "Este alojamiento no está disponible." }, { status: 404 });
     const blocked = emailRequiredResponse(user, "message");

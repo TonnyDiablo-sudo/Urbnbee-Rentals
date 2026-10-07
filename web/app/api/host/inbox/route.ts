@@ -13,6 +13,7 @@ import { attachmentView } from "@/lib/chat-attachments";
 import { getChatAi } from "@/lib/chat-ai-settings";
 import type { ChatAttachmentView } from "@/lib/host-inbox-types";
 import { threadBooking, type ChatThreadBooking } from "@/lib/chat-thread-booking";
+import { emailConfirmed } from "@/lib/email-gate";
 
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();
@@ -102,5 +103,12 @@ export async function GET(req: NextRequest) {
 
   threads.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
 
-  return NextResponse.json({ threads, readingLang: lang });
+  return NextResponse.json({
+    threads,
+    readingLang: lang,
+    // Para contestar hace falta el correo confirmado (leer y recibir, no).
+    canReply: emailConfirmed(user),
+    email: user?.email,
+    placeholderEmail: Boolean(user?.placeholderEmail),
+  });
 }
