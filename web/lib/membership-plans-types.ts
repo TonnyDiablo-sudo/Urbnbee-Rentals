@@ -180,4 +180,6 @@ export type MembershipPlansSnapshot = {
   defaultPricesAppliedAt?: string;
   /** La verificación de identidad quedó como un solo producto por persona. */
   identityMergedAt?: string;
+  /** La verificación de dirección volvió a venderse aparte, al precio de la de identidad. */
+  addressRelaunchedAt?: string;
 };

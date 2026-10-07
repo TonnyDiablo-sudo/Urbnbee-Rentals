@@ -7,15 +7,16 @@ import { listListingsForHost } from "@/lib/marketplace-store";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import { paidUp } from "@/lib/team-access";
 
-/** Lugares de verificación de domicilio comprados aparte (planes anteriores); hoy viene incluida en el motor. */
+/** Anuncios con verificación de dirección comprada aparte (o en prueba gratis); el motor ya la incluye. */
 export function addressProofSlots(hostId: string): number {
   const row = getHostEntitlement(hostId, HOST_SKU_ADDRESS_PROOF);
   return paidUp(row) ? Math.max(0, row?.quantity ?? 1) : 0;
 }
 
 /**
- * Anuncios cuya insignia de domicilio está cubierta: todos los que tienen motor de reservas
- * y, con un plan anterior de domicilio, los primeros N con comprobante aprobado (por fecha de alta).
+ * Anuncios cuya insignia de dirección está cubierta: todos los que tienen motor de reservas
+ * y, con la verificación comprada por anuncio, los primeros N sin motor con comprobante aprobado
+ * (por fecha de alta).
  */
 export function addressCoveredListingIds(hostId: string): Set<string> {
   const covered = new Set(engineListingIds(hostId));
@@ -31,7 +32,7 @@ export function addressCoveredListingIds(hostId: string): Set<string> {
   return covered;
 }
 
-/** La insignia pública «Ubicación verificada»: comprobante aprobado y cubierto por el motor (o un plan anterior). */
+/** La insignia pública «Ubicación verificada»: comprobante aprobado y cubierto por el motor o por la verificación comprada aparte. */
 export function listingShowsLocationBadge(l: HostListingRecord): boolean {
   return isListingLocationVerified(l) && addressCoveredListingIds(l.hostId).has(l.id);
 }

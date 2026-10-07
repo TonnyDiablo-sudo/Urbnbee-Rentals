@@ -583,10 +583,11 @@ export const cleaningFlow: Record<string, string> = {
   "Esta herramienta no tiene prueba gratis.": "This tool has no free trial.",
   "Ya usaste tu prueba gratis de esta herramienta. Actívala en la Tienda y empieza a usarla hoy mismo.":
     "You've already used your free trial of this tool. Activate it in the Store and start using it today.",
-  "Los chats de equipo se encienden con la herramienta de colaboradores o la de limpieza. Pruébala 30 días gratis en la Tienda.":
-    "Team chats turn on with the collaborators tool or the cleaning tool. Try it free for 30 days in the Store.",
-  "Tu herramienta de limpieza está en vista previa: puedes configurarla, pero todavía no está en marcha. Pruébala 30 días gratis en la Tienda.":
-    "Your cleaning tool is in preview: you can set it up, but it isn't running yet. Try it free for 30 days in the Store.",
+  "Los chats de equipo se encienden con la herramienta de colaboradores o la de limpieza. Actívala o pruébala gratis en la Tienda.":
+    "Team chats turn on with the collaborators tool or the cleaning tool. Activate it or try it free in the Store.",
+  "Tu herramienta de limpieza está en vista previa: puedes configurarla, pero todavía no está en marcha. Actívala o pruébala gratis en la Tienda.":
+    "Your cleaning tool is in preview: you can set it up, but it isn't running yet. Activate it or try it free in the Store.",
+  "Por ahora no hay prueba gratis de esta herramienta. Actívala en la Tienda.": "There's no free trial for this tool right now. Activate it in the Store.",
   "Marca los anuncios que entrarán a la herramienta. Al activarla se paga por anuncio y cada lugar se queda con el anuncio que elijas.":
     "Check the listings that will go into the tool. When you activate it you pay per listing and each slot stays with the listing you choose.",
   "Prueba gratis hasta el {d}": "Free trial until {d}",
@@ -660,9 +661,57 @@ export const cleaningFlow: Record<string, string> = {
     "This team's chats turn on once the host activates their collaborators or cleaning tool.",
   "Chats de equipo incluidos: crea los chats que quieras con tu gente (cuentas, limpiezas, insumos…) y guarda ahí fotos, audios y archivos.":
     "Team chats included: create the chats you want with your people (accounts, cleanings, supplies…) and keep photos, audio and files there.",
-  "Pruébala 30 días gratis (hasta 5 colaboradores). Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.":
-    "Try it free for 30 days (up to 5 collaborators). We ask for a card but nothing is charged until the trial ends; cancel anytime.",
-  "Pruébala 30 días gratis. Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.":
-    "Try it free for 30 days. We ask for a card but nothing is charged until the trial ends; cancel anytime.",
+  "Pruébala {n} días gratis (hasta {max} colaboradores). Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.":
+    "Try it free for {n} days (up to {max} collaborators). We ask for a card but nothing is charged until the trial ends; cancel anytime.",
+  "Pruébala {n} días gratis. Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.":
+    "Try it free for {n} days. We ask for a card but nothing is charged until the trial ends; cancel anytime.",
+
+  // Verificación de dirección vendida por anuncio (el motor ya la incluye) y pruebas gratis desde el admin
+  "Por cada anuncio: subes un recibo a tu nombre con la dirección del anuncio, lo revisamos y tu anuncio lleva el listón «Ubicación verificada». El motor de reservas ya la incluye.":
+    "Per listing: you upload a bill in your name with the listing's address, we review it and your listing carries the “Verified location” ribbon. The booking engine already includes it.",
+  "Se paga por anuncio: cubre los anuncios que no tienen motor de reservas.": "Paid per listing: it covers listings without the booking engine.",
+  "Subes un recibo a tu nombre (luz, agua, internet, predial o renta) con la dirección del anuncio y lo revisamos.":
+    "You upload a bill in your name (power, water, internet, property tax or rent) with the listing's address and we review it.",
+  "Tu anuncio muestra el listón «Ubicación verificada»: le dice a quien reserva que el lugar existe, que está donde dice el anuncio y que lo renta quien dice. Es tu mejor defensa contra anuncios falsos.":
+    "Your listing shows the “Verified location” ribbon: it tells guests the place exists, is where the listing says, and is rented by who it says. It's your best defense against fake listings.",
+  "El motor de reservas ya la trae incluida en su precio. Si vas a comprar el motor para ese anuncio, no compres esta: el motor se cobra completo aunque ya la tengas.":
+    "The booking engine already includes it in its price. If you're going to buy the engine for that listing, don't buy this one: the engine is charged in full even if you already have it.",
+  "Mientras la pagues, cada mes volvemos a revisar la dirección contra datos oficiales. Si dejas de pagar, se quita el listón. Si la revisión pide confirmarla de nuevo, te pediremos otro comprobante.":
+    "While you pay for it, every month we re-check the address against official data. If you stop paying, the ribbon is removed. If the review asks to confirm it again, we'll ask you for another proof.",
+  "El motor de reservas ya trae la verificación de dirección en su precio. Si vas a comprar el motor de reservas para ese anuncio, no compres esta.":
+    "The booking engine already includes address verification in its price. If you're going to buy the booking engine for that listing, don't buy this one.",
+  "1 anuncio con verificación de dirección pagada aparte; los anuncios con motor ya la traen.":
+    "1 listing with address verification paid separately; listings with the engine already include it.",
+  "{n} anuncios con verificación de dirección pagada aparte; los anuncios con motor ya la traen.":
+    "{n} listings with address verification paid separately; listings with the engine already include it.",
+  "Tus anuncios con motor de reservas ya la traen. Para un anuncio sin motor, cómprala por anuncio en la Tienda.":
+    "Your listings with the booking engine already include it. For a listing without the engine, buy it per listing in the Store.",
+  "Por anuncio: sube un recibo con la dirección y tu anuncio lleva el listón «Ubicación verificada». El motor de reservas ya la incluye.":
+    "Per listing: upload a bill with the address and your listing carries the “Verified location” ribbon. The booking engine already includes it.",
+  "Comprobante aprobado. El listón se muestra cuando el anuncio tiene el motor de reservas (ya la incluye) o la verificación de dirección comprada por anuncio.":
+    "Proof approved. The ribbon shows when the listing has the booking engine (which includes it) or address verification bought per listing.",
+  "Por anuncio: el anfitrión sube un recibo a su nombre con la dirección del anuncio y lo revisamos. El anuncio lleva el listón «Ubicación verificada». Ya viene incluida en el motor de reservas; se compra aparte sólo para anuncios sin motor.":
+    "Per listing: the host uploads a bill in their name with the listing's address and we review it. The listing carries the “Verified location” ribbon. It's already included in the booking engine; it's bought separately only for listings without the engine.",
+  "El anfitrión subió un recibo del alojamiento (luz, agua, internet, predial o renta) a su nombre y con la dirección del anuncio, y lo revisamos. El nombre del recibo tiene que ser el del anfitrión del anuncio y la dirección la del anuncio. Te dice que el lugar existe, que está donde dice el anuncio y que quien lo renta es quien dice. Este listón aumenta la seguridad y la confianza de quien reserva: es tu mejor defensa contra anuncios falsos. Viene incluida en el motor de reservas y también se puede contratar por anuncio en la Tienda.":
+    "The host uploaded a bill for the place (power, water, internet, property tax or rent) in their name and with the listing's address, and we reviewed it. The name on the bill has to be the listing host's and the address the listing's. It tells you the place exists, is where the listing says, and that whoever rents it is who they say. This ribbon increases safety and trust for whoever books: it's your best defense against fake listings. It's included in the booking engine and can also be bought per listing in the Store.",
+  "La verificación de dirección viene incluida en el motor (y también se vende por anuncio). Si el anuncio muestra «Ubicación verificada», el recibo a nombre del anfitrión con esa dirección ya se revisó.":
+    "Address verification is included in the engine (and is also sold per listing). If the listing shows “Verified location”, a bill in the host's name with that address has been reviewed.",
+  "Si quieres, activa herramientas de la Tienda: verificación de identidad o de dirección, reservas en línea, limpieza o colaboradores.":
+    "If you want, turn on tools from the Store: identity or address verification, online bookings, cleaning or collaborators.",
+  "Pruebas gratis": "Free trials",
+  "Para anfitriones que nunca han probado una herramienta: dejan su tarjeta, no se les cobra nada durante la prueba y al terminar se cobra el plan que eligieron. Cada anfitrión tiene una sola prueba por herramienta.":
+    "For hosts who have never tried a tool: they leave their card, nothing is charged during the trial and when it ends the plan they chose is charged. Each host gets a single trial per tool.",
+  "Ofrecer prueba gratis a primerizos": "Offer a free trial to first-timers",
+  "Apagada: en la Tienda y en los paneles ya no aparece «Probar gratis»; las pruebas que ya empezaron siguen hasta su fecha.":
+    "Off: “Try free” no longer appears in the Store or the panels; trials already started run until their date.",
+  "Encendida": "On",
+  "Apagada": "Off",
+  "Duración de la prueba": "Trial length",
+  "Aplica a las pruebas que empiecen a partir de ahora. Las que ya están en curso conservan su fecha.":
+    "Applies to trials that start from now on. Those already running keep their date.",
+  "Herramientas con prueba gratis": "Tools with a free trial",
+  "(hasta {n} colaboradores)": "(up to {n} collaborators)",
+  "El motor de reservas, el anuncio destacado y la verificación de identidad no tienen prueba gratis.":
+    "The booking engine, featured listing and identity verification have no free trial.",
   "Activar en la Tienda": "Activate in the Store",
 };

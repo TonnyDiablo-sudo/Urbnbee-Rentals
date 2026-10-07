@@ -24,6 +24,7 @@ let catalogSyncedAt: string | undefined;
 let catalogPushedAt: string | undefined;
 let defaultPricesAppliedAt: string | undefined;
 let identityMergedAt: string | undefined;
+let addressRelaunchedAt: string | undefined;
 
 const TERM_SUFFIX: Record<number, string> = { 1: "· 1 mes", 6: "· 6 meses", 12: "· 12 meses" };
 
@@ -58,8 +59,9 @@ export const FAMILY_COPY: Record<MembershipPlanFamily, { label: string; descript
       "Otra persona con su propia cuenta de Cabibee acepta reservas, firma contratos en tu nombre o contesta mensajes en los anuncios que elijas.",
   },
   address_proof: {
-    label: "Verificación de domicilio",
-    description: "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio.",
+    label: "Verificación de dirección",
+    description:
+      "Por cada anuncio: subes un recibo a tu nombre con la dirección del anuncio, lo revisamos y tu anuncio lleva el listón «Ubicación verificada». El motor de reservas ya la incluye.",
   },
   featured_listing: {
     label: "Anuncio destacado",
@@ -88,9 +90,10 @@ const OWNER_PRICES: Partial<Record<MembershipPlanCode, { mxn: number; usd: numbe
   collaborator_seat: { mxn: 250, usd: 15 },
   collaborator_seat_6: { mxn: 200 * 6, usd: 12 * 6 },
   collaborator_seat_12: { mxn: 150 * 12, usd: 9 * 12 },
-  address_proof: { mxn: 100, usd: 6 },
-  address_proof_6: { mxn: 65 * 6, usd: 4 * 6 },
-  address_proof_12: { mxn: 35 * 12, usd: 2 * 12 },
+  // Mismo precio que la verificación de identidad.
+  address_proof: { mxn: 500, usd: 30 },
+  address_proof_6: { mxn: 350 * 6, usd: 20 * 6 },
+  address_proof_12: { mxn: 150 * 12, usd: 10 * 12 },
   featured_listing: { mxn: 850, usd: 50 },
   featured_listing_6: { mxn: 650 * 6, usd: 40 * 6 },
   featured_listing_12: { mxn: 600 * 12, usd: 35 * 12 },
@@ -179,7 +182,24 @@ const OUTDATED_COPY = new Set([
   "Por cada anuncio: reservas en línea con cobro por Stripe o pago manual (transferencia, CLABE, Zelle), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
   "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
   "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",
+  "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio.",
 ]);
+
+/**
+ * Una vez: la verificación de dirección vuelve a venderse aparte, por anuncio y al precio de la
+ * verificación de identidad. Toma el nombre, la descripción y el precio del dueño y se enciende.
+ */
+function relaunchAddressPlansOnce(): boolean {
+  if (addressRelaunchedAt) return false;
+  for (const code of MEMBERSHIP_PLAN_CODES) {
+    const prev = rows.get(code);
+    if (!prev || MEMBERSHIP_PLAN_FAMILY[code] !== "address_proof") continue;
+    const seed = seedFor(code);
+    rows.set(code, { ...prev, ...seed, stripeProductId: prev.stripeProductId, updatedAt: nowIso() });
+  }
+  addressRelaunchedAt = nowIso();
+  return true;
+}
 
 function dropOutdatedCopy(): boolean {
   let changed = false;
@@ -202,6 +222,7 @@ function persist() {
       catalogPushedAt,
       defaultPricesAppliedAt,
       identityMergedAt,
+      addressRelaunchedAt,
     };
     writeFileSync(DATA_FILE, JSON.stringify(snapshot, null, 2), "utf8");
     if (existsSync(DATA_FILE)) cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
@@ -226,6 +247,7 @@ function reloadFromDisk() {
       catalogPushedAt = data.catalogPushedAt;
       defaultPricesAppliedAt = data.defaultPricesAppliedAt;
       identityMergedAt = data.identityMergedAt;
+      addressRelaunchedAt = data.addressRelaunchedAt;
       cachedMtimeMs = statSync(DATA_FILE).mtimeMs;
     }
   } catch (e) {
@@ -234,8 +256,9 @@ function reloadFromDisk() {
   const seeded = seedMissing();
   const priced = applyOwnerPricesOnce();
   const merged = mergeIdentityPlansOnce();
+  const address = relaunchAddressPlansOnce();
   const copy = dropOutdatedCopy();
-  if (seeded || priced || merged || copy) persist();
+  if (seeded || priced || merged || address || copy) persist();
 }
 
 function syncIfStale() {

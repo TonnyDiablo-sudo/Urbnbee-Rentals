@@ -30,7 +30,7 @@ type Msg = {
   at: string;
   attachment?: { kind: "image" | "audio" | "file"; name?: string; size: number; durationSec?: number; url: string };
 };
-type Thread = { channel: Channel; canManage: boolean; isHost: boolean; live?: boolean; people: Person[]; messages: Msg[] };
+type Thread = { channel: Channel; canManage: boolean; isHost: boolean; live?: boolean; trialDays?: number; people: Person[]; messages: Msg[] };
 
 /** Elegir quién está en el grupo: todo el equipo o sólo algunas personas. El anfitrión siempre está. */
 function MembersPicker({
@@ -120,6 +120,7 @@ export function TeamChat({ hostId, pad = "px-5", storeHref = "/tienda" }: { host
   const [isHost, setIsHost] = useState(false);
   /** false = vista previa: se arman chats pero nadie puede escribir hasta activar una herramienta. */
   const [live, setLive] = useState(true);
+  const [trialDays, setTrialDays] = useState<number | undefined>(undefined);
 
   const load = useCallback(async () => {
     const r = await call(`/api/team-chat${q}`);
@@ -133,6 +134,7 @@ export function TeamChat({ hostId, pad = "px-5", storeHref = "/tienda" }: { host
       setMe(typeof r.j.me === "string" ? r.j.me : "");
       setIsHost(r.j.isHost === true);
       setLive(r.j.live !== false);
+      setTrialDays(typeof r.j.trialDays === "number" ? r.j.trialDays : undefined);
     } else {
       setLocked(typeof r.j.error === "string" ? r.j.error : "No se pudo cargar.");
       setChannels([]);
@@ -194,7 +196,7 @@ export function TeamChat({ hostId, pad = "px-5", storeHref = "/tienda" }: { host
       {locked && <p className={`${pad} py-3 text-sm text-[#555]`}>{t(locked)}</p>}
       {!locked && !live && isHost && (
         <div className={`${pad} pb-3`}>
-          <ToolPreviewNotice tool="teamChat" storeHref={storeHref} compact />
+          <ToolPreviewNotice tool="teamChat" storeHref={storeHref} trialDays={trialDays} compact />
         </div>
       )}
       {!locked && !live && !isHost && (
@@ -545,7 +547,7 @@ function ChannelView({ id, me, pad, storeHref, onBack }: { id: string; me: strin
 
       {data.live === false ? (
         <div className="border-t border-[#f0f0f0] p-3">
-          <ToolPreviewNotice tool="teamChat" storeHref={storeHref} compact />
+          <ToolPreviewNotice tool="teamChat" storeHref={storeHref} trialDays={data.trialDays} compact />
         </div>
       ) : (
       <div className="flex items-end gap-2 border-t border-[#f0f0f0] p-3">

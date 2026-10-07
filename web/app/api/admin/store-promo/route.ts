@@ -23,7 +23,7 @@ async function isAdmin() {
 function payload() {
   return {
     ...storePromo(),
-    products: PROMO_FAMILIES.filter((f) => f !== "address_proof").map((f) => ({ family: f, label: FAMILY_COPY[f].label })),
+    products: PROMO_FAMILIES.filter((f) => f !== "host_verification").map((f) => ({ family: f, label: FAMILY_COPY[f].label })),
     limits: { ribbon: PROMO_RIBBON_MAX, banner: PROMO_BANNER_MAX, pctMin: DISCOUNT_PCT_MIN, pctMax: DISCOUNT_PCT_MAX },
     defaults: { ribbon: DEFAULT_RIBBON_TEXT, banner: DEFAULT_BANNER_TEXT },
   };

@@ -28,6 +28,7 @@ import { notifyUser } from "@/lib/push";
 import { getHostEntitlement } from "@/lib/host-entitlements-store";
 import { HOST_SKU_CLEANING, hostEntitlementInTrial } from "@/lib/host-entitlement-types";
 import { compressPhoto, deletePrivateFile, getPrivateFile, putPrivateFile } from "@/lib/private-files";
+import { hostTrialDays } from "@/lib/store-trial";
 import { hostHasCleaningTool, memberEffectiveRoles } from "@/lib/team-access";
 import { getTeamMember, listMembershipsForUser, listTeamForHost, memberCoversListing } from "@/lib/team-store";
 
@@ -387,6 +388,8 @@ export function hostCleaningView(hostId: string) {
     trialEndsAt: hostEntitlementInTrial(row) ? row?.trialEndsAt : undefined,
     /** Ya usó su prueba gratis: en la Tienda sólo queda activarla. */
     trialUsed: Boolean(row?.trialUsedAt),
+    /** Días de prueba gratis que se le ofrecen (si el admin la tiene encendida y nunca la usó). */
+    trialDays: hostTrialDays(hostId, "cleaning_tool"),
     capacity: cleaningCapacity(hostId),
     used: slots.size,
     settings: getCleaningSettings(hostId),

@@ -18,6 +18,7 @@ import {
   type TeamChatAttachment,
   type TeamChatMessage,
 } from "@/lib/team-chat-store";
+import { hostTrialDays } from "@/lib/store-trial";
 import { teamToolsLive } from "@/lib/team-access";
 import { activeMembership, listTeamForHost } from "@/lib/team-store";
 import { TEAM_CHAT_PREVIEW_ERROR, TOOL_PREVIEW_CODE } from "@/lib/tool-trial";
@@ -136,7 +137,14 @@ function messageView(m: TeamChatMessage, me: string) {
 export function teamChannelsView(
   userId: string,
   hostId: string
-): Result<{ channels: ReturnType<typeof channelView>[]; people: ReturnType<typeof teamPeople>; me: string; isHost: boolean; live: boolean }> {
+): Result<{
+  channels: ReturnType<typeof channelView>[];
+  people: ReturnType<typeof teamPeople>;
+  me: string;
+  isHost: boolean;
+  live: boolean;
+  trialDays?: number;
+}> {
   if (!teamChatActor(userId, hostId)) return { ok: false, error: TEAM_CHAT_NO_TEAM, status: 403 };
   return {
     ok: true,
@@ -148,6 +156,8 @@ export function teamChannelsView(
     isHost: userId === hostId,
     /** false = vista previa: se ven y se arman los chats, pero nadie puede escribir hasta activar una herramienta. */
     live: teamToolsLive(hostId),
+    /** Días de prueba gratis de colaboradores que se le ofrecen al anfitrión, si aplica. */
+    trialDays: userId === hostId ? hostTrialDays(hostId, "collaborator_seat") : undefined,
   };
 }
 
@@ -263,6 +273,7 @@ export function teamMessagesView(userId: string, channelId: string) {
     canManage: !c.channel.pair && (c.owner || c.channel.createdBy === userId),
     isHost: c.owner,
     live: teamToolsLive(c.channel.hostId),
+    trialDays: c.owner ? hostTrialDays(c.channel.hostId, "collaborator_seat") : undefined,
     people: teamPeople(c.channel.hostId),
     messages: listMessages(channelId).map((m) => messageView(m, userId)),
   };

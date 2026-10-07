@@ -164,7 +164,7 @@ export function AddressProofPanel({ surface }: { surface: "app" | "web" }) {
             </div>
             {r.locationVerified && r.covered === false && (
               <p className="mt-2 text-xs text-amber-800">
-                {t("Comprobante aprobado. La insignia se muestra cuando el anuncio tiene el motor de reservas (la verificación de dirección viene incluida).")}{" "}
+                {t("Comprobante aprobado. El listón se muestra cuando el anuncio tiene el motor de reservas (ya la incluye) o la verificación de dirección comprada por anuncio.")}{" "}
                 <a href="/tienda" className="font-semibold underline">
                   {t("Ir a la Tienda")}
                 </a>

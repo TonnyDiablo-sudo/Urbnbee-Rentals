@@ -44,13 +44,6 @@ export function catalogPurchaseProblem(
       };
     }
   }
-  if (MEMBERSHIP_PLAN_FAMILY[code] === "address_proof" && user.role !== "admin") {
-    const sku = primarySkuForPlan(code);
-    const owned = sku ? getHostEntitlement(user.id, sku) : undefined;
-    if (!owned || owned.status === "cancelled") {
-      return { error: "La verificación de dirección ya viene incluida en el motor de reservas.", status: 410 };
-    }
-  }
   const plan = getMembershipPlan(code);
   if (!plan || !plan.active || membershipPlanAmount(plan, region) <= 0) {
     return { error: "Ese plan no tiene precio para esta región. Ponlo en /admin/pricing.", status: 400 };

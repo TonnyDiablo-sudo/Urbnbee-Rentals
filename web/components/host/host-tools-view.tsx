@@ -235,15 +235,23 @@ export function HostToolsView({ hostId, t, lang, surface }: { hostId: string; t:
 
       <Card
         t={t}
-        title={t("Verificación de domicilio")}
+        title={t("Verificación de dirección")}
         status={
           addressSlots > 0
             ? statusOf(addressRow, true)
             : covered.size > 0
               ? { on: true, text: t("Incluida en el motor") }
-              : { on: false, text: t("Viene con el motor de reservas") }
+              : { on: false, text: t("Sin contratar") }
         }
-        usage={addressSlots > 0 ? t("{n} anuncios con verificación de domicilio pagada.", { n: addressSlots }) : undefined}
+        usage={
+          addressSlots === 1
+            ? t("1 anuncio con verificación de dirección pagada aparte; los anuncios con motor ya la traen.")
+            : addressSlots > 1
+              ? t("{n} anuncios con verificación de dirección pagada aparte; los anuncios con motor ya la traen.", { n: addressSlots })
+              : covered.size > 0
+              ? t("Tus anuncios con motor de reservas ya la traen. Para un anuncio sin motor, cómprala por anuncio en la Tienda.")
+              : t("Por anuncio: sube un recibo con la dirección y tu anuncio lleva el listón «Ubicación verificada». El motor de reservas ya la incluye.")
+        }
         manage={PATHS.address[surface]}
         buy={store}
       >

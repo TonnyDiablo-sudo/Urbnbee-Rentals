@@ -21,6 +21,7 @@ type View = {
   active: boolean;
   trialEndsAt?: string;
   trialUsed?: boolean;
+  trialDays?: number;
   capacity: number;
   used: number;
   settings: Settings;
@@ -249,7 +250,13 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
   return (
     <div className="space-y-5">
       {(!data.active || data.trialEndsAt) && (
-        <ToolPreviewNotice tool="cleaning" storeHref={storeHref} trialUsed={data.trialUsed} trialEndsAt={data.active ? data.trialEndsAt : undefined} />
+        <ToolPreviewNotice
+          tool="cleaning"
+          storeHref={storeHref}
+          trialUsed={data.trialUsed}
+          trialDays={data.trialDays}
+          trialEndsAt={data.active ? data.trialEndsAt : undefined}
+        />
       )}
       <nav className="sticky top-0 z-10 -mx-1 flex gap-1 overflow-x-auto bg-white/95 px-1 py-2 backdrop-blur" aria-label={t("Secciones de limpieza")}>
         {TABS.map((x) => {

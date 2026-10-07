@@ -11,7 +11,7 @@ import { cabibeeMeta } from "@/lib/stripe-app-meta";
 import { allowSimulatedBookingPayment, getStripe } from "@/lib/stripe-server";
 import { STORE_CART_KIND, STORE_TRIAL_META_KEY, encodeCart } from "@/lib/store-cart";
 import { simulateTrial, trialMaxQuantity, trialProblem } from "@/lib/store-trial";
-import { TRIAL_DAYS } from "@/lib/tool-trial";
+import { trialDays } from "@/lib/trial-settings-store";
 import { ensurePublicCatalogFresh } from "@/lib/urbnbeeai-catalog-sync";
 import { getVerification, upsertVerification } from "@/lib/verification-store";
 import { billingRegionFor, verificationRegionFromRequest } from "@/lib/verification-region";
@@ -21,7 +21,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Prueba gratis de 30 días de una herramienta (limpieza o colaboradores). Se pide la tarjeta
+ * Prueba gratis (30 o 60 días, según el admin) de una herramienta: limpieza, colaboradores o
+ * verificación de dirección. Se pide la tarjeta
  * en Checkout (modo setup) pero hoy no se cobra nada: al terminar la prueba la suscripción
  * cobra el plan elegido y se renueva sola hasta que el anfitrión cancele.
  */
@@ -71,15 +72,16 @@ export async function POST(req: NextRequest) {
   const currency = membershipPlanCurrency(region);
   const total = plan ? membershipPlanAmount(plan, region) * quantity : 0;
   const totalLabel = `$${total.toLocaleString(currency === "usd" ? "en-US" : "es-MX", { maximumFractionDigits: 2 })} ${currency.toUpperCase()}`;
+  const days = trialDays();
   const ends = new Date();
-  ends.setDate(ends.getDate() + TRIAL_DAYS);
+  ends.setDate(ends.getDate() + days);
   const endsLabel = ends.toLocaleDateString(currency === "usd" ? "en-US" : "es-MX", { day: "numeric", month: "long", year: "numeric" });
   const meta = cabibeeMeta({
     userId: user.id,
     kind: STORE_CART_KIND,
     cart: encodeCart([{ code, quantity }]),
     region,
-    [STORE_TRIAL_META_KEY]: String(TRIAL_DAYS),
+    [STORE_TRIAL_META_KEY]: String(days),
   });
 
   try {

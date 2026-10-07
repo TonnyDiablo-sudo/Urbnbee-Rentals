@@ -1,7 +1,7 @@
 "use client";
 
 import { useLang, useT } from "@/components/i18n-provider";
-import { TRIAL_DAYS, TRIAL_MAX_COLLABORATORS } from "@/lib/tool-trial";
+import { TRIAL_MAX_COLLABORATORS } from "@/lib/tool-trial";
 
 const COPY = {
   cleaning: {
@@ -29,6 +29,7 @@ export function ToolPreviewNotice({
   tool,
   storeHref = "/tienda",
   trialUsed = false,
+  trialDays,
   trialEndsAt,
   compact = false,
 }: {
@@ -36,6 +37,8 @@ export function ToolPreviewNotice({
   storeHref?: string;
   /** Ya usó su prueba gratis: sólo queda activarla. */
   trialUsed?: boolean;
+  /** Días de prueba que se le ofrecen; sin esto no se muestra el botón de probar. */
+  trialDays?: number;
   /** Si viene, la herramienta está en prueba gratis hasta esa fecha. */
   trialEndsAt?: string;
   compact?: boolean;
@@ -43,6 +46,7 @@ export function ToolPreviewNotice({
   const t = useT();
   const lang = useLang();
   const copy = COPY[tool];
+  const offerTrial = Boolean(trialDays) && !trialUsed;
   if (trialEndsAt) {
     const d = new Date(trialEndsAt).toLocaleDateString(lang === "en" ? "en-US" : "es-MX", { day: "numeric", month: "long", year: "numeric" });
     return (
@@ -59,16 +63,16 @@ export function ToolPreviewNotice({
       <p className="font-semibold">{t(copy.title)}</p>
       <p className="mt-1 text-sm">{t(copy.body, { max: TRIAL_MAX_COLLABORATORS })}</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        {!trialUsed && (
+        {offerTrial && (
           <a href={`${storeHref}${copy.anchor}`} className="rounded-xl bg-[#222] px-4 py-2 text-sm font-semibold text-white">
-            {t("Probar {n} días gratis", { n: TRIAL_DAYS })}
+            {t("Probar {n} días gratis", { n: trialDays ?? 0 })}
           </a>
         )}
         <a href={`${storeHref}${copy.anchor}`} className="rounded-xl border border-[#222] px-4 py-2 text-sm font-semibold text-[#222]">
           {t("Activar en la Tienda")}
         </a>
       </div>
-      {!trialUsed && (
+      {offerTrial && (
         <p className="mt-2 text-xs">{t("La prueba pide tarjeta, pero no se cobra nada hasta que termina. Cancela cuando quieras.")}</p>
       )}
     </section>

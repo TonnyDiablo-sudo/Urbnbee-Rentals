@@ -29,6 +29,8 @@ type Item = {
   };
   /** Puede empezar la prueba gratis (una sola por herramienta). */
   trial?: { days: number; maxQuantity?: number };
+  /** Aviso que va arriba del precio (por ejemplo: «el motor ya la incluye»). */
+  notice?: string;
   demand?: { occupancy: number; multiplier: number; soldOut: boolean; slotsLeft: number };
 };
 
@@ -420,6 +422,10 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
           )}
         </div>
 
+        {item.notice && !owned && (
+          <p className="mt-3 rounded-xl border border-[#f0d77a] bg-[#fdf6d8] px-3 py-2 text-sm text-[#5c4a0a]">{t(item.notice)}</p>
+        )}
+
         {(!owned || changing === item.family) && item.terms.length > 1 && (
           <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={t("Plazo")}>
             {item.terms.map((x) => {
@@ -489,6 +495,18 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
             {item.details.map((d) => (
               <li key={d}>{t(d)}</li>
             ))}
+            {item.trial && (
+              <li>
+                {item.trial.maxQuantity
+                  ? t("Pruébala {n} días gratis (hasta {max} colaboradores). Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.", {
+                      n: item.trial.days,
+                      max: item.trial.maxQuantity,
+                    })
+                  : t("Pruébala {n} días gratis. Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.", {
+                      n: item.trial.days,
+                    })}
+              </li>
+            )}
           </ul>
         )}
 

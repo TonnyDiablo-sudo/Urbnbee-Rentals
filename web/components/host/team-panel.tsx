@@ -35,6 +35,7 @@ type View = {
   preview: boolean;
   trialEndsAt?: string;
   trialUsed: boolean;
+  trialDays?: number;
   cleaningTool: boolean;
   teamChatLive: boolean;
   listings: { id: string; title: string }[];
@@ -168,7 +169,13 @@ export function TeamPanel({ storeHref = "/tienda" }: { storeHref?: string }) {
   return (
     <div className="space-y-6">
       {(preview || data.trialEndsAt) && (
-        <ToolPreviewNotice tool="collaborators" storeHref={storeHref} trialUsed={data.trialUsed} trialEndsAt={preview ? undefined : data.trialEndsAt} />
+        <ToolPreviewNotice
+          tool="collaborators"
+          storeHref={storeHref}
+          trialUsed={data.trialUsed}
+          trialDays={data.trialDays}
+          trialEndsAt={preview ? undefined : data.trialEndsAt}
+        />
       )}
       <section className="rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[#222]">{t("Tu equipo")}</h2>

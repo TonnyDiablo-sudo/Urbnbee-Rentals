@@ -4,6 +4,7 @@ import { findUserByEmail, findUserById, getListingById, listListingsForHost } fr
 import { getHostEntitlement } from "@/lib/host-entitlements-store";
 import { HOST_SKU_COLLABORATORS, hostEntitlementInTrial } from "@/lib/host-entitlement-types";
 import { notifyUser } from "@/lib/push";
+import { hostTrialDays } from "@/lib/store-trial";
 import { collaboratorSeats, collaboratorSeatsUsed, hostHasCleaningTool, memberEffectiveRoles, teamToolsLive } from "@/lib/team-access";
 import { TRIAL_MAX_COLLABORATORS } from "@/lib/tool-trial";
 import {
@@ -202,6 +203,8 @@ export function hostTeamView(hostId: string) {
     trialEndsAt: hostEntitlementInTrial(seatRow) ? seatRow?.trialEndsAt : undefined,
     /** Ya usó su prueba gratis: en la Tienda sólo queda activarla. */
     trialUsed: Boolean(seatRow?.trialUsedAt),
+    /** Días de prueba gratis que se le ofrecen (si el admin la tiene encendida y nunca la usó). */
+    trialDays: hostTrialDays(hostId, "collaborator_seat"),
     cleaningTool: hostHasCleaningTool(hostId),
     teamChatLive: teamToolsLive(hostId),
     listings: listListingsForHost(hostId).map((l) => ({ id: l.id, title: l.title || "Sin título" })),

@@ -11,7 +11,7 @@ import {
 import type { UserRecord } from "@/lib/marketplace-types";
 import { hostEntitlementInTrial } from "@/lib/host-entitlement-types";
 import { trialEligible, trialMaxQuantity } from "@/lib/store-trial";
-import { TRIAL_DAYS } from "@/lib/tool-trial";
+import { trialDays } from "@/lib/trial-settings-store";
 import { getVerification } from "@/lib/verification-store";
 import type { VerificationRegion } from "@/lib/verification-types";
 
@@ -62,7 +62,6 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
     "Puedes pedir foto al terminar; quien limpia deja notas y te escribe por el chat.",
     "Insumos: anota lo que usas (papel de baño, jabones, lo que quieras), cuántos hay y un mínimo. Al llegar al mínimo se le avisa a quien tú elijas para que compre.",
     "Próximamente incluido: entrada y salida con ubicación. Quien limpia marca su llegada y salida desde el lugar, y ves el historial de cada persona por día.",
-    "Pruébala 30 días gratis. Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.",
   ],
   collaborator_seat: [
     "Se paga por colaborador.",
@@ -72,13 +71,13 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
     "Chats de equipo incluidos: crea los chats que quieras con tu gente (cuentas, limpiezas, insumos…) y guarda ahí fotos, audios y archivos.",
     "Tú eliges a qué anuncios tiene acceso.",
     "Le quitas el acceso cuando quieras desde tu panel de colaboradores.",
-    "Pruébala 30 días gratis (hasta 5 colaboradores). Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.",
   ],
   address_proof: [
-    "Ya viene incluida en el motor de reservas; este plan aparte es de antes y cubre anuncios sin motor.",
-    "Subes un recibo a tu nombre con la dirección del anuncio y lo revisamos.",
-    "Tu anuncio muestra la insignia «Ubicación verificada».",
-    "Mientras la pagues, cada mes volvemos a revisar la dirección contra datos oficiales. Si dejas de pagar, se quita la insignia. Si la revisión pide confirmarla de nuevo, te pediremos otro comprobante.",
+    "Se paga por anuncio: cubre los anuncios que no tienen motor de reservas.",
+    "Subes un recibo a tu nombre (luz, agua, internet, predial o renta) con la dirección del anuncio y lo revisamos.",
+    "Tu anuncio muestra el listón «Ubicación verificada»: le dice a quien reserva que el lugar existe, que está donde dice el anuncio y que lo renta quien dice. Es tu mejor defensa contra anuncios falsos.",
+    "El motor de reservas ya la trae incluida en su precio. Si vas a comprar el motor para ese anuncio, no compres esta: el motor se cobra completo aunque ya la tengas.",
+    "Mientras la pagues, cada mes volvemos a revisar la dirección contra datos oficiales. Si dejas de pagar, se quita el listón. Si la revisión pide confirmarla de nuevo, te pediremos otro comprobante.",
   ],
   featured_listing: [
     "Se paga por anuncio: eliges qué anuncios se destacan.",
@@ -122,6 +121,14 @@ export type StoreItem = {
   };
   /** Puede empezar la prueba gratis (sólo una por herramienta). */
   trial?: { days: number; maxQuantity?: number };
+  /** Aviso que va arriba del precio (por ejemplo: «el motor ya la incluye»). */
+  notice?: string;
+};
+
+/** Avisos fijos por producto. */
+const NOTICE: Partial<Record<MembershipPlanFamily, string>> = {
+  address_proof:
+    "El motor de reservas ya trae la verificación de dirección en su precio. Si vas a comprar el motor de reservas para ese anuncio, no compres esta.",
 };
 
 const FAMILY_ORDER: MembershipPlanFamily[] = [
@@ -179,8 +186,6 @@ export function storeItemsFor(user: UserRecord, region: VerificationRegion): Sto
     const family = MEMBERSHIP_PLAN_FAMILY[p.code];
     // La identidad se vende una sola vez por persona, como «Verificación de identidad».
     if (family === "host_verification") continue;
-    // Viene incluida en el motor; sólo la ve quien la compró aparte antes, para administrarla.
-    if (family === "address_proof" && !byFamily.has(family) && !ownedFor(user, family, p.code)) continue;
     const months = p.billing.kind === "subscription" ? p.billing.intervalCount : 0;
     const term: StoreTerm = {
       code: p.code,
@@ -205,8 +210,9 @@ export function storeItemsFor(user: UserRecord, region: VerificationRegion): Sto
       terms: [term],
       owned: ownedFor(user, family, p.code),
       ...(trialEligible(user, p.code)
-        ? { trial: { days: TRIAL_DAYS, ...(trialMaxQuantity(p.code) ? { maxQuantity: trialMaxQuantity(p.code) } : {}) } }
+        ? { trial: { days: trialDays(), ...(trialMaxQuantity(p.code) ? { maxQuantity: trialMaxQuantity(p.code) } : {}) } }
         : {}),
+      ...(NOTICE[family] ? { notice: NOTICE[family] } : {}),
     });
   }
   for (const item of byFamily.values()) item.terms.sort((a, b) => a.months - b.months);

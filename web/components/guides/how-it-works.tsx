@@ -36,7 +36,7 @@ const STEPS_GUEST = [
 const STEPS_HOST = [
   "Crea tu cuenta y publica tu espacio gratis.",
   "Recibe mensajes de huéspedes y responde desde la app.",
-  "Si quieres, activa herramientas de la Tienda: verificación, reservas en línea, limpieza o colaboradores.",
+  "Si quieres, activa herramientas de la Tienda: verificación de identidad o de dirección, reservas en línea, limpieza o colaboradores.",
   "Prepara tu contrato con nuestras plantillas y ajústalo a tu caso.",
 ];
 
@@ -44,6 +44,10 @@ const SERVICES = [
   {
     title: "Verificación de identidad",
     text: "Validación de identificación oficial con selfie. Una sola por persona: sirve como anfitrión y como huésped, y da la etiqueta «Miembro verificado».",
+  },
+  {
+    title: "Verificación de dirección",
+    text: "Por anuncio: el anfitrión sube un recibo a su nombre con la dirección del anuncio y lo revisamos. El anuncio lleva el listón «Ubicación verificada». Ya viene incluida en el motor de reservas; se compra aparte sólo para anuncios sin motor.",
   },
   {
     title: "Motor de reservas",
@@ -62,7 +66,7 @@ const TAGS = [
   {
     icon: "📍",
     title: "Dirección verificada («Ubicación verificada»)",
-    text: "El anfitrión subió un recibo del alojamiento (luz, agua, internet, predial o renta) a su nombre y con la dirección del anuncio, y lo revisamos. El nombre del recibo tiene que ser el del anfitrión del anuncio y la dirección la del anuncio. Te dice que el lugar existe, que está donde dice el anuncio y que quien lo renta es quien dice. Este listón aumenta la seguridad y la confianza de quien reserva: es tu mejor defensa contra anuncios falsos.",
+    text: "El anfitrión subió un recibo del alojamiento (luz, agua, internet, predial o renta) a su nombre y con la dirección del anuncio, y lo revisamos. El nombre del recibo tiene que ser el del anfitrión del anuncio y la dirección la del anuncio. Te dice que el lugar existe, que está donde dice el anuncio y que quien lo renta es quien dice. Este listón aumenta la seguridad y la confianza de quien reserva: es tu mejor defensa contra anuncios falsos. Viene incluida en el motor de reservas y también se puede contratar por anuncio en la Tienda.",
   },
   {
     icon: "🔒",
@@ -73,7 +77,7 @@ const TAGS = [
 
 const ENGINE_WHY = [
   "Los dos lados están verificados: el huésped con identificación y selfie, y el anfitrión con su identidad. Sin la identidad del anfitrión, un anuncio no puede usar el motor.",
-  "La verificación de dirección viene incluida en el motor. Si el anuncio muestra «Ubicación verificada», el recibo a nombre del anfitrión con esa dirección ya se revisó.",
+  "La verificación de dirección viene incluida en el motor (y también se vende por anuncio). Si el anuncio muestra «Ubicación verificada», el recibo a nombre del anfitrión con esa dirección ya se revisó.",
   "El pago se hace con tarjeta a la cuenta de Stripe del anfitrión y queda registrado; nada de depósitos a cuentas desconocidas.",
   "El contrato se firma en línea antes de llegar y queda guardado para los dos.",
   "La dirección exacta, el código de entrada y el wifi se comparten sólo con la reserva confirmada.",
