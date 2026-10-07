@@ -13,10 +13,18 @@ import { useTranslateInFlag } from "@/components/chat/use-translate-in";
 
 export type DraftState = { original: string; lang: string | null; same: boolean };
 
-export function useWebChatTranslator(opts: { listingId: string; guestSessionId?: string; storageKey: string; hostSide?: boolean }) {
+export function useWebChatTranslator(opts: {
+  listingId: string;
+  guestSessionId?: string;
+  storageKey: string;
+  hostSide?: boolean;
+  /** Ya se sabe que no tiene el traductor (p. ej. la API regresó `readingLang: null`). */
+  locked?: boolean;
+}) {
   const [translateIn, setTranslateIn] = useTranslateInFlag(opts.storageKey);
   const [readingLang, setReadingLangState] = useState("");
-  const [locked, setLocked] = useState(false);
+  const [lockedState, setLocked] = useState(false);
+  const locked = lockedState || opts.locked === true;
   const [draft, setDraft] = useState<DraftState | null>(null);
   const [translating, setTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);

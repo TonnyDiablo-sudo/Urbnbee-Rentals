@@ -52,6 +52,7 @@ function HostGuestChats() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
+  const [translatorLocked, setTranslatorLocked] = useState(false);
   const query = useChatSearch();
 
   const load = useCallback(async () => {
@@ -65,6 +66,8 @@ function HostGuestChats() {
         return;
       }
       setThreads(data.threads ?? []);
+      // `readingLang: null` = sin traductor (falta la verificación de identidad).
+      setTranslatorLocked(data.readingLang === null);
     } catch {
       setError("Error de red.");
     } finally {
@@ -160,6 +163,7 @@ function HostGuestChats() {
                     text={replyText[key] ?? ""}
                     onText={(v) => setReplyText((prev) => ({ ...prev, [key]: v }))}
                     sending={sending === key}
+                    translatorLocked={translatorLocked}
                     onSend={(meta, onSent, onLocked) => void sendReply(th, meta, onSent, onLocked)}
                   />
                 )}
@@ -178,12 +182,14 @@ function OpenThread({
   text,
   onText,
   sending,
+  translatorLocked,
   onSend,
 }: {
   th: Thread;
   text: string;
   onText: (v: string) => void;
   sending: boolean;
+  translatorLocked: boolean;
   onSend: (meta: { original: string; lang?: string } | null, onSent: () => void, onLocked: () => void) => void;
 }) {
   const t = useT();
@@ -192,6 +198,7 @@ function OpenThread({
     guestSessionId: th.guestSessionId,
     storageKey: `h:${th.listingId}:${th.guestSessionId}`,
     hostSide: true,
+    locked: translatorLocked,
   });
   return (
     <div className="border-t border-[#ebebeb] px-4 py-4">

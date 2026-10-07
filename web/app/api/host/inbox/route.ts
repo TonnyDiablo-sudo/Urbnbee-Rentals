@@ -44,24 +44,27 @@ export async function GET(req: NextRequest) {
   };
 
   const threads: ThreadOut[] = [];
-  // Lo que escriben los huéspedes se traduce al idioma en que lee el chat quien atiende.
+  // Lo que escriben los huéspedes se traduce al idioma en que lee el chat quien atiende
+  // (sólo con la membresía de identidad verificada; si no, tal cual).
   const lang = chatReadingLang(user, await getLang(), { as: "host", listingHostId: scope.hostId });
-  await translateTexts(
-    [...grouped.values()].flatMap((msgs) =>
-      msgs
-        .filter((m) => m.sender === "guest")
-        .slice(-40)
-        .flatMap((m) => [m.body, ...(m.transcript ? [m.transcript] : [])])
-    ),
-    lang,
-    { waitMs: 2500 }
-  );
+  if (lang) {
+    await translateTexts(
+      [...grouped.values()].flatMap((msgs) =>
+        msgs
+          .filter((m) => m.sender === "guest")
+          .slice(-40)
+          .flatMap((m) => [m.body, ...(m.transcript ? [m.transcript] : [])])
+      ),
+      lang,
+      { waitMs: 2500 }
+    );
+  }
 
   for (const [key, raw] of grouped.entries()) {
     const colon = key.indexOf(":");
     const listingId = colon === -1 ? key : key.slice(0, colon);
     if (scope.member && !memberCoversListing(scope.member, listingId)) continue;
-    const msgs = await translateIncoming(raw, "guest", lang, 0);
+    const msgs = lang ? await translateIncoming(raw, "guest", lang, 0) : raw.map((m) => ({ ...m, transcriptOriginal: undefined as string | undefined }));
     const guestSessionId = colon === -1 ? "" : key.slice(colon + 1);
     const listing = getListingById(listingId);
     const firstGuest = msgs.find((m) => m.sender === "guest");

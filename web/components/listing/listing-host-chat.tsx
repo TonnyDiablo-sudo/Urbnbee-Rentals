@@ -45,7 +45,8 @@ export function ListingHostChat({
   const [needsEmail, setNeedsEmail] = useState(Boolean(emailGate));
   const loggedIn = loggedInRaw && !needsEmail;
   const bottomRef = useRef<HTMLDivElement>(null);
-  const tr = useWebChatTranslator({ listingId, storageKey: `g:${listingId}` });
+  const [translatorLocked, setTranslatorLocked] = useState(false);
+  const tr = useWebChatTranslator({ listingId, storageKey: `g:${listingId}`, locked: translatorLocked });
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +70,8 @@ export function ListingHostChat({
       const res = await fetch(`/api/listings/${listingId}/messages`, { credentials: "include" });
       const data = await res.json();
       setMessages(Array.isArray(data.messages) ? data.messages : []);
+      // `readingLang: null` = sin traductor (no tiene la membresía de identidad verificada).
+      setTranslatorLocked(res.ok && data.readingLang === null);
     } catch {
       setMessages([]);
     } finally {

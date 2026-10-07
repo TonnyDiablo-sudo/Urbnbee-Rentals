@@ -59,8 +59,12 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
   const guestId = sessionUser?.id;
   const reveal = Boolean(listing && guestId && shareABooking(listing.hostId, guestId));
   const hostLabel = listing ? nameForViewer(listing.hostId, reveal) || "Anfitrión" : "Anfitrión";
+  // Sólo con la membresía de identidad verificada se traduce lo que escribe el anfitrión.
   const lang = chatReadingLang(sessionUser, await getLang(), { as: "guest" });
-  const messages = await translateIncoming(listThreadMerged(listingId, ids), "host", lang);
+  const rawMsgs = listThreadMerged(listingId, ids);
+  const messages = lang
+    ? await translateIncoming(rawMsgs, "host", lang)
+    : rawMsgs.map((m) => ({ ...m, transcriptOriginal: undefined as string | undefined }));
   return NextResponse.json({
     readingLang: lang,
     messages: messages.map((m) => {
