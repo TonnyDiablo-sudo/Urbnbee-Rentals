@@ -141,7 +141,7 @@ export function HostStatsView({
                     }`}
                   >
                     {s.impact === "high" ? "⚡ " : "💡 "}
-                    {t(s.text)}
+                    {t(s.text, s.vars)}
                   </Link>
                 </li>
               ))}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import { translatePlanLabel } from "@/lib/plan-label";
 import { numberLocale, type TFn } from "@/lib/i18n";
 import { getLang, getT } from "@/lib/i18n/server";
 import {
@@ -45,14 +46,14 @@ export default async function MembresiaPublicPage() {
       <main className="mx-auto max-w-3xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-semibold text-[#222]">{t("Membresía de verificación de huésped")}</h1>
         <p className="mt-4 text-sm leading-relaxed text-[#484848]">
-          {t("Cabibee conecta viajeros con anfitriones verificados. Para solicitar reservas dentro de la plataforma necesitas una membresía activa —o un pase por reserva— y completar la verificación de identidad cuando el sitio lo tenga activado (documento oficial + selfie vía Stripe Identity).")}
+          {t("Cabibee conecta viajeros con anfitriones verificados. Para solicitar reservas dentro de la plataforma necesitas una membresía activa —o un pase por reserva— y completar la verificación de identidad: identificación oficial y selfie, comprobadas contra bases de datos oficiales.")}
         </p>
 
         {plans.length > 0 && (
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {plans.map((p) => (
               <div key={p.code} className="rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{t(p.label)}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{translatePlanLabel(p.label, t)}</p>
                 <p className="mt-3 text-2xl font-semibold text-[#222]">{priceLabel(p, locale)}</p>
                 <p className="mt-1 text-xs text-[#888]">{cadenceLabel(p, t, locale)}</p>
                 {p.description && (
@@ -65,8 +66,10 @@ export default async function MembresiaPublicPage() {
 
         <ul className="mt-8 list-inside list-disc space-y-2 text-sm text-[#484848]">
           <li>{t("Un pase para quien viaja una vez, o membresía de 6 y 12 meses para quien viaja seguido.")}</li>
-          <li>{t("Gestión de pago y cancelación en el portal de facturación de Stripe.")}</li>
-          <li>{t("La identidad no se guarda en nuestros servidores: la revisa Stripe según su política y regulación.")}</li>
+          <li>{t("Con identidad verificada el chat te deja mandar fotos y notas de voz.")}</li>
+          <li>{t("Incluye el traductor automático del chat: lo que te escriben lo lees en tu idioma y lo que escribes puedes mandarlo en el idioma de la otra persona.")}</li>
+          <li>{t("Gestión de pago y cancelación en el portal de facturación.")}</li>
+          <li>{t("Tu identificación no se guarda en nuestros servidores: se comprueba contra bases de datos oficiales y sólo guardamos el resultado.")}</li>
         </ul>
 
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">

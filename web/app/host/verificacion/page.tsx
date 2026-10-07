@@ -6,6 +6,7 @@ import { AddressProofPanel } from "@/components/host/address-proof-panel";
 import { CountryPicker, PhoneBox, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
 import { EngineListingsPanel } from "@/components/host/engine-listings-panel";
 import { useLang, useT } from "@/components/i18n-provider";
+import { translatePlanLabel } from "@/lib/plan-label";
 import { numberLocale, type TFn } from "@/lib/i18n";
 import type { VerificationRegion } from "@/lib/verification-types";
 
@@ -44,7 +45,7 @@ type Status = {
 
 const KYC_LABEL: Record<string, string> = {
   not_started: "Sin iniciar",
-  pending: "En revisión por Stripe",
+  pending: "En revisión",
   verified: "Aprobada",
   failed: "No aprobada",
   expired: "Expirada",
@@ -79,7 +80,7 @@ function PlanCard({
   const t = useT();
   return (
     <div className="flex flex-col rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm">
-      <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{plan.label}</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{translatePlanLabel(plan.label, t)}</p>
       <p className="mt-3 text-2xl font-semibold text-[#222]">{formatAmount(plan)}</p>
       <p className="mt-1 text-xs text-[#888]">{billingCaption(plan, t)}</p>
       <button
@@ -226,7 +227,7 @@ function HostVerificacionClient() {
 
       {justReturned && (
         <p className="mt-4 rounded-lg border border-[#ebebeb] bg-white px-4 py-3 text-sm text-[#484848]">
-          {t("Si terminaste el proceso en Stripe, espera unos segundos y pulsa «Actualizar estado».")}
+          {t("Si ya terminaste la verificación, espera unos segundos y pulsa «Actualizar estado».")}
         </p>
       )}
 
@@ -301,7 +302,8 @@ function HostVerificacionClient() {
               {!data.emailVerified && <VerifyEmailBox />}
               {!data.hasPhone && <PhoneBox onSaved={() => void load()} />}
               <p className="text-sm text-[#484848]">
-                {t("Te identificas con tu identificación oficial y una selfie.")}
+                {t("Te identificas con tu identificación oficial y una selfie, comprobadas contra bases de datos oficiales.")}{" "}
+                {t("Además, en el chat puedes mandar fotos y notas de voz y usar el traductor automático: lo que te escriben lo lees en tu idioma y lo que escribes puedes mandarlo en el idioma del huésped.")}
               </p>
             </div>
           )}
@@ -330,11 +332,11 @@ function HostVerificacionClient() {
                   key={p.code}
                   className="flex flex-col rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm"
                 >
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{p.label}</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{translatePlanLabel(p.label, t)}</p>
                   <p className="mt-3 text-2xl font-semibold text-[#222]">{formatAmount(p)}</p>
                   <p className="mt-1 text-xs text-[#888]">{billingCaption(p, t)}</p>
                   {p.description && (
-                    <p className="mt-3 text-sm leading-relaxed text-[#484848]">{p.description}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-[#484848]">{t(p.description)}</p>
                   )}
                   <button
                     type="button"

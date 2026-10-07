@@ -35,7 +35,7 @@ export const FAMILY_COPY: Record<MembershipPlanFamily, { label: string; descript
   guest_membership: {
     label: "Verificación de identidad",
     description:
-      "Una por persona. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado».",
+      "Una por persona: identificación oficial y selfie, comprobadas contra bases de datos oficiales. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado». Incluye fotos y notas de voz en el chat y el traductor automático: lo que te escriben lo lees en tu idioma y lo que escribes sale en el de la otra persona.",
   },
   host_verification: {
     label: "Anfitrión verificado",
@@ -170,10 +170,12 @@ function mergeIdentityPlansOnce(): boolean {
 }
 
 /**
- * Descripciones que ya no son ciertas: el motor no acepta pagos manuales, no trae el
- * asistente de urbnbeeai ni la verificación de domicilio. Se cambian si nadie las editó.
+ * Descripciones que ya no son ciertas o quedaron cortas: el motor no acepta pagos manuales, no trae el
+ * asistente de urbnbeeai ni la verificación de domicilio; la verificación de identidad ya incluye fotos,
+ * audios y traductor del chat. Se cambian si nadie las editó.
  */
 const OUTDATED_COPY = new Set([
+  "Una por persona. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado».",
   "Por cada anuncio: reservas en línea con cobro por Stripe o pago manual (transferencia, CLABE, Zelle), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
   "Por cada anuncio: reservas en línea con pago automático con tarjeta (Stripe), contrato firmado en línea con la ley del lugar, verificación de domicilio, bloqueo de fechas y el asistente con IA de urbnbeeai.",
   "Insignia «Ubicación verificada» en un anuncio con comprobante de domicilio. Ya viene incluida en el motor de reservas.",

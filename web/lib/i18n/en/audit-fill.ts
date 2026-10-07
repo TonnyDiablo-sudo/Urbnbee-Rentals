@@ -50,6 +50,10 @@ export const auditFill: Record<string, string> = {
 
   // Sugerencias para mejorar el anuncio
   "Sube fotos: los anuncios sin fotos casi no reciben visitas.": "Add photos: listings without photos get almost no views.",
+  "Tienes {n} fotos. Con 8 o más (recámaras, baño, cocina, fachada) te contactan mucho más.":
+    "You have {n} photos. With 8 or more (bedrooms, bathroom, kitchen, façade) you get contacted much more.",
+  "Tu precio (${price}) está arriba de lo típico en {city} para este tipo (~${typical}). Si casi no te contactan, prueba ajustarlo.":
+    "Your price (${price}) is above what's typical in {city} for this type (~${typical}). If you rarely get contacted, try adjusting it.",
   "Verifica tu identidad: los anuncios verificados salen con sello y los huéspedes pueden filtrar solo verificados.":
     "Verify your identity: verified listings show a badge and guests can filter for verified only.",
   "Escribe una descripción más completa: qué hay cerca, cómo es el espacio y para quién es ideal.":

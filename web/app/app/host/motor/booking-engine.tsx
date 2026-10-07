@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { CountryPicker, PhoneBox, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
-import { useT } from "@/components/i18n-provider";
+import { useLang, useT } from "@/components/i18n-provider";
+import { numberLocale } from "@/lib/i18n";
 import { WebLink } from "../../_components/site-origin";
 import { PlanPicker, startIdentity, startMembershipCheckout, type CatalogPlan } from "../../_components/plan-picker";
 
@@ -32,6 +33,7 @@ const RETURN = "/host/motor";
 
 export function BookingEngine() {
   const t = useT();
+  const lang = useLang();
   const params = useSearchParams();
   const justPaid = params.get("subscription") === "success";
   const [data, setData] = useState<Status | null>(null);
@@ -82,7 +84,7 @@ export function BookingEngine() {
   const prereqsOk = Boolean(data.billingCountry) && data.emailVerified && data.hasPhone;
   const engineOn = data.membershipActive;
   const until = data.hostCurrentPeriodEnd
-    ? new Date(data.hostCurrentPeriodEnd).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
+    ? new Date(data.hostCurrentPeriodEnd).toLocaleDateString(numberLocale(lang), { day: "numeric", month: "long", year: "numeric" })
     : null;
 
   return (
@@ -132,7 +134,8 @@ export function BookingEngine() {
         {!data.identityPlanActive && (
           <div className="space-y-3">
             <p className="text-sm text-[#555]">
-              {t("Te identificas con una identificación oficial y una selfie, y se compara contra datos oficiales. Así el huésped sabe que eres quien dices ser.")}
+              {t("Te identificas con una identificación oficial y una selfie, y se compara contra datos oficiales. Así el huésped sabe que eres quien dices ser.")}{" "}
+              {t("Además, en el chat puedes mandar fotos y notas de voz y usar el traductor automático: lo que te escriben lo lees en tu idioma y lo que escribes puedes mandarlo en el idioma del huésped.")}
             </p>
             {identityPlans.length > 0 ? (
               <PlanPicker plans={identityPlans} busy={busy || !prereqsOk} onPick={(c) => void buy(c)} demo={!data.stripeConfigured} />
@@ -148,7 +151,7 @@ export function BookingEngine() {
             data.identityEnabled && data.stripeConfigured ? (
               <div className="space-y-2">
                 <p className="text-sm text-[#555]">
-                  {t("Ten a la mano tu identificación oficial. Te tomarás una selfie. Lo revisa Stripe Identity; Cabibee no guarda las fotos.")}
+                  {t("Ten a la mano tu identificación oficial. Te tomarás una selfie. Se comprueba contra bases de datos oficiales; Cabibee no guarda las fotos.")}
                 </p>
                 <button
                   type="button"

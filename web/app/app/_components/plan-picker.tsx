@@ -2,6 +2,7 @@
 
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale, type Lang, type TFn } from "@/lib/i18n";
+import { translatePlanLabel } from "@/lib/plan-label";
 
 export type CatalogPlan = {
   code: string;
@@ -43,11 +44,11 @@ export function PlanPicker({
       {plans.map((p) => (
         <div key={p.code} className="rounded-2xl border border-[#e5e5e5] p-4">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="text-[15px] font-semibold text-[#222]">{p.label}</p>
+            <p className="text-[15px] font-semibold text-[#222]">{translatePlanLabel(p.label, t)}</p>
             <p className="shrink-0 text-lg font-bold text-[#222]">{price(p, lang)}</p>
           </div>
           <p className="text-xs text-[#888]">{caption(p, t, lang)}</p>
-          {p.description && <p className="mt-2 text-sm leading-relaxed text-[#555]">{p.description}</p>}
+          {p.description && <p className="mt-2 text-sm leading-relaxed text-[#555]">{t(p.description)}</p>}
           <button
             type="button"
             disabled={busy}

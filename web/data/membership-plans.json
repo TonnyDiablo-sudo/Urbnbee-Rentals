@@ -13,29 +13,29 @@
     {
       "code": "meses_1",
       "label": "Verificación de identidad · 1 mes",
-      "description": "Una por persona. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado».",
+      "description": "Una por persona: identificación oficial y selfie, comprobadas contra bases de datos oficiales. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado». Incluye fotos y notas de voz en el chat y el traductor automático: lo que te escriben lo lees en tu idioma y lo que escribes sale en el de la otra persona.",
       "amountMxn": 500,
       "amountUsd": 30,
       "active": true,
-      "updatedAt": "2026-10-03T19:26:01.639Z"
+      "updatedAt": "2026-10-07T15:01:19.951Z"
     },
     {
       "code": "meses_6",
       "label": "Verificación de identidad · 6 meses",
-      "description": "Una por persona. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado».",
+      "description": "Una por persona: identificación oficial y selfie, comprobadas contra bases de datos oficiales. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado». Incluye fotos y notas de voz en el chat y el traductor automático: lo que te escriben lo lees en tu idioma y lo que escribes sale en el de la otra persona.",
       "amountMxn": 2100,
       "amountUsd": 120,
       "active": true,
-      "updatedAt": "2026-10-03T19:26:01.639Z"
+      "updatedAt": "2026-10-07T15:01:19.951Z"
     },
     {
       "code": "meses_12",
       "label": "Verificación de identidad · 12 meses",
-      "description": "Una por persona. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado».",
+      "description": "Una por persona: identificación oficial y selfie, comprobadas contra bases de datos oficiales. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado». Incluye fotos y notas de voz en el chat y el traductor automático: lo que te escriben lo lees en tu idioma y lo que escribes sale en el de la otra persona.",
       "amountMxn": 1800,
       "amountUsd": 120,
       "active": true,
-      "updatedAt": "2026-10-03T19:26:01.639Z"
+      "updatedAt": "2026-10-07T15:01:19.951Z"
     },
     {
       "code": "anfitrion_1",

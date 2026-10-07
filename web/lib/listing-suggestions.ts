@@ -8,6 +8,8 @@ export type Suggestion = {
   /** high = lo que más mueve las vistas. */
   impact: "high" | "medium";
   text: string;
+  /** Variables para `t(text, vars)` (el texto lleva {n}, {price}…). */
+  vars?: Record<string, string | number>;
   href?: string;
 };
 
@@ -64,7 +66,8 @@ function suggestionsForApp(listing: HostListingRecord): Suggestion[] {
     out.push({
       id: "photos",
       impact: "high",
-      text: `Tienes ${listing.photos.length} fotos. Con 8 o más (recámaras, baño, cocina, fachada) te contactan mucho más.`,
+      text: "Tienes {n} fotos. Con 8 o más (recámaras, baño, cocina, fachada) te contactan mucho más.",
+      vars: { n: listing.photos.length },
       href: editHref,
     });
   }
@@ -105,7 +108,12 @@ function suggestionsForApp(listing: HostListingRecord): Suggestion[] {
     out.push({
       id: "price",
       impact: "medium",
-      text: `Tu precio ($${listing.pricePerNight.toLocaleString("es-MX")}) está arriba de lo típico en ${listing.city} para este tipo (~$${Math.round(typical).toLocaleString("es-MX")}). Si casi no te contactan, prueba ajustarlo.`,
+      text: "Tu precio (${price}) está arriba de lo típico en {city} para este tipo (~${typical}). Si casi no te contactan, prueba ajustarlo.",
+      vars: {
+        price: listing.pricePerNight.toLocaleString("en-US"),
+        city: listing.city,
+        typical: Math.round(typical).toLocaleString("en-US"),
+      },
       href: editHref,
     });
   }

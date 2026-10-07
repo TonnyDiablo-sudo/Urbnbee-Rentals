@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CountryPicker, PhoneBox, VerifyEmailBox, regionForCountry, type BillingCountry } from "@/components/account/purchase-prereqs";
+import { translatePlanLabel } from "@/lib/plan-label";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale, type TFn } from "@/lib/i18n";
 import type { VerificationRegion } from "@/lib/verification-types";
@@ -245,7 +246,8 @@ export function MembresiaPanel() {
     <div className="mx-auto max-w-3xl">
       <h1 className="text-2xl font-semibold text-[#222]">{t("Membresía de verificación")}</h1>
       <p className="mt-2 text-sm leading-relaxed text-[#484848]">
-        {t("Para solicitar reservas a través de Cabibee necesitas una membresía activa, o un pase por reserva, y —cuando esté activado en el sitio— completar la verificación de identidad con documento oficial y selfie (Stripe Identity).")}
+        {t("Para solicitar reservas a través de Cabibee necesitas una membresía activa, o un pase por reserva, y completar la verificación de identidad: identificación oficial y selfie, comprobadas contra bases de datos oficiales.")}{" "}
+        {t("Con identidad verificada el chat también te deja mandar fotos y notas de voz y usar el traductor automático: lo que te escriben lo lees en tu idioma y lo que escribes puedes mandarlo en el idioma de la otra persona.")}
       </p>
 
       {justPaid && (
@@ -256,7 +258,7 @@ export function MembresiaPanel() {
 
       {identityReturn && (
         <p className="mt-4 rounded-lg border border-[#ebebeb] bg-white px-4 py-3 text-sm text-[#484848]">
-          {t("Si terminaste el flujo en Stripe, espera unos segundos y pulsa «Actualizar estado». Stripe notificará cuando el resultado esté listo.")}
+          {t("Si ya terminaste la verificación, espera unos segundos y pulsa «Actualizar estado». Te avisamos cuando el resultado esté listo.")}
         </p>
       )}
 
@@ -311,7 +313,7 @@ export function MembresiaPanel() {
                   key={p.code}
                   className="flex flex-col rounded-xl border border-[#ebebeb] bg-white p-5 shadow-sm"
                 >
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{t(p.label)}</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#aaa]">{translatePlanLabel(p.label, t)}</p>
                   <p className="mt-3 text-2xl font-semibold text-[#222]">{formatAmount(p, locale)}</p>
                   <p className="mt-1 text-xs text-[#888]">{billingCaption(p, t, locale)}</p>
                   {p.description && (
@@ -408,7 +410,7 @@ export function MembresiaPanel() {
               <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3">
                 <p className="text-sm font-medium text-amber-950">{t("Falta verificar tu identidad")}</p>
                 <p className="mt-1 text-xs text-amber-900/90">
-                  {t("Identificación oficial y selfie. Lo procesa Stripe Identity.")}
+                  {t("Identificación oficial y selfie, comprobadas contra bases de datos oficiales.")}
                 </p>
                 <button
                   type="button"

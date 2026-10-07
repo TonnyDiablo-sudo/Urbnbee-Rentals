@@ -481,4 +481,51 @@ export const cleaningFlow: Record<string, string> = {
     "What people write to you in the chat will be shown in this language (requires verified identity).",
   "Traducir lo que me escriben": "Translate what they write to me",
   "Traduciendo…": "Translating…",
+  // Verificación de identidad: qué incluye
+  "Además, en el chat puedes mandar fotos y notas de voz y usar el traductor automático: lo que te escriben lo lees en tu idioma y lo que escribes puedes mandarlo en el idioma del huésped.":
+    "You can also send photos and voice notes in the chat and use the automatic translator: what guests write is shown in your language, and you can send what you write in the guest's language.",
+  "Ten a la mano tu identificación oficial. Te tomarás una selfie. Se comprueba contra bases de datos oficiales; Cabibee no guarda las fotos.":
+    "Have your official ID ready. You'll take a selfie. It's checked against official databases; Cabibee doesn't keep the photos.",
+  "Te identificas con tu identificación oficial y una selfie, comprobadas contra bases de datos oficiales.":
+    "You identify yourself with your official ID and a selfie, checked against official databases.",
+  "Con identidad verificada el chat también te deja mandar fotos y notas de voz y usar el traductor automático: lo que te escriben lo lees en tu idioma y lo que escribes puedes mandarlo en el idioma de la otra persona.":
+    "With verified identity the chat also lets you send photos and voice notes and use the automatic translator: what people write is shown in your language, and you can send what you write in the other person's language.",
+  "Para solicitar reservas a través de Cabibee necesitas una membresía activa, o un pase por reserva, y completar la verificación de identidad: identificación oficial y selfie, comprobadas contra bases de datos oficiales.":
+    "To request bookings through Cabibee you need an active membership or a booking pass, and to complete identity verification: official ID and a selfie, checked against official databases.",
+  "Si ya terminaste la verificación, espera unos segundos y pulsa «Actualizar estado». Te avisamos cuando el resultado esté listo.":
+    "If you've finished the verification, wait a few seconds and press \"Refresh status\". We'll let you know when the result is ready.",
+  "Identificación oficial y selfie, comprobadas contra bases de datos oficiales.": "Official ID and a selfie, checked against official databases.",
+  "Si ya terminaste la verificación, espera unos segundos y pulsa «Actualizar estado».":
+    "If you've finished the verification, wait a few seconds and press \"Refresh status\".",
+  "Cabibee conecta viajeros con anfitriones verificados. Para solicitar reservas dentro de la plataforma necesitas una membresía activa —o un pase por reserva— y completar la verificación de identidad: identificación oficial y selfie, comprobadas contra bases de datos oficiales.":
+    "Cabibee connects travelers with verified hosts. To request bookings on the platform you need an active membership (or a booking pass) and to complete identity verification: official ID and a selfie, checked against official databases.",
+  "Con identidad verificada el chat te deja mandar fotos y notas de voz.": "With verified identity the chat lets you send photos and voice notes.",
+  "Incluye el traductor automático del chat: lo que te escriben lo lees en tu idioma y lo que escribes puedes mandarlo en el idioma de la otra persona.":
+    "Includes the automatic chat translator: what people write is shown in your language, and you can send what you write in the other person's language.",
+  "Gestión de pago y cancelación en el portal de facturación.": "Manage payment and cancellation in the billing portal.",
+  "Tu identificación no se guarda en nuestros servidores: se comprueba contra bases de datos oficiales y sólo guardamos el resultado.":
+    "Your ID isn't stored on our servers: it's checked against official databases and we only keep the result.",
+  "{n} mes": "{n} month",
+  "Una por persona: identificación oficial y selfie, comprobadas contra bases de datos oficiales. Como huésped reservas sin límite; como anfitrión tus anuncios llevan el listón «Miembro verificado». Incluye fotos y notas de voz en el chat y el traductor automático: lo que te escriben lo lees en tu idioma y lo que escribes sale en el de la otra persona.":
+    "One per person: official ID and a selfie, checked against official databases. As a guest you book without limits; as a host your listings carry the \"Verified member\" ribbon. Includes photos and voice notes in the chat and the automatic translator: what people write is shown in your language, and what you write goes out in theirs.",
+  "Te identificas con una identificación oficial y una selfie, y se comprueban contra bases de datos oficiales.":
+    "You identify yourself with an official ID and a selfie, and they're checked against official databases.",
+  "En el chat puedes mandar fotos y notas de voz (con su transcripción).": "In the chat you can send photos and voice notes (with a transcript).",
+  "Traductor automático del chat: lo que te escriben se traduce al idioma que elijas en tu perfil y, antes de enviar, puedes traducir lo que escribes al idioma de la otra persona.":
+    "Automatic chat translator: what people write is translated into the language you choose in your profile and, before sending, you can translate what you write into the other person's language.",
+  "Traductor automático del chat: lo que te escriben se traduce al idioma que elijas en tu perfil y, antes de enviar, puedes traducir lo que escribes al idioma del huésped.":
+    "Automatic chat translator: what guests write is translated into the language you choose in your profile and, before sending, you can translate what you write into the guest's language.",
+  // Textos de datos que pasan por t() y no tenían inglés
+  "Opcional. Si lo dejas en 0, el contrato dice que no hay depósito.": "Optional. If you leave it at 0, the contract says there's no deposit.",
+  "Recomendado si hay amenidades de valor o estancias de varias semanas.": "Recommended if there are valuable amenities or stays of several weeks.",
+  "Declara el monto. Se entrega y se devuelve directo entre tú y el huésped.": "State the amount. It's handed over and returned directly between you and the guest.",
+  "Le llega al huésped el día de su llegada por el chat de la reserva (y el texto también por correo).":
+    "The guest gets it on arrival day through the booking chat (and the text by email too).",
+  "Para estancias largas: un mensaje que se repite mientras el huésped está hospedado, para saber si todo va bien o si necesita algo. No es el de bienvenida ni el de salida.":
+    "For long stays: a message that repeats while the guest is staying, to check that everything is fine or if they need anything. It's not the welcome or the checkout one.",
+  "Le llega al huésped antes de irse, con la hora de salida y lo que debe hacer al dejar el lugar.":
+    "The guest gets it before leaving, with the checkout time and what to do when leaving the place.",
+  "Sello del sistema: pago recibido.": "System stamp: payment received.",
+  "Sello del sistema: pago rechazado.": "System stamp: payment rejected.",
+  "Sello del sistema: contrato anulado por falta de pago.": "System stamp: contract voided for non-payment.",
 };
