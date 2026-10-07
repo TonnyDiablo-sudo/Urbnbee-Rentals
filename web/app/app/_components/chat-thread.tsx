@@ -430,6 +430,8 @@ export function ChatThread({
                       className={`mt-0.5 text-right text-[10px] ${mine ? "text-black/60" : "text-[#999]"} ${
                         m.attachment?.kind === "image" ? "px-2 pb-0.5" : ""
                       }`}
+                      // La hora se formatea con el ICU del servidor y del navegador: puede diferir en un espacio.
+                      suppressHydrationWarning
                     >
                       {m.via === "ai" && showVia ? `${t("Respondido por IA")} · ` : ""}
                       {m.pending ? t("Enviando…") : timeLabel(m.createdAt, lang)}

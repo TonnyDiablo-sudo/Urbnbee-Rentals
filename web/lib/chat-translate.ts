@@ -56,13 +56,15 @@ export type OutgoingTranslation = {
 export async function translateOutgoing(
   text: string,
   target: ChatTranslateTarget,
-  ctx: { otherTexts: string[]; fallbackTexts?: string[]; cacheKey: string }
+  ctx: { otherTexts: string[]; fallbackTexts?: string[]; defaultLang?: string; cacheKey: string }
 ): Promise<OutgoingTranslation> {
   if (!translationEnabled() || !/\p{L}{2}/u.test(text)) return { body: text };
   let lang: string | null = target;
   if (target === "auto") {
     lang = await detectChatLanguage(ctx.otherTexts, `${ctx.cacheKey}:other`);
     if (!lang && ctx.fallbackTexts?.length) lang = await detectChatLanguage(ctx.fallbackTexts, `${ctx.cacheKey}:fallback`);
+    // Sin nada que leer de la otra persona: el idioma por omisión (el del sitio).
+    if (!lang && ctx.defaultLang) lang = ctx.defaultLang;
   }
   if (!lang) return { body: text };
   const name = chatLangEnglishName(lang);

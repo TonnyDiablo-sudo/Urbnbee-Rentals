@@ -3,6 +3,7 @@ import { CHAT_TRANSLATOR_LOCKED_ERROR, chatTranslatorAllowed } from "@/lib/chat-
 import { preferredChatLangOf } from "@/lib/chat-reading-lang";
 import { chatTranslatorEnabled, translateOutgoing } from "@/lib/chat-translate";
 import { guestSessionIdForUser, listThread } from "@/lib/host-inbox-store";
+import { getLang } from "@/lib/i18n/server";
 import { getListingById } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 import { memberCan } from "@/lib/team-access";
@@ -42,11 +43,15 @@ export async function POST(req: NextRequest) {
   const otherUserId = asHost ? (guestSessionId.startsWith("gu_") ? guestSessionId.slice(3) : undefined) : listing.hostId;
   const preferred = preferredChatLangOf(otherUserId);
   const out = await translateOutgoing(text, preferred ?? "auto", {
+    // Lo que escribió la otra persona, incluidas las transcripciones de sus notas de voz.
     otherTexts: listThread(listingId, guestSessionId)
-      .filter((m) => m.sender === otherSender && m.body.trim())
-      .map((m) => m.body),
+      .filter((m) => m.sender === otherSender)
+      .map((m) => (m.body.trim() ? m.body : (m.transcript ?? "")))
+      .filter((s) => s.trim()),
     // Sin mensajes de la otra persona: el idioma en que está el anuncio.
     fallbackTexts: asHost ? undefined : [listing.title, listing.description].filter(Boolean),
+    // Si no hay nada que leer, el idioma base del sitio.
+    defaultLang: await getLang(),
     cacheKey: `${asHost ? "h" : "g"}:${listingId}:${guestSessionId}`,
   });
 
