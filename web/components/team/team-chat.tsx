@@ -6,6 +6,7 @@ import { VoiceNote } from "@/components/chat/attachment-view";
 import { shrinkImage, useVoiceRecorder, VOICE_MAX_SEC } from "@/components/chat/media-input";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { chatMatches, useChatSearch } from "@/components/chat/chat-search";
+import { ToolPreviewNotice } from "@/components/host/tool-preview-notice";
 import { numberLocale } from "@/lib/i18n";
 
 type Person = { id: string; name: string; host: boolean };
@@ -29,7 +30,7 @@ type Msg = {
   at: string;
   attachment?: { kind: "image" | "audio" | "file"; name?: string; size: number; durationSec?: number; url: string };
 };
-type Thread = { channel: Channel; canManage: boolean; isHost: boolean; people: Person[]; messages: Msg[] };
+type Thread = { channel: Channel; canManage: boolean; isHost: boolean; live?: boolean; people: Person[]; messages: Msg[] };
 
 /** Elegir quién está en el grupo: todo el equipo o sólo algunas personas. El anfitrión siempre está. */
 function MembersPicker({
@@ -103,7 +104,7 @@ async function call(url: string, method = "GET", body?: unknown) {
 }
 
 /** Chats de equipo: el anfitrión y su gente arman los que quieran (cuentas, limpiezas, insumos…). */
-export function TeamChat({ hostId, pad = "px-5" }: { hostId?: string; pad?: string }) {
+export function TeamChat({ hostId, pad = "px-5", storeHref = "/tienda" }: { hostId?: string; pad?: string; storeHref?: string }) {
   const t = useT();
   const locale = numberLocale(useLang());
   const query = useChatSearch();
@@ -117,6 +118,8 @@ export function TeamChat({ hostId, pad = "px-5" }: { hostId?: string; pad?: stri
   const [people, setPeople] = useState<Person[]>([]);
   const [me, setMe] = useState("");
   const [isHost, setIsHost] = useState(false);
+  /** false = vista previa: se arman chats pero nadie puede escribir hasta activar una herramienta. */
+  const [live, setLive] = useState(true);
 
   const load = useCallback(async () => {
     const r = await call(`/api/team-chat${q}`);
@@ -129,6 +132,7 @@ export function TeamChat({ hostId, pad = "px-5" }: { hostId?: string; pad?: stri
       setPeople((r.j.people as Person[]) ?? []);
       setMe(typeof r.j.me === "string" ? r.j.me : "");
       setIsHost(r.j.isHost === true);
+      setLive(r.j.live !== false);
     } else {
       setLocked(typeof r.j.error === "string" ? r.j.error : "No se pudo cargar.");
       setChannels([]);
@@ -167,6 +171,7 @@ export function TeamChat({ hostId, pad = "px-5" }: { hostId?: string; pad?: stri
         id={open}
         me={me}
         pad={pad}
+        storeHref={storeHref}
         onBack={() => {
           setOpen(null);
           const url = new URL(window.location.href);
@@ -187,6 +192,16 @@ export function TeamChat({ hostId, pad = "px-5" }: { hostId?: string; pad?: stri
   return (
     <section>
       {locked && <p className={`${pad} py-3 text-sm text-[#555]`}>{t(locked)}</p>}
+      {!locked && !live && isHost && (
+        <div className={`${pad} pb-3`}>
+          <ToolPreviewNotice tool="teamChat" storeHref={storeHref} compact />
+        </div>
+      )}
+      {!locked && !live && !isHost && (
+        <p className={`${pad} pb-3 text-sm text-[#555]`}>
+          {t("Los chats de este equipo se activan cuando el anfitrión encienda su herramienta de colaboradores o de limpieza.")}
+        </p>
+      )}
 
       {!locked && (
         <div className={`${pad} flex gap-2 pb-2`}>
@@ -324,7 +339,7 @@ export function TeamChat({ hostId, pad = "px-5" }: { hostId?: string; pad?: stri
   );
 }
 
-function ChannelView({ id, me, pad, onBack }: { id: string; me: string; pad: string; onBack: () => void }) {
+function ChannelView({ id, me, pad, storeHref, onBack }: { id: string; me: string; pad: string; storeHref: string; onBack: () => void }) {
   const t = useT();
   const locale = numberLocale(useLang());
   const [data, setData] = useState<Thread | null>(null);
@@ -528,6 +543,11 @@ function ChannelView({ id, me, pad, onBack }: { id: string; me: string; pad: str
 
       {(err || voice.error) && <p className="px-4 text-sm text-red-700">{t((err || voice.error)!)}</p>}
 
+      {data.live === false ? (
+        <div className="border-t border-[#f0f0f0] p-3">
+          <ToolPreviewNotice tool="teamChat" storeHref={storeHref} compact />
+        </div>
+      ) : (
       <div className="flex items-end gap-2 border-t border-[#f0f0f0] p-3">
         <input
           ref={photoRef}
@@ -589,6 +609,7 @@ function ChannelView({ id, me, pad, onBack }: { id: string; me: string; pad: str
           {t("Enviar")}
         </button>
       </div>
+      )}
     </section>
   );
 }

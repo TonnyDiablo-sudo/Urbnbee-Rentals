@@ -112,8 +112,11 @@ function decodeCart(raw: unknown): CartLine[] {
   })) ?? [];
 }
 
-export type CartLineResult = { code: MembershipPlanCode; ok: boolean; error?: string };
-export type CartResult = { ok: boolean; userId?: string; lines: CartLineResult[]; error?: string };
+export type CartLineResult = { code: MembershipPlanCode; ok: boolean; error?: string; trial?: boolean };
+export type CartResult = { ok: boolean; userId?: string; lines: CartLineResult[]; error?: string; trial?: boolean };
+
+/** Metadata de la sesión de Checkout cuando sólo se guarda la tarjeta para una prueba gratis. */
+export const STORE_TRIAL_META_KEY = "trialDays";
 
 function declineMessage(e: unknown): string {
   const code = (e as { code?: string; decline_code?: string })?.code;
@@ -133,12 +136,14 @@ async function chargeLine(
   userId: string,
   region: VerificationRegion,
   customer: string,
-  paymentMethod: string
+  paymentMethod: string,
+  /** Días de prueba gratis: la suscripción nace sin cobro y se cobra al terminar. */
+  trialDays = 0
 ): Promise<CartLineResult> {
   const { code, quantity } = line;
   const key = `cart_${session.id}_${code}`;
   if (catalogPurchaseProblem({ id: userId, role: "admin" }, code, region)?.status === 409) {
-    return { code, ok: true };
+    return { code, ok: true, ...(trialDays > 0 ? { trial: true } : {}) };
   }
   const pieces = await buildMembershipCheckout(stripe, code, region, userId, quantity);
   if ("error" in pieces) return { code, ok: false, error: "Este producto ya no está disponible." };
@@ -186,11 +191,18 @@ async function chargeLine(
         metadata: pieces.subscriptionMetadata,
         payment_behavior: "error_if_incomplete",
         off_session: true,
+        ...(trialDays > 0
+          ? {
+              trial_period_days: trialDays,
+              // Ya hay tarjeta guardada; si algún día faltara, que se cancele y no quede colgada.
+              trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
+            }
+          : {}),
       },
       { idempotencyKey: key }
     );
     await syncFromSubscription(sub, userId);
-    return { code, ok: true };
+    return { code, ok: true, ...(trialDays > 0 ? { trial: true } : {}) };
   } catch (e) {
     console.warn("[store cart] cobro", { session: session.id, code, err: e instanceof Error ? e.message : String(e) });
     return { code, ok: false, error: declineMessage(e) };
@@ -216,11 +228,12 @@ async function runFulfill(stripe: Stripe, sessionId: string): Promise<CartResult
     .update(customer, { invoice_settings: { default_payment_method: paymentMethod } })
     .catch((e) => console.warn("[store cart] tarjeta predeterminada", e instanceof Error ? e.message : e));
 
+  const trialDays = Math.max(0, Math.floor(Number(session.metadata?.[STORE_TRIAL_META_KEY] ?? 0)) || 0);
   const lines: CartLineResult[] = [];
   for (const line of decodeCart(session.metadata?.cart)) {
-    lines.push(await chargeLine(stripe, session, line, userId, region, customer, paymentMethod));
+    lines.push(await chargeLine(stripe, session, line, userId, region, customer, paymentMethod, trialDays));
   }
-  return { ok: lines.length > 0 && lines.every((l) => l.ok), userId, lines };
+  return { ok: lines.length > 0 && lines.every((l) => l.ok), userId, lines, ...(trialDays > 0 ? { trial: true } : {}) };
 }
 
 const inflight = new Map<string, Promise<CartResult>>();

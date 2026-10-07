@@ -6,6 +6,7 @@ import { CleaningCalendar } from "@/components/host/cleaning-calendar";
 import { CleaningTaskCard, type CleaningTaskItem } from "@/components/host/cleaning-task-card";
 import { AttendanceHistory } from "@/components/host/attendance-history";
 import { SuppliesPanel } from "@/components/host/supplies-panel";
+import { ToolPreviewNotice } from "@/components/host/tool-preview-notice";
 
 type Settings = {
   assignMode: "auto" | "manual";
@@ -16,7 +17,10 @@ type Settings = {
 };
 
 type View = {
+  /** En marcha (pagada o en prueba). false = vista previa: se configura, no trabaja. */
   active: boolean;
+  trialEndsAt?: string;
+  trialUsed?: boolean;
   capacity: number;
   used: number;
   settings: Settings;
@@ -125,21 +129,6 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
   }
 
   if (!data) return null;
-
-  if (!data.active) {
-    return (
-      <section className={`${card} p-6 text-center`}>
-        <p className="text-3xl">🧹</p>
-        <h2 className="mt-2 text-lg font-semibold text-[#222]">{t("Herramienta de limpieza")}</h2>
-        <p className="mx-auto mt-1 max-w-md text-sm text-[#717171]">
-          {t("Cada reserva confirmada crea su limpieza para el día de salida, la asignas a tu equipo y les llegan recordatorios. Se paga por anuncio.")}
-        </p>
-        <a href={storeHref} className="mt-4 inline-block rounded-xl bg-[#222] px-5 py-2.5 text-sm font-semibold text-white">
-          {t("Activar en la Tienda")}
-        </a>
-      </section>
-    );
-  }
 
   const settings = data.settings;
   const pending = data.tasks.filter((x) => x.status === "pending");
@@ -259,6 +248,9 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
 
   return (
     <div className="space-y-5">
+      {(!data.active || data.trialEndsAt) && (
+        <ToolPreviewNotice tool="cleaning" storeHref={storeHref} trialUsed={data.trialUsed} trialEndsAt={data.active ? data.trialEndsAt : undefined} />
+      )}
       <nav className="sticky top-0 z-10 -mx-1 flex gap-1 overflow-x-auto bg-white/95 px-1 py-2 backdrop-blur" aria-label={t("Secciones de limpieza")}>
         {TABS.map((x) => {
           const badge = x.id === "calendario" ? toApprove.length + unconfirmed.length + unassigned.length : 0;
@@ -644,13 +636,21 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
 
           <section className={card}>
             <h2 className="text-lg font-semibold text-[#222]">{t("Anuncios en la herramienta")}</h2>
-            <p className="mt-1 text-sm text-[#717171]">
-              {t("Usas {used} de {cap} anuncios pagados.", { used: data.used, cap: data.capacity })}{" "}
-              <a href={storeHref} className="font-semibold text-[#222] underline">
-                {t("Agregar más en la Tienda")}
-              </a>
-            </p>
-            <p className="mt-1 text-xs text-[#888]">{t("Cada lugar pagado se queda con el anuncio que elijas; no se puede pasar a otro.")}</p>
+            {data.active ? (
+              <>
+                <p className="mt-1 text-sm text-[#717171]">
+                  {t("Usas {used} de {cap} anuncios pagados.", { used: data.used, cap: data.capacity })}{" "}
+                  <a href={storeHref} className="font-semibold text-[#222] underline">
+                    {t("Agregar más en la Tienda")}
+                  </a>
+                </p>
+                <p className="mt-1 text-xs text-[#888]">{t("Cada lugar pagado se queda con el anuncio que elijas; no se puede pasar a otro.")}</p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-[#717171]">
+                {t("Marca los anuncios que entrarán a la herramienta. Al activarla se paga por anuncio y cada lugar se queda con el anuncio que elijas.")}
+              </p>
+            )}
             <ul className="mt-3 divide-y divide-[#f0f0f0]">
               {data.listings.map((l) => (
                 <li key={l.id} className="py-3">
@@ -659,10 +659,10 @@ export function CleaningPanel({ storeHref = "/tienda", teamHref = "/host/colabor
                       type="checkbox"
                       className="h-5 w-5 accent-[#dcb81e]"
                       checked={l.on}
-                      disabled={busy || (!l.bound && data.used >= data.capacity)}
+                      disabled={busy || (data.active && !l.bound && data.used >= data.capacity)}
                       onChange={(e) => {
                         const on = e.target.checked;
-                        if (on && !l.bound && !confirm(t("El lugar se queda con «{title}» y ya no se puede pasar a otro anuncio. ¿Continuar?", { title: l.title }))) return;
+                        if (on && data.active && !l.bound && !confirm(t("El lugar se queda con «{title}» y ya no se puede pasar a otro anuncio. ¿Continuar?", { title: l.title }))) return;
                         void send("/api/host/cleaning", "PATCH", { listingId: l.id, on });
                       }}
                     />

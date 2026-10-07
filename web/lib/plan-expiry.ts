@@ -1,6 +1,7 @@
 import "server-only";
 import { syncHostBadgeToListings } from "@/lib/host-verification";
 import { listAllHostEntitlements, upsertHostEntitlement } from "@/lib/host-entitlements-store";
+import { rollSimulatedTrial } from "@/lib/store-trial";
 import { listAllVerifications, setVerificationSubscriptionFields } from "@/lib/verification-store";
 
 /**
@@ -12,6 +13,8 @@ export function expireCancelledPlans(now = Date.now()): number {
   let closed = 0;
   const hosts = new Set<string>();
   for (const row of listAllHostEntitlements()) {
+    // Pruebas gratis simuladas: al terminar empieza el periodo pagado (con Stripe lo hace el webhook).
+    if (rollSimulatedTrial(row, now)) continue;
     if (!row.cancelAtPeriodEnd || row.status === "cancelled" || !row.currentPeriodEnd) continue;
     const end = Date.parse(row.currentPeriodEnd);
     if (!Number.isFinite(end) || end > now) continue;

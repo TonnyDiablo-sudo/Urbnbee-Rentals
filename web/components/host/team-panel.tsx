@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { TeamChat } from "@/components/team/team-chat";
+import { ToolPreviewNotice } from "@/components/host/tool-preview-notice";
 
 type Role = "cleaning" | "bookings" | "contracts" | "messages";
 const ROLES: { id: Role; label: string; hint: string }[] = [
@@ -29,8 +30,13 @@ type Member = {
 
 type View = {
   members: Member[];
-  seats: { paid: number; used: number };
+  seats: { paid: number; used: number; previewMax: number };
+  /** Sin herramienta pagada ni en prueba: se configura todo, pero el equipo no tiene acceso todavía. */
+  preview: boolean;
+  trialEndsAt?: string;
+  trialUsed: boolean;
   cleaningTool: boolean;
+  teamChatLive: boolean;
   listings: { id: string; title: string }[];
 };
 
@@ -151,30 +157,37 @@ export function TeamPanel({ storeHref = "/tienda" }: { storeHref?: string }) {
   }
 
   if (!data) return null;
-  const { seats } = data;
-  const seatsLeft = Math.max(0, seats.paid - seats.used);
+  const { seats, preview } = data;
+  const seatCap = preview ? seats.previewMax : seats.paid;
+  const seatsLeft = Math.max(0, seatCap - seats.used);
   const draftNeedsSeat = draft.roles.some((r) => r !== "cleaning");
-  const draftNeedsCleaning = draft.roles.includes("cleaning") && !data.cleaningTool;
-  const blocked = (draftNeedsSeat && seatsLeft === 0) || draftNeedsCleaning || draft.roles.length === 0;
+  const blocked = (draftNeedsSeat && seatsLeft === 0) || draft.roles.length === 0;
   const seatHref = `${storeHref}#p-collaborator_seat`;
   const cleaningHref = `${storeHref}#p-cleaning_tool`;
 
   return (
     <div className="space-y-6">
+      {(preview || data.trialEndsAt) && (
+        <ToolPreviewNotice tool="collaborators" storeHref={storeHref} trialUsed={data.trialUsed} trialEndsAt={preview ? undefined : data.trialEndsAt} />
+      )}
       <section className="rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[#222]">{t("Tu equipo")}</h2>
         <p className="mt-1 text-sm text-[#717171]">
-          {seats.paid === 0
-            ? t("Para que alguien acepte reservas o conteste mensajes necesitas asientos de colaborador.")
+          {preview
+            ? t("Vista previa: puedes agregar hasta {max} colaboradores y dejarles sus roles listos. Tendrán acceso cuando actives la herramienta.", {
+                max: seats.previewMax,
+              })
             : t("Usas {used} de {paid} asientos de colaborador.", { used: seats.used, paid: seats.paid })}{" "}
-          {!data.cleaningTool && t("El rol de limpieza viene con la herramienta de limpieza.")}
+          {!data.cleaningTool && t("El rol de limpieza trabaja cuando la herramienta de limpieza esté en marcha.")}
         </p>
-        <a
-          href={seatHref}
-          className="mt-3 inline-block rounded-xl border border-[#222] px-4 py-2 text-sm font-semibold text-[#222]"
-        >
-          {seats.paid === 0 ? t("Comprar asiento de colaborador") : t("Comprar más asientos")}
-        </a>
+        {!preview && (
+          <a
+            href={seatHref}
+            className="mt-3 inline-block rounded-xl border border-[#222] px-4 py-2 text-sm font-semibold text-[#222]"
+          >
+            {t("Comprar más asientos")}
+          </a>
+        )}
         {editing && err && (
           <p className="mt-2 text-sm text-red-700">
             {t(err)}{" "}
@@ -206,9 +219,13 @@ export function TeamPanel({ storeHref = "/tienda" }: { storeHref?: string }) {
                       <p className="text-xs text-[#888]">{m.listingTitles.map((x) => t(x)).join(", ")}</p>
                       {off.length > 0 && (
                         <p className="mt-1 text-xs text-amber-700">
-                          {t("Sin acceso ahora a: {roles}. Revisa tus asientos o la herramienta de limpieza.", {
-                            roles: off.map((r) => t(ROLES.find((x) => x.id === r)!.label)).join(", "),
-                          })}
+                          {preview
+                            ? t("Vista previa: tendrá acceso a {roles} cuando actives la herramienta.", {
+                                roles: off.map((r) => t(ROLES.find((x) => x.id === r)!.label)).join(", "),
+                              })
+                            : t("Sin acceso ahora a: {roles}. Revisa tus asientos o la herramienta de limpieza.", {
+                                roles: off.map((r) => t(ROLES.find((x) => x.id === r)!.label)).join(", "),
+                              })}
                         </p>
                       )}
                     </div>
@@ -284,26 +301,28 @@ export function TeamPanel({ storeHref = "/tienda" }: { storeHref?: string }) {
         {draftNeedsSeat && seatsLeft === 0 && (
           <div className="mt-4 rounded-xl bg-[#fdf6d8] p-4 text-sm text-[#5c4a0a]">
             <p>
-              {seats.paid === 0
-                ? t("Para invitar a alguien que acepte reservas, firme contratos o conteste mensajes necesitas un asiento de colaborador pagado.")
+              {preview
+                ? t("En la vista previa puedes agregar hasta {max} colaboradores. Para más, activa la herramienta de colaboradores.", { max: seats.previewMax })
                 : t("Ya usas todos tus asientos de colaborador ({paid}). Compra otro o quita a alguien del equipo.", { paid: seats.paid })}
             </p>
             <a href={seatHref} className="mt-3 inline-block rounded-xl bg-[#222] px-4 py-2 font-semibold text-white">
-              {seats.paid === 0 ? t("Comprar asiento de colaborador") : t("Comprar más asientos")}
+              {preview ? t("Activar en la Tienda") : t("Comprar más asientos")}
             </a>
           </div>
         )}
-        {draftNeedsCleaning && (
-          <div className="mt-4 rounded-xl bg-[#fdf6d8] p-4 text-sm text-[#5c4a0a]">
-            <p>{t("El rol de limpieza necesita la herramienta de limpieza.")}</p>
-            <a href={cleaningHref} className="mt-3 inline-block rounded-xl bg-[#222] px-4 py-2 font-semibold text-white">
-              {t("Comprar herramienta de limpieza")}
+        {draft.roles.includes("cleaning") && !data.cleaningTool && (
+          <p className="mt-3 text-xs text-[#717171]">
+            {t("El rol de limpieza queda guardado y trabaja cuando la herramienta de limpieza esté en marcha.")}{" "}
+            <a href={cleaningHref} className="font-semibold text-[#222] underline">
+              {t("Ver en la Tienda")}
             </a>
-          </div>
+          </p>
         )}
         {draftNeedsSeat && seatsLeft > 0 && (
           <p className="mt-3 text-xs text-[#717171]">
-            {t(seatsLeft === 1 ? "Te queda {n} asiento de colaborador." : "Te quedan {n} asientos de colaborador.", { n: seatsLeft })}
+            {preview
+              ? t(seatsLeft === 1 ? "Puedes agregar {n} colaborador más en la vista previa." : "Puedes agregar {n} colaboradores más en la vista previa.", { n: seatsLeft })
+              : t(seatsLeft === 1 ? "Te queda {n} asiento de colaborador." : "Te quedan {n} asientos de colaborador.", { n: seatsLeft })}
           </p>
         )}
         {!editing && err && <p className="mt-3 text-sm text-red-700">{t(err)}</p>}
@@ -317,7 +336,7 @@ export function TeamPanel({ storeHref = "/tienda" }: { storeHref?: string }) {
         </button>
       </form>
 
-      <TeamChat />
+      <TeamChat storeHref={storeHref} />
     </div>
   );
 }

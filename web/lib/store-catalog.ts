@@ -9,6 +9,9 @@ import {
   type MembershipPlanFamily,
 } from "@/lib/membership-plans-types";
 import type { UserRecord } from "@/lib/marketplace-types";
+import { hostEntitlementInTrial } from "@/lib/host-entitlement-types";
+import { trialEligible, trialMaxQuantity } from "@/lib/store-trial";
+import { TRIAL_DAYS } from "@/lib/tool-trial";
 import { getVerification } from "@/lib/verification-store";
 import type { VerificationRegion } from "@/lib/verification-types";
 
@@ -59,15 +62,17 @@ const DETAILS: Record<MembershipPlanFamily, string[]> = {
     "Puedes pedir foto al terminar; quien limpia deja notas y te escribe por el chat.",
     "Insumos: anota lo que usas (papel de baño, jabones, lo que quieras), cuántos hay y un mínimo. Al llegar al mínimo se le avisa a quien tú elijas para que compre.",
     "Próximamente incluido: entrada y salida con ubicación. Quien limpia marca su llegada y salida desde el lugar, y ves el historial de cada persona por día.",
+    "Pruébala 30 días gratis. Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.",
   ],
   collaborator_seat: [
     "Se paga por colaborador.",
     "La persona entra con su propia cuenta de Cabibee; tú la invitas por correo.",
     "Tú eliges sus roles: aceptar y verificar reservas, firmar contratos en tu nombre, contestar mensajes de tus huéspedes.",
     "Puede ser parte de tu equipo de limpieza: recibe sus limpiezas, manda fotos de que ya quedó limpio y deja notas.",
-    "Chats de equipo gratis: con colaboradores puedes crear los chats que quieras (cuentas, limpiezas, insumos…) y guardar ahí fotos, audios y archivos.",
+    "Chats de equipo incluidos: crea los chats que quieras con tu gente (cuentas, limpiezas, insumos…) y guarda ahí fotos, audios y archivos.",
     "Tú eliges a qué anuncios tiene acceso.",
     "Le quitas el acceso cuando quieras desde tu panel de colaboradores.",
+    "Pruébala 30 días gratis (hasta 5 colaboradores). Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.",
   ],
   address_proof: [
     "Ya viene incluida en el motor de reservas; este plan aparte es de antes y cubre anuncios sin motor.",
@@ -112,7 +117,11 @@ export type StoreItem = {
     code?: string;
     /** Es una suscripción que se renueva sola y se puede cancelar. */
     renews?: boolean;
+    /** En prueba gratis hasta esta fecha; ese día se cobra el plan por primera vez. */
+    trialEndsAt?: string;
   };
+  /** Puede empezar la prueba gratis (sólo una por herramienta). */
+  trial?: { days: number; maxQuantity?: number };
 };
 
 const FAMILY_ORDER: MembershipPlanFamily[] = [
@@ -142,6 +151,7 @@ function ownedFor(user: UserRecord, family: MembershipPlanFamily, anyCode: Membe
       cancelAtPeriodEnd: row.cancelAtPeriodEnd === true,
       code: row.planCode,
       renews: Boolean(row.stripeSubscriptionId) && row.source === "cabibee_direct",
+      ...(hostEntitlementInTrial(row) ? { trialEndsAt: row.trialEndsAt } : {}),
     };
   }
   const v = getVerification(user.id);
@@ -194,6 +204,9 @@ export function storeItemsFor(user: UserRecord, region: VerificationRegion): Sto
       unit: MEMBERSHIP_FAMILY_UNIT[family],
       terms: [term],
       owned: ownedFor(user, family, p.code),
+      ...(trialEligible(user, p.code)
+        ? { trial: { days: TRIAL_DAYS, ...(trialMaxQuantity(p.code) ? { maxQuantity: trialMaxQuantity(p.code) } : {}) } }
+        : {}),
     });
   }
   for (const item of byFamily.values()) item.terms.sort((a, b) => a.months - b.months);

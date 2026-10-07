@@ -36,8 +36,19 @@ export type HostEntitlementRecord = {
   cancelAtPeriodEnd?: boolean;
   /** Cuándo pasó a activa por última vez (para contar suscripciones nuevas). */
   startedAt?: string;
+  /** En prueba gratis: hasta cuándo. Ese día se cobra el plan y se renueva solo. */
+  trialEndsAt?: string;
+  /** Ya usó su prueba gratis de esta herramienta (se queda aunque cancele): sólo hay una. */
+  trialUsedAt?: string;
   updatedAt: string;
 };
+
+/** Sigue en su prueba gratis (todavía no se cobra). */
+export function hostEntitlementInTrial(row: Pick<HostEntitlementRecord, "status" | "trialEndsAt"> | undefined, now = Date.now()): boolean {
+  if (!row || row.status === "cancelled" || !row.trialEndsAt) return false;
+  const t = Date.parse(row.trialEndsAt);
+  return Number.isFinite(t) && t > now;
+}
 
 export function isHostSku(v: string): v is HostSku {
   return (HOST_SKUS as readonly string[]).includes(v);

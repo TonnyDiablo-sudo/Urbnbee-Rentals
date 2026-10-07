@@ -17,7 +17,18 @@ type Item = {
   audience: "guest" | "host";
   unit?: "listing" | "seat";
   terms: Term[];
-  owned?: { status: string; quantity?: number; until?: string; cancelAtPeriodEnd?: boolean; renews?: boolean; code?: string };
+  owned?: {
+    status: string;
+    quantity?: number;
+    until?: string;
+    cancelAtPeriodEnd?: boolean;
+    renews?: boolean;
+    code?: string;
+    /** En prueba gratis hasta esta fecha; ese día se cobra por primera vez. */
+    trialEndsAt?: string;
+  };
+  /** Puede empezar la prueba gratis (una sola por herramienta). */
+  trial?: { days: number; maxQuantity?: number };
   demand?: { occupancy: number; multiplier: number; soldOut: boolean; slotsLeft: number };
 };
 
@@ -45,7 +56,13 @@ type Data = {
 type Ribbon = { on: boolean; text: string };
 
 type CartEntry = { family: string; code: string; quantity: number };
-type CartResult = { ok: boolean; lines: { code: string; ok: boolean; error?: string }[]; error?: string };
+type CartResult = { ok: boolean; lines: { code: string; ok: boolean; error?: string; trial?: boolean }[]; error?: string; trial?: boolean };
+
+function addDays(d: Date, days: number): Date {
+  const out = new Date(d);
+  out.setDate(out.getDate() + days);
+  return out;
+}
 
 const CART_KEY = "cb_store_cart";
 
@@ -100,6 +117,10 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [cart, setCartState] = useState<CartEntry[]>(readCart);
   const [cartOpen, setCartOpen] = useState(false);
+  /** Diálogo de prueba gratis abierto para esta familia. */
+  const [trialFor, setTrialFor] = useState<string | null>(null);
+  /** Tarjeta en modo «cambiar plazo» para esta familia. */
+  const [changing, setChanging] = useState<string | null>(null);
   const returnHandled = useRef(false);
 
   const setCart = useCallback((update: (prev: CartEntry[]) => CartEntry[]) => {
@@ -165,15 +186,18 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
       const failed = lines.filter((l) => !l.ok);
       setMsg(
         failed.length === 0
-          ? { ok: true, text: "Listo, tu compra quedó activa." }
+          ? j.trial
+            ? { ok: true, text: "Tu prueba gratis ya empezó: la herramienta está en marcha. Hoy no se cobró nada." }
+            : { ok: true, text: "Listo, tu compra quedó activa." }
           : { ok: false, text: failed[0].error ?? "No se pudo cobrar este producto." }
       );
       void load();
     }, 0);
   }, [setCart, load]);
 
+  /** El plazo que se muestra: el elegido en la tarjeta o, si ya lo tiene, el que paga. */
   const chosenTerm = (item: Item) =>
-    item.terms.find((x) => x.code === (item.owned?.code ?? term[item.family])) ?? item.terms[0];
+    item.terms.find((x) => x.code === (term[item.family] ?? item.owned?.code)) ?? item.terms[0];
 
   /** Lo del carrito que todavía se puede comprar (los precios y lo que ya tienes vienen del servidor). */
   const cartLines = (data?.items ?? []).flatMap((item) => {
@@ -244,11 +268,72 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
     void load();
   }
 
+  async function startTrial(item: Item) {
+    if (!data?.billingCountry || !data.emailVerified || !data.hasPhone) return;
+    const plan = chosenTerm(item);
+    const quantity = item.unit ? Math.min(item.trial?.maxQuantity ?? 200, qty[item.family] ?? 1) : 1;
+    setBusy("trial");
+    setMsg(null);
+    const res = await fetch("/api/store/trial", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: plan.code, quantity, region: data.region, returnPath }),
+    }).catch(() => null);
+    const j = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok) {
+      setBusy(null);
+      if (j.code === "email_unverified" || j.code === "email_placeholder" || j.code === "country_required") {
+        void load();
+        return;
+      }
+      setTrialFor(null);
+      return setMsg({ ok: false, text: typeof j.error === "string" ? j.error : "No se pudo iniciar la prueba gratis." });
+    }
+    if (typeof j.checkoutUrl === "string") return window.location.assign(j.checkoutUrl);
+    setBusy(null);
+    setTrialFor(null);
+    setMsg({ ok: true, text: "Tu prueba gratis ya empezó: la herramienta está en marcha. Hoy no se cobró nada." });
+    void load();
+  }
+
+  async function changePlan(item: Item) {
+    const plan = chosenTerm(item);
+    setBusy(item.family);
+    setMsg(null);
+    const res = await fetch("/api/store/plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: plan.code }),
+    }).catch(() => null);
+    const j = res ? await res.json().catch(() => ({})) : {};
+    setBusy(null);
+    if (!res?.ok) return setMsg({ ok: false, text: typeof j.error === "string" ? j.error : "No se pudo cambiar el plan." });
+    setChanging(null);
+    setTerm((p) => {
+      const next = { ...p };
+      delete next[item.family];
+      return next;
+    });
+    setMsg({
+      ok: true,
+      text:
+        typeof j.effectiveAt === "string"
+          ? j.inTrial
+            ? t("Listo. Al terminar tu prueba el {d} se cobra el plan de {n} meses.", { d: day(j.effectiveAt), n: plan.months })
+            : t("Listo. Tu plan actual sigue hasta el {d}; ese día se renueva con el plan de {n} meses.", { d: day(j.effectiveAt), n: plan.months })
+          : "Listo, tu plan cambió.",
+    });
+    void load();
+  }
+
   async function setRenewal(item: Item, resume: boolean) {
+    const inTrial = Boolean(item.owned?.trialEndsAt);
     if (
       !resume &&
       !window.confirm(
-        t("¿Cancelar la renovación? Lo que ya pagaste no se devuelve: sigues usando el plan hasta el fin del período y ese día termina.")
+        inTrial
+          ? t("¿Cancelar la prueba gratis? La herramienta se apaga hoy mismo y no se te cobra nada.")
+          : t("¿Cancelar la renovación? Lo que ya pagaste no se devuelve: sigues usando el plan hasta el fin del período y ese día termina.")
       )
     ) {
       return;
@@ -265,13 +350,24 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
     if (!res?.ok) return setMsg({ ok: false, text: typeof j.error === "string" ? j.error : "No se pudo cambiar la renovación." });
     setMsg({
       ok: true,
-      text: resume ? "Listo, tu plan se volverá a renovar solo." : "Listo, tu plan ya no se renovará. Sigue activo hasta el fin del período.",
+      text: resume
+        ? "Listo, tu plan se volverá a renovar solo."
+        : j.immediate
+          ? "Listo, tu prueba gratis terminó. No se te cobró nada."
+          : "Listo, tu plan ya no se renovará. Sigue activo hasta el fin del período.",
     });
     void load();
   }
 
   if (err) return <p className="px-5 py-8 text-sm text-red-700">{t(err)}</p>;
   if (!data) return <p className="px-5 py-8 text-sm text-[#999]">{t("Cargando…")}</p>;
+
+  const trialItem = trialFor ? (data.items.find((i) => i.family === trialFor && i.trial && !i.owned) ?? null) : null;
+  const trialPlan: Term = trialItem ? chosenTerm(trialItem) : { code: "", months: 1, amount: 0, perMonth: 0 };
+  const trialMax = trialItem?.trial?.maxQuantity ?? 200;
+  const trialQty = trialItem?.unit ? Math.min(trialMax, qty[trialItem.family] ?? 1) : 1;
+  const trialTotal = trialItem ? trialPlan.amount * trialQty : 0;
+  const trialEnd = addDays(new Date(), trialItem?.trial?.days ?? 30);
 
   const accountItems = data.items.filter((i) => i.family === "guest_membership");
   const guestItems = data.items.filter((i) => i.audience === "guest" && i.family !== "guest_membership");
@@ -289,6 +385,8 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
     const inCart = owned ? undefined : cart.find((c) => c.family === item.family);
     const plan = owned || term[item.family] || !inCart ? chosenTerm(item) : (item.terms.find((x) => x.code === inCart.code) ?? chosenTerm(item));
     const q = qty[item.family] ?? item.owned?.quantity ?? inCart?.quantity ?? 1;
+    /** El plazo que de verdad paga hoy (aunque esté eligiendo otro). */
+    const ownedPlan = item.terms.find((x) => x.code === owned?.code) ?? plan;
     const monthly = item.terms.find((x) => x.months === 1);
     const demand = item.demand;
     const maxQty = demand ? (owned?.quantity ?? 0) + demand.slotsLeft : 200;
@@ -322,7 +420,7 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
           )}
         </div>
 
-        {!owned && item.terms.length > 1 && (
+        {(!owned || changing === item.family) && item.terms.length > 1 && (
           <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={t("Plazo")}>
             {item.terms.map((x) => {
               const save = monthly && x.months > 1 ? Math.round((1 - x.perMonth / monthly.perMonth) * 100) : 0;
@@ -418,7 +516,16 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
               </button>
             </div>
           )}
-          {owned && item.unit && owned.quantity !== undefined ? (
+          {owned && changing === item.family && owned.code && plan.code !== owned.code ? (
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => void changePlan(item)}
+              className="rounded-xl bg-[#222] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              {busy === item.family ? t("Guardando…") : t("Cambiar al plan de {n} meses", { n: plan.months })}
+            </button>
+          ) : owned && item.unit && owned.quantity !== undefined ? (
             <button
               type="button"
               disabled={busy !== null || q === owned.quantity}
@@ -450,23 +557,69 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
               {inCart ? t("Actualizar carrito") : t("Agregar al carrito")}
             </button>
           )}
+          {!owned && !soldOut && item.trial && (
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => {
+                setMsg(null);
+                setTrialFor(item.family);
+              }}
+              className="rounded-xl border border-[#222] px-5 py-2.5 text-sm font-semibold text-[#222] disabled:opacity-40"
+            >
+              {t("Probar {n} días gratis", { n: item.trial.days })}
+            </button>
+          )}
         </div>
+        {!owned && !soldOut && item.trial && (
+          <p className="mt-2 text-xs text-[#888]">
+            {t("La prueba pide tarjeta, pero no se cobra nada hasta que termina. Cancela cuando quieras.")}
+          </p>
+        )}
 
         {owned && owned.status !== "cancelled" && item.family !== "guest_pass" && (
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#f0f0f0] pt-3 text-sm">
             <span className={owned.cancelAtPeriodEnd ? "text-[#b45309]" : "text-[#717171]"}>
-              {owned.until
-                ? owned.cancelAtPeriodEnd
-                  ? t("Se cancela el {d}", { d: day(owned.until) })
-                  : owned.renews
-                    ? t("Se renueva solo el {d}", { d: day(owned.until) })
-                    : t("Activo hasta el {d}", { d: day(owned.until) })
-                : t("Activo")}
+              {owned.trialEndsAt && !owned.cancelAtPeriodEnd
+                ? ownedPlan.months === 1
+                  ? t("Prueba gratis hasta el {d}. Ese día se cobran {total} y después cada mes.", {
+                      d: day(owned.trialEndsAt),
+                      total: money(ownedPlan.amount * (item.unit ? (owned.quantity ?? 1) : 1), item.currency),
+                    })
+                  : t("Prueba gratis hasta el {d}. Ese día se cobran {total} y después cada {n} meses.", {
+                      d: day(owned.trialEndsAt),
+                      total: money(ownedPlan.amount * (item.unit ? (owned.quantity ?? 1) : 1), item.currency),
+                      n: ownedPlan.months,
+                    })
+                : owned.until
+                  ? owned.cancelAtPeriodEnd
+                    ? t("Se cancela el {d}", { d: day(owned.until) })
+                    : owned.renews
+                      ? t("Se renueva solo el {d}", { d: day(owned.until) })
+                      : t("Activo hasta el {d}", { d: day(owned.until) })
+                  : t("Activo")}
             </span>
             {MANAGE[item.family] && (
               <Link href={MANAGE[item.family][surface]} className="font-semibold text-[#222] underline">
                 {t("Administrar")}
               </Link>
+            )}
+            {owned.renews && !owned.cancelAtPeriodEnd && owned.code && item.terms.length > 1 && (
+              <button
+                type="button"
+                disabled={busy !== null}
+                onClick={() => {
+                  setChanging(changing === item.family ? null : item.family);
+                  setTerm((p) => {
+                    const next = { ...p };
+                    delete next[item.family];
+                    return next;
+                  });
+                }}
+                className="font-semibold text-[#222] underline disabled:opacity-40"
+              >
+                {changing === item.family ? t("Dejar el plazo actual") : t("Cambiar plazo")}
+              </button>
             )}
             {owned.renews && (
               <button
@@ -475,8 +628,15 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
                 onClick={() => void setRenewal(item, owned.cancelAtPeriodEnd === true)}
                 className="font-semibold text-[#222] underline disabled:opacity-40"
               >
-                {owned.cancelAtPeriodEnd ? t("Seguir con el plan") : t("Cancelar renovación")}
+                {owned.cancelAtPeriodEnd ? t("Seguir con el plan") : owned.trialEndsAt ? t("Cancelar prueba") : t("Cancelar renovación")}
               </button>
+            )}
+            {changing === item.family && (
+              <p className="basis-full text-xs text-[#888]">
+                {owned.trialEndsAt
+                  ? t("Elige arriba el plazo nuevo: no se cobra nada hoy; al terminar la prueba se cobra ese plan.")
+                  : t("Elige arriba el plazo nuevo: lo pagado sigue igual hasta el fin del periodo y en la renovación se cobra el plan nuevo.")}
+              </p>
             )}
           </div>
         )}
@@ -576,6 +736,128 @@ export function StoreView({ surface }: { surface: "web" | "app" }) {
             </button>
           </div>
         </>
+      )}
+
+      {trialItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("Prueba gratis de {n} días", { n: trialItem.trial?.days ?? 30 })}
+        >
+          <button type="button" aria-label={t("Cerrar")} className="absolute inset-0 cursor-default" onClick={() => setTrialFor(null)} />
+          <div
+            className="relative max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
+            style={{ paddingBottom: "calc(20px + env(safe-area-inset-bottom))" }}
+          >
+            <div className="mb-1 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-[#222]">{t("Prueba gratis de {n} días", { n: trialItem.trial?.days ?? 30 })}</h2>
+              <button type="button" onClick={() => setTrialFor(null)} aria-label={t("Cerrar")} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-[#222] hover:bg-[#f2f2f2]">
+                ×
+              </button>
+            </div>
+            <p className="text-[15px] font-semibold text-[#222]">{t(trialItem.label)}</p>
+            <p className="mt-1 text-sm text-[#717171]">
+              {t("Hoy no pagas nada. Dejas tu tarjeta y la herramienta queda en marcha desde hoy, con todo funcionando.")}
+            </p>
+
+            {trialItem.unit && (
+              <div className="mt-4">
+                <p className="text-sm font-semibold text-[#222]">
+                  {trialItem.unit === "seat"
+                    ? t("¿Cuántos colaboradores? (hasta {max})", { max: trialMax })
+                    : t("¿En cuántos anuncios?")}
+                </p>
+                <div className="mt-2 inline-flex items-center rounded-xl border border-[#ccc]">
+                  <button
+                    type="button"
+                    aria-label={t("Menos")}
+                    disabled={trialQty <= 1}
+                    onClick={() => setQty((p) => ({ ...p, [trialItem.family]: Math.max(1, trialQty - 1) }))}
+                    className="h-10 w-10 text-lg disabled:opacity-30"
+                  >
+                    −
+                  </button>
+                  <span className="min-w-8 text-center text-[15px] font-semibold">{trialQty}</span>
+                  <button
+                    type="button"
+                    aria-label={t("Más")}
+                    disabled={trialQty >= trialMax}
+                    onClick={() => setQty((p) => ({ ...p, [trialItem.family]: Math.min(trialMax, trialQty + 1) }))}
+                    className="h-10 w-10 text-lg disabled:opacity-30"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {trialItem.terms.length > 1 && (
+              <div className="mt-4">
+                <p className="text-sm font-semibold text-[#222]">{t("¿Con qué plan quieres que se renueve al terminar la prueba?")}</p>
+                <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={t("Plazo")}>
+                  {trialItem.terms.map((x) => {
+                    const on = x.code === trialPlan.code;
+                    return (
+                      <button
+                        key={x.code}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => setTerm((p) => ({ ...p, [trialItem.family]: x.code }))}
+                        className={`rounded-xl border px-3 py-1.5 text-sm ${on ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] bg-white text-[#222]"}`}
+                      >
+                        {x.months === 1 ? t("1 mes") : t("{n} meses", { n: x.months })}
+                        <span className={`block text-xs ${on ? "text-[#ddd]" : "text-[#717171]"}`}>
+                          {t("{price} al mes", { price: money(x.perMonth, trialItem.currency) })}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 rounded-2xl bg-[#fdf6d8] p-4 text-sm text-[#5c4a0a]">
+              <p className="font-semibold">{t("Tu prueba termina el {d}.", { d: day(trialEnd.toISOString()) })}</p>
+              <p className="mt-1">
+                {trialPlan.months === 1
+                  ? t("Ese día se cobran {total} y el plan se renueva solo cada mes.", { total: money(trialTotal, trialItem.currency) })
+                  : t("Ese día se cobran {total} y el plan se renueva solo cada {n} meses.", { total: money(trialTotal, trialItem.currency), n: trialPlan.months })}
+              </p>
+              <p className="mt-2">
+                {t("Puedes cancelar cuando quieras desde la Tienda. Si cancelas antes del {d}, no se cobra nada y la herramienta se apaga ese momento. Si cancelas después, sigues usándola hasta el fin de lo ya pagado (no hay reembolso) y ya no se renueva.", {
+                  d: day(trialEnd.toISOString()),
+                })}
+              </p>
+              <p className="mt-2">{t("Si cambias de plazo antes de la renovación, en la renovación se cobra el plazo nuevo.")}</p>
+            </div>
+
+            {!data.billingCountry && (
+              <div className="mt-3">
+                <CountryPicker value={null} compact onSaved={() => void load()} />
+              </div>
+            )}
+            {!data.emailVerified && (
+              <div className="mt-3">
+                <VerifyEmailBox email={data.email} placeholder={data.placeholderEmail} />
+              </div>
+            )}
+            {!data.hasPhone && (
+              <div className="mt-3">
+                <PhoneBox onSaved={() => void load()} />
+              </div>
+            )}
+            <button
+              type="button"
+              disabled={busy !== null || !data.billingCountry || !data.emailVerified || !data.hasPhone}
+              onClick={() => void startTrial(trialItem)}
+              className="mt-4 w-full rounded-xl bg-[#dcb81e] px-5 py-3 text-[15px] font-semibold text-black disabled:opacity-50"
+            >
+              {busy === "trial" ? t("Abriendo…") : t("Dejar mi tarjeta y empezar la prueba gratis")}
+            </button>
+          </div>
+        </div>
       )}
 
       {cartOpen && (

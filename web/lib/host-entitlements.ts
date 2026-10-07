@@ -31,6 +31,10 @@ export type ApplyHostEntitlementInput = {
   currentPeriodEnd?: string;
   quantity?: number;
   cancelAtPeriodEnd?: boolean;
+  /** Plazo comprado; si no viene se conserva el de la misma suscripción. */
+  planCode?: string;
+  /** Fin de la prueba gratis; `null` la cierra (ya se cobró), `undefined` conserva la actual. */
+  trialEndsAt?: string | null;
 };
 
 export function applyHostEntitlement(input: ApplyHostEntitlementInput): HostEntitlementRecord {
@@ -39,6 +43,11 @@ export function applyHostEntitlement(input: ApplyHostEntitlementInput): HostEnti
   const same =
     prev && prev.status !== "cancelled" && prev.stripeSubscriptionId === input.stripeSubscriptionId ? prev : undefined;
   const cancelAtPeriodEnd = input.cancelAtPeriodEnd ?? same?.cancelAtPeriodEnd;
+  const planCode = input.planCode ?? same?.planCode;
+  const trialEndsAt = input.trialEndsAt === undefined ? same?.trialEndsAt : input.trialEndsAt || undefined;
+  const now = new Date().toISOString();
+  // La prueba gratis es una sola por herramienta: la marca se queda aunque cancele o vuelva a comprar.
+  const trialUsedAt = prev?.trialUsedAt ?? (trialEndsAt ? now : undefined);
   const row = upsertHostEntitlement({
     hostId: input.hostId,
     sku: input.sku,
@@ -48,8 +57,10 @@ export function applyHostEntitlement(input: ApplyHostEntitlementInput): HostEnti
     currentPeriodEnd: input.currentPeriodEnd,
     ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
     ...(cancelAtPeriodEnd !== undefined ? { cancelAtPeriodEnd } : {}),
-    ...(same?.planCode ? { planCode: same.planCode } : {}),
-    updatedAt: new Date().toISOString(),
+    ...(planCode ? { planCode } : {}),
+    ...(trialEndsAt ? { trialEndsAt } : {}),
+    ...(trialUsedAt ? { trialUsedAt } : {}),
+    updatedAt: now,
   });
 
   // El motor por anuncio (con cantidad) ya no concede el listón de verificado: son productos aparte.

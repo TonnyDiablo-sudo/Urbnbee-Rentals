@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listHostEntitlements, upsertHostEntitlement } from "@/lib/host-entitlements-store";
+import { hostEntitlementInTrial } from "@/lib/host-entitlement-types";
+import { syncHostBadgeToListings } from "@/lib/host-verification";
 import { primarySkuForPlan } from "@/lib/membership-entitlements";
 import { MEMBERSHIP_PLAN_FAMILY, type MembershipPlanFamily } from "@/lib/membership-plans-types";
 import { getSessionUser } from "@/lib/session";
@@ -45,6 +47,29 @@ export async function POST(req: NextRequest) {
     }
     subId = row.stripeSubscriptionId;
     until = row.currentPeriodEnd;
+
+    // En prueba gratis no hay nada pagado: se cancela hoy mismo, la herramienta se apaga y no se cobra nada.
+    if (cancel && hostEntitlementInTrial(row)) {
+      if (subId !== "simulated") {
+        const stripe = getStripe();
+        if (!stripe) {
+          return NextResponse.json({ error: "Los pagos no están configurados. Intenta más tarde." }, { status: 503 });
+        }
+        try {
+          await stripe.subscriptions.cancel(subId, { prorate: false });
+        } catch (e) {
+          console.error("[store cancel trial]", subId, e);
+          return NextResponse.json({ error: "No se pudo cancelar la prueba. Intenta de nuevo." }, { status: 502 });
+        }
+      }
+      const now = new Date().toISOString();
+      for (const r of listHostEntitlements(user.id)) {
+        if (r.stripeSubscriptionId !== subId) continue;
+        upsertHostEntitlement({ ...r, status: "cancelled", cancelAtPeriodEnd: true, trialEndsAt: undefined, updatedAt: now });
+      }
+      syncHostBadgeToListings(user.id);
+      return NextResponse.json({ ok: true, cancelAtPeriodEnd: true, immediate: true, until: now });
+    }
   } else {
     const v = getVerification(user.id);
     const s = v?.subscriptionStatus;

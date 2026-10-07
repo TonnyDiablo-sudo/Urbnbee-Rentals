@@ -21,14 +21,23 @@ export function paidUp(row: { status: string; currentPeriodEnd?: string } | unde
   return !Number.isFinite(t) || t + GRACE_MS >= Date.now();
 }
 
+/** La herramienta de limpieza trabaja (pagada o en prueba gratis). Sin ella sólo se configura: vista previa. */
 export function hostHasCleaningTool(hostId: string): boolean {
   return paidUp(getHostEntitlement(hostId, HOST_SKU_CLEANING));
 }
 
-/** Asientos de colaborador pagados. */
+/** Asientos de colaborador pagados (o en prueba gratis). */
 export function collaboratorSeats(hostId: string): number {
   const row = getHostEntitlement(hostId, HOST_SKU_COLLABORATORS);
   return paidUp(row) ? Math.max(0, row?.quantity ?? 1) : 0;
+}
+
+/**
+ * Las herramientas de equipo están en marcha: colaboradores o limpieza pagada (o en prueba).
+ * Con ninguna, los chats de equipo se ven y se arman, pero no se puede escribir en ellos.
+ */
+export function teamToolsLive(hostId: string): boolean {
+  return collaboratorSeats(hostId) > 0 || hostHasCleaningTool(hostId);
 }
 
 export function collaboratorSeatsUsed(hostId: string, exceptMemberId?: string): number {

@@ -561,4 +561,108 @@ export const cleaningFlow: Record<string, string> = {
   "Confirma tu correo para responder a tus huéspedes.": "Confirm your email to reply to your guests.",
   "Puedes leer lo que te escriben, pero para contestar confirma tu correo. Así sabemos que la cuenta es tuya.":
     "You can read what they write to you, but to reply you need to confirm your email. That's how we know the account is yours.",
+
+  // Prueba gratis de 30 días y vista previa de herramientas (limpieza y colaboradores)
+  "No se pudo cancelar la prueba. Intenta de nuevo.": "We couldn't cancel the trial. Please try again.",
+  "Ese plan no se puede elegir aquí.": "That plan can't be chosen here.",
+  "Todavía no tienes este producto. Cómpralo o pruébalo gratis primero.": "You don't have this product yet. Buy it or start the free trial first.",
+  "Ya tienes ese plazo.": "You already have that term.",
+  "Ese plan es de otra herramienta.": "That plan belongs to a different tool.",
+  "Tu plan está por cancelarse. Primero elige «Seguir con el plan» y luego cambia el plazo.":
+    "Your plan is set to cancel. First choose “Keep the plan”, then change the term.",
+  "Ese plan no está disponible en tu región.": "That plan isn't available in your region.",
+  "Ese plan no está disponible.": "That plan isn't available.",
+  "No se pudo cambiar el plan. Intenta de nuevo.": "We couldn't change the plan. Please try again.",
+  "Hoy no se cobra nada. Tu prueba gratis termina el {date}; ese día se cobran {total} y el plan se renueva cada mes hasta que lo canceles en la Tienda.":
+    "Nothing is charged today. Your free trial ends on {date}; that day {total} is charged and the plan renews every month until you cancel it in the Store.",
+  "Hoy no se cobra nada. Tu prueba gratis termina el {date}; ese día se cobran {total} y el plan se renueva cada {n} meses hasta que lo canceles en la Tienda.":
+    "Nothing is charged today. Your free trial ends on {date}; that day {total} is charged and the plan renews every {n} months until you cancel it in the Store.",
+  "Elige un plan.": "Choose a plan.",
+  "Modo demo: prueba gratis activada sin Stripe.": "Demo mode: free trial activated without Stripe.",
+  "No se pudo iniciar la prueba gratis. Intenta de nuevo.": "We couldn't start the free trial. Please try again.",
+  "Esta herramienta no tiene prueba gratis.": "This tool has no free trial.",
+  "Ya usaste tu prueba gratis de esta herramienta. Actívala en la Tienda y empieza a usarla hoy mismo.":
+    "You've already used your free trial of this tool. Activate it in the Store and start using it today.",
+  "Los chats de equipo se encienden con la herramienta de colaboradores o la de limpieza. Pruébala 30 días gratis en la Tienda.":
+    "Team chats turn on with the collaborators tool or the cleaning tool. Try it free for 30 days in the Store.",
+  "Tu herramienta de limpieza está en vista previa: puedes configurarla, pero todavía no está en marcha. Pruébala 30 días gratis en la Tienda.":
+    "Your cleaning tool is in preview: you can set it up, but it isn't running yet. Try it free for 30 days in the Store.",
+  "Marca los anuncios que entrarán a la herramienta. Al activarla se paga por anuncio y cada lugar se queda con el anuncio que elijas.":
+    "Check the listings that will go into the tool. When you activate it you pay per listing and each slot stays with the listing you choose.",
+  "Prueba gratis hasta el {d}": "Free trial until {d}",
+  "Vista previa": "Preview",
+  "Puedes configurarla y explorarla; trabaja cuando la actives o empieces su prueba gratis.":
+    "You can set it up and explore it; it runs once you activate it or start its free trial.",
+  "Arma tu equipo (hasta {max}) y sus chats; tienen acceso cuando la actives o empieces su prueba gratis.":
+    "Build your team (up to {max}) and its chats; they get access once you activate it or start its free trial.",
+  "Vista previa: anota tus insumos desde hoy; los avisos de compra se mandan cuando la herramienta de limpieza esté en marcha.":
+    "Preview: log your supplies starting today; purchase alerts are sent once the cleaning tool is running.",
+  "Vista previa: puedes agregar hasta {max} colaboradores y dejarles sus roles listos. Tendrán acceso cuando actives la herramienta.":
+    "Preview: you can add up to {max} collaborators and set their roles. They'll get access once you activate the tool.",
+  "El rol de limpieza trabaja cuando la herramienta de limpieza esté en marcha.": "The cleaning role works once the cleaning tool is running.",
+  "Vista previa: tendrá acceso a {roles} cuando actives la herramienta.": "Preview: they'll get access to {roles} once you activate the tool.",
+  "En la vista previa puedes agregar hasta {max} colaboradores. Para más, activa la herramienta de colaboradores.":
+    "In preview you can add up to {max} collaborators. For more, activate the collaborators tool.",
+  "El rol de limpieza queda guardado y trabaja cuando la herramienta de limpieza esté en marcha.":
+    "The cleaning role is saved and works once the cleaning tool is running.",
+  "Puedes agregar {n} colaborador más en la vista previa.": "You can add {n} more collaborator in preview.",
+  "Puedes agregar {n} colaboradores más en la vista previa.": "You can add {n} more collaborators in preview.",
+  "Vista previa: tu herramienta de limpieza todavía no está en marcha": "Preview: your cleaning tool isn't running yet",
+  "Configúrala a tu gusto: anuncios, quién limpia, insumos y ajustes. Por ahora no crea limpiezas de tus reservas, no manda avisos ni recordatorios y tu equipo no recibe nada. En cuanto la actives, todo lo que dejaste listo empieza a trabajar.":
+    "Set it up your way: listings, who cleans, supplies and settings. For now it doesn't create cleanings from your bookings, doesn't send alerts or reminders, and your team receives nothing. As soon as you activate it, everything you set up starts working.",
+  "Vista previa: tu herramienta de colaboradores todavía no está en marcha": "Preview: your collaborators tool isn't running yet",
+  "Arma tu equipo (hasta {max} personas), dales roles y anuncios, y crea tus chats de equipo. Por ahora tu gente no tiene acceso a reservas ni mensajes y en los chats de equipo no se puede escribir. En cuanto la actives, todo queda andando como lo dejaste.":
+    "Build your team (up to {max} people), give them roles and listings, and create your team chats. For now your people have no access to bookings or messages and nobody can write in team chats. As soon as you activate it, everything runs just as you left it.",
+  "Vista previa: en los chats de equipo todavía no se puede escribir": "Preview: nobody can write in team chats yet",
+  "Crea los chats que quieras y agrega a tu gente. Para escribir y mandar fotos o audios, activa la herramienta de colaboradores o la de limpieza.":
+    "Create the chats you want and add your people. To write and send photos or audio, activate the collaborators tool or the cleaning tool.",
+  "Prueba gratis hasta el {d}. Ese día empieza a cobrarse tu plan; puedes cancelar o cambiar de plazo en la Tienda.":
+    "Free trial until {d}. That day your plan starts being charged; you can cancel or change the term in the Store.",
+  "Ver mi plan": "See my plan",
+  "Probar {n} días gratis": "Try {n} days free",
+  "La prueba pide tarjeta, pero no se cobra nada hasta que termina. Cancela cuando quieras.":
+    "The trial asks for a card, but nothing is charged until it ends. Cancel anytime.",
+  "Listo. Al terminar tu prueba el {d} se cobra el plan de {n} meses.": "Done. When your trial ends on {d}, the {n}-month plan is charged.",
+  "Listo. Tu plan actual sigue hasta el {d}; ese día se renueva con el plan de {n} meses.":
+    "Done. Your current plan runs until {d}; that day it renews with the {n}-month plan.",
+  "¿Cancelar la prueba gratis? La herramienta se apaga hoy mismo y no se te cobra nada.":
+    "Cancel the free trial? The tool turns off today and you won't be charged anything.",
+  "Cambiar al plan de {n} meses": "Switch to the {n}-month plan",
+  "Prueba gratis hasta el {d}. Ese día se cobran {total} y después cada mes.": "Free trial until {d}. That day {total} is charged, then every month.",
+  "Prueba gratis hasta el {d}. Ese día se cobran {total} y después cada {n} meses.":
+    "Free trial until {d}. That day {total} is charged, then every {n} months.",
+  "Dejar el plazo actual": "Keep current term",
+  "Cambiar plazo": "Change term",
+  "Cancelar prueba": "Cancel trial",
+  "Elige arriba el plazo nuevo: no se cobra nada hoy; al terminar la prueba se cobra ese plan.":
+    "Pick the new term above: nothing is charged today; when the trial ends, that plan is charged.",
+  "Elige arriba el plazo nuevo: lo pagado sigue igual hasta el fin del periodo y en la renovación se cobra el plan nuevo.":
+    "Pick the new term above: what you paid stays the same until the period ends, and the new plan is charged at renewal.",
+  "Prueba gratis de {n} días": "{n}-day free trial",
+  "Hoy no pagas nada. Dejas tu tarjeta y la herramienta queda en marcha desde hoy, con todo funcionando.":
+    "You pay nothing today. Leave your card and the tool starts running today, with everything working.",
+  "¿Cuántos colaboradores? (hasta {max})": "How many collaborators? (up to {max})",
+  "¿En cuántos anuncios?": "In how many listings?",
+  "¿Con qué plan quieres que se renueve al terminar la prueba?": "Which plan should it renew with when the trial ends?",
+  "Tu prueba termina el {d}.": "Your trial ends on {d}.",
+  "Ese día se cobran {total} y el plan se renueva solo cada mes.": "That day {total} is charged and the plan renews automatically every month.",
+  "Ese día se cobran {total} y el plan se renueva solo cada {n} meses.": "That day {total} is charged and the plan renews automatically every {n} months.",
+  "Puedes cancelar cuando quieras desde la Tienda. Si cancelas antes del {d}, no se cobra nada y la herramienta se apaga ese momento. Si cancelas después, sigues usándola hasta el fin de lo ya pagado (no hay reembolso) y ya no se renueva.":
+    "You can cancel anytime from the Store. If you cancel before {d}, nothing is charged and the tool turns off right then. If you cancel later, you keep using it until the end of what you already paid (no refund) and it no longer renews.",
+  "Si cambias de plazo antes de la renovación, en la renovación se cobra el plazo nuevo.": "If you change the term before renewal, the new term is charged at renewal.",
+  "Dejar mi tarjeta y empezar la prueba gratis": "Leave my card and start the free trial",
+  "Tu prueba gratis ya empezó: la herramienta está en marcha. Hoy no se cobró nada.": "Your free trial has started: the tool is running. Nothing was charged today.",
+  "No se pudo iniciar la prueba gratis.": "We couldn't start the free trial.",
+  "No se pudo cambiar el plan.": "We couldn't change the plan.",
+  "Listo, tu plan cambió.": "Done, your plan changed.",
+  "Listo, tu prueba gratis terminó. No se te cobró nada.": "Done, your free trial ended. You weren't charged anything.",
+  "Los chats de este equipo se activan cuando el anfitrión encienda su herramienta de colaboradores o de limpieza.":
+    "This team's chats turn on once the host activates their collaborators or cleaning tool.",
+  "Chats de equipo incluidos: crea los chats que quieras con tu gente (cuentas, limpiezas, insumos…) y guarda ahí fotos, audios y archivos.":
+    "Team chats included: create the chats you want with your people (accounts, cleanings, supplies…) and keep photos, audio and files there.",
+  "Pruébala 30 días gratis (hasta 5 colaboradores). Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.":
+    "Try it free for 30 days (up to 5 collaborators). We ask for a card but nothing is charged until the trial ends; cancel anytime.",
+  "Pruébala 30 días gratis. Pedimos tarjeta pero no se cobra nada hasta que termina la prueba; cancela cuando quieras.":
+    "Try it free for 30 days. We ask for a card but nothing is charged until the trial ends; cancel anytime.",
+  "Activar en la Tienda": "Activate in the Store",
 };

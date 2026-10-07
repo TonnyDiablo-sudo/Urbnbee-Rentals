@@ -71,6 +71,8 @@ export async function syncFromSubscription(sub: Stripe.Subscription, explicitUse
   if (audience === "host") {
     const status = mapEntitlementStatus(sub.status);
     const quantity = sub.items?.data?.[0]?.quantity ?? 1;
+    const trialEndsAt =
+      sub.status === "trialing" && typeof sub.trial_end === "number" ? new Date(sub.trial_end * 1000).toISOString() : null;
     const targets = hostEntitlementTargets(userId, planCode, sub.id);
     if (targets.some((t) => t.sku === HOST_SKU_BOOKING_ENGINE || t.sku === HOST_SKU_HOST_VERIFICATION)) {
       setHostMembershipFields(userId, {
@@ -89,6 +91,8 @@ export async function syncFromSubscription(sub: Stripe.Subscription, explicitUse
         stripeSubscriptionId: sub.id,
         currentPeriodEnd: end,
         cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
+        trialEndsAt,
+        ...(isMembershipPlanCode(planCode) ? { planCode } : {}),
         ...(t.perUnit ? { quantity } : {}),
       });
     }

@@ -12,12 +12,14 @@ import {
   HOST_SKU_CLEANING,
   HOST_SKU_COLLABORATORS,
   HOST_SKU_FEATURED,
+  hostEntitlementInTrial,
   type HostEntitlementRecord,
 } from "@/lib/host-entitlement-types";
 import type { Lang, TFn } from "@/lib/i18n";
 import { findUserById, listListingsForHost } from "@/lib/marketplace-store";
 import { collaboratorSeats, collaboratorSeatsUsed, hostHasCleaningTool, memberEffectiveRoles } from "@/lib/team-access";
 import { getTeamMember, listTeamForHost, memberNeedsSeat, TEAM_ROLE_LABEL } from "@/lib/team-store";
+import { TRIAL_MAX_COLLABORATORS } from "@/lib/tool-trial";
 import { identityPlanActive, isHostIdentityVerified } from "@/lib/verification-store";
 
 type Surface = "app" | "web";
@@ -103,8 +105,11 @@ export function HostToolsView({ hostId, t, lang, surface }: { hostId: string; t:
           year: "numeric",
         })
       : "";
-  const statusOf = (row: HostEntitlementRecord | undefined, active: boolean) => {
-    if (!active || !row) return { on: false, text: t("Sin contratar") };
+  const statusOf = (row: HostEntitlementRecord | undefined, active: boolean, preview = false) => {
+    if (!active || !row) return { on: false, text: preview ? t("Vista previa") : t("Sin contratar") };
+    if (hostEntitlementInTrial(row) && row.trialEndsAt && !row.cancelAtPeriodEnd) {
+      return { on: true, text: t("Prueba gratis hasta el {d}", { d: day(row.trialEndsAt) }) };
+    }
     if (row.cancelAtPeriodEnd && row.currentPeriodEnd) {
       return { on: true, text: t("Termina el {d}", { d: day(row.currentPeriodEnd) }) };
     }
@@ -169,13 +174,13 @@ export function HostToolsView({ hostId, t, lang, surface }: { hostId: string; t:
       <Card
         t={t}
         title={t("Herramienta de limpieza")}
-        status={statusOf(cleaningRow, cleaningActive)}
+        status={statusOf(cleaningRow, cleaningActive, true)}
         usage={
           cleaningActive
             ? t("Usas {used} de {cap} anuncios pagados.", { used: cleaningSlots(hostId).length, cap: cleaningCapacity(hostId) })
-            : undefined
+            : t("Puedes configurarla y explorarla; trabaja cuando la actives o empieces su prueba gratis.")
         }
-        manage={cleaningActive ? PATHS.cleaning[surface] : undefined}
+        manage={PATHS.cleaning[surface]}
         buy={store}
       >
         {cleaningActive && (
@@ -196,15 +201,15 @@ export function HostToolsView({ hostId, t, lang, surface }: { hostId: string; t:
       <Card
         t={t}
         title={t("Colaboradores")}
-        status={statusOf(seatRow, seats > 0 || team.length > 0)}
+        status={statusOf(seatRow, seats > 0, true)}
         usage={
           seats > 0
             ? t("Usas {used} de {paid} asientos de colaborador.", { used: collaboratorSeatsUsed(hostId), paid: seats })
-            : team.length > 0
-              ? t("Sólo equipo de limpieza (no usa asientos).")
-              : undefined
+            : t("Arma tu equipo (hasta {max}) y sus chats; tienen acceso cuando la actives o empieces su prueba gratis.", {
+                max: TRIAL_MAX_COLLABORATORS,
+              })
         }
-        manage={seats > 0 || cleaningActive || team.length > 0 ? PATHS.team[surface] : undefined}
+        manage={PATHS.team[surface]}
         buy={store}
       >
         {(seats > 0 || team.length > 0) && (

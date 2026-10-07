@@ -26,7 +26,7 @@ import { findUserById, getListingById, listListingsForHost, updateListing } from
 import { dayVar } from "@/lib/notification-vars";
 import { notifyUser } from "@/lib/push";
 import { getHostEntitlement } from "@/lib/host-entitlements-store";
-import { HOST_SKU_CLEANING } from "@/lib/host-entitlement-types";
+import { HOST_SKU_CLEANING, hostEntitlementInTrial } from "@/lib/host-entitlement-types";
 import { compressPhoto, deletePrivateFile, getPrivateFile, putPrivateFile } from "@/lib/private-files";
 import { hostHasCleaningTool, memberEffectiveRoles } from "@/lib/team-access";
 import { getTeamMember, listMembershipsForUser, listTeamForHost, memberCoversListing } from "@/lib/team-store";
@@ -80,13 +80,23 @@ function taskVars(t: CleaningTask, extra: Vars = {}): Vars {
   return { listing: listingTitle(t.listingId), date: dayVar(t.date, t.time), ...extra };
 }
 
+/**
+ * En vista previa (sin pagar ni prueba) la herramienta se configura pero no trabaja:
+ * no manda ningún aviso de limpieza a nadie.
+ */
+function cleaningLive(hostId: string): boolean {
+  return hostHasCleaningTool(hostId);
+}
+
 function notify(task: CleaningTask, title: string, body: string, vars: Vars = taskVars(task), tag = `cleaning:${task.id}`) {
+  if (!cleaningLive(task.hostId)) return;
   const to = recipientOf(task);
   if (!to) return;
   notifyUser(to.userId, { kind: "cleaning", title, body, vars, url: to.url, tag });
 }
 
 function notifyHost(task: CleaningTask, title: string, body: string, vars: Vars, tag = `cleaning:${task.id}`) {
+  if (!cleaningLive(task.hostId)) return;
   notifyUser(task.hostId, { kind: "cleaning", title, body, vars, url: "/host/limpieza", tag });
 }
 
@@ -100,8 +110,16 @@ export function cleaningCapacity(hostId: string): number {
   return Math.max(0, getHostEntitlement(hostId, HOST_SKU_CLEANING)?.quantity ?? 1);
 }
 
+/** Anuncios encendidos en la vista previa: sin lugares pagados no hay candado, todos cuentan. */
+function previewListingIds(hostId: string): string[] {
+  return listListingsForHost(hostId)
+    .filter((l) => l.cleaningOn)
+    .map((l) => l.id);
+}
+
 /** Anuncios con lugar pagado de limpieza; los encendidos antes del candado se quedan con el suyo. */
 export function cleaningSlots(hostId: string): string[] {
+  if (!cleaningLive(hostId)) return previewListingIds(hostId);
   const cap = cleaningCapacity(hostId);
   let bound = boundListings(hostId, "cleaning");
   const legacy = listListingsForHost(hostId)
@@ -117,6 +135,7 @@ export function cleaningSlots(hostId: string): string[] {
 
 /** Anuncios que hoy están en la herramienta: encendidos y con su lugar. */
 export function cleaningListingIds(hostId: string): Set<string> {
+  if (!cleaningLive(hostId)) return new Set(previewListingIds(hostId));
   if (cleaningCapacity(hostId) === 0) return new Set();
   const slots = new Set(cleaningSlots(hostId));
   return new Set(
@@ -126,13 +145,14 @@ export function cleaningListingIds(hostId: string): Set<string> {
   );
 }
 
-/** El miembro puede limpiar ese anuncio hoy (rol activo y acceso al anuncio). */
+/**
+ * El miembro puede limpiar ese anuncio (rol de limpieza y acceso al anuncio). Se mira el rol
+ * configurado, no el efectivo: en vista previa el anfitrión arma quién limpia qué, y trabaja al activar.
+ */
 function validCleaner(hostId: string, listingId: string, assignee: CleaningAssignee | undefined): boolean {
   if (!assignee || assignee === "host") return true;
   const m = getTeamMember(assignee);
-  return Boolean(
-    m && m.hostId === hostId && m.status === "active" && memberCoversListing(m, listingId) && memberEffectiveRoles(m).includes("cleaning")
-  );
+  return Boolean(m && m.hostId === hostId && m.status === "active" && memberCoversListing(m, listingId) && m.roles.includes("cleaning"));
 }
 
 /**
@@ -356,11 +376,17 @@ function visibleTasks(list: CleaningTask[], doneDays = 14) {
 export function hostCleaningView(hostId: string) {
   const active = hostHasCleaningTool(hostId);
   if (active) refreshCleaning(hostId);
-  const team = listTeamForHost(hostId).filter((m) => m.status === "active" && memberEffectiveRoles(m).includes("cleaning"));
+  const team = listTeamForHost(hostId).filter((m) => m.status === "active" && m.roles.includes("cleaning"));
   const included = cleaningListingIds(hostId);
   const slots = new Set(active ? cleaningSlots(hostId) : []);
+  const row = getHostEntitlement(hostId, HOST_SKU_CLEANING);
   return {
+    /** En marcha (pagada o en prueba). false = vista previa: se configura todo, no trabaja. */
     active,
+    /** Prueba gratis en curso, hasta esta fecha. */
+    trialEndsAt: hostEntitlementInTrial(row) ? row?.trialEndsAt : undefined,
+    /** Ya usó su prueba gratis: en la Tienda sólo queda activarla. */
+    trialUsed: Boolean(row?.trialUsedAt),
     capacity: cleaningCapacity(hostId),
     used: slots.size,
     settings: getCleaningSettings(hostId),
@@ -396,7 +422,6 @@ export function setListingCleaning(
   listingId: string,
   patch: { on?: boolean; cleaner?: string | null; cleaners?: string[] }
 ): Result {
-  if (!hostHasCleaningTool(hostId)) return { ok: false, error: CLEANING_TOOL_OFF_ERROR, status: 402 };
   const listing = getListingById(listingId);
   if (!listing || listing.hostId !== hostId) return { ok: false, error: "Anuncio no encontrado.", status: 404 };
   const list = patch.cleaners ?? (patch.cleaner !== undefined ? (patch.cleaner ? [patch.cleaner] : []) : undefined);
@@ -412,7 +437,8 @@ export function setListingCleaning(
       }
     }
   }
-  if (patch.on === true) {
+  // En vista previa no hay lugares pagados que apartar: se enciende y listo.
+  if (patch.on === true && cleaningLive(hostId)) {
     const cap = cleaningCapacity(hostId);
     const slots = cleaningSlots(hostId);
     if (!slots.includes(listingId)) {
@@ -433,7 +459,6 @@ export function setListingCleaning(
 const pickHours = (raw: unknown, options: number[]) => (typeof raw === "number" && options.includes(raw) ? raw : undefined);
 
 export function updateCleaningSettings(hostId: string, raw: Record<string, unknown>): Result {
-  if (!hostHasCleaningTool(hostId)) return { ok: false, error: CLEANING_TOOL_OFF_ERROR, status: 402 };
   const patch: Partial<CleaningSettings> = {};
   if (raw.assignMode === "auto" || raw.assignMode === "manual") patch.assignMode = raw.assignMode;
   if (typeof raw.requirePhoto === "boolean") patch.requirePhoto = raw.requirePhoto;
@@ -487,7 +512,6 @@ export function addManualCleaning(
   hostId: string,
   input: { listingId?: unknown; date?: unknown; note?: unknown; assignee?: unknown }
 ): Result {
-  if (!hostHasCleaningTool(hostId)) return { ok: false, error: CLEANING_TOOL_OFF_ERROR, status: 402 };
   const listingId = typeof input.listingId === "string" ? input.listingId : "";
   const listing = getListingById(listingId);
   if (!listing || listing.hostId !== hostId) return { ok: false, error: "Elige un anuncio.", status: 400 };
@@ -509,7 +533,9 @@ export function addManualCleaning(
   return { ok: true };
 }
 
+/** Quien limpia sólo opera cuando la herramienta está en marcha; en vista previa nada le llega ni puede hacer. */
 function isAssignedCleaner(userId: string, t: CleaningTask): boolean {
+  if (!cleaningLive(t.hostId)) return false;
   const member = byMember(t.assignee) ? getTeamMember(t.assignee) : undefined;
   return Boolean(member && member.userId === userId && validCleaner(t.hostId, t.listingId, t.assignee));
 }
@@ -603,7 +629,7 @@ function reviewCleaning(t: CleaningTask, approve: boolean, noteRaw: unknown): Re
   const cleaner = recipientOf(t);
   if (approve) {
     updateCleaningTask(t.id, { approval: "approved", approvedAt: new Date().toISOString(), redoNote: undefined });
-    if (byMember(t.assignee) && cleaner) {
+    if (byMember(t.assignee) && cleaner && cleaningLive(t.hostId)) {
       notifyUser(cleaner.userId, { kind: "cleaning", title: "Aprobaron tu limpieza", body: "{listing} · {date}. ¡Gracias!", vars: taskVars(t), url: cleaner.url, tag: `cleaning:${t.id}` });
     }
     return { ok: true };
@@ -611,7 +637,7 @@ function reviewCleaning(t: CleaningTask, approve: boolean, noteRaw: unknown): Re
   const note = typeof noteRaw === "string" ? noteRaw.replace(/\s+/g, " ").trim().slice(0, 300) : "";
   if (note.length < 3) return { ok: false, error: "Escribe qué falta corregir.", status: 400 };
   updateCleaningTask(t.id, { status: "pending", approval: undefined, approvedAt: undefined, doneAt: undefined, doneBy: undefined, redoNote: note });
-  if (byMember(t.assignee) && cleaner) {
+  if (byMember(t.assignee) && cleaner && cleaningLive(t.hostId)) {
     notifyUser(cleaner.userId, { kind: "cleaning", title: "Hay que corregir una limpieza", body: "{listing} · {date}: {note}", vars: taskVars(t, { note }), url: cleaner.url, tag: `cleaning:${t.id}` });
   }
   return { ok: true };

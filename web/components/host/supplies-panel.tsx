@@ -19,6 +19,8 @@ type Item = {
 
 type View = {
   owner: boolean;
+  /** false = vista previa: se anotan insumos, pero no sale ningún aviso de compra. */
+  live?: boolean;
   items: Item[];
   listings: { id: string; title: string }[];
   recipients: { id: string; name: string }[];
@@ -143,6 +145,11 @@ export function SuppliesPanel({ hostId }: { hostId?: string }) {
           <p className="text-sm text-[#717171]">
             {t("Toca + o − cuando uses o repongas algo. Al llegar al mínimo se avisa para comprar.")}
           </p>
+          {data.live === false && (
+            <p className="mt-1 text-sm text-[#8a6d00]">
+              {t("Vista previa: anota tus insumos desde hoy; los avisos de compra se mandan cuando la herramienta de limpieza esté en marcha.")}
+            </p>
+          )}
         </div>
         {!adding && (
           <button type="button" onClick={startAdding} className="rounded-xl bg-[#222] px-4 py-2 text-sm font-semibold text-white">

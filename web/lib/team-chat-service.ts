@@ -18,11 +18,18 @@ import {
   type TeamChatAttachment,
   type TeamChatMessage,
 } from "@/lib/team-chat-store";
+import { teamToolsLive } from "@/lib/team-access";
 import { activeMembership, listTeamForHost } from "@/lib/team-store";
+import { TEAM_CHAT_PREVIEW_ERROR, TOOL_PREVIEW_CODE } from "@/lib/tool-trial";
 
-type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string; status: number };
+type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string; status: number; code?: string };
 
 export const TEAM_CHAT_NO_TEAM = "Invita a alguien a tu equipo para usar los chats de equipo.";
+
+/** Escribir en los chats de equipo pide una herramienta en marcha (pagada o en prueba); verlos y armarlos, no. */
+function chatPreviewBlock(hostId: string): Result | null {
+  return teamToolsLive(hostId) ? null : { ok: false, error: TEAM_CHAT_PREVIEW_ERROR, status: 402, code: TOOL_PREVIEW_CODE };
+}
 
 const MAX_CHANNELS = 30;
 const AUDIO_MAX_BYTES = 6 * 1024 * 1024;
@@ -129,7 +136,7 @@ function messageView(m: TeamChatMessage, me: string) {
 export function teamChannelsView(
   userId: string,
   hostId: string
-): Result<{ channels: ReturnType<typeof channelView>[]; people: ReturnType<typeof teamPeople>; me: string; isHost: boolean }> {
+): Result<{ channels: ReturnType<typeof channelView>[]; people: ReturnType<typeof teamPeople>; me: string; isHost: boolean; live: boolean }> {
   if (!teamChatActor(userId, hostId)) return { ok: false, error: TEAM_CHAT_NO_TEAM, status: 403 };
   return {
     ok: true,
@@ -139,6 +146,8 @@ export function teamChannelsView(
     people: teamPeople(hostId),
     me: userId,
     isHost: userId === hostId,
+    /** false = vista previa: se ven y se arman los chats, pero nadie puede escribir hasta activar una herramienta. */
+    live: teamToolsLive(hostId),
   };
 }
 
@@ -253,6 +262,7 @@ export function teamMessagesView(userId: string, channelId: string) {
     channel: channelView(c.channel, userId),
     canManage: !c.channel.pair && (c.owner || c.channel.createdBy === userId),
     isHost: c.owner,
+    live: teamToolsLive(c.channel.hostId),
     people: teamPeople(c.channel.hostId),
     messages: listMessages(channelId).map((m) => messageView(m, userId)),
   };
@@ -276,6 +286,8 @@ function announce(channel: TeamChannel, from: string, text: string) {
 export function postTeamText(userId: string, channelId: string, raw: unknown): Result {
   const c = channelFor(userId, channelId);
   if (!c) return { ok: false, error: "No encontrado.", status: 404 };
+  const preview = chatPreviewBlock(c.channel.hostId);
+  if (preview) return preview;
   const body = typeof raw === "string" ? raw.trim().slice(0, 4000) : "";
   if (!body) return { ok: false, error: "Escribe un mensaje.", status: 400 };
   addMessage({ channelId, hostId: c.channel.hostId, by: userId, body });
@@ -291,6 +303,8 @@ export async function postTeamFile(
 ): Promise<Result> {
   const c = channelFor(userId, channelId);
   if (!c) return { ok: false, error: "No encontrado.", status: 404 };
+  const preview = chatPreviewBlock(c.channel.hostId);
+  if (preview) return preview;
   const id = randomBytes(8).toString("hex");
   const base = `team-chat/${c.channel.hostId}/${channelId}/${id}`;
   let attachment: TeamChatAttachment;

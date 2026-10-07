@@ -16,10 +16,13 @@ type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string; statu
 const MAX_ITEMS = 200;
 const MAX_QTY = 99_999;
 
-/** Insumos: el anfitrión con la herramienta de limpieza, o alguien de su equipo de limpieza. */
+/**
+ * Insumos: el anfitrión siempre (en vista previa los anota y configura; los avisos salen cuando
+ * la herramienta está en marcha), o alguien de su equipo de limpieza con la herramienta activa.
+ */
 function actorFor(userId: string, hostId: string): { owner: boolean; member?: TeamMember } | null {
-  if (!hostHasCleaningTool(hostId)) return null;
   if (userId === hostId) return { owner: true };
+  if (!hostHasCleaningTool(hostId)) return null;
   const m = activeMembership(userId, hostId);
   return m && memberEffectiveRoles(m).includes("cleaning") ? { owner: false, member: m } : null;
 }
@@ -73,6 +76,8 @@ export function suppliesView(userId: string, hostId: string) {
     : [];
   return {
     owner: actor.owner,
+    /** false = vista previa: se anotan insumos, pero no se manda ningún aviso de compra. */
+    live: hostHasCleaningTool(hostId),
     items: listSupplies(hostId)
       .filter((i) => sees(actor, i))
       .sort((a, b) => Number(b.qty <= b.min) - Number(a.qty <= a.min) || a.name.localeCompare(b.name))
@@ -123,6 +128,8 @@ function emailLowStock(userId: string, item: SupplyItem, where: string, url: str
 }
 
 function alertLow(item: SupplyItem) {
+  // Vista previa: la herramienta no trabaja, así que no se avisa a nadie que hay que comprar.
+  if (!hostHasCleaningTool(item.hostId)) return;
   const where = item.listingId ? getListingById(item.listingId)?.title || "tu anuncio" : "la bodega";
   for (const to of item.alertTo.length ? item.alertTo : ["host"]) {
     const userId = to === "host" ? item.hostId : getTeamMember(to)?.userId;

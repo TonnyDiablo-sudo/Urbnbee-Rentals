@@ -1,8 +1,11 @@
 import "server-only";
 import { publicNameOf } from "@/lib/display-name";
 import { findUserByEmail, findUserById, getListingById, listListingsForHost } from "@/lib/marketplace-store";
+import { getHostEntitlement } from "@/lib/host-entitlements-store";
+import { HOST_SKU_COLLABORATORS, hostEntitlementInTrial } from "@/lib/host-entitlement-types";
 import { notifyUser } from "@/lib/push";
-import { collaboratorSeats, collaboratorSeatsUsed, hostHasCleaningTool, memberEffectiveRoles } from "@/lib/team-access";
+import { collaboratorSeats, collaboratorSeatsUsed, hostHasCleaningTool, memberEffectiveRoles, teamToolsLive } from "@/lib/team-access";
+import { TRIAL_MAX_COLLABORATORS } from "@/lib/tool-trial";
 import {
   addTeamMember,
   getTeamMember,
@@ -38,18 +41,26 @@ function nameOf(userId: string): string {
   return (u && publicNameOf(u)) || u?.fullName || u?.email || "Alguien";
 }
 
+/**
+ * Cuántos colaboradores con asiento caben hoy. Sin pagar (vista previa) se pueden agregar hasta
+ * TRIAL_MAX_COLLABORATORS para armar el equipo y explorar; sólo trabajan cuando la herramienta está en marcha.
+ */
+function seatCapacity(hostId: string): { seats: number; preview: boolean } {
+  const seats = collaboratorSeats(hostId);
+  return seats > 0 ? { seats, preview: false } : { seats: TRIAL_MAX_COLLABORATORS, preview: true };
+}
+
 function checkCapacity(hostId: string, roles: TeamRole[], memberId?: string): string | null {
   if (roles.length === 0) return "Elige al menos un rol.";
   if (memberNeedsSeat(roles)) {
-    const seats = collaboratorSeats(hostId);
-    if (seats === 0) return "Para dar acceso a reservas o mensajes necesitas un asiento de colaborador. Cómpralo en la Tienda.";
+    const { seats, preview } = seatCapacity(hostId);
     if (collaboratorSeatsUsed(hostId, memberId) >= seats) {
-      return `Ya usas tus ${seats} asientos de colaborador. Agrega otro en la Tienda o quita a alguien.`;
+      return preview
+        ? `En la vista previa puedes agregar hasta ${seats} colaboradores. Para más, activa la herramienta de colaboradores en la Tienda.`
+        : `Ya usas tus ${seats} asientos de colaborador. Agrega otro en la Tienda o quita a alguien.`;
     }
   }
-  if (roles.includes("cleaning") && !hostHasCleaningTool(hostId)) {
-    return "El rol de limpieza viene con la herramienta de limpieza. Actívala en la Tienda.";
-  }
+  // El rol de limpieza se asigna aunque la herramienta esté en vista previa: trabaja cuando se active.
   return null;
 }
 
@@ -180,10 +191,19 @@ export function hostTeamView(hostId: string) {
     status: m.status,
     invitedAt: m.invitedAt,
   }));
+  const { seats, preview } = seatCapacity(hostId);
+  const seatRow = getHostEntitlement(hostId, HOST_SKU_COLLABORATORS);
   return {
     members,
-    seats: { paid: collaboratorSeats(hostId), used: collaboratorSeatsUsed(hostId) },
+    seats: { paid: preview ? 0 : seats, used: collaboratorSeatsUsed(hostId), previewMax: TRIAL_MAX_COLLABORATORS },
+    /** Sin herramienta pagada ni en prueba: se configura todo, pero el equipo no tiene acceso todavía. */
+    preview,
+    /** Prueba gratis en curso (hasta esta fecha). */
+    trialEndsAt: hostEntitlementInTrial(seatRow) ? seatRow?.trialEndsAt : undefined,
+    /** Ya usó su prueba gratis: en la Tienda sólo queda activarla. */
+    trialUsed: Boolean(seatRow?.trialUsedAt),
     cleaningTool: hostHasCleaningTool(hostId),
+    teamChatLive: teamToolsLive(hostId),
     listings: listListingsForHost(hostId).map((l) => ({ id: l.id, title: l.title || "Sin título" })),
   };
 }
