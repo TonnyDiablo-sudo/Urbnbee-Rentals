@@ -3,11 +3,12 @@
 import { ChatAttachmentView, type ChatAttachmentClient } from "@/components/chat/attachment-view";
 import { VOICE_MAX_SEC, shrinkImage, useVoiceRecorder } from "@/components/chat/media-input";
 import { MessageBody } from "@/components/chat/message-body";
+import { useTranslateInFlag } from "@/components/chat/use-translate-in";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
 import { numberLocale, type Lang } from "@/lib/i18n";
-import { CHAT_LANGS, chatLangName, isChatTranslateTarget, type ChatTranslateTarget } from "@/lib/chat-langs";
+import { CHAT_LANGS, chatLangName, isChatLang } from "@/lib/chat-langs";
 import { IconCamera, IconImage, IconMic, IconSend, IconTrash } from "./icons";
 import { markThreadSeen } from "./seen";
 import { Sheet } from "./sheet";
@@ -18,7 +19,14 @@ export type ChatTranslator = {
   allowed: boolean;
   /** A dónde mandar a quien no la tiene. */
   lockedHref: string;
+  /** Para traducir el borrador al idioma de la otra persona. */
+  listingId: string;
+  /** Sólo del lado anfitrión. */
+  guestSessionId?: string;
 };
+
+/** Lo que el chat manda al guardar: el texto final y, si se tradujo antes de enviar, lo que escribió la persona. */
+export type SendMeta = { original?: string; lang?: string };
 
 function IconGlobe({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -27,17 +35,6 @@ function IconGlobe({ className = "h-5 w-5" }: { className?: string }) {
       <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
     </svg>
   );
-}
-
-const TRANSLATE_KEY = (seenKey: string) => `cb:translate:${seenKey}`;
-
-function readTranslateTarget(seenKey: string): ChatTranslateTarget | null {
-  try {
-    const v = window.localStorage.getItem(TRANSLATE_KEY(seenKey));
-    return isChatTranslateTarget(v) ? v : null;
-  } catch {
-    return null;
-  }
 }
 
 export type ChatMessage = {
@@ -49,6 +46,9 @@ export type ChatMessage = {
   createdAt: string;
   pending?: boolean;
   attachment?: ChatAttachmentClient;
+  /** Transcripción de la nota de voz (traducida si aplica) y la original. */
+  transcript?: string;
+  transcriptOriginal?: string;
   /** "ai": lo contestó el agente de urbnbeeai. */
   via?: "ai";
 };
@@ -86,7 +86,7 @@ export function ChatThread({
   mediaLockedHref,
   translator,
 }: {
-  /** Traductor del chat: mis mensajes salen en el idioma de la otra persona. Sin esto no se ofrece. */
+  /** Traductor del chat: lo que me escriben llega en mi idioma y puedo traducir lo que escribo antes de enviar. */
   translator?: ChatTranslator;
   /** Sin identidad verificada: sólo texto y una liga a la página para verificarse. */
   mediaLockedHref?: string;
@@ -100,8 +100,8 @@ export function ChatThread({
   me: "guest" | "host";
   seenKey: string;
   load: () => Promise<ChatMessage[]>;
-  /** `translateTo` viene cuando el traductor está activo (membresía). */
-  send: (text: string, translateTo?: ChatTranslateTarget) => Promise<string | null>;
+  /** `meta.original` viene cuando el borrador se tradujo antes de enviar. */
+  send: (text: string, meta?: SendMeta) => Promise<string | null>;
   emptyText: string;
   headerRight?: React.ReactNode;
   /** Si viene, la conversación se muestra pero ya no se puede escribir. */
@@ -119,22 +119,73 @@ export function ChatThread({
   const [err, setErr] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastCount = useRef(0);
-  const [translateTo, setTranslateTo] = useState<ChatTranslateTarget | null>(null);
   const [langSheet, setLangSheet] = useState(false);
+  /** Mostrar traducido lo que me escriben (por conversación). */
+  const [translateIn, toggleTranslateIn] = useTranslateInFlag(seenKey);
+  /** Idioma en que leo el chat según mi perfil; "" = el del sitio. */
+  const [readingLang, setReadingLang] = useState("");
+  const [savingLang, setSavingLang] = useState(false);
+  /** Borrador traducido antes de enviar: lo que escribí y a qué idioma quedó. */
+  const [draft, setDraft] = useState<{ original: string; lang: string | null; same: boolean } | null>(null);
+  const [translatingDraft, setTranslatingDraft] = useState(false);
 
   useEffect(() => {
-    if (translator?.allowed) setTranslateTo(readTranslateTarget(seenKey));
-  }, [seenKey, translator?.allowed]);
+    if (!translator?.allowed) return;
+    let alive = true;
+    fetch("/api/account/profile", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => alive && setReadingLang(isChatLang(j?.user?.chatLang) ? j.user.chatLang : ""))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [translator?.allowed]);
 
-  const pickTranslate = (v: ChatTranslateTarget | null) => {
-    setTranslateTo(v);
-    setLangSheet(false);
+  const pickReadingLang = async (code: string) => {
+    setSavingLang(true);
+    setReadingLang(code);
+    await fetch("/api/account/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chatLang: code }),
+    }).catch(() => null);
+    setSavingLang(false);
+    void refresh();
+  };
+
+  const translateDraft = async () => {
+    const body = text.trim();
+    if (!translator?.allowed || !body || translatingDraft) return;
+    setTranslatingDraft(true);
+    setErr(null);
     try {
-      if (v) window.localStorage.setItem(TRANSLATE_KEY(seenKey), v);
-      else window.localStorage.removeItem(TRANSLATE_KEY(seenKey));
+      const res = await fetch("/api/chat/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: body, listingId: translator.listingId, guestSessionId: translator.guestSessionId }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErr(typeof j.error === "string" ? j.error : "No se pudo traducir.");
+        return;
+      }
+      const lang = isChatLang(j.lang) ? j.lang : null;
+      if (j.same || typeof j.text !== "string" || !j.text.trim()) {
+        setDraft({ original: body, lang, same: true });
+        return;
+      }
+      setText(j.text);
+      setDraft({ original: draft?.original ?? body, lang, same: false });
     } catch {
-      /* sin almacenamiento: sólo dura esta pantalla */
+      setErr("Sin conexión.");
+    } finally {
+      setTranslatingDraft(false);
     }
+  };
+
+  const undoDraft = () => {
+    if (draft && !draft.same) setText(draft.original);
+    setDraft(null);
   };
 
   const refresh = useCallback(async (sentId?: string) => {
@@ -179,13 +230,20 @@ export function ChatThread({
     setBusy(true);
     setErr(null);
     setText("");
+    const meta: SendMeta | undefined =
+      translator?.allowed && draft && !draft.same && draft.original !== body
+        ? { original: draft.original, lang: draft.lang ?? undefined }
+        : undefined;
+    if (meta) temp.original = meta.original;
+    setDraft(null);
     setMessages((m) => [...(m ?? []), temp]);
-    const error = await send(body, translator?.allowed && translateTo ? translateTo : undefined);
+    const error = await send(body, meta);
     setBusy(false);
     if (error) {
       setErr(error);
       setMessages((m) => (m ?? []).filter((x) => x.id !== temp.id));
       setText((cur) => cur || body);
+      if (meta) setDraft({ original: meta.original!, lang: meta.lang ?? null, same: false });
       return;
     }
     await refresh(temp.id);
@@ -245,7 +303,8 @@ export function ChatThread({
   const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
   const iconBtn = "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#222] hover:bg-[#f2f2f2] disabled:opacity-40";
 
-  const translating = Boolean(translator?.allowed && translateTo);
+  const translating = Boolean(translator?.allowed && translateIn);
+  const readingLabel = readingLang ? chatLangName(readingLang) : lang === "en" ? "English" : "Español";
   const translateButton = translator ? (
     <button
       type="button"
@@ -257,7 +316,7 @@ export function ChatThread({
       }`}
     >
       <IconGlobe />
-      {translating && <span className="uppercase">{translateTo === "auto" ? t("auto") : translateTo}</span>}
+      {translating && <span className="uppercase">{readingLang || lang}</span>}
     </button>
   ) : null;
 
@@ -278,26 +337,47 @@ export function ChatThread({
       {subtitle && <p className="border-b border-[#f0f0f0] px-5 py-2 text-xs text-[#717171]">{subtitle}</p>}
       {translating && (
         <p className="border-b border-[#f3e9b8] bg-[#fdf6d8] px-5 py-1.5 text-xs text-[#5c4a0a]">
-          {translateTo === "auto"
-            ? t("Traductor activo: tus mensajes se envían en el idioma en que escribe la otra persona.")
-            : t("Traductor activo: tus mensajes se envían en {lang}.", { lang: chatLangName(translateTo!) })}
+          {t("Traductor activo: lo que te escriben lo lees en {lang}. Toca Traducir antes de enviar para contestar en su idioma.", {
+            lang: readingLabel,
+          })}
         </p>
       )}
 
       {translator && (
         <Sheet open={langSheet} onClose={() => setLangSheet(false)} title={t("Traductor del chat")}>
           {translator.allowed ? (
-            <div className="space-y-3">
-              <p className="text-sm leading-relaxed text-[#555]">
-                {t("Escribe en tu idioma: el mensaje se envía traducido y la otra persona puede ver lo que escribiste. Lo que te escriben ya lo ves traducido.")}
-              </p>
-              <ul className="divide-y divide-[#f0f0f0] overflow-hidden rounded-2xl border border-[#ebebeb]">
-                <LangOption on={!translateTo} label={t("Apagado: enviar tal cual")} onClick={() => pickTranslate(null)} />
-                <LangOption on={translateTo === "auto"} label={t("Automático: idioma de la otra persona")} onClick={() => pickTranslate("auto")} />
-                {CHAT_LANGS.map((l) => (
-                  <LangOption key={l.code} on={translateTo === l.code} label={l.name} onClick={() => pickTranslate(l.code)} />
-                ))}
-              </ul>
+            <div className="space-y-5">
+              <section>
+                <h3 className="text-sm font-semibold text-[#222]">{t("Lo que me escriben")}</h3>
+                <p className="mt-0.5 text-sm leading-relaxed text-[#555]">
+                  {t("Los mensajes y las notas de voz de la otra persona se traducen solos al idioma que elijas aquí. Siempre puedes ver el original.")}
+                </p>
+                <ul className="mt-3 divide-y divide-[#f0f0f0] overflow-hidden rounded-2xl border border-[#ebebeb]">
+                  <LangOption on={translateIn} label={t("Traducir a mi idioma")} onClick={() => toggleTranslateIn(true)} />
+                  <LangOption on={!translateIn} label={t("Mostrar tal cual me escriben")} onClick={() => toggleTranslateIn(false)} />
+                </ul>
+              </section>
+              <section className={translateIn ? "" : "opacity-50"}>
+                <h3 className="text-sm font-semibold text-[#222]">{t("Idioma en que leo el chat")}</h3>
+                <p className="mt-0.5 text-sm leading-relaxed text-[#555]">{t("Se guarda en tu perfil y aplica a todas tus conversaciones.")}</p>
+                <ul className="mt-3 divide-y divide-[#f0f0f0] overflow-hidden rounded-2xl border border-[#ebebeb]">
+                  <LangOption
+                    on={!readingLang}
+                    label={t("El idioma del sitio ({lang})", { lang: lang === "en" ? "English" : "Español" })}
+                    onClick={() => void pickReadingLang("")}
+                  />
+                  {CHAT_LANGS.map((l) => (
+                    <LangOption key={l.code} on={readingLang === l.code} label={l.name} onClick={() => void pickReadingLang(l.code)} />
+                  ))}
+                </ul>
+                {savingLang && <p className="mt-2 text-xs text-[#888]">{t("Guardando…")}</p>}
+              </section>
+              <section>
+                <h3 className="text-sm font-semibold text-[#222]">{t("Lo que escribo")}</h3>
+                <p className="mt-0.5 text-sm leading-relaxed text-[#555]">
+                  {t("Escribe en tu idioma y toca Traducir junto a Enviar: el mensaje pasa al idioma de la otra persona, lo revisas y lo mandas. Ella podrá ver lo que escribiste.")}
+                </p>
+              </section>
             </div>
           ) : (
             <div className="space-y-3">
@@ -321,6 +401,8 @@ export function ChatThread({
           <ul className="space-y-2.5">
             {messages.map((m) => {
               const mine = m.sender === me;
+              // Con la traducción apagada, lo de la otra persona se muestra tal cual lo escribió.
+              const raw = !mine && !translateIn;
               return (
                 <li key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                   <div
@@ -328,11 +410,18 @@ export function ChatThread({
                       m.attachment?.kind === "image" ? "p-1.5" : "px-3.5 py-2"
                     } ${mine ? "rounded-br-md bg-[#dcb81e] text-black" : "rounded-bl-md border border-[#ebebeb] bg-white text-[#222]"}`}
                   >
-                    {m.attachment && <ChatAttachmentView attachment={m.attachment} mine={mine} />}
+                    {m.attachment && (
+                      <ChatAttachmentView
+                        attachment={m.attachment}
+                        mine={mine}
+                        transcript={raw ? (m.transcriptOriginal ?? m.transcript) : m.transcript}
+                        transcriptOriginal={raw ? undefined : m.transcriptOriginal}
+                      />
+                    )}
                     {m.body && (
                       <MessageBody
-                        body={m.body}
-                        original={m.original}
+                        body={raw ? (m.original ?? m.body) : m.body}
+                        original={raw ? undefined : m.original}
                         mine={mine}
                         className={`whitespace-pre-wrap break-words ${m.attachment?.kind === "image" ? "px-2 pt-1.5" : m.attachment ? "pt-1" : ""}`}
                       />
@@ -372,6 +461,20 @@ export function ChatThread({
         style={{ paddingBottom: "calc(10px + env(safe-area-inset-bottom))" }}
       >
         {(err || voice.error) && <p className="mb-2 px-2 text-sm text-red-600">{t(err ?? voice.error ?? "")}</p>}
+        {draft && text.trim() && (
+          <p className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 px-2 text-xs text-[#5c4a0a]">
+            <span>
+              {draft.same
+                ? t("Ya está en el idioma de la otra persona.")
+                : draft.lang
+                  ? t("Traducido al {lang} · revísalo y envía.", { lang: chatLangName(draft.lang) })
+                  : t("Traducido · revísalo y envía.")}
+            </span>
+            <button type="button" onClick={undoDraft} className="font-semibold underline">
+              {draft.same ? t("Ocultar") : t("Deshacer")}
+            </button>
+          </p>
+        )}
         {voice.recording ? (
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => void voice.stop(true)} className={iconBtn} aria-label={t("Descartar nota de voz")}>
@@ -415,12 +518,31 @@ export function ChatThread({
             )}
             <textarea
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                setText(e.target.value);
+                if (!e.target.value.trim()) setDraft(null);
+              }}
               rows={1}
               maxLength={2000}
               placeholder={t("Escribe un mensaje")}
               className="ml-1 max-h-32 min-h-[44px] min-w-0 flex-1 resize-none rounded-2xl border border-[#ddd] px-4 py-2.5 text-[15px] outline-none focus:border-[#222]"
             />
+            {translator?.allowed && text.trim() && (
+              <button
+                type="button"
+                onClick={() => void translateDraft()}
+                disabled={translatingDraft || busy}
+                className={`${iconBtn} ${draft && !draft.same ? "bg-[#fdf6d8] text-[#5c4a0a]" : ""}`}
+                aria-label={t("Traducir al idioma de la otra persona")}
+                title={t("Traducir al idioma de la otra persona")}
+              >
+                {translatingDraft ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+                ) : (
+                  <IconGlobe />
+                )}
+              </button>
+            )}
             {canSendMedia && voice.supported && !text.trim() ? (
               <button
                 type="button"

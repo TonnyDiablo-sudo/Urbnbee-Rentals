@@ -4,8 +4,7 @@ import { useCallback, useState } from "react";
 import { useT } from "@/components/i18n-provider";
 import { revalidate } from "../../../../_components/cached-fetch";
 import { uploadChatAttachment } from "@/components/chat/upload";
-import type { ChatTranslateTarget } from "@/lib/chat-langs";
-import { ChatThread, type ChatMessage } from "../../../../_components/chat-thread";
+import { ChatThread, type ChatMessage, type SendMeta } from "../../../../_components/chat-thread";
 import { HOST_URLS } from "../../../_shared/host-data";
 import type { HostThread } from "../../host-inbox";
 
@@ -59,12 +58,12 @@ export function HostChat({
   };
 
   const send = useCallback(
-    async (body: string, translateTo?: ChatTranslateTarget): Promise<string | null> => {
+    async (body: string, meta?: SendMeta): Promise<string | null> => {
       try {
         const res = await fetch("/api/host/inbox/reply", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ listingId, guestSessionId, body, ...(translateTo ? { translateTo } : {}) }),
+          body: JSON.stringify({ listingId, guestSessionId, body, ...(meta?.original ? { original: meta.original, lang: meta.lang } : {}) }),
         });
         if (res.ok) return null;
         const j = await res.json().catch(() => ({}));
@@ -96,7 +95,7 @@ export function HostChat({
       send={send}
       sendAttachment={sendAttachment}
       mediaLockedHref={mediaAllowed ? undefined : "/host/motor"}
-      translator={{ allowed: mediaAllowed, lockedHref: "/host/motor" }}
+      translator={{ allowed: mediaAllowed, lockedHref: "/host/motor", listingId, guestSessionId }}
       emptyText={t("No encontramos esta conversación.")}
       showVia
       headerRight={

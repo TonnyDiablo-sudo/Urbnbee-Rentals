@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/components/i18n-provider";
+import { MessageBody } from "@/components/chat/message-body";
 
 export type ChatAttachmentClient = {
   url: string;
@@ -17,8 +18,29 @@ function clock(sec: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-export function ChatAttachmentView({ attachment, mine }: { attachment: ChatAttachmentClient; mine: boolean }) {
-  return attachment.kind === "image" ? <ChatImage a={attachment} /> : <VoiceNote a={attachment} mine={mine} />;
+export function ChatAttachmentView({
+  attachment,
+  mine,
+  transcript,
+  transcriptOriginal,
+}: {
+  attachment: ChatAttachmentClient;
+  mine: boolean;
+  /** Transcripción de la nota de voz (ya traducida al idioma de quien lee, si aplica). */
+  transcript?: string;
+  transcriptOriginal?: string;
+}) {
+  if (attachment.kind === "image") return <ChatImage a={attachment} />;
+  return (
+    <>
+      <VoiceNote a={attachment} mine={mine} />
+      {transcript && (
+        <div className={`mt-1 border-t pt-1.5 text-[13px] italic leading-snug ${mine ? "border-black/10 text-black/75" : "border-[#eee] text-[#555]"}`}>
+          <MessageBody body={transcript} original={transcriptOriginal} className="whitespace-pre-wrap break-words" />
+        </div>
+      )}
+    </>
+  );
 }
 
 function ChatImage({ a }: { a: ChatAttachmentClient }) {

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
 import { attachmentView } from "@/lib/chat-attachments";
-import { isChatTranslateTarget } from "@/lib/chat-langs";
+import { isChatLang, isChatTranslateTarget } from "@/lib/chat-langs";
 import { CHAT_TRANSLATOR_LOCKED_ERROR, chatTranslatorAllowed } from "@/lib/chat-media-access";
+import { chatReadingLang } from "@/lib/chat-reading-lang";
 import { translateOutgoing } from "@/lib/chat-translate";
 import { emailRequiredResponse } from "@/lib/email-gate";
 import { nameForViewer, publicNameOf, shareABooking } from "@/lib/display-name";
@@ -58,8 +59,10 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
   const guestId = sessionUser?.id;
   const reveal = Boolean(listing && guestId && shareABooking(listing.hostId, guestId));
   const hostLabel = listing ? nameForViewer(listing.hostId, reveal) || "Anfitrión" : "Anfitrión";
-  const messages = await translateIncoming(listThreadMerged(listingId, ids), "host", await getLang());
+  const lang = chatReadingLang(sessionUser, await getLang(), { as: "guest" });
+  const messages = await translateIncoming(listThreadMerged(listingId, ids), "host", lang);
   return NextResponse.json({
+    readingLang: lang,
     messages: messages.map((m) => {
       let guestLabel = m.guestName;
       if (m.sender === "host") guestLabel = hostLabel;
@@ -74,6 +77,8 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
         createdAt: m.createdAt,
         guestLabel,
         attachment: attachmentView(m),
+        transcript: m.transcript,
+        transcriptOriginal: m.transcriptOriginal,
       };
     }),
   });
@@ -130,7 +135,14 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   map[listingId] = guestSessionId;
 
   let out = { body: text } as Awaited<ReturnType<typeof translateOutgoing>>;
-  if (isChatTranslateTarget(body.translateTo)) {
+  // El cliente ya tradujo el borrador con /api/chat/translate: guarda lo que escribió como `original`.
+  const original = sanitizeBodyText(body.original);
+  if (original && original !== text) {
+    if (!chatTranslatorAllowed(sessionUser, { as: "guest" })) {
+      return NextResponse.json({ error: CHAT_TRANSLATOR_LOCKED_ERROR, translatorLocked: true }, { status: 403 });
+    }
+    out = { body: text, original, lang: isChatLang(body.lang) ? body.lang : undefined };
+  } else if (isChatTranslateTarget(body.translateTo)) {
     if (!chatTranslatorAllowed(sessionUser, { as: "guest" })) {
       return NextResponse.json({ error: CHAT_TRANSLATOR_LOCKED_ERROR, translatorLocked: true }, { status: 403 });
     }

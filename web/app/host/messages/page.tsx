@@ -7,7 +7,7 @@ import { ChatsSwitch } from "@/components/team/chats-switch";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
-import { CHAT_LANGS, isChatTranslateTarget, type ChatTranslateTarget } from "@/lib/chat-langs";
+import { DraftTranslateControls, TranslatorBar, useWebChatTranslator } from "@/components/chat/web-translator";
 import { numberLocale } from "@/lib/i18n";
 
 type Msg = {
@@ -18,6 +18,8 @@ type Msg = {
   createdAt: string;
   guestName: string;
   attachment?: ChatAttachmentClient;
+  transcript?: string;
+  transcriptOriginal?: string;
   via?: "ai";
 };
 
@@ -50,8 +52,6 @@ function HostGuestChats() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
-  const [translateTo, setTranslateTo] = useState<ChatTranslateTarget | "">("");
-  const [translatorLocked, setTranslatorLocked] = useState(false);
   const query = useChatSearch();
 
   const load = useCallback(async () => {
@@ -76,7 +76,7 @@ function HostGuestChats() {
     load();
   }, [load]);
 
-  async function sendReply(th: Thread) {
+  async function sendReply(th: Thread, meta: { original: string; lang?: string } | null, onSent: () => void, onLocked: () => void) {
     const key = `${th.listingId}:${th.guestSessionId}`;
     const body = (replyText[key] ?? "").trim();
     if (!body || sending) return;
@@ -90,19 +90,17 @@ function HostGuestChats() {
           listingId: th.listingId,
           guestSessionId: th.guestSessionId,
           body,
-          ...(translateTo ? { translateTo } : {}),
+          ...(meta ?? {}),
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        if (res.status === 403 && data.translatorLocked) {
-          setTranslatorLocked(true);
-          setTranslateTo("");
-        }
+        if (res.status === 403 && data.translatorLocked) onLocked();
         alert(t(data.error ?? "No se pudo enviar."));
         return;
       }
       setReplyText((prev) => ({ ...prev, [key]: "" }));
+      onSent();
       await load();
     } catch {
       alert(t("Error de red."));
@@ -157,99 +155,115 @@ function HostGuestChats() {
                 </button>
 
                 {open && (
-                  <div className="border-t border-[#ebebeb] px-4 py-4">
-                    {th.guestEmail && (
-                      <p className="mb-3 text-xs text-[#666]">
-                        {t("Correo del huésped (opcional):")}{" "}
-                        <a className="font-medium text-[#dcb81e] underline" href={`mailto:${th.guestEmail}`}>
-                          {th.guestEmail}
-                        </a>
-                      </p>
-                    )}
-                    <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg bg-[#fafafa] p-3">
-                      {th.messages.map((m) => (
-                        <div
-                          key={m.id}
-                          className={`flex ${m.sender === "host" ? "justify-end" : "justify-start"}`}
-                        >
-                          <div
-                            className={`max-w-[90%] rounded-xl px-3 py-2 text-sm ${
-                              m.sender === "host"
-                                ? "bg-[#dcb81e] text-black"
-                                : "border border-[#ebebeb] bg-white text-[#3a3a3a]"
-                            }`}
-                          >
-                            <span className="text-[10px] font-bold uppercase opacity-70">
-                              {m.sender === "host" ? t(m.via === "ai" ? "Respondido por IA" : "Tú") : m.guestName || t("Huésped")}
-                            </span>
-                            {m.attachment && (
-                              <div className="mt-1">
-                                <ChatAttachmentView attachment={m.attachment} mine={m.sender === "host"} />
-                              </div>
-                            )}
-                            {m.body && <MessageBody body={m.body} original={m.original} mine={m.sender === "host"} className="mt-0.5 whitespace-pre-wrap" />}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <label className="mt-3 block text-xs font-semibold text-[#666]">
-                      {t("Traductor del chat")}
-                      <select
-                        value={translateTo}
-                        onChange={(e) => setTranslateTo(isChatTranslateTarget(e.target.value) ? e.target.value : "")}
-                        className="mt-1 w-full rounded-lg border border-[#ddd] bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#dcb81e] sm:max-w-xs"
-                      >
-                        <option value="">{t("Apagado: enviar tal cual")}</option>
-                        <option value="auto">{t("Automático: idioma de la otra persona")}</option>
-                        {CHAT_LANGS.map((l) => (
-                          <option key={l.code} value={l.code}>
-                            {l.name}
-                          </option>
-                        ))}
-                      </select>
-                      {translatorLocked && (
-                        <span className="mt-1 block font-normal text-amber-800">
-                          {t("El traductor del chat viene con la membresía de identidad verificada.")}{" "}
-                          <Link href="/host/verificacion" className="font-semibold underline">
-                            {t("Verificar mi identidad")}
-                          </Link>
-                        </span>
-                      )}
-                    </label>
-                    <div className="mt-3 flex gap-2">
-                      <textarea
-                        value={replyText[key] ?? ""}
-                        onChange={(e) =>
-                          setReplyText((prev) => ({ ...prev, [key]: e.target.value }))
-                        }
-                        rows={2}
-                        maxLength={2000}
-                        placeholder={t("Tu respuesta…")}
-                        className="min-w-0 flex-1 resize-y rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
-                      />
-                      <button
-                        type="button"
-                        disabled={sending === key || !(replyText[key] ?? "").trim()}
-                        onClick={() => sendReply(th)}
-                        className="shrink-0 self-end rounded-full px-4 py-2 text-sm font-semibold text-black shadow disabled:opacity-50"
-                        style={{ backgroundColor: "#dcb81e" }}
-                      >
-                        {sending === key ? "…" : t("Responder")}
-                      </button>
-                    </div>
-                    <Link
-                      href={`/host/listings/${th.listingId}/edit`}
-                      className="mt-2 inline-block text-xs text-[#dcb81e] underline"
-                    >
-                      {t("Editar este alojamiento")}
-                    </Link>
-                  </div>
+                  <OpenThread
+                    th={th}
+                    text={replyText[key] ?? ""}
+                    onText={(v) => setReplyText((prev) => ({ ...prev, [key]: v }))}
+                    sending={sending === key}
+                    onSend={(meta, onSent, onLocked) => void sendReply(th, meta, onSent, onLocked)}
+                  />
                 )}
               </li>
             );
           })}
         </ul>
       )}
+    </div>
+  );
+}
+
+/** Conversación abierta: mensajes, traductor y caja de respuesta. */
+function OpenThread({
+  th,
+  text,
+  onText,
+  sending,
+  onSend,
+}: {
+  th: Thread;
+  text: string;
+  onText: (v: string) => void;
+  sending: boolean;
+  onSend: (meta: { original: string; lang?: string } | null, onSent: () => void, onLocked: () => void) => void;
+}) {
+  const t = useT();
+  const tr = useWebChatTranslator({
+    listingId: th.listingId,
+    guestSessionId: th.guestSessionId,
+    storageKey: `h:${th.listingId}:${th.guestSessionId}`,
+    hostSide: true,
+  });
+  return (
+    <div className="border-t border-[#ebebeb] px-4 py-4">
+      {th.guestEmail && (
+        <p className="mb-3 text-xs text-[#666]">
+          {t("Correo del huésped (opcional):")}{" "}
+          <a className="font-medium text-[#dcb81e] underline" href={`mailto:${th.guestEmail}`}>
+            {th.guestEmail}
+          </a>
+        </p>
+      )}
+      <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg bg-[#fafafa] p-3">
+        {th.messages.map((m) => {
+          const mine = m.sender === "host";
+          // Con la traducción apagada, lo del huésped se muestra tal cual lo escribió.
+          const raw = !mine && !tr.translateIn;
+          return (
+            <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[90%] rounded-xl px-3 py-2 text-sm ${mine ? "bg-[#dcb81e] text-black" : "border border-[#ebebeb] bg-white text-[#3a3a3a]"}`}>
+                <span className="text-[10px] font-bold uppercase opacity-70">
+                  {mine ? t(m.via === "ai" ? "Respondido por IA" : "Tú") : m.guestName || t("Huésped")}
+                </span>
+                {m.attachment && (
+                  <div className="mt-1">
+                    <ChatAttachmentView
+                      attachment={m.attachment}
+                      mine={mine}
+                      transcript={raw ? (m.transcriptOriginal ?? m.transcript) : m.transcript}
+                      transcriptOriginal={raw ? undefined : m.transcriptOriginal}
+                    />
+                  </div>
+                )}
+                {m.body && (
+                  <MessageBody body={raw ? (m.original ?? m.body) : m.body} original={raw ? undefined : m.original} mine={mine} className="mt-0.5 whitespace-pre-wrap" />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 rounded-lg bg-[#fafafa] px-3 py-2.5">
+        <p className="mb-1.5 text-xs font-semibold text-[#666]">{t("Traductor del chat")}</p>
+        <TranslatorBar tr={tr} lockedHref="/host/verificacion" lockedCta={t("Verificar mi identidad")} />
+      </div>
+      <div className="mt-3 flex gap-2">
+        <textarea
+          value={text}
+          onChange={(e) => {
+            onText(e.target.value);
+            if (!e.target.value.trim()) tr.setDraft(null);
+          }}
+          rows={2}
+          maxLength={2000}
+          placeholder={t("Tu respuesta…")}
+          className="min-w-0 flex-1 resize-y rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
+        />
+        <button
+          type="button"
+          disabled={sending || !text.trim()}
+          onClick={() => onSend(tr.sendMeta(text), () => tr.setDraft(null), tr.markLocked)}
+          className="shrink-0 self-end rounded-full px-4 py-2 text-sm font-semibold text-black shadow disabled:opacity-50"
+          style={{ backgroundColor: "#dcb81e" }}
+        >
+          {sending ? "…" : t("Responder")}
+        </button>
+      </div>
+      <div className="mt-2">
+        <DraftTranslateControls tr={tr} text={text} onText={onText} disabled={sending} />
+      </div>
+      <Link href={`/host/listings/${th.listingId}/edit`} className="mt-2 inline-block text-xs text-[#dcb81e] underline">
+        {t("Editar este alojamiento")}
+      </Link>
     </div>
   );
 }

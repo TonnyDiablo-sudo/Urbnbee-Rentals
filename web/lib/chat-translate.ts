@@ -1,29 +1,12 @@
 import "server-only";
-import { CHAT_LANGS, type ChatTranslateTarget } from "@/lib/chat-langs";
+import { CHAT_LANGS, chatLangEnglishName, type ChatTranslateTarget } from "@/lib/chat-langs";
 import { translationEnabled } from "@/lib/content-translate";
 import { callListingImportOpenAiJson } from "@/lib/listing-import-openai";
 
 /**
- * Traductor del chat (membresía con identidad verificada): quien escribe manda su mensaje ya traducido
- * al idioma de la otra persona; el texto tal cual lo escribió se guarda en `original`.
+ * Traductor del chat (membresía con identidad verificada): quien escribe puede pasar su mensaje al
+ * idioma de la otra persona antes de mandarlo; el texto tal cual lo escribió se guarda en `original`.
  */
-
-const LANG_NAME: Record<string, string> = {
-  es: "Spanish",
-  en: "English",
-  fr: "French",
-  pt: "Portuguese",
-  de: "German",
-  it: "Italian",
-  nl: "Dutch",
-  ru: "Russian",
-  zh: "Chinese (Simplified)",
-  ja: "Japanese",
-  ko: "Korean",
-  ar: "Arabic",
-  he: "Hebrew",
-  hi: "Hindi",
-};
 
 const MODEL = () => process.env.CONTENT_TRANSLATE_MODEL?.trim() || "gpt-4o-mini";
 const DETECT_TTL_MS = 10 * 60_000;
@@ -82,7 +65,7 @@ export async function translateOutgoing(
     if (!lang && ctx.fallbackTexts?.length) lang = await detectChatLanguage(ctx.fallbackTexts, `${ctx.cacheKey}:fallback`);
   }
   if (!lang) return { body: text };
-  const name = LANG_NAME[lang] ?? lang;
+  const name = chatLangEnglishName(lang);
   const r = await callListingImportOpenAiJson<{ t?: unknown }>({
     system: [
       `You translate chat messages between a vacation-rental host and a guest into ${name}.`,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
 import { attachmentPreview, attachmentView, storeChatAttachment } from "@/lib/chat-attachments";
 import { CHAT_MEDIA_LOCKED_ERROR, chatMediaAllowed } from "@/lib/chat-media-access";
+import { scheduleTranscription } from "@/lib/chat-transcribe";
 import { publicNameOf, shareABooking } from "@/lib/display-name";
 import { emailRequiredResponse } from "@/lib/email-gate";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
     attachment: stored.attachment,
   });
   bridgeChatMessage(msg);
+  scheduleTranscription(msg);
 
   const preview = caption || attachmentPreview(stored.attachment.kind);
   if (as === "guest") {

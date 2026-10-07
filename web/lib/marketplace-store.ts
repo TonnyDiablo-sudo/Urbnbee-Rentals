@@ -360,7 +360,7 @@ function identityLocksName(userId: string): boolean {
 
 export function updateUser(
   userId: string,
-  patch: Partial<Pick<UserRecord, "fullName" | "phone" | "addressLine" | "alias" | "showAlias" | "legalNameLocked">>,
+  patch: Partial<Pick<UserRecord, "fullName" | "phone" | "addressLine" | "alias" | "showAlias" | "legalNameLocked" | "chatLang">>,
   opts?: { forceLegalName?: boolean }
 ): UserRecord | undefined {
   syncStoreFromDiskIfStale();

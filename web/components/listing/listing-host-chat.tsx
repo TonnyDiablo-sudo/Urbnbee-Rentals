@@ -7,7 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { useT } from "@/components/i18n-provider";
-import { CHAT_LANGS, isChatTranslateTarget, type ChatTranslateTarget } from "@/lib/chat-langs";
+import { DraftTranslateControls, TranslatorBar, useWebChatTranslator } from "@/components/chat/web-translator";
 
 type ChatRow = {
   id: string;
@@ -15,6 +15,8 @@ type ChatRow = {
   body: string;
   original?: string;
   attachment?: ChatAttachmentClient;
+  transcript?: string;
+  transcriptOriginal?: string;
   createdAt: string;
   guestLabel: string;
 };
@@ -43,8 +45,7 @@ export function ListingHostChat({
   const [needsEmail, setNeedsEmail] = useState(Boolean(emailGate));
   const loggedIn = loggedInRaw && !needsEmail;
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [translateTo, setTranslateTo] = useState<ChatTranslateTarget | "">("");
-  const [translatorLocked, setTranslatorLocked] = useState(false);
+  const tr = useWebChatTranslator({ listingId, storageKey: `g:${listingId}` });
 
   useEffect(() => {
     let cancelled = false;
@@ -87,6 +88,7 @@ export function ListingHostChat({
     const text = body.trim();
     if (!text || loading || !loggedIn) return;
     setLoading(true);
+    const meta = tr.sendMeta(text);
     try {
       const res = await fetch(`/api/listings/${listingId}/messages`, {
         method: "POST",
@@ -96,7 +98,7 @@ export function ListingHostChat({
           guestName: guestName.trim(),
           guestEmail: guestEmail.trim() || undefined,
           body: text,
-          ...(translateTo ? { translateTo } : {}),
+          ...(meta ?? {}),
         }),
       });
       const data = await res.json();
@@ -104,8 +106,7 @@ export function ListingHostChat({
         if (res.status === 403 && data.needsEmail) {
           setNeedsEmail(true);
         } else if (res.status === 403 && data.translatorLocked) {
-          setTranslatorLocked(true);
-          setTranslateTo("");
+          tr.markLocked();
         } else if (res.status === 401 && data.needsLogin) {
           alert(
             typeof data.error === "string"
@@ -118,6 +119,7 @@ export function ListingHostChat({
         return;
       }
       setBody("");
+      tr.setDraft(null);
       await load();
     } catch {
       alert(t("Error de red."));
@@ -174,63 +176,53 @@ export function ListingHostChat({
           <p className="text-sm text-[#888]">{t("Aún no hay mensajes. Saluda al anfitrión abajo.")}</p>
         ) : (
           <ul className="space-y-3">
-            {messages.map((m) => (
-              <li
-                key={m.id}
-                className={`flex ${m.sender === "guest" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                    m.sender === "guest"
-                      ? "rounded-br-sm bg-[#dcb81e] text-black"
-                      : "rounded-bl-sm border border-[#ebebeb] bg-white text-[#3a3a3a]"
-                  }`}
-                >
-                  <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
-                    {m.sender === "guest" ? t("Tú") : m.guestLabel}
-                  </p>
-                  {m.attachment && (
-                    <div className="mt-1">
-                      <ChatAttachmentView attachment={m.attachment} mine={m.sender === "guest"} />
-                    </div>
-                  )}
-                  {m.body && <MessageBody body={m.body} original={m.original} mine={m.sender === "guest"} className="mt-0.5 whitespace-pre-wrap" />}
-                </div>
-              </li>
-            ))}
+            {messages.map((m) => {
+              const mine = m.sender === "guest";
+              // Con la traducción apagada, lo del anfitrión se muestra tal cual lo escribió.
+              const raw = !mine && !tr.translateIn;
+              return (
+                <li key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                      mine ? "rounded-br-sm bg-[#dcb81e] text-black" : "rounded-bl-sm border border-[#ebebeb] bg-white text-[#3a3a3a]"
+                    }`}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{mine ? t("Tú") : m.guestLabel}</p>
+                    {m.attachment && (
+                      <div className="mt-1">
+                        <ChatAttachmentView
+                          attachment={m.attachment}
+                          mine={mine}
+                          transcript={raw ? (m.transcriptOriginal ?? m.transcript) : m.transcript}
+                          transcriptOriginal={raw ? undefined : m.transcriptOriginal}
+                        />
+                      </div>
+                    )}
+                    {m.body && (
+                      <MessageBody
+                        body={raw ? (m.original ?? m.body) : m.body}
+                        original={raw ? undefined : m.original}
+                        mine={mine}
+                        className="mt-0.5 whitespace-pre-wrap"
+                      />
+                    )}
+                  </div>
+                </li>
+              );
+            })}
             <div ref={bottomRef} />
           </ul>
         )}
       </div>
 
+      {loggedIn && (
+        <div className="mt-4 rounded-lg bg-[#fafafa] px-3 py-2.5">
+          <p className="mb-1.5 text-xs font-semibold text-[#666]">{t("Traductor del chat")}</p>
+          <TranslatorBar tr={tr} lockedHref="/guest/membresia" lockedCta={t("Ver membresía")} />
+        </div>
+      )}
+
       <div className="mt-4 grid gap-3 sm:grid-cols-2 opacity-100">
-        <label className={`block text-xs font-semibold text-[#666] ${!loggedIn ? "pointer-events-none opacity-50" : ""}`}>
-          {t("Traductor del chat")}
-          <select
-            value={translateTo}
-            onChange={(e) => setTranslateTo(isChatTranslateTarget(e.target.value) ? e.target.value : "")}
-            disabled={!loggedIn}
-            className="mt-1 w-full rounded-lg border border-[#ddd] bg-white px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
-          >
-            <option value="">{t("Apagado: enviar tal cual")}</option>
-            <option value="auto">{t("Automático: idioma de la otra persona")}</option>
-            {CHAT_LANGS.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.name}
-              </option>
-            ))}
-          </select>
-          {translatorLocked ? (
-            <span className="mt-1 block font-normal text-amber-800">
-              {t("El traductor del chat viene con la membresía de identidad verificada.")}{" "}
-              <Link href="/guest/membresia" className="font-semibold underline">
-                {t("Ver membresía")}
-              </Link>
-            </span>
-          ) : (
-            translateTo && <span className="mt-1 block font-normal text-[#888]">{t("Tu mensaje se envía traducido; el anfitrión puede ver lo que escribiste.")}</span>
-          )}
-        </label>
         <label className={`block text-xs font-semibold text-[#666] ${!loggedIn ? "pointer-events-none opacity-50" : ""}`}>
           {t("Correo (opcional, para que te respondan fuera de Cabibee)")}
           <input
@@ -263,6 +255,12 @@ export function ListingHostChat({
           }
         />
       </label>
+
+      {loggedIn && (
+        <div className="mt-2">
+          <DraftTranslateControls tr={tr} text={body} onText={setBody} disabled={loading} />
+        </div>
+      )}
 
       <button
         type="button"

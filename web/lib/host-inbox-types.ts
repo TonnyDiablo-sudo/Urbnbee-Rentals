@@ -17,6 +17,8 @@ export type HostInboxMessageRecord = {
   lang?: string;
   /** Foto o nota de voz; `body` es el texto que la acompaña (puede ir vacío). */
   attachment?: ChatAttachment;
+  /** Transcripción de la nota de voz, en el idioma en que se habló (se llena en segundo plano). */
+  transcript?: string;
   /** "ai": lo escribió el agente de urbnbeeai a nombre del anfitrión. */
   via?: "ai";
   /** Id que mandó urbnbeeai; un reintento con el mismo id no duplica el mensaje. */

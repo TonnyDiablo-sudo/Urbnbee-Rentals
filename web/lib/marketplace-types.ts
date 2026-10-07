@@ -44,6 +44,8 @@ export type UserRecord = {
   emailVerifiedAt?: string;
   /** Último idioma con el que usó el sitio; los correos salen en este idioma. */
   lang?: "es" | "en";
+  /** Idioma en que lee el chat (traductor): lo que le escriben se traduce a éste. Si falta, el del sitio. */
+  chatLang?: string;
   emailVerifyTokenHash?: string;
   emailVerifyExpiresAt?: string;
   /** Correo nuevo que pidió; reemplaza a `email` sólo cuando lo confirma desde el enlace. */

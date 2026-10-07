@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isChatLang } from "@/lib/chat-langs";
+import { chatTranslatorAllowed } from "@/lib/chat-media-access";
 import { isLegalNameLocked } from "@/lib/display-name";
 import { findUserById, getHostProfile, updateUser, upsertHostProfile } from "@/lib/marketplace-store";
 import type { HostProfileRecord } from "@/lib/marketplace-types";
@@ -19,6 +21,9 @@ function payload(userId: string, email: string) {
       phone: u?.phone ?? "",
       addressLine: u?.addressLine ?? "",
       role: u?.role,
+      chatLang: u?.chatLang ?? "",
+      /** Puede usar el traductor del chat (identidad verificada). */
+      chatTranslator: u ? chatTranslatorAllowed(u) : false,
     },
     profile: {
       bio: p?.bio ?? "",
@@ -78,6 +83,9 @@ export async function PATCH(req: NextRequest) {
   if (phone !== undefined) account.phone = phone.replace(/[^\d+\s-]/g, "");
   const addressLine = text(body.addressLine, 240);
   if (addressLine !== undefined) account.addressLine = addressLine;
+  // Idioma en que lee el chat; "" = el del sitio.
+  if (body.chatLang === "" || body.chatLang === null) account.chatLang = undefined;
+  else if (isChatLang(body.chatLang)) account.chatLang = body.chatLang;
   if (Object.keys(account).length) updateUser(user.id, account);
 
   const profile: Partial<Omit<HostProfileRecord, "userId">> = {};

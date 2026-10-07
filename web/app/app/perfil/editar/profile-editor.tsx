@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { CHAT_LANGS } from "@/lib/chat-langs";
 import { PROFILE_INTERESTS, PROFILE_LANGUAGES, PROFILE_MAX_CHIPS } from "@/lib/profile-options";
 import { TopBar } from "../../_components/top-bar";
 
@@ -20,6 +21,8 @@ export type ProfileDraft = {
   livesIn: string;
   languages: string[];
   interests: string[];
+  /** Idioma en que lee el chat (traductor); "" = el del sitio. */
+  chatLang: string;
 };
 
 const AVATAR_PX = 640;
@@ -97,6 +100,7 @@ export function ProfileEditor({ initial, back }: { initial: ProfileDraft; back: 
         livesIn: d.livesIn,
         languages: d.languages,
         interests: d.interests,
+        chatLang: d.chatLang,
       }),
     }).catch(() => null);
     const j = res ? await res.json().catch(() => ({})) : {};
@@ -240,6 +244,24 @@ export function ProfileEditor({ initial, back }: { initial: ProfileDraft; back: 
 
         <Group title={t("Idiomas que hablas")}>
           <Chips options={PROFILE_LANGUAGES} value={d.languages} onToggle={(v) => toggle("languages", v)} />
+        </Group>
+
+        <Group
+          title={t("Idioma del chat")}
+          hint={t("Con el traductor del chat (membresía de identidad verificada), lo que te escriben y las notas de voz se traducen a este idioma.")}
+        >
+          <select
+            value={d.chatLang}
+            onChange={(e) => set("chatLang", e.target.value)}
+            className="w-full rounded-xl border border-[#ccc] bg-white px-3.5 py-3 text-base outline-none focus:border-[#222]"
+          >
+            <option value="">{t("El idioma del sitio")}</option>
+            {CHAT_LANGS.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.name}
+              </option>
+            ))}
+          </select>
         </Group>
 
         <Group title={t("Tus gustos")} hint={t("Elige hasta {n}.", { n: PROFILE_MAX_CHIPS })}>

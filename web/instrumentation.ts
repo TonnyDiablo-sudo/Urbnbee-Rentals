@@ -29,6 +29,10 @@ export async function register() {
   } catch (e) {
     console.warn("[demo contracts]", e);
   }
+  const { backfillTranscripts } = await import("@/lib/chat-transcribe");
+  void backfillTranscripts()
+    .then((n) => n && console.log(`[chat transcribe] ${n} notas de voz transcritas`))
+    .catch((e) => console.warn("[chat transcribe] backfill", e));
   const { ensureDemoStayMedia } = await import("@/lib/demo-stay-media");
   void ensureDemoStayMedia().catch((e) => console.warn("[demo stay media]", e));
 }

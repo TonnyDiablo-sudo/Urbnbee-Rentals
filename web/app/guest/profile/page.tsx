@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { CHAT_LANGS, isChatLang } from "@/lib/chat-langs";
 
 export default function GuestProfilePage() {
   const t = useT();
@@ -18,6 +19,8 @@ export default function GuestProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
   const [toast, setToast] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  /** Idioma en que leo el chat ("" = el del sitio); se guarda en el perfil general. */
+  const [chatLang, setChatLang] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +51,9 @@ export default function GuestProfilePage() {
           setBio(data.profile?.bio ?? "");
           setAvatarUrl(data.profile?.avatarUrl);
         }
+        const aRes = await fetch("/api/account/profile", { credentials: "include", cache: "no-store" });
+        const aData = aRes.ok ? await aRes.json() : null;
+        if (!cancelled && isChatLang(aData?.user?.chatLang)) setChatLang(aData.user.chatLang);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -76,6 +82,16 @@ export default function GuestProfilePage() {
     const data = await res.json();
     if (!res.ok) {
       notify(data.error ?? "Error");
+      return;
+    }
+    const lRes = await fetch("/api/account/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ chatLang }),
+    });
+    if (!lRes.ok) {
+      notify(t("No se pudo guardar el idioma del chat."));
       return;
     }
     notify("Datos guardados");
@@ -192,6 +208,24 @@ export default function GuestProfilePage() {
               onChange={(e) => setAddressLine(e.target.value)}
               placeholder={t("Calle, número, colonia, ciudad")}
             />
+          </label>
+          <label className="block text-xs font-semibold uppercase tracking-wide text-[#888]">
+            {t("Idioma del chat")}
+            <select
+              className="mt-1 w-full rounded-lg border border-[#ddd] bg-white px-3 py-2 text-sm normal-case tracking-normal"
+              value={chatLang}
+              onChange={(e) => setChatLang(e.target.value)}
+            >
+              <option value="">{t("El idioma del sitio")}</option>
+              {CHAT_LANGS.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-[#888]">
+              {t("Lo que te escriban en el chat lo leerás en este idioma (requiere identidad verificada).")}
+            </span>
           </label>
           <button
             type="button"

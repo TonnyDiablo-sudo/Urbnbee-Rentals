@@ -451,4 +451,34 @@ export const cleaningFlow: Record<string, string> = {
   "Ej. MASCOTAS": "E.g. PETS",
   "Ej. Se permite una mascota pequeña previo aviso. El huésped responde por los daños que cause.":
     "E.g. One small pet is allowed with prior notice. The guest is responsible for any damage it causes.",
+  // Traductor del chat
+  "El traductor no está disponible en este momento.": "The translator isn't available right now.",
+  "Traductor activo: lo que te escriben lo lees en {lang}. Toca Traducir antes de enviar para contestar en su idioma.":
+    "Translator on: what they write is shown to you in {lang}. Tap Translate before sending to reply in their language.",
+  "Lo que me escriben": "What they write to me",
+  "Los mensajes y las notas de voz de la otra persona se traducen solos al idioma que elijas aquí. Siempre puedes ver el original.":
+    "The other person's messages and voice notes are translated automatically into the language you choose here. You can always see the original.",
+  "Traducir a mi idioma": "Translate into my language",
+  "Mostrar tal cual me escriben": "Show exactly what they write",
+  "Idioma en que leo el chat": "Language I read the chat in",
+  "Se guarda en tu perfil y aplica a todas tus conversaciones.": "Saved to your profile and applied to all your conversations.",
+  "El idioma del sitio ({lang})": "The site language ({lang})",
+  "Lo que escribo": "What I write",
+  "Escribe en tu idioma y toca Traducir junto a Enviar: el mensaje pasa al idioma de la otra persona, lo revisas y lo mandas. Ella podrá ver lo que escribiste.":
+    "Write in your language and tap Translate next to Send: the message is put into the other person's language, you review it and send it. They can see what you originally wrote.",
+  "Ya está en el idioma de la otra persona.": "It's already in the other person's language.",
+  "Traducido al {lang} · revísalo y envía.": "Translated into {lang} · review it and send.",
+  "Traducido · revísalo y envía.": "Translated · review it and send.",
+  Deshacer: "Undo",
+  "Traducir al idioma de la otra persona": "Translate into the other person's language",
+  "No se pudo traducir.": "Couldn't translate.",
+  "Idioma del chat": "Chat language",
+  "Con el traductor del chat (membresía de identidad verificada), lo que te escriben y las notas de voz se traducen a este idioma.":
+    "With the chat translator (verified-identity membership), what people write to you and their voice notes are translated into this language.",
+  "El idioma del sitio": "The site language",
+  "No se pudo guardar el idioma del chat.": "Couldn't save the chat language.",
+  "Lo que te escriban en el chat lo leerás en este idioma (requiere identidad verificada).":
+    "What people write to you in the chat will be shown in this language (requires verified identity).",
+  "Traducir lo que me escriben": "Translate what they write to me",
+  "Traduciendo…": "Translating…",
 };

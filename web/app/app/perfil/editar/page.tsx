@@ -32,6 +32,7 @@ export default async function AppEditProfilePage({ searchParams }: Props) {
     livesIn: p?.livesIn ?? "",
     languages: p?.languages ?? [],
     interests: p?.interests ?? [],
+    chatLang: u?.chatLang ?? "",
   };
   return <ProfileEditor initial={initial} back={from === "host" ? "/host/menu" : "/perfil"} />;
 }

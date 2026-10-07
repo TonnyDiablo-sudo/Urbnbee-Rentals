@@ -24,6 +24,8 @@ export type HostThread = {
     original?: string;
     createdAt: string;
     attachment?: ChatAttachmentView;
+    transcript?: string;
+    transcriptOriginal?: string;
     via?: "ai";
   }[];
   /** El agente de urbnbeeai contesta esta conversación. */

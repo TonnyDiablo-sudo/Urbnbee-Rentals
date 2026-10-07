@@ -1,5 +1,5 @@
 import "server-only";
-import { translateTexts } from "@/lib/content-translate";
+import { translateTexts, type TranslateLang } from "@/lib/content-translate";
 import { getListingDetail } from "@/lib/get-listing-detail";
 import type { Lang } from "@/lib/i18n";
 import type { ListingDetail } from "@/lib/listing-detail-data";
@@ -59,23 +59,39 @@ export async function translatedContractLines(lines: string[], lang: Lang, waitM
 }
 
 /** Mensajes del chat que escribió la otra persona, en el idioma de quien lee; `original` guarda el texto tal cual. */
-export async function translateIncoming<T extends { sender: "guest" | "host"; body: string; original?: string }>(
+type Localized<T> = T & { original?: string; transcriptOriginal?: string };
+
+export async function translateIncoming<T extends { sender: "guest" | "host"; body: string; original?: string; transcript?: string }>(
   msgs: T[],
   from: "guest" | "host",
-  lang: Lang,
+  lang: TranslateLang,
   waitMs = 2500
-): Promise<(T & { original?: string })[]> {
-  const idx = msgs.flatMap((m, i) => (m.sender === from && m.body.trim() ? [i] : [])).slice(-40);
-  if (!idx.length) return msgs;
+): Promise<Localized<T>[]> {
+  // Texto del mensaje y transcripción de la nota de voz, los dos al idioma de quien lee.
+  const jobs = msgs
+    .flatMap((m, i) =>
+      m.sender === from
+        ? [
+            ...(m.body.trim() ? [{ i, field: "body" as const, text: m.body }] : []),
+            ...(m.transcript?.trim() ? [{ i, field: "transcript" as const, text: m.transcript }] : []),
+          ]
+        : []
+    )
+    .slice(-60);
+  if (!jobs.length) return msgs;
   const out = await translateTexts(
-    idx.map((i) => msgs[i].body),
+    jobs.map((j) => j.text),
     lang,
     { waitMs }
   );
-  const copy: (T & { original?: string })[] = [...msgs];
-  idx.forEach((i, j) => {
+  const copy: Localized<T>[] = [...msgs];
+  jobs.forEach((j, k) => {
+    if (out[k] === j.text) return;
     // Si quien mandó ya lo tradujo con el traductor del chat, `original` sigue siendo lo que escribió.
-    if (out[j] !== msgs[i].body) copy[i] = { ...msgs[i], body: out[j], original: msgs[i].original ?? msgs[i].body };
+    copy[j.i] =
+      j.field === "body"
+        ? { ...copy[j.i], body: out[k], original: msgs[j.i].original ?? msgs[j.i].body }
+        : { ...copy[j.i], transcript: out[k], transcriptOriginal: msgs[j.i].transcript };
   });
   return copy;
 }

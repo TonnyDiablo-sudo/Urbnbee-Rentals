@@ -78,6 +78,20 @@ export function appendMessage(rec: Omit<HostInboxMessageRecord, "id" | "createdA
   return message;
 }
 
+/** Cambia campos de un mensaje ya guardado (p. ej. la transcripción de una nota de voz). */
+export function patchMessage(
+  id: string,
+  patch: Partial<Pick<HostInboxMessageRecord, "transcript">>
+): HostInboxMessageRecord | undefined {
+  syncIfStale();
+  const i = rows.findIndex((m) => m.id === id);
+  if (i < 0) return undefined;
+  const next = { ...rows[i], ...patch };
+  rows[i] = next;
+  persist(next);
+  return next;
+}
+
 /**
  * Las versiones anteriores descartaban al recargar los mensajes sin texto (fotos/audios);
  * MySQL sí los conserva. Sólo se recuperan en hilos que siguen existiendo.

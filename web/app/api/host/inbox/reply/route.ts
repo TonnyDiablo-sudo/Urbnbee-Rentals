@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/session";
 import { getListingById } from "@/lib/marketplace-store";
 import { appendMessage, listThread } from "@/lib/host-inbox-store";
 import { bridgeChatMessage } from "@/lib/beeagent-chat-bridge";
-import { isChatTranslateTarget } from "@/lib/chat-langs";
+import { isChatLang, isChatTranslateTarget } from "@/lib/chat-langs";
 import { CHAT_TRANSLATOR_LOCKED_ERROR, chatTranslatorAllowed } from "@/lib/chat-media-access";
 import { translateOutgoing } from "@/lib/chat-translate";
 import { sanitizeBodyText } from "@/lib/host-inbox-sanitize";
@@ -41,7 +41,14 @@ export async function POST(req: NextRequest) {
   }
 
   let out = { body: text } as Awaited<ReturnType<typeof translateOutgoing>>;
-  if (isChatTranslateTarget(body.translateTo)) {
+  // El cliente ya tradujo el borrador con /api/chat/translate: guarda lo que escribió como `original`.
+  const original = sanitizeBodyText(body.original);
+  if (original && original !== text) {
+    if (!chatTranslatorAllowed(user, { as: "host", listingHostId: listing.hostId })) {
+      return NextResponse.json({ error: CHAT_TRANSLATOR_LOCKED_ERROR, translatorLocked: true }, { status: 403 });
+    }
+    out = { body: text, original, lang: isChatLang(body.lang) ? body.lang : undefined };
+  } else if (isChatTranslateTarget(body.translateTo)) {
     if (!chatTranslatorAllowed(user, { as: "host", listingHostId: listing.hostId })) {
       return NextResponse.json({ error: CHAT_TRANSLATOR_LOCKED_ERROR, translatorLocked: true }, { status: 403 });
     }

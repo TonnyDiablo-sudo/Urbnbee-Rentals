@@ -4,6 +4,7 @@ import { memberCoversListing } from "@/lib/team-store";
 import { getSessionUser } from "@/lib/session";
 import { groupThreads } from "@/lib/host-inbox-store";
 import { nameForViewer, shareABooking } from "@/lib/display-name";
+import { chatReadingLang } from "@/lib/chat-reading-lang";
 import { translateTexts } from "@/lib/content-translate";
 import { getLang } from "@/lib/i18n/server";
 import { translateIncoming } from "@/lib/listing-localize";
@@ -35,15 +36,23 @@ export async function GET(req: NextRequest) {
       createdAt: string;
       guestName: string;
       attachment?: ChatAttachmentView;
+      transcript?: string;
+      transcriptOriginal?: string;
       via?: "ai";
     }[];
     aiOn: boolean;
   };
 
   const threads: ThreadOut[] = [];
-  const lang = await getLang();
+  // Lo que escriben los huéspedes se traduce al idioma en que lee el chat quien atiende.
+  const lang = chatReadingLang(user, await getLang(), { as: "host", listingHostId: scope.hostId });
   await translateTexts(
-    [...grouped.values()].flatMap((msgs) => msgs.filter((m) => m.sender === "guest").slice(-40).map((m) => m.body)),
+    [...grouped.values()].flatMap((msgs) =>
+      msgs
+        .filter((m) => m.sender === "guest")
+        .slice(-40)
+        .flatMap((m) => [m.body, ...(m.transcript ? [m.transcript] : [])])
+    ),
     lang,
     { waitMs: 2500 }
   );
@@ -76,6 +85,8 @@ export async function GET(req: NextRequest) {
         createdAt: m.createdAt,
         guestName: m.sender === "guest" ? guestName : "",
         attachment: attachmentView(m),
+        transcript: m.transcript,
+        transcriptOriginal: m.transcriptOriginal,
         via: m.via,
       })),
       aiOn: getChatAi(scope.hostId, listingId, guestSessionId).enabled,
@@ -84,5 +95,5 @@ export async function GET(req: NextRequest) {
 
   threads.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
 
-  return NextResponse.json({ threads });
+  return NextResponse.json({ threads, readingLang: lang });
 }

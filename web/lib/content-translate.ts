@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { getEffectiveBlogBotApiKey } from "@/lib/blog-bot-store";
+import { chatLangEnglishName } from "@/lib/chat-langs";
 import type { Lang } from "@/lib/i18n";
 import { callListingImportOpenAiJson } from "@/lib/listing-import-openai";
 import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
@@ -14,7 +15,12 @@ import { ensureDir, getDataDir } from "@/lib/runtime-paths";
  * original y la traducción sigue en segundo plano para la próxima vez.
  */
 
-const LANG_NAME: Record<Lang, string> = { es: "Spanish (Mexico)", en: "English (US)" };
+const LANG_NAME: Record<string, string> = { es: "Spanish (Mexico)", en: "English (US)" };
+/** Idioma de destino: los dos del sitio (`Lang`) o cualquiera del traductor del chat. */
+export type TranslateLang = Lang | string;
+function langName(lang: string): string {
+  return LANG_NAME[lang] ?? chatLangEnglishName(lang);
+}
 const MAX_ENTRIES = 40_000;
 const MAX_TEXT = 6_000;
 const CHUNK_CHARS = 7_000;
@@ -68,14 +74,15 @@ function persistSoon() {
 
 load();
 
-const keyOf = (text: string, lang: Lang) => `${lang}:${createHash("sha1").update(text).digest("base64url")}`;
+const keyOf = (text: string, lang: string) => `${lang}:${createHash("sha1").update(text).digest("base64url")}`;
 
 const ES_WORDS = /\b(el|la|los|las|de|del|que|y|en|con|para|por|una|un|es|está|muy|tiene|cerca|casa|habitación|baño|cocina|no|se|al|su|tu|hay)\b/gi;
 const EN_WORDS = /\b(the|and|of|to|with|for|is|in|a|an|you|your|this|near|room|house|bathroom|kitchen|not|it|on|are|has|our|we)\b/gi;
 
-/** Adivina si el texto ya está en ese idioma; con textos muy cortos no se arriesga. */
-function alreadyIn(text: string, lang: Lang): boolean {
+/** Adivina si el texto ya está en ese idioma; con textos muy cortos (u otros idiomas) no se arriesga. */
+function alreadyIn(text: string, lang: string): boolean {
   if (!/\p{L}/u.test(text)) return true;
+  if (lang !== "es" && lang !== "en") return false;
   const es = (text.match(ES_WORDS) ?? []).length + (/[ñ¿¡áéíóú]/i.test(text) ? 2 : 0);
   const en = (text.match(EN_WORDS) ?? []).length;
   if (es + en < 2) return false;
@@ -86,12 +93,13 @@ export function translationEnabled(): boolean {
   return Boolean(getEffectiveBlogBotApiKey());
 }
 
-async function translateChunk(texts: string[], lang: Lang): Promise<void> {
+async function translateChunk(texts: string[], lang: string): Promise<void> {
+  const name = langName(lang);
   const r = await callListingImportOpenAiJson<{ t?: unknown }>({
     system: [
-      `You translate user-written content of a vacation-rental marketplace into ${LANG_NAME[lang]}.`,
+      `You translate user-written content of a vacation-rental marketplace into ${name}.`,
       "Translate each item faithfully and naturally. Keep line breaks, bullet points, emojis, numbers, prices, dates, times, emails, URLs and names of people and places exactly as they are.",
-      `If an item is already in ${LANG_NAME[lang]}, return it unchanged. Never add explanations.`,
+      `If an item is already in ${name}, return it unchanged. Never add explanations.`,
       'Respond with JSON: {"t": [translated items, same order and same count]}.',
     ].join(" "),
     userText: JSON.stringify({ items: texts }),
@@ -119,7 +127,7 @@ async function translateChunk(texts: string[], lang: Lang): Promise<void> {
  * Traduce al idioma `lang`. Espera hasta `waitMs` a las que falten; las que no lleguen a tiempo
  * se devuelven en el original y se guardan cuando terminen.
  */
-export async function translateTexts(texts: string[], lang: Lang, opts: { waitMs?: number } = {}): Promise<string[]> {
+export async function translateTexts(texts: string[], lang: TranslateLang, opts: { waitMs?: number } = {}): Promise<string[]> {
   load();
   const enabled = translationEnabled();
   const pending: Promise<void>[] = [];
@@ -167,7 +175,7 @@ export async function translateTexts(texts: string[], lang: Lang, opts: { waitMs
 export async function translateFields<T extends object>(
   obj: T,
   fields: (keyof T)[],
-  lang: Lang,
+  lang: TranslateLang,
   opts: { waitMs?: number } = {}
 ): Promise<T> {
   const values = fields.map((f) => (typeof obj[f] === "string" ? (obj[f] as string) : ""));
