@@ -49,29 +49,66 @@ export function pushConfigured(): boolean {
   return ensureVapid();
 }
 
+export type PushSendResult = {
+  /** false: faltan las llaves VAPID en el servidor. */
+  configured: boolean;
+  /** Dispositivos registrados del usuario antes de enviar. */
+  devices: number;
+  sent: number;
+  /** Dispositivos que ya no existen (404/410) y se dieron de baja. */
+  expired: number;
+  failed: { host: string; status?: number; message: string }[];
+};
+
 /**
  * Envía a todos los dispositivos del usuario. Nunca lanza: una notificación
  * fallida no debe tumbar el mensaje o la reserva que la originó.
  */
-export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
-  if (!userId || !ensureVapid()) return;
+export async function sendPushToUser(userId: string, payload: PushPayload): Promise<PushSendResult> {
+  const out: PushSendResult = { configured: ensureVapid(), devices: 0, sent: 0, expired: 0, failed: [] };
+  if (!userId || !out.configured) return out;
   const subs = subscriptionsForUser(userId);
-  if (!subs.length) return;
+  out.devices = subs.length;
+  if (!subs.length) return out;
   const data = JSON.stringify({ ...payload, body: payload.body.slice(0, 180) });
   await Promise.all(
     subs.map(async (s) => {
       try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, data, { TTL: 60 * 60 * 24 });
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, data, { TTL: 60 * 60 * 24, urgency: "high" });
+        out.sent++;
       } catch (e) {
-        const status = (e as { statusCode?: number }).statusCode;
-        if (status === 404 || status === 410) {
+        const err = e as { statusCode?: number; body?: string; message?: string };
+        const host = (() => {
+          try {
+            return new URL(s.endpoint).host;
+          } catch {
+            return "?";
+          }
+        })();
+        if (err.statusCode === 404 || err.statusCode === 410) {
           removeSubscription(s.endpoint);
+          out.expired++;
         } else {
-          console.warn("[push] send failed:", status ?? (e instanceof Error ? e.message : e));
+          const message = [err.message, typeof err.body === "string" ? err.body.slice(0, 200) : ""].filter(Boolean).join(" · ");
+          out.failed.push({ host, status: err.statusCode, message });
+          console.warn("[push] send failed:", { userId, host, status: err.statusCode, message });
         }
       }
     })
   );
+  return out;
+}
+
+/** Aviso de prueba para comprobar que los push llegan al teléfono. */
+export function sendTestPush(userId: string): Promise<PushSendResult> {
+  const userLang = findUserById(userId)?.lang;
+  const t = makeT(isLang(userLang) ? userLang : "es");
+  return sendPushToUser(userId, {
+    title: t("Aviso de prueba de Cabibee"),
+    body: t("Si ves esto, las notificaciones ya llegan a este dispositivo."),
+    url: "/notificaciones",
+    tag: "test",
+  });
 }
 
 type NotifyInput = {

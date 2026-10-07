@@ -134,17 +134,55 @@ const HINT: Record<PushState, string> = {
   on: "Activados en este dispositivo.",
 };
 
+type TestResult = { configured: boolean; devices: number; sent: number; expired: number; failed: { host: string; status?: number; message: string }[] };
+
 /** Renglón para Perfil / Menú. */
 export function PushToggle() {
   const t = useT();
   const { state, busy, error, enable, disable } = usePush();
+  const [testing, setTesting] = useState(false);
+  const [testMsg, setTestMsg] = useState<string | null>(null);
   if (state === "loading") return null;
   const actionable = state === "on" || state === "off";
+  const sendTest = async () => {
+    setTesting(true);
+    setTestMsg(null);
+    try {
+      const res = await fetch("/api/push/test", { method: "POST" });
+      const r = (await res.json()) as TestResult;
+      if (!res.ok || !r.configured) setTestMsg(t("Las notificaciones no están activadas en el servidor."));
+      else if (r.devices === 0) setTestMsg(t("Este dispositivo no está registrado. Apaga y vuelve a prender el interruptor."));
+      else if (r.failed.length) {
+        setTestMsg(
+          t("No se pudo enviar ({errors}). Apaga y vuelve a prender el interruptor.", {
+            errors: r.failed.map((f) => f.status ?? f.message).join(", "),
+          })
+        );
+      } else if (r.sent === 0) setTestMsg(t("Los dispositivos registrados ya no existen. Apaga y vuelve a prender el interruptor."));
+      else if (r.sent === 1) setTestMsg(t("Enviado a 1 dispositivo. Si no llegó, revisa que el teléfono permita avisos de Cabibee."));
+      else setTestMsg(t("Enviado a {n} dispositivos. Si no llegó, revisa que el teléfono permita avisos de Cabibee.", { n: r.sent }));
+    } catch {
+      setTestMsg(t("No se pudo enviar la prueba."));
+    } finally {
+      setTesting(false);
+    }
+  };
   return (
     <li className="flex items-center gap-3 py-4">
       <div className="min-w-0 flex-1">
         <p className="text-[15px] text-[#222]">{t("Notificaciones")}</p>
         <p className="text-xs text-[#888]">{t(error ?? HINT[state])}</p>
+        {state === "on" && (
+          <button
+            type="button"
+            disabled={testing}
+            onClick={() => void sendTest()}
+            className="mt-1 text-xs font-semibold text-[#222] underline disabled:opacity-50"
+          >
+            {testing ? t("Enviando…") : t("Mandar un aviso de prueba")}
+          </button>
+        )}
+        {testMsg && <p className="mt-1 text-xs text-[#555]">{testMsg}</p>}
       </div>
       {actionable && (
         <button

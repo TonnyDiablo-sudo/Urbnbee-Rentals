@@ -89,6 +89,12 @@ export function subscriptionsForUser(userId: string): PushSubscriptionRecord[] {
   return rows.filter((s) => s.userId === userId);
 }
 
+/** Todos los dispositivos registrados (para el panel de administración). */
+export function listSubscriptions(): PushSubscriptionRecord[] {
+  syncIfStale();
+  return [...rows];
+}
+
 export function hasSubscription(userId: string, endpoint: string): boolean {
   syncIfStale();
   return rows.some((s) => s.userId === userId && s.endpoint === endpoint);

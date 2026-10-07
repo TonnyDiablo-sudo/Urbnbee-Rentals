@@ -698,6 +698,35 @@ export const cleaningFlow: Record<string, string> = {
     "Address verification is included in the engine (and is also sold per listing). If the listing shows “Verified location”, a bill in the host's name with that address has been reviewed.",
   "Si quieres, activa herramientas de la Tienda: verificación de identidad o de dirección, reservas en línea, limpieza o colaboradores.":
     "If you want, turn on tools from the Store: identity or address verification, online bookings, cleaning or collaborators.",
+  // Prueba de notificaciones push (app y admin)
+  "Mandar un aviso de prueba": "Send a test notification",
+  "Enviando…": "Sending…",
+  "Aviso de prueba de Cabibee": "Cabibee test notification",
+  "Si ves esto, las notificaciones ya llegan a este dispositivo.": "If you see this, notifications are reaching this device.",
+  "Las notificaciones no están activadas en el servidor.": "Notifications aren't enabled on the server.",
+  "Este dispositivo no está registrado. Apaga y vuelve a prender el interruptor.": "This device isn't registered. Turn the switch off and on again.",
+  "Los dispositivos registrados ya no existen. Apaga y vuelve a prender el interruptor.": "The registered devices no longer exist. Turn the switch off and on again.",
+  "No se pudo enviar la prueba.": "The test couldn't be sent.",
+  "Enviado a 1 dispositivo. Si no llegó, revisa que el teléfono permita avisos de Cabibee.":
+    "Sent to 1 device. If it didn't arrive, check that your phone allows Cabibee notifications.",
+  "Enviado a {n} dispositivos. Si no llegó, revisa que el teléfono permita avisos de Cabibee.":
+    "Sent to {n} devices. If it didn't arrive, check that your phone allows Cabibee notifications.",
+  "No se pudo enviar ({errors}). Apaga y vuelve a prender el interruptor.": "Couldn't send ({errors}). Turn the switch off and on again.",
+  "Notificaciones push": "Push notifications",
+  "Dispositivos que activaron los avisos en la app. Manda un aviso de prueba para comprobar que llegan al teléfono.":
+    "Devices that turned on notifications in the app. Send a test to check they reach the phone.",
+  "Servidor listo: llaves VAPID configuradas.": "Server ready: VAPID keys configured.",
+  "Faltan las llaves VAPID en el servidor: no se puede enviar nada.": "VAPID keys are missing on the server: nothing can be sent.",
+  "Contacto VAPID: {subject}": "VAPID contact: {subject}",
+  "{n} dispositivos registrados": "{n} registered devices",
+  "Nadie ha activado los avisos todavía. En la app: Menú → Notificaciones → interruptor. En iPhone primero hay que agregar la app a la pantalla de inicio.":
+    "Nobody has turned on notifications yet. In the app: Menu → Notifications → switch. On iPhone the app must be added to the home screen first.",
+  "Enviar aviso de prueba": "Send test notification",
+  "No se pudo enviar.": "Couldn't send.",
+  "{n} dispositivos": "{n} devices",
+  "enviados: {n}": "sent: {n}",
+  "dados de baja: {n}": "removed: {n}",
+  "fallaron: {list}": "failed: {list}",
   "Pruebas gratis": "Free trials",
   "Para anfitriones que nunca han probado una herramienta: dejan su tarjeta, no se les cobra nada durante la prueba y al terminar se cobra el plan que eligieron. Cada anfitrión tiene una sola prueba por herramienta.":
     "For hosts who have never tried a tool: they leave their card, nothing is charged during the trial and when it ends the plan they chose is charged. Each host gets a single trial per tool.",

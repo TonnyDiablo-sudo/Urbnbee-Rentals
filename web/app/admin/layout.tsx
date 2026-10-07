@@ -18,6 +18,7 @@ const NAV = [
   { href: "/admin/pricing", label: "Precios", icon: "💲" },
   { href: "/admin/promociones", label: "Promociones", icon: "🏷️" },
   { href: "/admin/pruebas", label: "Pruebas gratis", icon: "🎁" },
+  { href: "/admin/notificaciones", label: "Notificaciones push", icon: "🔔" },
   { href: "/admin/blog-bot", label: "Blog (LLM)", icon: "✍️" },
 ];
 
