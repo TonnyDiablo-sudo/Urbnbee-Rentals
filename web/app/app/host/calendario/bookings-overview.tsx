@@ -1,7 +1,8 @@
 "use client";
 
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { bookingPhaseOf, type BookingPhase } from "@/lib/booking-phase";
 import { numberLocale, type Lang } from "@/lib/i18n";
 import { Sheet } from "../../_components/sheet";
 import { addDays, holdsNights, isConfirmed, isPending, stayOf, toIso, type HostBooking } from "../_shared/host-data";
@@ -9,11 +10,17 @@ import { addDays, holdsNights, isConfirmed, isPending, stayOf, toIso, type HostB
 type Kind = "in" | "out" | "stay";
 type DayEvent = { kind: Kind; b: HostBooking };
 
-const LIST_DAYS_BACK = 30;
-
-/** Reservas que ocupan noches, del anuncio elegido o de todos (`listingId` null). */
-export function scopedBookings(bookings: HostBooking[], listingId: string | null): HostBooking[] {
-  return bookings.filter((b) => holdsNights(b.status) && (!listingId || stayOf(b).listingId === listingId));
+/**
+ * Reservas que cuentan en el calendario (ocupan noches o ya terminaron), del anuncio elegido o de
+ * todos (`listingId` null), y si se pide, sólo las de una fase (por llegar, hospedados, terminadas…).
+ */
+export function scopedBookings(bookings: HostBooking[], listingId: string | null, phase: BookingPhase | null = null, today = ""): HostBooking[] {
+  return bookings.filter(
+    (b) =>
+      (holdsNights(b.status) || b.status === "COMPLETED") &&
+      (!listingId || stayOf(b).listingId === listingId) &&
+      (!phase || bookingPhaseOf(b, today) === phase)
+  );
 }
 
 function eventsOn(bookings: HostBooking[], iso: string): DayEvent[] {
@@ -67,46 +74,48 @@ function EventRow({ e, showListing, onOpen }: { e: DayEvent; showListing: boolea
   );
 }
 
-/** Lista por días: llegadas y salidas de cada día; hoy también quién sigue hospedado. */
+/**
+ * Lista por días: llegadas y salidas de cada día dentro del rango (`to` null = sin tope);
+ * hoy también quién sigue hospedado.
+ */
 export function BookingsDayList({
   bookings,
   today,
+  range,
   showListing,
   onOpen,
 }: {
   bookings: HostBooking[];
   today: string;
+  range: { from: string; to: string | null };
   showListing: boolean;
   onOpen: (b: HostBooking) => void;
 }) {
   const t = useT();
   const lang = useLang();
-  const [withPast, setWithPast] = useState(false);
-  const from = withPast ? addDays(today, -LIST_DAYS_BACK) : today;
+  const { from, to } = range;
 
   const days = useMemo(() => {
+    const inRange = (iso: string) => iso >= from && (!to || iso <= to);
     const keys = new Set<string>();
     for (const b of bookings) {
       const s = stayOf(b);
-      if (s.checkIn >= from) keys.add(s.checkIn);
-      if (s.checkOut >= from) keys.add(s.checkOut);
-      if (s.checkIn < today && today < s.checkOut) keys.add(today);
+      if (inRange(s.checkIn)) keys.add(s.checkIn);
+      if (inRange(s.checkOut)) keys.add(s.checkOut);
+      if (s.checkIn < today && today < s.checkOut && inRange(today)) keys.add(today);
     }
     return [...keys]
       .sort()
       .map((iso) => ({ iso, events: eventsOn(bookings, iso).filter((e) => e.kind !== "stay" || iso === today) }))
       .filter((d) => d.events.length > 0);
-  }, [bookings, from, today]);
+  }, [bookings, from, to, today]);
 
   return (
     <div className="pb-10">
-      <div className="px-5 pt-3">
-        <button type="button" onClick={() => setWithPast(!withPast)} className="text-sm font-medium text-[#222] underline">
-          {withPast ? t("Ocultar días anteriores") : t("Ver los últimos 30 días")}
-        </button>
-      </div>
       {days.length === 0 ? (
-        <p className="mx-5 mt-4 rounded-2xl bg-[#f7f7f7] px-4 py-6 text-center text-sm text-[#717171]">{t("No hay llegadas ni salidas próximas.")}</p>
+        <p className="mx-5 mt-4 rounded-2xl bg-[#f7f7f7] px-4 py-6 text-center text-sm text-[#717171]">
+          {t("No hay llegadas ni salidas en este periodo.")}
+        </p>
       ) : (
         days.map((d) => (
           <section key={d.iso} className="mt-4">

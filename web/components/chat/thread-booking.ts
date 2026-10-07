@@ -1,3 +1,4 @@
+import { BOOKING_PHASES, type BookingPhase } from "@/lib/booking-phase";
 import type { Lang, TFn } from "@/lib/i18n";
 import { numberLocale } from "@/lib/i18n";
 
@@ -6,19 +7,13 @@ export type ThreadBooking = {
   id: string;
   checkIn: string;
   checkOut: string;
-  phase: "requested" | "upcoming" | "current" | "past";
+  phase: BookingPhase;
 };
 
 /** Filtro «Reserva»: cada fase, más «sin reserva». */
-export type BookingFilter = ThreadBooking["phase"] | "none";
+export type BookingFilter = BookingPhase | "none";
 
-export const BOOKING_FILTERS: { id: BookingFilter; label: string }[] = [
-  { id: "current", label: "Hospedados ahora" },
-  { id: "upcoming", label: "Por llegar" },
-  { id: "requested", label: "Solicitud pendiente" },
-  { id: "past", label: "Estancia terminada" },
-  { id: "none", label: "Sin reserva" },
-];
+export const BOOKING_FILTERS: { id: BookingFilter; label: string }[] = [...BOOKING_PHASES, { id: "none", label: "Sin reserva" }];
 
 export function bookingFilterLabel(id: BookingFilter, t: TFn): string {
   return t(BOOKING_FILTERS.find((f) => f.id === id)?.label ?? id);

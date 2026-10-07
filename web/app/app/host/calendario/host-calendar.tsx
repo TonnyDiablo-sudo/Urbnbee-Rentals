@@ -18,6 +18,8 @@ import {
 } from "@/lib/listing-pricing";
 import { BookingSearch } from "@/components/host/booking-search";
 import { LongStayDiscountFields } from "@/components/host/long-stay-discount-fields";
+import { BOOKING_PHASES, bookingPhaseLabel, type BookingPhase } from "@/lib/booking-phase";
+import { periodFromParam, periodLabel, periodRange, periodToParam, samePeriod, UPCOMING, type DatePeriod } from "@/lib/date-period";
 import { sizedImage } from "@/lib/image-url";
 import { Sheet } from "../../_components/sheet";
 import {
@@ -81,16 +83,25 @@ export function HostCalendar() {
   const [wanted, setWanted] = useState(() => params.get("anuncio"));
   const [picked, setPicked] = useState(wanted);
   const [view, setView] = useState<"cal" | "list">(() => (params.get("vista") === "lista" ? "list" : "cal"));
+  const [phase, setPhase] = useState<BookingPhase | null>(() => {
+    const p = params.get("reserva");
+    return BOOKING_PHASES.some((x) => x.id === p) ? (p as BookingPhase) : null;
+  });
+  const [period, setPeriod] = useState<DatePeriod>(() => periodFromParam(params.get("periodo")));
+  const [filterSheet, setFilterSheet] = useState<"phase" | "period" | null>(null);
   const [dayOpen, setDayOpen] = useState<string | null>(null);
   const [switching, startSwitch] = useTransition();
   const all = wanted === ALL;
   const listing = all ? null : (listings?.find((l) => l.id === wanted) ?? listings?.[0] ?? null);
   const pickedId = picked ?? listing?.id;
 
-  const syncUrl = (anuncio: string | null, vista: "cal" | "list") => {
+  const syncUrl = (anuncio: string | null, vista: "cal" | "list", ph: BookingPhase | null = phase, pe: DatePeriod = period) => {
     const q = new URLSearchParams();
     if (anuncio) q.set("anuncio", anuncio);
     if (vista === "list") q.set("vista", "lista");
+    if (ph) q.set("reserva", ph);
+    const pp = periodToParam(pe);
+    if (pp) q.set("periodo", pp);
     const s = q.toString();
     window.history.replaceState(null, "", `/host/calendario${s ? `?${s}` : ""}`);
   };
@@ -110,7 +121,22 @@ export function HostCalendar() {
     setView(v);
   };
 
-  const scoped = useMemo(() => scopedBookings(bookings, all ? null : (listing?.id ?? null)), [bookings, all, listing]);
+  const choosePhase = (p: BookingPhase | null) => {
+    syncUrl(pickedId ?? null, view, p, period);
+    setPhase(p);
+    setFilterSheet(null);
+  };
+
+  const choosePeriod = (p: DatePeriod) => {
+    syncUrl(pickedId ?? null, view, phase, p);
+    setPeriod(p);
+    setFilterSheet(null);
+  };
+
+  const today = todayIso();
+  const scoped = useMemo(() => scopedBookings(bookings, all ? null : (listing?.id ?? null), phase, today), [bookings, all, listing, phase, today]);
+  const range = useMemo(() => periodRange(period, today), [period, today]);
+  const phaseCount = (p: BookingPhase) => scopedBookings(bookings, all ? null : (listing?.id ?? null), p, today).length;
 
   /** Noche → reserva que la ocupa, para este anuncio. */
   const nightToBooking = useMemo(() => {
@@ -125,7 +151,6 @@ export function HostCalendar() {
     return map;
   }, [bookings, listing]);
 
-  const today = todayIso();
   const months = useMemo(() => {
     const now = new Date();
     return Array.from({ length: MONTHS_AHEAD }, (_, i) => new Date(now.getFullYear(), now.getMonth() + i, 1));
@@ -236,9 +261,66 @@ export function HostCalendar() {
         })}
       </div>
 
+      <div className="flex gap-2 overflow-x-auto px-5 pb-3 [scrollbar-width:none]">
+        <button
+          type="button"
+          onClick={() => setFilterSheet("phase")}
+          aria-haspopup="dialog"
+          className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium ${phase ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#222]"}`}
+        >
+          {phase ? t(bookingPhaseLabel(phase)) : t("Reserva")} ▾
+        </button>
+        {view === "list" && (
+          <button
+            type="button"
+            onClick={() => setFilterSheet("period")}
+            aria-haspopup="dialog"
+            className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium first-letter:uppercase ${period.kind !== "upcoming" ? "border-[#222] bg-[#222] text-white" : "border-[#ddd] text-[#222]"}`}
+          >
+            {period.kind === "upcoming" ? t("Periodo") : periodLabel(period, t, lang)} ▾
+          </button>
+        )}
+        {(phase || period.kind !== "upcoming") && (
+          <button
+            type="button"
+            onClick={() => {
+              syncUrl(pickedId ?? null, view, null, UPCOMING);
+              setPhase(null);
+              setPeriod(UPCOMING);
+            }}
+            className="shrink-0 whitespace-nowrap px-2 text-sm text-[#717171] underline"
+          >
+            {t("Quitar filtros")}
+          </button>
+        )}
+      </div>
+
+      <Sheet open={filterSheet === "phase"} onClose={() => setFilterSheet(null)} title={t("Reservas por estado")}>
+        <ul className="divide-y divide-[#f0f0f0] overflow-hidden rounded-2xl border border-[#ebebeb]">
+          <li>
+            <button type="button" className={optionCls(!phase)} onClick={() => choosePhase(null)}>
+              <span>{t("Todas las reservas")}</span>
+              <span className="text-xs text-[#999]">{scopedBookings(bookings, all ? null : (listing?.id ?? null), null, today).length}</span>
+            </button>
+          </li>
+          {BOOKING_PHASES.map((p) => (
+            <li key={p.id}>
+              <button type="button" className={optionCls(phase === p.id)} onClick={() => choosePhase(p.id)}>
+                <span>{t(p.label)}</span>
+                <span className="text-xs text-[#999]">{phaseCount(p.id)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Sheet>
+
+      <Sheet open={filterSheet === "period"} onClose={() => setFilterSheet(null)} title={t("Periodo")}>
+        <PeriodPicker value={period} today={today} onPick={choosePeriod} />
+      </Sheet>
+
       {view === "list" ? (
         <div className={`border-t border-[#f0f0f0] transition-opacity ${switching ? "opacity-50" : ""}`}>
-          <BookingsDayList bookings={scoped} today={today} showListing={all} onOpen={setOpenBooking} />
+          <BookingsDayList bookings={scoped} today={today} range={range} showListing={all} onOpen={setOpenBooking} />
         </div>
       ) : (
         <>
@@ -454,6 +536,64 @@ const MonthGrid = memo(function MonthGrid({
     </section>
   );
 });
+
+const optionCls = (on: boolean) =>
+  `flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm ${on ? "bg-[#fdf6d8] font-semibold text-[#222]" : "text-[#222] active:bg-[#fafafa]"}`;
+
+/** Elegir qué periodo ver en la lista: desde hoy, últimos 30 días, un mes o un año completo. */
+function PeriodPicker({ value, today, onPick }: { value: DatePeriod; today: string; onPick: (p: DatePeriod) => void }) {
+  const t = useT();
+  const lang = useLang();
+  const thisYear = Number(today.slice(0, 4));
+  const [year, setYear] = useState(value.kind === "month" || value.kind === "year" ? value.year : thisYear);
+  const quick: DatePeriod[] = [UPCOMING, { kind: "last30" }];
+  const monthBtn = (on: boolean) =>
+    `rounded-xl border px-2 py-2.5 text-sm font-medium first-letter:uppercase ${on ? "border-[#222] bg-[#222] text-white" : "border-[#e5e5e5] text-[#222] active:bg-[#fafafa]"}`;
+  return (
+    <div className="space-y-5">
+      <ul className="divide-y divide-[#f0f0f0] overflow-hidden rounded-2xl border border-[#ebebeb]">
+        {quick.map((p) => (
+          <li key={p.kind}>
+            <button type="button" className={optionCls(samePeriod(value, p))} onClick={() => onPick(p)}>
+              <span>{periodLabel(p, t, lang)}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <section>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-[#222]">{t("Por mes")}</h3>
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={() => setYear(year - 1)} aria-label={t("Año anterior")} className="h-9 w-9 rounded-full text-lg text-[#222] active:bg-[#f5f5f5]">
+              ‹
+            </button>
+            <span className="min-w-[3.5rem] text-center text-sm font-semibold text-[#222]">{year}</span>
+            <button type="button" onClick={() => setYear(year + 1)} aria-label={t("Año siguiente")} className="h-9 w-9 rounded-full text-lg text-[#222] active:bg-[#f5f5f5]">
+              ›
+            </button>
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {Array.from({ length: 12 }, (_, m) => {
+            const p: DatePeriod = { kind: "month", year, month: m };
+            return (
+              <button key={m} type="button" className={monthBtn(samePeriod(value, p))} onClick={() => onPick(p)}>
+                {new Date(year, m, 1).toLocaleDateString(numberLocale(lang), { month: "short" }).replace(/\.$/, "")}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          className={`mt-3 w-full rounded-xl border py-3 text-sm font-semibold ${samePeriod(value, { kind: "year", year }) ? "border-[#222] bg-[#222] text-white" : "border-[#222] text-[#222]"}`}
+          onClick={() => onPick({ kind: "year", year })}
+        >
+          {t("Todo el año {year}", { year })}
+        </button>
+      </section>
+    </div>
+  );
+}
 
 function Legend({ cls, label }: { cls: string; label: string }) {
   return (

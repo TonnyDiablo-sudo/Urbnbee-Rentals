@@ -544,4 +544,18 @@ export const cleaningFlow: Record<string, string> = {
   "Estancia terminada": "Stay ended",
   "Sin reserva": "No booking",
   todos: "all",
+
+  // Calendario y reservas: filtros por estado y periodo
+  "No hay llegadas ni salidas en este periodo.": "No arrivals or departures in this period.",
+  "Todas las reservas": "All bookings",
+  "Por mes": "By month",
+  "Por año": "By year",
+  "Año anterior": "Previous year",
+  "Año siguiente": "Next year",
+  "Todo el año {year}": "All of {year}",
+  todo: "all",
+  "No hay reservas que coincidan con los filtros.": "No bookings match the filters.",
+  "Buscar reserva: huésped, anuncio, código, mes o año": "Search bookings: guest, listing, code, month or year",
+  "Desde hoy": "From today",
+  "Últimos 30 días": "Last 30 days",
 };

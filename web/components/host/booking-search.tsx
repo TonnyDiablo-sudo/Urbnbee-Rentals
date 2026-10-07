@@ -40,6 +40,18 @@ function norm(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
+/** «octubre 2026 october oct 2026-10» para que se pueda buscar por mes o por año. */
+function dateWords(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return "";
+  const words = new Set<string>([iso.slice(0, 4), iso.slice(0, 7)]);
+  for (const loc of ["es-MX", "en-US"]) {
+    words.add(d.toLocaleDateString(loc, { month: "long" }));
+    words.add(d.toLocaleDateString(loc, { month: "short" }).replace(/\.$/, ""));
+  }
+  return [...words].join(" ");
+}
+
 function haystack(b: SearchableBooking): string {
   return norm(
     [
@@ -51,13 +63,15 @@ function haystack(b: SearchableBooking): string {
       b.listingTitle,
       b.effectiveListingTitle,
       ...(b.party ?? []).map((p) => p.name),
+      dateWords(b.hostAdjustedCheckIn ?? b.checkIn),
+      dateWords(b.hostAdjustedCheckOut ?? b.checkOut),
     ]
       .filter(Boolean)
       .join(" ")
   );
 }
 
-/** Busca por nombre, correo, teléfono, acompañantes, anuncio o código de reserva. */
+/** Busca por nombre, correo, teléfono, acompañantes, anuncio, código de reserva, mes o año de la estancia. */
 export function BookingSearch<B extends SearchableBooking>({
   bookings,
   onOpen,
@@ -107,7 +121,7 @@ export function BookingSearch<B extends SearchableBooking>({
           autoComplete="off"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={t("Buscar reserva: huésped, correo, anuncio o código")}
+          placeholder={t("Buscar reserva: huésped, anuncio, código, mes o año")}
           aria-label={t("Buscar reserva")}
           className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#999]"
         />

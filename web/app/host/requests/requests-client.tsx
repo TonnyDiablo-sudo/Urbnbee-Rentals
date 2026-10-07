@@ -8,6 +8,8 @@ import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-ty
 import { BookingReviewPanel } from "@/components/booking-review-panel";
 import { BookingScreeningPanel } from "@/components/booking-screening-panel";
 import { useLang, useT } from "@/components/i18n-provider";
+import { BOOKING_PHASES, bookingPhaseOf, localTodayIso, type BookingPhase } from "@/lib/booking-phase";
+import { periodFromParam, periodLabel, periodRange, periodToParam, stayInRange, type DatePeriod } from "@/lib/date-period";
 import { numberLocale } from "@/lib/i18n";
 import type { BookingDepositRecord } from "@/lib/booking-deposit-types";
 import type { ScreeningPublicView, ScreeningQuote } from "@/lib/screening-types";
@@ -77,6 +79,9 @@ export function HostRequestsClient() {
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
   const [quote, setQuote] = useState<ScreeningQuote | undefined>();
+  const [listingFilter, setListingFilter] = useState("");
+  const [phaseFilter, setPhaseFilter] = useState<BookingPhase | "">("");
+  const [periodParam, setPeriodParam] = useState("");
 
   const load = useCallback(async () => {
     setLoadErr(null);
@@ -125,15 +130,91 @@ export function HostRequestsClient() {
 
   const publishedListings = listings.filter((l) => l.published);
 
+  const today = localTodayIso();
+  const visible = bookings.filter((b) => !b.archivedAt);
+  const stayListingId = (b: BookingRow) => b.hostAdjustedListingId ?? b.listingId;
+  const listingOptions = [...new Map(visible.map((b) => [stayListingId(b), b.effectiveListingTitle ?? b.listingTitle])).entries()].sort((a, b) =>
+    a[1].localeCompare(b[1])
+  );
+  // Meses y años con reservas, para elegir el periodo sin escribir fechas.
+  const monthKeys = [...new Set(visible.map((b) => (b.hostAdjustedCheckIn ?? b.checkIn).slice(0, 7)))].sort().reverse();
+  const yearKeys = [...new Set(monthKeys.map((m) => m.slice(0, 4)))];
+  const period: DatePeriod | null = periodParam ? periodFromParam(periodParam) : null;
+  const range = period ? periodRange(period, today) : null;
+  const shown = visible
+    .filter((b) => !listingFilter || stayListingId(b) === listingFilter)
+    .filter((b) => !phaseFilter || bookingPhaseOf(b, today) === phaseFilter)
+    .filter((b) => !range || stayInRange(b.hostAdjustedCheckIn ?? b.checkIn, b.hostAdjustedCheckOut ?? b.checkOut, range));
+  const selectCls = "max-w-[16rem] rounded-full border border-[#ddd] bg-white px-3 py-1.5 text-sm text-[#222] outline-none focus:border-[#dcb81e]";
+  const filtered = Boolean(listingFilter || phaseFilter || periodParam);
+
   return (
     <div className="max-w-4xl">
       {loadErr && <p className="text-sm text-red-600">{t(loadErr)}</p>}
+
+      {visible.length > 0 && (
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          <label className="sr-only" htmlFor="bk-listing-filter">{t("Alojamiento")}</label>
+          <select id="bk-listing-filter" value={listingFilter} onChange={(e) => setListingFilter(e.target.value)} className={`${selectCls} ${listingFilter ? "border-[#222] font-medium" : ""}`}>
+            <option value="">{t("Alojamiento")}: {t("todos")}</option>
+            {listingOptions.map(([id, title]) => (
+              <option key={id} value={id}>
+                {title}
+              </option>
+            ))}
+          </select>
+          <label className="sr-only" htmlFor="bk-phase-filter">{t("Reserva")}</label>
+          <select id="bk-phase-filter" value={phaseFilter} onChange={(e) => setPhaseFilter(e.target.value as BookingPhase | "")} className={`${selectCls} ${phaseFilter ? "border-[#222] font-medium" : ""}`}>
+            <option value="">{t("Reserva")}: {t("todas")}</option>
+            {BOOKING_PHASES.map((p) => (
+              <option key={p.id} value={p.id}>
+                {t(p.label)} ({visible.filter((b) => bookingPhaseOf(b, today) === p.id).length})
+              </option>
+            ))}
+          </select>
+          <label className="sr-only" htmlFor="bk-period-filter">{t("Periodo")}</label>
+          <select id="bk-period-filter" value={periodParam} onChange={(e) => setPeriodParam(e.target.value)} className={`${selectCls} ${periodParam ? "border-[#222] font-medium" : ""}`}>
+            <option value="">{t("Periodo")}: {t("todo")}</option>
+            <option value="30d">{periodLabel({ kind: "last30" }, t, lang)}</option>
+            <optgroup label={t("Por mes")}>
+              {monthKeys.map((m) => (
+                <option key={m} value={m} className="first-letter:uppercase">
+                  {periodLabel(periodFromParam(m), t, lang)}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label={t("Por año")}>
+              {yearKeys.map((y) => (
+                <option key={y} value={periodToParam({ kind: "year", year: Number(y) }) ?? y}>
+                  {t("Todo el año {year}", { year: y })}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+          {filtered && (
+            <button
+              type="button"
+              onClick={() => {
+                setListingFilter("");
+                setPhaseFilter("");
+                setPeriodParam("");
+              }}
+              className="text-xs text-[#888] underline"
+            >
+              {t("Quitar filtros")}
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="mt-6 space-y-6">
         {bookings.length === 0 && !loadErr && (
           <p className="text-sm text-[#888]">{t("Aún no hay solicitudes de reserva.")}</p>
         )}
-        {bookings.filter((b) => !b.archivedAt).map((b) => {
+        {visible.length > 0 && shown.length === 0 && (
+          <p className="text-sm text-[#888]">{t("No hay reservas que coincidan con los filtros.")}</p>
+        )}
+        {shown.map((b) => {
           const pending = b.status === "PENDING" || b.status === "PENDING_HOST";
           const awaitingPay = b.status === "AWAITING_PAYMENT";
           return (
