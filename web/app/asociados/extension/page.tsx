@@ -50,14 +50,33 @@ export default async function ExtensionPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5">
-        <p className="text-base font-semibold text-gray-900">{t("2. Instálala en Chrome (una sola vez)")}</p>
+      <section className="rounded-xl border-2 border-amber-300 bg-white p-5">
+        <p className="text-base font-semibold text-gray-900">{t("2. Descomprime el archivo (obligatorio)")}</p>
+        <p className="mt-1 text-sm text-gray-600">
+          {t("Chrome no puede usar el archivo .zip directo: primero hay que descomprimirlo.")}
+        </p>
         <ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-relaxed text-gray-700">
           <li>
-            {t("Descomprime el ZIP: clic derecho → Extraer todo. Te queda una carpeta")}{" "}
-            <code className="rounded bg-gray-100 px-1">cabibee-extension</code>.{" "}
-            {t("Guárdala en un lugar fijo (por ejemplo Documentos); si la borras, la extensión deja de funcionar.")}
+            {t("Abre tu carpeta Descargas y busca")} <code className="rounded bg-gray-100 px-1">cabibee-extension.zip</code>.
           </li>
+          <li>
+            <strong>Windows:</strong> {t("clic derecho sobre el archivo → Extraer todo… → Extraer.")}{" "}
+            <strong>Mac:</strong> {t("doble clic sobre el archivo.")}
+          </li>
+          <li>
+            {t("Te queda una carpeta normal (sin cierre) llamada")}{" "}
+            <code className="rounded bg-gray-100 px-1">cabibee-extension</code>.{" "}
+            {t("Ábrela y revisa que adentro esté el archivo")} <code className="rounded bg-gray-100 px-1">manifest.json</code>.
+          </li>
+          <li>
+            {t("Mueve esa carpeta a un lugar fijo, por ejemplo Documentos. Si la borras, la extensión deja de funcionar.")}
+          </li>
+        </ol>
+      </section>
+
+      <section className="rounded-xl border border-gray-200 bg-white p-5">
+        <p className="text-base font-semibold text-gray-900">{t("3. Instálala en Chrome (una sola vez)")}</p>
+        <ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-relaxed text-gray-700">
           <li>
             {t("Abre una pestaña nueva, pega esta dirección y da Enter:")}
             <CopyText value="chrome://extensions" />
@@ -68,7 +87,11 @@ export default async function ExtensionPage() {
           </li>
           <li>
             {t("Clic en")} <strong>{t("Cargar descomprimida")}</strong> {t("y elige la carpeta")}{" "}
-            <code className="rounded bg-gray-100 px-1">cabibee-extension</code>.
+            <code className="rounded bg-gray-100 px-1">cabibee-extension</code>{" "}
+            {t("que descomprimiste (la que tiene manifest.json adentro), no el archivo .zip.")}
+            <span className="mt-1 block text-xs text-gray-500">
+              {t("Si sale “Manifest file is missing or unreadable”: elegiste el .zip o una carpeta de más arriba. Entra a la carpeta hasta ver manifest.json y elige esa.")}
+            </span>
           </li>
           <li>{t("Clic en la pieza de rompecabezas 🧩 junto a la barra de direcciones y fija 📌 Cabibee para tenerla siempre a la mano.")}</li>
           <li>{t("Clic en el ícono de Cabibee, pega tu token (abajo) y Guardar. La dirección ya viene puesta.")}</li>
@@ -79,12 +102,12 @@ export default async function ExtensionPage() {
       </section>
 
       <section className="space-y-3">
-        <p className="text-base font-semibold text-gray-900">{t("3. Tu token")}</p>
+        <p className="text-base font-semibold text-gray-900">{t("4. Tu token")}</p>
         <TokenPanel />
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white p-5">
-        <p className="text-base font-semibold text-gray-900">{t("4. Úsala en cada anuncio")}</p>
+        <p className="text-base font-semibold text-gray-900">{t("5. Úsala en cada anuncio")}</p>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-gray-700">
           <li>{t("Abre el anuncio y pasa por todas las fotos de la galería para que carguen.")}</li>
           <li>
@@ -97,7 +120,7 @@ export default async function ExtensionPage() {
       <section className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-700">
         <p className="font-semibold text-gray-900">{t("Actualizar a una versión nueva")}</p>
         <p className="mt-1">
-          {t("Descarga el ZIP otra vez, reemplaza el contenido de la carpeta cabibee-extension y en chrome://extensions da clic en ↻ (Recargar) en la tarjeta de Cabibee. Tu token se conserva.")}
+          {t("Descarga el ZIP otra vez, descomprímelo, reemplaza con eso el contenido de tu carpeta cabibee-extension y en chrome://extensions da clic en ↻ (Recargar) en la tarjeta de Cabibee. Tu token se conserva.")}
         </p>
       </section>
 

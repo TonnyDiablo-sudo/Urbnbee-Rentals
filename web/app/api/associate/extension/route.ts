@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAssociateFromRequest } from "@/lib/associate-auth";
 import { requestProto } from "@/lib/app-host";
-import { chromeExtensionVersion, chromeExtensionZip } from "@/lib/chrome-extension-zip";
+import { chromeExtensionZip } from "@/lib/chrome-extension-zip";
 
 export const runtime = "nodejs";
 
@@ -15,11 +15,10 @@ export async function GET(req: NextRequest) {
   const zip = chromeExtensionZip(server);
   if (!zip) return NextResponse.json({ error: "La extensión no está en el servidor." }, { status: 404 });
 
-  const version = chromeExtensionVersion() ?? "latest";
   return new NextResponse(new Uint8Array(zip), {
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="cabibee-extension-${version}.zip"`,
+      "Content-Disposition": `attachment; filename="cabibee-extension.zip"`,
       "Cache-Control": "no-store",
     },
   });

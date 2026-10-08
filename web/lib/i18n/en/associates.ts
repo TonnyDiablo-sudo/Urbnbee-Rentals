@@ -382,10 +382,7 @@ export const associates: Record<string, string> = {
   "Versión {v} · ya trae la dirección de Cabibee configurada.": "Version {v} · the Cabibee address is already set.",
   "No disponible en este servidor.": "Not available on this server.",
   "Descargar extensión": "Download extension",
-  "2. Instálala en Chrome (una sola vez)": "2. Install it in Chrome (one time)",
-  "Descomprime el ZIP: clic derecho → Extraer todo. Te queda una carpeta": "Unzip it: right-click → Extract all. You get a folder",
-  "Guárdala en un lugar fijo (por ejemplo Documentos); si la borras, la extensión deja de funcionar.":
-    "Keep it in a fixed place (e.g. Documents); if you delete it, the extension stops working.",
+  "3. Instálala en Chrome (una sola vez)": "3. Install it in Chrome (one time)",
   "Abre una pestaña nueva, pega esta dirección y da Enter:": "Open a new tab, paste this address and press Enter:",
   "En Edge es edge://extensions y en Brave brave://extensions.": "In Edge it's edge://extensions and in Brave brave://extensions.",
   "Arriba a la derecha activa": "At the top right turn on",
@@ -397,8 +394,8 @@ export const associates: Record<string, string> = {
     "Click the Cabibee icon, paste your token (below) and Save. The address is already filled in.",
   "Chrome puede mostrar el aviso “Desactiva las extensiones en modo de desarrollador”: elige Conservar o ciérralo. Es normal porque la extensión no viene de la Chrome Web Store.":
     "Chrome may show “Disable developer mode extensions”: choose Keep or close it. It's normal because the extension isn't from the Chrome Web Store.",
-  "3. Tu token": "3. Your token",
-  "4. Úsala en cada anuncio": "4. Use it on each listing",
+  "4. Tu token": "4. Your token",
+  "5. Úsala en cada anuncio": "5. Use it on each listing",
   "Abre el anuncio y pasa por todas las fotos de la galería para que carguen.":
     "Open the listing and go through every photo in the gallery so they load.",
   "Clic en el ícono de Cabibee →": "Click the Cabibee icon →",
@@ -406,6 +403,20 @@ export const associates: Record<string, string> = {
   "Cuando el ícono muestre ✓, el borrador aparece en Inicio → Por revisar.":
     "When the icon shows ✓, the draft appears in Home → To review.",
   "Actualizar a una versión nueva": "Update to a new version",
-  "Descarga el ZIP otra vez, reemplaza el contenido de la carpeta cabibee-extension y en chrome://extensions da clic en ↻ (Recargar) en la tarjeta de Cabibee. Tu token se conserva.":
-    "Download the ZIP again, replace the contents of the cabibee-extension folder and in chrome://extensions click ↻ (Reload) on the Cabibee card. Your token is kept.",
+  "Descarga el ZIP otra vez, descomprímelo, reemplaza con eso el contenido de tu carpeta cabibee-extension y en chrome://extensions da clic en ↻ (Recargar) en la tarjeta de Cabibee. Tu token se conserva.":
+    "Download the ZIP again, unzip it, use it to replace the contents of your cabibee-extension folder and in chrome://extensions click ↻ (Reload) on the Cabibee card. Your token is kept.",
+  "2. Descomprime el archivo (obligatorio)": "2. Unzip the file (required)",
+  "Chrome no puede usar el archivo .zip directo: primero hay que descomprimirlo.":
+    "Chrome can't use the .zip file directly: you have to unzip it first.",
+  "Abre tu carpeta Descargas y busca": "Open your Downloads folder and find",
+  "clic derecho sobre el archivo → Extraer todo… → Extraer.": "right-click the file → Extract All… → Extract.",
+  "doble clic sobre el archivo.": "double-click the file.",
+  "Te queda una carpeta normal (sin cierre) llamada": "You get a regular folder (no zipper) called",
+  "Ábrela y revisa que adentro esté el archivo": "Open it and check that it contains the file",
+  "Mueve esa carpeta a un lugar fijo, por ejemplo Documentos. Si la borras, la extensión deja de funcionar.":
+    "Move that folder to a fixed place, e.g. Documents. If you delete it, the extension stops working.",
+  "que descomprimiste (la que tiene manifest.json adentro), no el archivo .zip.":
+    "you unzipped (the one with manifest.json inside), not the .zip file.",
+  "Si sale “Manifest file is missing or unreadable”: elegiste el .zip o una carpeta de más arriba. Entra a la carpeta hasta ver manifest.json y elige esa.":
+    "If you get “Manifest file is missing or unreadable”: you picked the .zip or a folder too high up. Open folders until you see manifest.json and pick that one.",
 };

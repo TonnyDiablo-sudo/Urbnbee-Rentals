@@ -94,7 +94,10 @@ function buildZip(files: { name: string; data: Buffer }[]): Buffer {
   return Buffer.concat([...locals, ...centrals, end]);
 }
 
-/** ZIP con la carpeta `cabibee-extension/` lista para "Cargar descomprimida"; trae la dirección del servidor ya puesta. */
+/**
+ * ZIP con los archivos en la raíz: "Extraer todo" de Windows ya crea la carpeta con el nombre del ZIP,
+ * y esa carpeta es la que se elige en "Cargar descomprimida". Trae la dirección del servidor ya puesta.
+ */
 export function chromeExtensionZip(server: string): Buffer | null {
   const dir = extensionDir();
   if (!dir) return null;
@@ -102,8 +105,8 @@ export function chromeExtensionZip(server: string): Buffer | null {
   for (const entry of readdirSync(dir)) {
     const full = path.join(dir, entry);
     if (!statSync(full).isFile() || entry.startsWith(".") || entry === "config.json") continue;
-    files.push({ name: `cabibee-extension/${entry}`, data: readFileSync(full) });
+    files.push({ name: entry, data: readFileSync(full) });
   }
-  files.push({ name: "cabibee-extension/config.json", data: Buffer.from(JSON.stringify({ server }, null, 2)) });
+  files.push({ name: "config.json", data: Buffer.from(JSON.stringify({ server }, null, 2)) });
   return buildZip(files);
 }
