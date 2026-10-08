@@ -19,5 +19,6 @@ export function accountSecurityProps(
     phone: user.phone || getHostProfile(user.id)?.phone || "",
     stats: { listings: listings.length, views: totals.views, contacts: totals.contacts },
     doneHref,
+    adminSeesPassword: Boolean(user.associate) && user.role !== "admin",
   };
 }

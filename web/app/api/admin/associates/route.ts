@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
+import { rememberAssociatePassword } from "@/lib/associate-password-vault";
 import { generateTempPassword } from "@/lib/associate-provision";
 import { createUser, findUserByEmail, updateUserAuth } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
@@ -41,5 +42,6 @@ export async function POST(req: Request) {
     mustChangePassword: true,
   });
   updateUserAuth(user.id, { associate: true, ...(goal !== undefined ? { associateDailyGoal: goal } : {}) });
+  rememberAssociatePassword(user.id, password);
   return NextResponse.json({ ok: true, id: user.id, created: true, credentials: { email, password } });
 }

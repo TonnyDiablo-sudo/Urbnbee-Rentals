@@ -32,6 +32,9 @@ export type UserRecord = {
   associateTokenHash?: string;
   /** Cuentas nuevas que el admin le pide al asociado por día. */
   associateDailyGoal?: number;
+  /** Contraseña actual del asociado cifrada (AES-GCM) para que el admin la pueda ver; ver associate-password-vault. */
+  associatePasswordEnc?: string;
+  associatePasswordAt?: string;
   /** Asociado que dio de alta esta cuenta. */
   provisionedBy?: string;
   /** El correo es interno (`@cuentas.cabibee.com`) hasta que el dueño ponga el suyo. */

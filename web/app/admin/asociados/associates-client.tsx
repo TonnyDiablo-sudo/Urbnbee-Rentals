@@ -106,6 +106,7 @@ export function AssociateRow({
           <Link href={`/admin/users/${id}`} className="block text-xs text-gray-500 underline">
             {t("Ficha")}
           </Link>
+          {!isAdmin && active && <PasswordReveal id={id} />}
           {!isAdmin &&
             (active ? (
               <button
@@ -140,6 +141,53 @@ export function AssociateRow({
         </tr>
       )}
     </Fragment>
+  );
+}
+
+function PasswordReveal({ id }: { id: string }) {
+  const t = useT();
+  const [shown, setShown] = useState<{ password: string; at: string | null } | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function reveal() {
+    setMsg(null);
+    const res = await fetch(`/api/admin/associates/${id}`, { cache: "no-store" }).catch(() => null);
+    const j = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok) {
+      setMsg(typeof j.error === "string" ? t(j.error) : t("No se pudo cargar."));
+      return;
+    }
+    setShown({ password: j.password, at: j.at });
+  }
+
+  if (shown) {
+    return (
+      <span className="mt-1 block whitespace-nowrap text-xs">
+        <code className="rounded bg-amber-50 px-1.5 py-0.5 font-mono text-amber-900">{shown.password}</code>{" "}
+        <button
+          type="button"
+          onClick={() => {
+            void navigator.clipboard.writeText(shown.password);
+            setCopied(true);
+          }}
+          className="text-gray-500 underline"
+        >
+          {copied ? "✓" : t("Copiar")}
+        </button>{" "}
+        <button type="button" onClick={() => setShown(null)} className="text-gray-500 underline">
+          {t("Ocultar")}
+        </button>
+      </span>
+    );
+  }
+  return (
+    <span className="block">
+      <button type="button" onClick={() => void reveal()} className="whitespace-nowrap text-xs text-amber-700 underline">
+        {t("Ver contraseña")}
+      </button>
+      {msg && <span className="block max-w-[200px] whitespace-normal text-[11px] text-gray-500">{msg}</span>}
+    </span>
   );
 }
 
@@ -213,7 +261,7 @@ export function CreateAssociateForm() {
       {result && !result.credentials && <p className="text-sm text-green-700">{t("Listo: ya puede entrar al panel de asociados.")}</p>}
       {result?.credentials && (
         <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-3 font-mono text-sm">
-          <p className="font-sans text-xs font-semibold text-amber-900">{t("Acceso del asociado (solo se muestra ahora)")}</p>
+          <p className="font-sans text-xs font-semibold text-amber-900">{t("Acceso del asociado (después la ves en la tabla con «Ver contraseña»)")}</p>
           <p className="mt-1">
             {t("Usuario:")} {result.credentials.email}
           </p>

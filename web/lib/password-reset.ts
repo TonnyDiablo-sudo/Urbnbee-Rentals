@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
+import { rememberAssociatePassword } from "@/lib/associate-password-vault";
 import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { notifyPasswordChanged } from "@/lib/account-notices";
 import { emailLayout, emailT, escapeHtml, sendEmail, userLang } from "@/lib/email";
@@ -78,6 +79,7 @@ export async function consumePasswordReset(
     mustChangePassword: undefined,
     ...(user.provisionedBy && !user.claimedAt ? { claimedAt: new Date().toISOString() } : {}),
   });
+  rememberAssociatePassword(user.id, newPassword);
   void notifyPasswordChanged({ email: user.email, fullName: user.fullName, viaReset: true, lang: userLang(user) });
   return { ok: true };
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { rememberAssociatePassword } from "@/lib/associate-password-vault";
 import { findUserByEmail } from "@/lib/marketplace-store";
 import { createSession } from "@/lib/session";
 
@@ -18,6 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   await createSession({ id: user.id, email: user.email, role: user.role });
+  if (user.associate) rememberAssociatePassword(user.id, password);
 
   return NextResponse.json({
     ok: true,

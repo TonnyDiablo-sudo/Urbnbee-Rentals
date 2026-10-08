@@ -405,6 +405,13 @@ export const associates: Record<string, string> = {
   "Actualizar a una versión nueva": "Update to a new version",
   "Descarga el ZIP otra vez, descomprímelo, reemplaza con eso el contenido de tu carpeta cabibee-extension y en chrome://extensions da clic en ↻ (Recargar) en la tarjeta de Cabibee. Tu token se conserva.":
     "Download the ZIP again, unzip it, use it to replace the contents of your cabibee-extension folder and in chrome://extensions click ↻ (Reload) on the Cabibee card. Your token is kept.",
+  "Ver contraseña": "Show password",
+  "Acceso del asociado (después la ves en la tabla con «Ver contraseña»)":
+    "Associate access (you can see it later in the table with “Show password”)",
+  "Todavía no la tenemos: se guarda la próxima vez que el asociado inicie sesión o cambie su contraseña.":
+    "We don't have it yet: it's saved the next time the associate signs in or changes their password.",
+  "Como asociado, el administrador de Cabibee puede ver tu contraseña. No uses una que tengas en tu correo, banco u otros sitios.":
+    "As an associate, the Cabibee administrator can see your password. Don't use one you use for your email, bank or other sites.",
   "2. Descomprime el archivo (obligatorio)": "2. Unzip the file (required)",
   "Chrome no puede usar el archivo .zip directo: primero hay que descomprimirlo.":
     "Chrome can't use the .zip file directly: you have to unzip it first.",

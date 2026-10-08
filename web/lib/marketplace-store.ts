@@ -413,6 +413,8 @@ type UserAuthPatch = Partial<
     | "associate"
     | "associateTokenHash"
     | "associateDailyGoal"
+    | "associatePasswordEnc"
+    | "associatePasswordAt"
     | "placeholderEmail"
     | "mustChangePassword"
     | "claimedAt"

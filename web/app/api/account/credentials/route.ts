@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { notifyPasswordChanged } from "@/lib/account-notices";
+import { rememberAssociatePassword } from "@/lib/associate-password-vault";
 import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { userLang } from "@/lib/email";
 import { sendVerificationEmail } from "@/lib/email-verification";
@@ -108,6 +109,7 @@ export async function POST(req: NextRequest) {
     await createSession({ id: updated.id, email: updated.email, role: updated.role });
   }
   if (newPassword) {
+    rememberAssociatePassword(updated.id, newPassword);
     void notifyPasswordChanged({ email: updated.email, fullName: updated.fullName, lang: userLang(updated) });
   }
 

@@ -15,6 +15,8 @@ export type AccountSecurityProps = {
   phone: string;
   stats?: { listings: number; views: number; contacts: number };
   doneHref: string;
+  /** Asociados: el admin puede consultar su contraseña. */
+  adminSeesPassword?: boolean;
 };
 
 const inputCls = "mt-1 w-full rounded-xl border border-[#ccc] px-3.5 py-3 text-base outline-none focus:border-[#222]";
@@ -28,6 +30,7 @@ export function AccountSecurityForm({
   phone: initialPhone,
   stats,
   doneHref,
+  adminSeesPassword,
 }: AccountSecurityProps) {
   const t = useT();
   const router = useRouter();
@@ -187,6 +190,11 @@ export function AccountSecurityForm({
           {t("Repite la contraseña")}
           <PasswordField inputClassName={pwCls} required={activate || Boolean(newPassword)} autoComplete="new-password" value={confirm} onChange={setConfirm} />
         </label>
+        {adminSeesPassword && (
+          <p className="rounded-xl bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900">
+            {t("Como asociado, el administrador de Cabibee puede ver tu contraseña. No uses una que tengas en tu correo, banco u otros sitios.")}
+          </p>
+        )}
         <button
           type="submit"
           disabled={busy}
