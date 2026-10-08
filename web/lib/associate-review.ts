@@ -143,7 +143,7 @@ FOTOS DEL BORRADOR: ${photos.length ? `las últimas ${photos.length} imágenes, 
 
 Revisa:
 1. Que cada dato del borrador coincida con la fuente (precio, recámaras, baños, huéspedes, ciudad, zona, tipo, contacto). Si no coincide, repórtalo con el valor correcto en "suggested".
-2. Contacto (obligatorio): al menos teléfono, WhatsApp, correo o el enlace al perfil de quien publica. Búscalo en el texto y en los enlaces. Si la fuente es Facebook y no hay teléfono ni correo, usa el enlace al perfil de quien publica; si no aparece, usa la URL de la publicación: ${draft.source.url ?? "(no hay)"}.
+2. Contacto (obligatorio): al menos teléfono, WhatsApp, correo o el enlace a su Facebook. Búscalo en el texto y en los enlaces. contact.profileUrl SOLO puede ser de Facebook o Messenger (facebook.com, fb.com, m.me, messenger.com), nunca de Trovit u otro portal. Si la fuente es Facebook y no hay teléfono ni correo, usa el enlace al perfil de quien publica; si no aparece, usa la URL de la publicación: ${draft.source.url ?? "(no hay)"}.
 3. Dirección: si hay calle y número en la fuente y el borrador no los tiene, repórtalo con "suggested". Si no hay dirección exacta, rellena addressApprox con la mejor referencia (colonia, cerca de qué, ciudad) a partir de la fuente.
 4. Fotos: reporta las que no son del inmueble (mapas, logos, personas, capturas de texto, otro inmueble) o si la portada es mala. Usa field "photos" y di cuál (F#).
 5. Datos que faltan: en "fill" pon SOLO campos que hoy están vacíos (null, "" o 0) y cuyo valor sacas de la fuente o deduces con mucha seguridad. No inventes teléfonos, correos ni precios. Campos permitidos: ${fieldList}.

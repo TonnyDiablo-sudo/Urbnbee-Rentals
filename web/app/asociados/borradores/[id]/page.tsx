@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { draftForClient, getDraft, listDraftsForAssociate } from "@/lib/associate-drafts-store";
 import { findDuplicates } from "@/lib/associate-duplicates";
+import { loginNameFor } from "@/lib/associate-provision";
 import { getT } from "@/lib/i18n/server";
 import { listUsersProvisionedBy } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
@@ -35,7 +36,7 @@ export default async function DraftReviewPage({ params }: { params: Promise<{ id
   });
   const accounts = listUsersProvisionedBy(draft.associateId)
     .filter((u) => !u.claimedAt)
-    .map((u) => ({ id: u.id, fullName: u.fullName, email: u.email }));
+    .map((u) => ({ id: u.id, fullName: u.fullName, email: loginNameFor(u.email) }));
   const nextDraft = listDraftsForAssociate(draft.associateId, "pending").find((d) => d.id !== draft.id);
   return (
     <ReviewForm

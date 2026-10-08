@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { HostContact } from "@/lib/listing-detail-data";
 import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { useT } from "@/components/i18n-provider";
+import { isFacebookUrl } from "@/lib/associate-link-utils";
 
 type Props = {
   host: HostContact;
@@ -179,10 +180,10 @@ export function ContactModal({ host, listingId, listingSlug, canViewContacts, em
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white transition hover:opacity-90"
-                    style={{ backgroundColor: "#FF5A5F" }}
+                    style={{ backgroundColor: isFacebookUrl(host.airbnbUrl) ? "#1877F2" : "#FF5A5F" }}
                   >
                     <WebIcon />
-                    {t("Otro perfil")}
+                    {isFacebookUrl(host.airbnbUrl) ? "Facebook" : t("Otro perfil")}
                   </a>
                 )}
                 {host.website && (

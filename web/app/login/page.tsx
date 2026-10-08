@@ -74,11 +74,13 @@ export default function LoginPage() {
             <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{t(error)}</div>
           )}
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Correo")}</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#888]">{t("Correo o usuario")}</span>
             <input
-              type="email"
+              type="text"
               required
-              autoComplete="email"
+              autoComplete="username"
+              autoCapitalize="none"
+              inputMode="email"
               className="mt-1 w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

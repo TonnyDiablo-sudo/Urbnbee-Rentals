@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loginNameFor } from "@/lib/associate-provision";
 import { mxDay } from "@/lib/associate-stats";
 import { getT } from "@/lib/i18n/server";
 import { getStatsTotalsForListings } from "@/lib/listing-stats-store";
@@ -42,7 +43,7 @@ export default async function MyAccountsPage() {
                       {u.fullName}
                     </Link>
                   </td>
-                  <td className="px-4 py-2 font-mono text-xs text-gray-500">{u.email}</td>
+                  <td className="px-4 py-2 font-mono text-xs text-gray-500">{loginNameFor(u.email)}</td>
                   <td className="px-4 py-2 text-gray-700">{listings.length}</td>
                   <td className="px-4 py-2 text-gray-700">
                     {stats.views} / {stats.contacts}

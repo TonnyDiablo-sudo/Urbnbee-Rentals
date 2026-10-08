@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { loginNameFor } from "@/lib/associate-provision";
 import { numberLocale } from "@/lib/i18n";
 import { getLang, getT } from "@/lib/i18n/server";
 import { getListingStats } from "@/lib/listing-stats-store";
@@ -27,7 +28,7 @@ export default async function AssociateAccountPage({ params }: { params: Promise
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">{host.fullName}</h1>
             <p className="mt-1 font-mono text-sm text-gray-500">
-              {t("Usuario:")} {host.email}
+              {t("Usuario:")} {loginNameFor(host.email)}
             </p>
             <p className="text-sm text-gray-500">
               {[profile?.phone && `${t("Tel.")} ${profile.phone}`, profile?.whatsapp && `WhatsApp ${profile.whatsapp}`].filter(Boolean).join(" · ")}

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { useLang, useT } from "@/components/i18n-provider";
 import { AvailabilityCalendar } from "@/components/listing/availability-calendar";
+import { isFacebookUrl } from "@/lib/associate-link-utils";
 import { numberLocale } from "@/lib/i18n";
 import type { HostContact } from "@/lib/listing-detail-data";
 import type { ListingPricing } from "@/lib/listing-pricing";
@@ -176,7 +177,7 @@ function ContactChannels({ host, chatHref }: { host: HostContact; chatHref?: str
     host.email && { href: `mailto:${host.email}`, label: host.email, external: false },
     host.instagram && { href: `https://instagram.com/${host.instagram}`, label: `@${host.instagram}`, external: true },
     host.website && { href: host.website, label: t("Sitio web"), external: true },
-    host.airbnbUrl && { href: host.airbnbUrl, label: t("Otro perfil"), external: true },
+    host.airbnbUrl && { href: host.airbnbUrl, label: isFacebookUrl(host.airbnbUrl) ? "Facebook" : t("Otro perfil"), external: true },
   ].filter(Boolean) as { href: string; label: string; external: boolean }[];
 
   return (

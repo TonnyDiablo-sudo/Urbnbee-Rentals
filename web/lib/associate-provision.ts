@@ -31,30 +31,43 @@ export function generateTempPassword(): string {
   return `Cabi-${digits}-${tail}`;
 }
 
+/** «Juan Pérez López» → «juanperez»: nombre + primer apellido, sin acentos ni puntos. */
 function nameSlug(name: string): string {
   const slug = name
     .toLowerCase()
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
-    .replace(/[^a-z0-9]+/g, ".")
-    .replace(/^\.+|\.+$/g, "")
-    .split(".")
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
     .slice(0, 2)
-    .join(".");
+    .join("")
+    .slice(0, 16);
   return slug || "anfitrion";
 }
 
+/** Cuenta sin correo: el usuario es «juanperez4821»; por dentro se guarda como juanperez4821@cuentas.cabibee.com. */
 export function generatePlaceholderEmail(fullName: string): string {
   const base = nameSlug(fullName);
   for (let i = 0; i < 20; i++) {
-    const email = `${base}.${randomInt(1000, 10000)}@${PLACEHOLDER_EMAIL_DOMAIN}`;
+    const email = `${base}${randomInt(1000, 10000)}@${PLACEHOLDER_EMAIL_DOMAIN}`;
     if (!findUserByEmail(email)) return email;
   }
-  return `anfitrion.${Date.now()}@${PLACEHOLDER_EMAIL_DOMAIN}`;
+  return `anfitrion${Date.now()}@${PLACEHOLDER_EMAIL_DOMAIN}`;
 }
 
 export function isPlaceholderEmail(email: string | undefined): boolean {
   return Boolean(email?.toLowerCase().endsWith(`@${PLACEHOLDER_EMAIL_DOMAIN}`));
+}
+
+/** Lo que el dueño escribe para entrar: el usuario corto si el correo es interno, si no el correo. */
+export function loginNameFor(email: string): string {
+  return isPlaceholderEmail(email) ? email.slice(0, email.lastIndexOf("@")) : email;
+}
+
+/** Acepta «juanperez4821» (sin @) y lo convierte al correo interno. */
+export function emailFromLoginName(input: string): string {
+  const v = input.trim().toLowerCase();
+  return !v || v.includes("@") ? v : `${v}@${PLACEHOLDER_EMAIL_DOMAIN}`;
 }
 
 /** El asociado sólo maneja las cuentas que él creó y que el dueño todavía no reclama. Admin, todas las de asociados. */
@@ -163,7 +176,7 @@ export async function publishDraft(opts: {
       airbnbUrl: contact.profileUrl,
     });
     created = true;
-    credentials = { email, password };
+    credentials = { email: loginNameFor(email), password };
   }
 
   const l = draft.listing;
@@ -256,7 +269,7 @@ export async function resetTempPassword(
     mustChangePassword: true,
     passwordChangedAt: new Date().toISOString(),
   });
-  return { ok: true, email: host.email, password };
+  return { ok: true, email: loginNameFor(host.email), password };
 }
 
 export function hostContactSummary(hostId: string): { phone?: string; whatsapp?: string } {

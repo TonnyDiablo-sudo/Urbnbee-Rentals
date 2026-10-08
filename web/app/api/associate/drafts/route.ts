@@ -3,7 +3,7 @@ import { getAssociateFromRequest } from "@/lib/associate-auth";
 import { createDraftFromPage, createDraftFromScreenshots } from "@/lib/associate-capture";
 import { listDraftsForAssociate } from "@/lib/associate-drafts-store";
 import { fetchListingPage } from "@/lib/associate-link";
-import { firstUrlIn, isLoginWalledUrl } from "@/lib/associate-link-utils";
+import { firstUrlIn, needsScreenshots, siteFor } from "@/lib/associate-link-utils";
 import { listingImportAiEnabled } from "@/lib/listing-import-limits";
 
 export const runtime = "nodejs";
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
   let page: { url?: string; title: string; text: string; links: string[]; images: Buffer[] } | null = null;
   let fetchError: string | null = null;
-  if (url && !isLoginWalledUrl(url)) {
+  if (url && !needsScreenshots(url)) {
     const fetched = await fetchListingPage(url);
     if (fetched.ok && fetched.page.text.length >= MIN_TEXT) {
       page = {
@@ -94,11 +94,12 @@ export async function POST(req: NextRequest) {
   }
 
   if (!page) {
-    if (url && isLoginWalledUrl(url)) {
+    if (url && needsScreenshots(url)) {
       return NextResponse.json(
         {
           error:
-            "Facebook e Instagram no dejan que Cabibee abra el anuncio con el puro link. Agrega capturas del anuncio (texto y fotos) o pega también el texto de la publicación.",
+            "{site} no deja que Cabibee abra el anuncio con el puro link. Agrega capturas del anuncio (texto y fotos) o pega también el texto de la publicación.",
+          errorVars: { site: siteFor(url)!.name },
           code: "needs_screenshots",
         },
         { status: 422 }

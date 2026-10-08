@@ -1,3 +1,5 @@
+import { isFacebookUrl } from "@/lib/associate-link-utils";
+
 /** Campos del borrador que la revisión con IA puede rellenar. `contact.*` son los del contacto. */
 export const DRAFT_FILLABLE_FIELDS = [
   "title",
@@ -49,7 +51,7 @@ export const DRAFT_FIELD_LABEL: Record<DraftFillableField, string> = {
   "contact.phone": "Teléfono",
   "contact.whatsapp": "WhatsApp",
   "contact.email": "Correo de contacto",
-  "contact.profileUrl": "Perfil donde publica",
+  "contact.profileUrl": "Facebook del dueño",
 };
 
 export type DraftContactLike = {
@@ -59,18 +61,20 @@ export type DraftContactLike = {
   profileUrl?: string;
 };
 
-/** Sin una forma de contactar al dueño la cuenta no sirve: teléfono, WhatsApp, correo o su perfil. */
+/** Sin una forma de contactar al dueño la cuenta no sirve: teléfono, WhatsApp, correo o su Facebook. */
 export function draftHasContact(c: DraftContactLike): boolean {
-  return Boolean(c.phone?.trim() || c.whatsapp?.trim() || c.email?.trim() || c.profileUrl?.trim());
+  return Boolean(c.phone?.trim() || c.whatsapp?.trim() || c.email?.trim() || cleanProfileUrl(c.profileUrl));
 }
 
+/** Sólo Facebook o Messenger: se publica en «Contactar» y un link a Trovit u otro portal no es un contacto. */
 export function cleanProfileUrl(raw: string | undefined): string | undefined {
   const t = (raw ?? "").trim();
   if (!t) return undefined;
   try {
     const u = new URL(/^https?:\/\//i.test(t) ? t : `https://${t}`);
     if (u.protocol !== "https:" && u.protocol !== "http:") return undefined;
-    if (!u.hostname.includes(".")) return undefined;
+    if (!isFacebookUrl(u.toString())) return undefined;
+    u.protocol = "https:";
     return u.toString().slice(0, 500);
   } catch {
     return undefined;

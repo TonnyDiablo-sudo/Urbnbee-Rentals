@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { useT } from "@/components/i18n-provider";
 import {
+  cleanProfileUrl,
   DRAFT_FIELD_LABEL,
   draftHasContact,
   isDraftFillableField,
@@ -14,6 +15,7 @@ import type { AssociateDraft, DraftContact, DraftReview, DraftReviewIssue } from
 import type { DuplicateHit } from "@/lib/associate-duplicates";
 import { streetLineProblem } from "@/lib/listing-address";
 import type { ListingImportLlmPayload } from "@/lib/listing-import-types";
+import { ListingPreview } from "./listing-preview";
 
 type Account = { id: string; fullName: string; email: string };
 
@@ -138,6 +140,7 @@ export function ReviewForm({
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<Published | null>(null);
   const [copied, setCopied] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const set = <K extends keyof ListingImportLlmPayload>(k: K, v: ListingImportLlmPayload[K]) =>
     setL((prev) => ({ ...prev, [k]: v }));
@@ -183,7 +186,7 @@ export function ReviewForm({
     if (!l.title?.trim()) out.push("El anuncio necesita título.");
     if (!photos.length) out.push("Agrega al menos una foto del inmueble.");
     if (!draftHasContact(contact) && targetKind === "new") {
-      out.push("Falta el contacto del dueño: teléfono, WhatsApp, correo o el enlace a su perfil.");
+      out.push("Falta el contacto del dueño: teléfono, WhatsApp, correo o su Facebook.");
     }
     if (!l.city?.trim()) out.push("Falta la ciudad.");
     if (addressMode === "exact") {
@@ -237,6 +240,7 @@ export function ReviewForm({
     }).catch(() => null);
     const j = res ? await res.json().catch(() => ({})) : {};
     setBusy(null);
+    setPreviewOpen(false);
     if (!res?.ok) {
       setErr(typeof j.error === "string" ? t(j.error) : t("No se pudo publicar."));
       return;
@@ -337,11 +341,27 @@ export function ReviewForm({
     contact.phone && `☎ ${contact.phone}`,
     contact.whatsapp && `WhatsApp ${contact.whatsapp}`,
     contact.email && `✉ ${contact.email}`,
-    contact.profileUrl && t("Perfil"),
+    cleanProfileUrl(contact.profileUrl) && "Facebook",
   ].filter(Boolean) as string[];
 
   return (
     <FieldContext.Provider value={fieldCtx}>
+    {previewOpen && (
+      <ListingPreview
+        listing={l}
+        photos={photos}
+        hostName={
+          targetKind === "existing" ? (accounts.find((a) => a.id === hostId)?.fullName ?? "") : fullName || contact.hostName || ""
+        }
+        location={[l.zone, l.city, l.state, l.country || "México"].filter(Boolean).join(", ")}
+        exactAddress={addressMode === "exact" ? l.addressLine?.trim() || undefined : undefined}
+        problems={problems}
+        publishLabel={targetKind === "new" ? t("Crear cuenta y publicar") : t("Publicar en esa cuenta")}
+        publishing={busy === "publish"}
+        onPublish={() => void publish()}
+        onClose={() => setPreviewOpen(false)}
+      />
+    )}
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -428,6 +448,13 @@ export function ReviewForm({
               className="w-full rounded-lg border-2 border-gray-900 bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-50 disabled:opacity-40"
             >
               {busy === "review" ? t("La IA está revisando… (1-2 min)") : review ? t("Volver a revisar con IA") : t("Revisar con IA")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-50"
+            >
+              👁 {t("Vista previa del anuncio")}
             </button>
             <button
               type="button"
@@ -556,7 +583,7 @@ export function ReviewForm({
             <div className="sm:col-span-2">
               <h2 className="text-sm font-semibold text-gray-900">{t("Contacto del dueño (obligatorio)")}</h2>
               <p className="mt-0.5 text-xs text-gray-500">
-                {t("Al menos uno: teléfono, WhatsApp, correo o el enlace al perfil donde publicó (Facebook u otro).")}
+                {t("Al menos uno: teléfono, WhatsApp, correo o su Facebook. Se muestra en «Contactar» a quien tenga cuenta en Cabibee.")}
               </p>
               {issuesFor("contact").map((n, i) => (
                 <p key={i} className="mt-1 text-xs text-amber-700">
@@ -576,7 +603,7 @@ export function ReviewForm({
             <F name="contact.email" label="Correo de contacto">
               <input type="email" className={cls("contact.email")} value={contact.email ?? ""} onChange={(e) => setC("email", e.target.value)} />
             </F>
-            <F name="contact.profileUrl" label="Perfil donde publica" wide>
+            <F name="contact.profileUrl" label="Facebook del dueño" wide>
               <div className="flex gap-2">
                 <input
                   className={cls("contact.profileUrl")}
@@ -584,12 +611,17 @@ export function ReviewForm({
                   onChange={(e) => setC("profileUrl", e.target.value)}
                   placeholder="https://www.facebook.com/…"
                 />
-                {contact.profileUrl && (
+                {cleanProfileUrl(contact.profileUrl) && (
                   <a href={contact.profileUrl} target="_blank" rel="noreferrer" className="mt-1 shrink-0 self-center text-xs underline">
                     {t("Abrir")}
                   </a>
                 )}
               </div>
+              {contact.profileUrl?.trim() && !cleanProfileUrl(contact.profileUrl) && (
+                <p className="mt-1 text-xs text-red-700">
+                  {t("Sólo se aceptan enlaces de Facebook o Messenger. Este no se va a guardar.")}
+                </p>
+              )}
             </F>
           </section>
 
@@ -793,7 +825,7 @@ export function ReviewForm({
                     className={field}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t("Si lo dejas vacío se genera un usuario interno")}
+                    placeholder={t("Si lo dejas vacío, el usuario será tipo juanperez4821")}
                   />
                 </label>
                 <p className="text-xs text-gray-500 sm:col-span-2">

@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { rememberAssociatePassword } from "@/lib/associate-password-vault";
+import { emailFromLoginName } from "@/lib/associate-provision";
 import { findUserByEmail } from "@/lib/marketplace-store";
 import { createSession } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const email = String(body.email ?? "").trim().toLowerCase();
+  const email = emailFromLoginName(String(body.email ?? ""));
   const password = String(body.password ?? "");
 
   if (!email || !password) {
-    return NextResponse.json({ error: "Correo y contraseña son obligatorios." }, { status: 400 });
+    return NextResponse.json({ error: "Escribe tu correo o usuario y tu contraseña." }, { status: 400 });
   }
 
   const user = findUserByEmail(email);

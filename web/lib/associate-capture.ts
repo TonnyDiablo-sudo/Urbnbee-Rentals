@@ -32,7 +32,7 @@ function sourceFromUrl(url: string | undefined): { kind: ListingSourceKind; url?
 function missingContactWarning(c: DraftContact): string[] {
   return draftHasContact(c)
     ? []
-    : ["No se encontró cómo contactar al dueño. Agrega su teléfono, correo o el enlace a su perfil antes de publicar."];
+    : ["No se encontró cómo contactar al dueño. Agrega su teléfono, correo o su Facebook antes de publicar."];
 }
 
 /** Casi ningún anuncio de Facebook o Trovit trae calle y número: entonces queda como aproximada. */

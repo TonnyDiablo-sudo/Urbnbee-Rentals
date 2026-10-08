@@ -99,11 +99,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             </label>
           )}
           <label className="block text-sm font-medium text-[#222]">
-            {t("Correo")}
+            {t(mode === "login" ? "Correo o usuario" : "Correo")}
             <input
-              type="email"
+              type={mode === "login" ? "text" : "email"}
               required
-              autoComplete="email"
+              autoComplete={mode === "login" ? "username" : "email"}
+              autoCapitalize="none"
               inputMode="email"
               className={inputCls}
               value={email}

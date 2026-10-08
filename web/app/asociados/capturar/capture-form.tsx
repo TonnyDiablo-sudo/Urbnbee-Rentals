@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "@/components/i18n-provider";
-import { firstUrlIn, isLoginWalledUrl } from "@/lib/associate-link-utils";
+import { SitesList } from "@/components/associates/sites-list";
+import { firstUrlIn, siteFor } from "@/lib/associate-link-utils";
 
 const MAX_IMAGES = 10;
 const MAX_MB = 8;
@@ -38,7 +39,7 @@ export function CaptureForm({ hostId, preset }: { hostId?: string; preset?: Shar
       }
       return next;
     });
-  }, []);
+  }, [setPreviews]);
 
   useEffect(() => {
     if (!preset?.images) return;
@@ -77,7 +78,8 @@ export function CaptureForm({ hostId, preset }: { hostId?: string; preset?: Shar
     setErr(null);
   }
 
-  const walled = Boolean(link) && isLoginWalledUrl(link);
+  const site = link.trim() ? siteFor(link) : null;
+  const walled = site?.mode === "shots";
   const nothing = !link.trim() && text.trim().length < MIN_TEXT && !previews.length;
   const walledOnlyLink = walled && !previews.length && text.trim().length < MIN_TEXT;
 
@@ -88,7 +90,7 @@ export function CaptureForm({ hostId, preset }: { hostId?: string; preset?: Shar
     }
     if (walledOnlyLink) {
       setNeedShots(true);
-      setErr(t("Facebook no deja que Cabibee abra el link. Agrega capturas del anuncio o pega su texto."));
+      setErr(t("{site} no deja que Cabibee abra el link. Agrega capturas del anuncio o pega su texto.", { site: site!.name }));
       shotsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
@@ -139,11 +141,19 @@ export function CaptureForm({ hostId, preset }: { hostId?: string; preset?: Shar
             {t("Pegar")}
           </button>
         </div>
-        <p className={`mt-2 text-xs ${walled ? "text-amber-700" : "text-gray-500"}`}>
-          {walled
-            ? t("Facebook e Instagram piden iniciar sesión: con el puro link no se puede leer el anuncio. Agrega capturas o pega el texto; el link queda como referencia del perfil.")
-            : t("Trovit, Mercado Libre y muchos sitios públicos: basta con el link. Inmuebles24, Vivanuncios y Lamudi no dejan entrar a Cabibee: ahí sube capturas o usa la extensión.")}
-        </p>
+        {site && (
+          <p className={`mt-2 text-xs ${walled ? "font-medium text-amber-700" : "text-green-700"}`}>
+            {walled
+              ? t("{site} no deja que Cabibee lea el anuncio con el puro link. Agrega capturas o pega el texto; el link queda como referencia.", { site: site.name })
+              : t("{site}: con el puro link basta.", { site: site.name })}
+          </p>
+        )}
+        <details className="mt-2">
+          <summary className="cursor-pointer text-xs font-medium text-gray-600">{t("¿Qué sitios funcionan con el puro link?")}</summary>
+          <div className="mt-2">
+            <SitesList compact />
+          </div>
+        </details>
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white p-4">

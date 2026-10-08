@@ -128,7 +128,7 @@ export const associates: Record<string, string> = {
   "Agregar a una cuenta que ya creé": "Add to an account I already created",
   "Nombre del anfitrión": "Host name",
   "Correo real (opcional)": "Real email (optional)",
-  "Si lo dejas vacío se genera un usuario interno": "Leave blank to generate an internal username",
+  "Si lo dejas vacío, el usuario será tipo juanperez4821": "Leave blank and the username will look like juanperez4821",
   "Se genera una contraseña temporal. Al entrar por primera vez, el dueño pone su correo y su propia contraseña.":
     "A temporary password is generated. On first login, the owner sets their own email and password.",
   "Crear cuenta y publicar": "Create account and publish",
@@ -246,8 +246,10 @@ export const associates: Record<string, string> = {
   "Sin fotos no se puede publicar. Vuelve a importar con la galería abierta.":
     "Can't publish without photos. Import again with the gallery open.",
   "Contacto del dueño (obligatorio)": "Owner contact (required)",
-  "Al menos uno: teléfono, WhatsApp, correo o el enlace al perfil donde publicó (Facebook u otro).":
-    "At least one: phone, WhatsApp, email or the link to the profile where they posted (Facebook or other).",
+  "Al menos uno: teléfono, WhatsApp, correo o su Facebook. Se muestra en «Contactar» a quien tenga cuenta en Cabibee.":
+    "At least one: phone, WhatsApp, email or their Facebook. It's shown under «Contact» to anyone with a Cabibee account.",
+  "Sólo se aceptan enlaces de Facebook o Messenger. Este no se va a guardar.":
+    "Only Facebook or Messenger links are accepted. This one won't be saved.",
   Abrir: "Open",
   "Ubicación (obligatoria)": "Location (required)",
   Aproximada: "Approximate",
@@ -259,20 +261,19 @@ export const associates: Record<string, string> = {
   "Nombre en la cuenta": "Name on the account",
   "Correo de contacto": "Contact email",
   WhatsApp: "WhatsApp",
-  "Perfil donde publica": "Profile where they post",
+  "Facebook del dueño": "Owner's Facebook",
   "Calle y número": "Street and number",
   "Ubicación aproximada": "Approximate location",
-  Perfil: "Profile",
   Ubicación: "Location",
   "Campos de la IA aprobados": "AI fields approved",
   "Agrega al menos una foto del inmueble.": "Add at least one photo of the property.",
-  "Falta el contacto del dueño: teléfono, WhatsApp, correo o el enlace a su perfil.":
-    "The owner's contact is missing: phone, WhatsApp, email or a link to their profile.",
+  "Falta el contacto del dueño: teléfono, WhatsApp, correo o su Facebook.":
+    "The owner's contact is missing: phone, WhatsApp, email or their Facebook.",
   "Falta la ciudad.": "The city is missing.",
   "Escribe la colonia o una ubicación aproximada.": "Enter the neighborhood or an approximate location.",
   "Aprueba los campos que rellenó la IA (marcados en rojo).": "Approve the fields the AI filled (marked in red).",
-  "No se encontró cómo contactar al dueño. Agrega su teléfono, correo o el enlace a su perfil antes de publicar.":
-    "No way to contact the owner was found. Add their phone, email or profile link before publishing.",
+  "No se encontró cómo contactar al dueño. Agrega su teléfono, correo o su Facebook antes de publicar.":
+    "No way to contact the owner was found. Add their phone, email or Facebook before publishing.",
 
   // Agregar anuncio (link, texto, capturas, compartido desde Android)
   "Agregar anuncio": "Add listing",
@@ -293,14 +294,21 @@ export const associates: Record<string, string> = {
   Pegar: "Paste",
   "No se pudo leer el portapapeles. Mantén presionado el campo y elige Pegar.":
     "Couldn't read the clipboard. Long-press the field and choose Paste.",
-  "Facebook e Instagram piden iniciar sesión: con el puro link no se puede leer el anuncio. Agrega capturas o pega el texto; el link queda como referencia del perfil.":
-    "Facebook and Instagram require login: the link alone can't be read. Add screenshots or paste the text; the link is kept as the profile reference.",
-  "Trovit, Mercado Libre y muchos sitios públicos: basta con el link. Inmuebles24, Vivanuncios y Lamudi no dejan entrar a Cabibee: ahí sube capturas o usa la extensión.":
-    "Trovit, Mercado Libre and many public sites: the link is enough. Inmuebles24, Vivanuncios and Lamudi block Cabibee: there, upload screenshots or use the extension.",
+  "{site} no deja que Cabibee lea el anuncio con el puro link. Agrega capturas o pega el texto; el link queda como referencia.":
+    "{site} doesn't let Cabibee read the listing from the link alone. Add screenshots or paste the text; the link is kept as a reference.",
+  "{site}: con el puro link basta.": "{site}: the link alone is enough.",
+  "¿Qué sitios funcionan con el puro link?": "Which sites work with just the link?",
+  "Con el puro link": "Just the link",
+  "Pega el link y toca Analizar: Cabibee lee el texto y las fotos.": "Paste the link and tap Analyze: Cabibee reads the text and photos.",
+  "Con capturas, texto o la extensión": "With screenshots, text or the extension",
+  "Bloquean a Cabibee: pega el link como referencia y agrega capturas o el texto. En computadora, la extensión de Chrome funciona en todos.":
+    "They block Cabibee: paste the link as a reference and add screenshots or the text. On a computer, the Chrome extension works on all of them.",
+  "¿Otro sitio? Prueba con el link; si no se puede leer, Cabibee te pide capturas.":
+    "Another site? Try the link; if it can't be read, Cabibee will ask for screenshots.",
   "Ese sitio no deja que Cabibee lo abra.": "That site doesn't let Cabibee open it.",
   "El anuncio ya no existe en ese sitio.": "The listing no longer exists on that site.",
-  "Inmuebles24, Vivanuncios y Lamudi no dejan entrar a Cabibee: ahí comparte capturas como con Facebook.":
-    "Inmuebles24, Vivanuncios and Lamudi block Cabibee: there, share screenshots like with Facebook.",
+  "Trovit, Inmuebles24, Vivanuncios, Lamudi y otros bloquean a Cabibee: ahí comparte capturas como con Facebook.":
+    "Trovit, Inmuebles24, Vivanuncios, Lamudi and others block Cabibee: there, share screenshots like with Facebook.",
   "Texto del anuncio (opcional)": "Listing text (optional)",
   "Copia y pega aquí la descripción, precio y contacto tal como aparecen en la publicación.":
     "Copy and paste the description, price and contact exactly as they appear in the post.",
@@ -309,10 +317,10 @@ export const associates: Record<string, string> = {
     "Screenshot the text, the price, the contact and each photo opened full screen.",
   "Cargando las imágenes compartidas…": "Loading the shared images…",
   "Pega un link, el texto del anuncio o sube capturas.": "Paste a link, the listing text or upload screenshots.",
-  "Facebook no deja que Cabibee abra el link. Agrega capturas del anuncio o pega su texto.":
-    "Facebook doesn't let Cabibee open the link. Add screenshots of the listing or paste its text.",
-  "Facebook e Instagram no dejan que Cabibee abra el anuncio con el puro link. Agrega capturas del anuncio (texto y fotos) o pega también el texto de la publicación.":
-    "Facebook and Instagram don't let Cabibee open the listing from the link alone. Add screenshots of the listing (text and photos) or also paste the post text.",
+  "{site} no deja que Cabibee abra el link. Agrega capturas del anuncio o pega su texto.":
+    "{site} doesn't let Cabibee open the link. Add screenshots of the listing or paste its text.",
+  "{site} no deja que Cabibee abra el anuncio con el puro link. Agrega capturas del anuncio (texto y fotos) o pega también el texto de la publicación.":
+    "{site} doesn't let Cabibee open the listing from the link alone. Add screenshots of the listing (text and photos) or also paste the post text.",
   "No se pudo leer ese link: {reason} Prueba subiendo capturas del anuncio o pegando su texto.":
     "Couldn't read that link: {reason} Try uploading screenshots of the listing or pasting its text.",
   "El link debe empezar con https://": "The link must start with https://",
@@ -350,7 +358,7 @@ export const associates: Record<string, string> = {
   "Toca Compartir → Cabibee Asociados.": "Tap Share → Cabibee Associates.",
   "Cabibee se abre con las capturas cargadas: pega el link si lo tienes y toca Analizar.":
     "Cabibee opens with the screenshots loaded: paste the link if you have it and tap Analyze.",
-  "Trovit, Mercado Libre y otros sitios": "Trovit, Mercado Libre and other sites",
+  "Mercado Libre, Casas y Terrenos y Airbnb": "Mercado Libre, Casas y Terrenos and Airbnb",
   "En el anuncio toca Compartir → Cabibee Asociados (o copia el link).": "On the listing tap Share → Cabibee Associates (or copy the link).",
   "Con el puro link basta: Cabibee lee el texto y las fotos. Toca Analizar.":
     "The link alone is enough: Cabibee reads the text and photos. Tap Analyze.",
@@ -426,4 +434,18 @@ export const associates: Record<string, string> = {
     "you unzipped (the one with manifest.json inside), not the .zip file.",
   "Si sale “Manifest file is missing or unreadable”: elegiste el .zip o una carpeta de más arriba. Entra a la carpeta hasta ver manifest.json y elige esa.":
     "If you get “Manifest file is missing or unreadable”: you picked the .zip or a folder too high up. Open folders until you see manifest.json and pick that one.",
+
+  // Vista previa del borrador
+  "Vista previa del anuncio": "Listing preview",
+  "Vista previa · así lo verá la gente": "Preview · how people will see it",
+  "Todavía no está publicado.": "Not published yet.",
+  "Seguir editando": "Keep editing",
+  "Falta para publicar:": "Still needed to publish:",
+  "Tarjeta en resultados de búsqueda": "Card in search results",
+  "Página del anuncio": "Listing page",
+  "Sin descripción todavía.": "No description yet.",
+  "Sin características.": "No amenities.",
+  "{name} es anfitrión en Cabibee.": "{name} is a host on Cabibee.",
+  "Las {n} fotos aparecen en la galería del anuncio. El mapa se arma al publicar con la ubicación.":
+    "All {n} photos appear in the listing gallery. The map is built from the location when you publish.",
 };

@@ -87,7 +87,7 @@ export function draftPublishProblems(
   if (!d.listing.title?.trim()) problems.push("El anuncio necesita título.");
   if (!d.photos.length) problems.push("Agrega al menos una foto del inmueble.");
   if (!draftHasContact(d.contact) && !opts.hostHasContact) {
-    problems.push("Falta el contacto del dueño: teléfono, WhatsApp, correo o el enlace a su perfil.");
+    problems.push("Falta el contacto del dueño: teléfono, WhatsApp, correo o su Facebook.");
   }
   if (!d.listing.city?.trim()) problems.push("Falta la ciudad.");
   if (d.addressMode === "exact") {

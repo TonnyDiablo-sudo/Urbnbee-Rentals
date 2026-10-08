@@ -20,12 +20,12 @@ const SCHEMA = `Responde ÚNICAMENTE con un objeto JSON válido (sin markdown):
   "cleaningFee": number,
   "amenities": ["string", ...],
   "rules": { "smoking": boolean, "pets": boolean|null, "parties": boolean, "children": boolean },
-  "contact": { "hostName": "nombre de quien publica", "phone": "string con lada", "whatsapp": "string", "email": "string", "profileUrl": "enlace al perfil de quien publica (Facebook, Marketplace u otro sitio)" },
+  "contact": { "hostName": "nombre de quien publica", "phone": "string con lada", "whatsapp": "string", "email": "string", "profileUrl": "enlace al perfil de Facebook o Messenger de quien publica; SOLO facebook.com, fb.com, m.me o messenger.com, nunca Trovit, Inmuebles24 ni otros portales" },
   "fieldConfidence": { "campo": "high"|"low" },
   "warnings": ["string"]PHOTO_FIELD
 }
 Reglas: no inventes datos; si algo no se ve, omítelo y añade un warning. No inventes coordenadas.
-El contacto es obligatorio: busca teléfono, WhatsApp o correo en el texto. Si no hay, pon en profileUrl el enlace al perfil de quien publica (de la lista de enlaces si viene). Si no encuentras ninguna forma de contacto, dilo en warnings.
+El contacto es obligatorio: busca teléfono, WhatsApp o correo en el texto. Si no hay y el anuncio es de Facebook, pon en profileUrl el enlace al perfil de Facebook de quien publica (de la lista de enlaces si viene). Si el anuncio es de otro sitio, deja profileUrl vacío. Si no encuentras ninguna forma de contacto, dilo en warnings.
 Si es renta mensual/larga estancia y no por noche, dilo en warnings. Si no parece un alojamiento, dilo en warnings.`;
 
 const SYSTEM =

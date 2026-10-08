@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { InstallAppButton } from "@/components/associates/pwa";
+import { SitesList } from "@/components/associates/sites-list";
 import { deviceFromUa } from "@/lib/device";
 import { getT } from "@/lib/i18n/server";
 
@@ -52,13 +53,17 @@ export default async function PhonePage({ searchParams }: { searchParams: Promis
         ]}
       />
       <Steps
-        title={t("Trovit, Mercado Libre y otros sitios")}
+        title={t("Mercado Libre, Casas y Terrenos y Airbnb")}
         items={[
           t("En el anuncio toca Compartir → Cabibee Asociados (o copia el link)."),
           t("Con el puro link basta: Cabibee lee el texto y las fotos. Toca Analizar."),
-          t("Inmuebles24, Vivanuncios y Lamudi no dejan entrar a Cabibee: ahí comparte capturas como con Facebook."),
+          t("Trovit, Inmuebles24, Vivanuncios, Lamudi y otros bloquean a Cabibee: ahí comparte capturas como con Facebook."),
         ]}
       />
+      <section className="rounded-xl border border-gray-200 bg-white p-5">
+        <h2 className="mb-3 text-base font-semibold text-gray-900">{t("¿Qué sitios funcionan con el puro link?")}</h2>
+        <SitesList />
+      </section>
       <p className="text-xs text-gray-500">
         {t("¿No ves Cabibee Asociados en Compartir? Desliza la fila de apps hasta el final o toca Más. Si la acabas de instalar, espera un minuto.")}
       </p>
