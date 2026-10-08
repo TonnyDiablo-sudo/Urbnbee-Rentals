@@ -21,6 +21,7 @@ export async function POST(req: Request) {
   const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
   const fullName = String(body.fullName ?? "").replace(/[<>]/g, "").trim().slice(0, 120);
   const goal = goalFrom(body.dailyGoal);
+  const plus = body.plus === true;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "El correo no es válido." }, { status: 400 });
 
   const existing = findUserByEmail(email);
@@ -28,7 +29,11 @@ export async function POST(req: Request) {
     if (existing.provisionedBy && !existing.claimedAt) {
       return NextResponse.json({ error: "Esa es una cuenta de anfitrión creada por un asociado." }, { status: 409 });
     }
-    updateUserAuth(existing.id, { associate: true, ...(goal !== undefined ? { associateDailyGoal: goal } : {}) });
+    updateUserAuth(existing.id, {
+      associate: true,
+      ...(plus ? { associatePlus: true } : {}),
+      ...(goal !== undefined ? { associateDailyGoal: goal } : {}),
+    });
     return NextResponse.json({ ok: true, id: existing.id, created: false });
   }
 
@@ -41,7 +46,11 @@ export async function POST(req: Request) {
     role: "guest",
     mustChangePassword: true,
   });
-  updateUserAuth(user.id, { associate: true, ...(goal !== undefined ? { associateDailyGoal: goal } : {}) });
+  updateUserAuth(user.id, {
+    associate: true,
+    ...(plus ? { associatePlus: true } : {}),
+    ...(goal !== undefined ? { associateDailyGoal: goal } : {}),
+  });
   rememberAssociatePassword(user.id, password);
   return NextResponse.json({ ok: true, id: user.id, created: true, credentials: { email, password } });
 }

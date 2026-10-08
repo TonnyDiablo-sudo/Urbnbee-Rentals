@@ -411,6 +411,7 @@ type UserAuthPatch = Partial<
     | "email"
     | "passwordHash"
     | "associate"
+    | "associatePlus"
     | "associateTokenHash"
     | "associateDailyGoal"
     | "associatePasswordEnc"

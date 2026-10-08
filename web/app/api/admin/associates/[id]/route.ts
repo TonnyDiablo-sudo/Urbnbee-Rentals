@@ -44,6 +44,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     updateUserAuth(id, { associate: true });
     return NextResponse.json({ ok: true });
   }
+  if (typeof body.plus === "boolean") {
+    if (!target.associate) return NextResponse.json({ error: "Primero dale acceso de asociado." }, { status: 400 });
+    updateUserAuth(id, { associatePlus: body.plus || undefined });
+    return NextResponse.json({ ok: true, plus: body.plus });
+  }
   if (body.dailyGoal !== undefined) {
     const n = Number(body.dailyGoal);
     if (!Number.isFinite(n) || n < 0 || n > 500) {

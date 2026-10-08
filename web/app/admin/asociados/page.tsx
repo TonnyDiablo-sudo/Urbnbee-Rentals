@@ -98,6 +98,7 @@ export default async function AdminAssociatesPage() {
                     email={a.email}
                     active={Boolean(a.associate) || a.role === "admin"}
                     isAdmin={a.role === "admin"}
+                    plus={Boolean(a.associatePlus) || a.role === "admin"}
                     stats={s}
                     lastCreated={s.lastCreatedAt ? mxDay(s.lastCreatedAt) : "—"}
                   />

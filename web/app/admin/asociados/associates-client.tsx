@@ -13,6 +13,7 @@ export function AssociateRow({
   email,
   active,
   isAdmin,
+  plus,
   stats: s,
   lastCreated,
 }: {
@@ -21,6 +22,7 @@ export function AssociateRow({
   email: string;
   active: boolean;
   isAdmin: boolean;
+  plus: boolean;
   stats: AssociateStats;
   lastCreated: string;
 }) {
@@ -54,6 +56,9 @@ export function AssociateRow({
         <td className="px-4 py-2">
           <button type="button" onClick={() => setOpen((o) => !o)} className="text-left">
             <span className="font-medium text-gray-900 underline">{name}</span>
+            {plus && (
+              <span className="ml-1.5 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">{t("Plus")}</span>
+            )}
             <span className="block text-xs text-gray-400">
               {email}
               {isAdmin ? ` · ${t("admin")}` : ""}
@@ -107,6 +112,17 @@ export function AssociateRow({
             {t("Ficha")}
           </Link>
           {!isAdmin && active && <PasswordReveal id={id} />}
+          {!isAdmin && active && (
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void patch({ plus: !plus })}
+              title={t("Asociado Plus: puede usar el piloto automático de la extensión")}
+              className="block whitespace-nowrap text-xs text-violet-700 underline"
+            >
+              {plus ? t("Quitar Plus") : t("Hacer Plus")}
+            </button>
+          )}
           {!isAdmin &&
             (active ? (
               <button
@@ -197,6 +213,7 @@ export function CreateAssociateForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [goal, setGoal] = useState("10");
+  const [plus, setPlus] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [result, setResult] = useState<{ created: boolean; credentials?: { email: string; password: string } } | null>(null);
@@ -209,7 +226,7 @@ export function CreateAssociateForm() {
     const res = await fetch("/api/admin/associates", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullName, email, dailyGoal: Number(goal || 0) }),
+      body: JSON.stringify({ fullName, email, dailyGoal: Number(goal || 0), plus }),
     }).catch(() => null);
     const j = res ? await res.json().catch(() => ({})) : {};
     setBusy(false);
@@ -220,6 +237,7 @@ export function CreateAssociateForm() {
     setResult(j);
     setFullName("");
     setEmail("");
+    setPlus(false);
     router.refresh();
   }
 
@@ -254,6 +272,15 @@ export function CreateAssociateForm() {
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
       </div>
+      <label className="flex items-start gap-2 text-sm text-gray-700">
+        <input type="checkbox" checked={plus} onChange={(e) => setPlus(e.target.checked)} className="mt-0.5" />
+        <span>
+          <strong>{t("Asociado Plus")}</strong>{" "}
+          <span className="text-xs text-gray-500">
+            {t("Todo lo del asociado normal y además el piloto automático de la extensión: abre los anuncios de una búsqueda uno por uno y los manda a revisión solo.")}
+          </span>
+        </span>
+      </label>
       <button type="submit" disabled={busy} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
         {busy ? t("Guardando…") : t("Dar de alta")}
       </button>

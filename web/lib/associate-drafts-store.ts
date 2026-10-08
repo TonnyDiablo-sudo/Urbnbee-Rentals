@@ -69,6 +69,8 @@ export type AssociateDraft = {
   createdAccount?: boolean;
   publishedAt?: string;
   model?: string;
+  /** Lo trajo el piloto automático de la extensión (Asociado Plus). */
+  autopilot?: boolean;
   createdAt: string;
   updatedAt: string;
 };

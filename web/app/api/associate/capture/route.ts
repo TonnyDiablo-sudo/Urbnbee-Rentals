@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAssociateFromRequest } from "@/lib/associate-auth";
+import { autopilotSettings, autopilotUsedToday, canUseAutopilot, isKnownListingUrl } from "@/lib/associate-autopilot";
 import { createDraftFromPage } from "@/lib/associate-capture";
 import { listingImportAiEnabled } from "@/lib/listing-import-limits";
 
@@ -29,6 +30,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "La página casi no tiene texto. Abre el anuncio completo y vuelve a intentar." }, { status: 400 });
   }
 
+  const autopilot = form.get("autopilot") === "1";
+  if (autopilot) {
+    if (!canUseAutopilot(associate)) {
+      return NextResponse.json(
+        { code: "not_plus", error: "El piloto automático es sólo para cuentas Asociado Plus." },
+        { status: 403 }
+      );
+    }
+    const { dailyLimit } = autopilotSettings();
+    if (autopilotUsedToday(associate.id) >= dailyLimit) {
+      return NextResponse.json(
+        { code: "daily_limit", error: `Ya llegaste al tope de hoy del piloto automático (${dailyLimit}). Sigue mañana.` },
+        { status: 429 }
+      );
+    }
+    if (isKnownListingUrl(url)) {
+      return NextResponse.json({ code: "duplicate", error: "Este anuncio ya está en Cabibee." }, { status: 409 });
+    }
+  }
+
   const images: Buffer[] = [];
   for (const entry of form.getAll("images")) {
     if (!(entry instanceof File) || entry.size === 0 || entry.size > MAX_BYTES) continue;
@@ -50,6 +71,7 @@ export async function POST(req: NextRequest) {
     images,
     notes: String(form.get("notes") ?? "").trim().slice(0, 2000) || undefined,
     targetHostId: String(form.get("hostId") ?? "").trim() || undefined,
+    autopilot,
   });
   if (!result.ok) return NextResponse.json({ error: result.error, detail: result.detail }, { status: 502 });
   return NextResponse.json({

@@ -1,8 +1,10 @@
 import { headers } from "next/headers";
 import Link from "next/link";
+import { autopilotSettings, canUseAutopilot } from "@/lib/associate-autopilot";
 import { chromeExtensionVersion } from "@/lib/chrome-extension-zip";
 import { deviceFromUa } from "@/lib/device";
 import { getT } from "@/lib/i18n/server";
+import { getSessionUser } from "@/lib/session";
 import { CopyText } from "./copy-text";
 import { TokenPanel } from "./token-panel";
 
@@ -10,6 +12,8 @@ export default async function ExtensionPage() {
   const t = await getT();
   const version = chromeExtensionVersion();
   const onPhone = deviceFromUa((await headers()).get("user-agent") ?? "") !== "desktop";
+  const plus = canUseAutopilot(await getSessionUser());
+  const autopilot = autopilotSettings();
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -117,6 +121,33 @@ export default async function ExtensionPage() {
         </ol>
       </section>
 
+      {plus ? (
+        <section className="rounded-xl border-2 border-violet-300 bg-violet-50 p-5">
+          <p className="text-base font-semibold text-gray-900">
+            {t("6. Piloto automático")}{" "}
+            <span className="ml-1 rounded bg-violet-600 px-1.5 py-0.5 text-[10px] font-bold text-white">PLUS</span>
+          </p>
+          <p className="mt-1 text-sm text-gray-700">
+            {t("Tu cuenta es Asociado Plus: la extensión puede abrir los anuncios de una búsqueda uno por uno y mandarlos a revisión sola, con tu sesión y en tu Chrome.")}
+          </p>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-gray-700">
+            <li>{t("Abre una página de resultados: Facebook Marketplace → Propiedades en alquiler (con tu ciudad), Inmuebles24, Lamudi, Vivanuncios, Casas y Terrenos, Mercado Libre…")}</li>
+            <li>
+              {t("Clic en el ícono de Cabibee →")} <strong>{t("▶ Iniciar en esta búsqueda")}</strong>.
+            </li>
+            <li>{t("Se abre otra pestaña donde va pasando por cada anuncio y su galería. No la uses mientras trabaja; puedes seguir en otras pestañas.")}</li>
+            <li>{t("Para detenerlo: botón Pausar en la barra negra de esa pestaña o en el ícono de Cabibee.")}</li>
+            <li>{t("Los borradores llegan a Inicio → Por revisar. Nada se publica sin que tú lo revises.")}</li>
+          </ol>
+          <p className="mt-3 text-xs text-gray-600">
+            {t(
+              "Para cuidar tu cuenta de Facebook: máximo {limit} anuncios al día y al menos {sec} segundos entre uno y otro. Se salta los que ya están en Cabibee y se detiene solo si Facebook pide iniciar sesión o verificar que eres tú.",
+              { limit: autopilot.dailyLimit, sec: autopilot.minDelaySec }
+            )}
+          </p>
+        </section>
+      ) : null}
+
       <section className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-700">
         <p className="font-semibold text-gray-900">{t("Actualizar a una versión nueva")}</p>
         <p className="mt-1">
@@ -125,7 +156,9 @@ export default async function ExtensionPage() {
       </section>
 
       <p className="text-xs text-gray-400">
-        {t("Usa la extensión a mano, un anuncio a la vez. No automatices la navegación: Facebook bloquea cuentas que se comportan como bots.")}
+        {plus
+          ? t("No uses otros programas para automatizar ni bajes los tiempos del piloto: Facebook bloquea cuentas que se comportan como bots.")
+          : t("Usa la extensión a mano, un anuncio a la vez. No automatices la navegación: Facebook bloquea cuentas que se comportan como bots.")}
       </p>
     </div>
   );

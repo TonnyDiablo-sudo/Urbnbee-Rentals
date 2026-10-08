@@ -156,6 +156,7 @@ export async function createDraftFromPage(opts: {
   images: Buffer[];
   notes?: string;
   targetHostId?: string;
+  autopilot?: boolean;
 }): Promise<CaptureResult> {
   const id = newDraftId();
   const saved: string[] = [];
@@ -215,6 +216,7 @@ export async function createDraftFromPage(opts: {
       sourceLinks: opts.links?.slice(0, 60),
       targetHostId: opts.targetHostId,
       model: text.model,
+      autopilot: opts.autopilot || undefined,
       createdAt: now,
       updatedAt: now,
     }),

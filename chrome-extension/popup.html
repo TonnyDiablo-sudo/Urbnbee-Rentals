@@ -18,6 +18,11 @@
       .status a { color: inherit; font-weight: 600; }
       .hidden { display: none; }
       .hint { margin-top: 8px; font-size: 11px; color: #888; }
+      .plus { margin-top: 14px; padding-top: 10px; border-top: 1px solid #eee; }
+      .plus-title { margin: 0; font-weight: 700; }
+      .plus-title span { margin-left: 4px; padding: 1px 6px; border-radius: 4px; background: #ede9fe; color: #6d28d9; font-size: 10px; }
+      .plus-btn { background: #6d28d9; color: #fff; }
+      .plus-btn.stop { background: #444; }
     </style>
   </head>
   <body>
@@ -40,11 +45,23 @@
         </label>
         <button id="go">Importar esta página</button>
         <p class="hint">Antes, abre la galería del anuncio y pasa por todas las fotos para que carguen.</p>
+        <div id="status" class="status hidden"></div>
+
+        <div id="autopilot" class="plus hidden">
+          <p class="plus-title">Piloto automático <span>PLUS</span></p>
+          <p class="hint" id="ap-quota"></p>
+          <p class="hint">Abre una página de resultados (Marketplace → Propiedades en alquiler, Inmuebles24, Lamudi…) y dale Iniciar. Abre los anuncios uno por uno en otra pestaña, a ritmo de persona, y los manda a revisión. No uses esa pestaña mientras trabaja.</p>
+          <button id="ap-start" class="plus-btn">▶ Iniciar en esta búsqueda</button>
+          <button id="ap-stop" class="plus-btn stop hidden">❚❚ Pausar</button>
+          <div id="ap-status" class="status hidden"></div>
+        </div>
+
         <button id="edit" class="link">Cambiar token</button>
       </section>
 
-      <div id="status" class="status hidden"></div>
+      <div id="settings-status" class="status hidden"></div>
     </main>
+    <script src="collect.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

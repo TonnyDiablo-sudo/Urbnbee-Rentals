@@ -28,6 +28,8 @@ export type UserRecord = {
   createdAt: string;
   /** Puede usar el panel de asociados (alta de anfitriones con IA). Los admin siempre pueden. */
   associate?: boolean;
+  /** Asociado Plus: además puede usar el piloto automático de la extensión. */
+  associatePlus?: boolean;
   /** Hash del token que usa la extensión de Chrome del asociado. */
   associateTokenHash?: string;
   /** Cuentas nuevas que el admin le pide al asociado por día. */

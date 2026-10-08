@@ -52,6 +52,24 @@ export function isFacebookUrl(raw: string | undefined): boolean {
   return Boolean(host && FACEBOOK_DOMAINS.some((d) => matches(host, d)));
 }
 
+/** Mismo anuncio aunque el link traiga parámetros distintos: sirve para no importarlo dos veces. */
+export function canonicalListingUrl(raw: string | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw.trim());
+    const host = u.hostname.toLowerCase().replace(/^(www|m|web)\./, "");
+    const fbItem = u.pathname.match(/\/marketplace\/item\/(\d+)/);
+    if (fbItem && (host === "facebook.com" || host.endsWith(".facebook.com"))) return `facebook.com/marketplace/item/${fbItem[1]}`;
+    const room = u.pathname.match(/\/rooms\/(\d+)/);
+    if (room && host.startsWith("airbnb.")) return `airbnb/rooms/${room[1]}`;
+    const ml = u.pathname.match(/\/(MLM-?\d+)/i);
+    if (ml && host.endsWith("mercadolibre.com.mx")) return `mercadolibre/${ml[1].toUpperCase().replace("-", "")}`;
+    return `${host}${u.pathname.replace(/\/+$/, "").toLowerCase()}`;
+  } catch {
+    return null;
+  }
+}
+
 export function firstUrlIn(text: string): string | null {
   const m = text.match(/https?:\/\/[^\s<>"']+/i);
   return m ? m[0].replace(/[),.;!?]+$/, "") : null;

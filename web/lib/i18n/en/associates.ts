@@ -448,4 +448,40 @@ export const associates: Record<string, string> = {
   "{name} es anfitrión en Cabibee.": "{name} is a host on Cabibee.",
   "Las {n} fotos aparecen en la galería del anuncio. El mapa se arma al publicar con la ubicación.":
     "All {n} photos appear in the listing gallery. The map is built from the location when you publish.",
+  "Plus":
+    "Plus",
+  "Asociado Plus: puede usar el piloto automático de la extensión":
+    "Associate Plus: can use the extension's autopilot",
+  "Quitar Plus":
+    "Remove Plus",
+  "Hacer Plus":
+    "Make Plus",
+  "Asociado Plus":
+    "Associate Plus",
+  "Todo lo del asociado normal y además el piloto automático de la extensión: abre los anuncios de una búsqueda uno por uno y los manda a revisión solo.":
+    "Everything a regular associate has, plus the extension's autopilot: it opens the listings in a search one by one and sends them to review on its own.",
+  "Primero dale acceso de asociado.":
+    "Give them associate access first.",
+  "El piloto automático es sólo para cuentas Asociado Plus.":
+    "Autopilot is only for Associate Plus accounts.",
+  "Este anuncio ya está en Cabibee.":
+    "This listing is already on Cabibee.",
+  "6. Piloto automático":
+    "6. Autopilot",
+  "Tu cuenta es Asociado Plus: la extensión puede abrir los anuncios de una búsqueda uno por uno y mandarlos a revisión sola, con tu sesión y en tu Chrome.":
+    "Your account is Associate Plus: the extension can open the listings in a search one by one and send them to review on its own, with your session and in your Chrome.",
+  "Abre una página de resultados: Facebook Marketplace → Propiedades en alquiler (con tu ciudad), Inmuebles24, Lamudi, Vivanuncios, Casas y Terrenos, Mercado Libre…":
+    "Open a results page: Facebook Marketplace → Property rentals (with your city), Inmuebles24, Lamudi, Vivanuncios, Casas y Terrenos, Mercado Libre…",
+  "▶ Iniciar en esta búsqueda":
+    "▶ Start on this search",
+  "Se abre otra pestaña donde va pasando por cada anuncio y su galería. No la uses mientras trabaja; puedes seguir en otras pestañas.":
+    "Another tab opens where it goes through each listing and its gallery. Don't use it while it works; you can keep using other tabs.",
+  "Para detenerlo: botón Pausar en la barra negra de esa pestaña o en el ícono de Cabibee.":
+    "To stop it: the Pause button on the black bar in that tab or in the Cabibee icon.",
+  "Los borradores llegan a Inicio → Por revisar. Nada se publica sin que tú lo revises.":
+    "Drafts arrive in Home → To review. Nothing is published until you review it.",
+  "Para cuidar tu cuenta de Facebook: máximo {limit} anuncios al día y al menos {sec} segundos entre uno y otro. Se salta los que ya están en Cabibee y se detiene solo si Facebook pide iniciar sesión o verificar que eres tú.":
+    "To protect your Facebook account: at most {limit} listings a day and at least {sec} seconds between each. It skips the ones already on Cabibee and stops on its own if Facebook asks you to log in or verify it's you.",
+  "No uses otros programas para automatizar ni bajes los tiempos del piloto: Facebook bloquea cuentas que se comportan como bots.":
+    "Don't use other automation programs or shorten the autopilot's timing: Facebook blocks accounts that behave like bots.",
 };
