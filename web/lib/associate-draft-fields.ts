@@ -51,7 +51,7 @@ export const DRAFT_FIELD_LABEL: Record<DraftFillableField, string> = {
   "contact.phone": "Teléfono",
   "contact.whatsapp": "WhatsApp",
   "contact.email": "Correo de contacto",
-  "contact.profileUrl": "Facebook del dueño",
+  "contact.profileUrl": "Anuncio de Facebook del dueño",
 };
 
 export type DraftContactLike = {

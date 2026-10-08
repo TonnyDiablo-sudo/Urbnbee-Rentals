@@ -966,7 +966,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 onBlur={(e) => saveProfile({ website: e.target.value })}
               />
             </Field>
-            <Field label="Otro enlace del anfitrión">
+            <Field label="Tu Facebook (anuncio o perfil)">
               <input
                 className="w-full rounded-lg border border-[#ddd] px-3 py-2 text-sm outline-none focus:border-[#dcb81e]"
                 value={profile.airbnbUrl ?? ""}

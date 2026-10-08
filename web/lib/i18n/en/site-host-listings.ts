@@ -195,7 +195,7 @@ export const siteHostListings: Record<string, string> = {
   "WhatsApp (solo número, sin +)": "WhatsApp (number only, no +)",
   "Email de contacto público": "Public contact email",
   "Sitio web": "Website",
-  "Otro enlace del anfitrión": "Other host link",
+  "Tu Facebook (anuncio o perfil)": "Your Facebook (listing or profile)",
 
   // Editor: precio y reservas
   "Precio por noche (MXN)": "Price per night (MXN)",

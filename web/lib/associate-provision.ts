@@ -92,6 +92,17 @@ export type PublishResult =
     }
   | { ok: false; error: string; problems?: string[]; status: number };
 
+/** El anuncio no lleva enlaces: los de Trovit, Inmuebles24, etc. mandarían a la competencia. */
+export function stripLinks(text: string): string {
+  return text
+    .replace(/\bhttps?:\/\/\S+/gi, "")
+    .replace(/\bwww\.\S+/gi, "")
+    .replace(/\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|mx|net|org|io|app|me|ly|co)(?:\.mx)?\/\S*/gi, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function cleanPhone(v: string | undefined): string | undefined {
   const t = (v ?? "").replace(/[^\d+\s-]/g, "").trim();
   return t.length >= 8 ? t.slice(0, 30) : undefined;
@@ -125,7 +136,7 @@ export async function publishDraft(opts: {
     saveDraft(draft);
     return { ok: false, error: problems[0], problems, status: 400 };
   }
-  const title = draft.listing.title!.trim();
+  const title = stripLinks(draft.listing.title!) || draft.listing.title!.trim();
   const photos = draft.photos;
   const contact = draft.contact;
   const warnings: string[] = [];
@@ -196,7 +207,12 @@ export async function publishDraft(opts: {
   if (!coords) warnings.push("No se encontró la ubicación en el mapa; el dueño puede ajustarla en el editor.");
 
   const listing = createListing(host.id, {
-    ...draftToListingPartial({ ...l, title, addressLine: approximate ? "" : l.addressLine }),
+    ...draftToListingPartial({
+      ...l,
+      title,
+      description: l.description ? stripLinks(l.description) : l.description,
+      addressLine: approximate ? "" : l.addressLine,
+    }),
     ...(approximate && draft.addressApprox ? { addressApprox: draft.addressApprox } : {}),
     photos,
     published: true,

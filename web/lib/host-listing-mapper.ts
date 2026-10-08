@@ -2,6 +2,7 @@ import "server-only";
 import type { HostListingRecord } from "@/lib/marketplace-types";
 import type { ListingDetail } from "@/lib/listing-detail-data";
 import { listingShowsLocationBadge } from "@/lib/address-proof-access";
+import { isFacebookUrl, siteFor } from "@/lib/associate-link-utils";
 import { listingStreet } from "@/lib/listing-address";
 import { isMonthlyRental } from "@/lib/listing-pricing";
 import { publicNameOf } from "@/lib/display-name";
@@ -62,8 +63,8 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
       (e) => e && !e.toLowerCase().endsWith("@cuentas.cabibee.com")
     ),
     instagram: profile?.instagram,
-    website: profile?.website,
-    airbnbUrl: profile?.airbnbUrl,
+    website: profile?.website && (isFacebookUrl(profile.website) || !siteFor(profile.website)) ? profile.website : undefined,
+    airbnbUrl: isFacebookUrl(profile?.airbnbUrl) ? profile?.airbnbUrl : undefined,
     work: profile?.work || undefined,
     livesIn: profile?.livesIn || undefined,
     languages: profile?.languages?.length ? profile.languages : undefined,

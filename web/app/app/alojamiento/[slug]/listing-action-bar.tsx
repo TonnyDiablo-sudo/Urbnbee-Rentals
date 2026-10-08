@@ -5,7 +5,7 @@ import { useState } from "react";
 import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { useLang, useT } from "@/components/i18n-provider";
 import { AvailabilityCalendar } from "@/components/listing/availability-calendar";
-import { isFacebookUrl } from "@/lib/associate-link-utils";
+import { ContactChannelList, hasContactChannels } from "@/components/listing/contact-channel-list";
 import { numberLocale } from "@/lib/i18n";
 import type { HostContact } from "@/lib/listing-detail-data";
 import type { ListingPricing } from "@/lib/listing-pricing";
@@ -171,14 +171,6 @@ export function ListingActionBar(p: Props) {
 
 function ContactChannels({ host, chatHref }: { host: HostContact; chatHref?: string }) {
   const t = useT();
-  const items = [
-    host.whatsapp && { href: `https://wa.me/${host.whatsapp}`, label: `WhatsApp +${host.whatsapp}`, external: true },
-    host.phone && { href: `tel:${host.phone}`, label: t("Llamar {phone}", { phone: host.phone }), external: false },
-    host.email && { href: `mailto:${host.email}`, label: host.email, external: false },
-    host.instagram && { href: `https://instagram.com/${host.instagram}`, label: `@${host.instagram}`, external: true },
-    host.website && { href: host.website, label: t("Sitio web"), external: true },
-    host.airbnbUrl && { href: host.airbnbUrl, label: isFacebookUrl(host.airbnbUrl) ? "Facebook" : t("Otro perfil"), external: true },
-  ].filter(Boolean) as { href: string; label: string; external: boolean }[];
 
   return (
     <div className="space-y-3">
@@ -187,22 +179,12 @@ function ContactChannels({ host, chatHref }: { host: HostContact; chatHref?: str
           💬 {t("Chatear en Cabibee")}
         </Link>
       )}
-      {items.length === 0 ? (
+      {hasContactChannels(host) ? (
+        <ContactChannelList host={host} />
+      ) : (
         <p className="text-sm text-[#717171]">
           {t("Este anfitrión todavía no publica teléfono ni redes.")} {chatHref ? t("Escríbele por el chat.") : ""}
         </p>
-      ) : (
-        items.map((i) => (
-          <a
-            key={i.href}
-            href={i.href}
-            target={i.external ? "_blank" : undefined}
-            rel={i.external ? "noopener noreferrer" : undefined}
-            className="block rounded-xl border border-[#e5e5e5] px-4 py-3.5 text-[15px] font-medium text-[#222]"
-          >
-            {i.label}
-          </a>
-        ))
       )}
       <p className="pt-1 text-xs text-[#999]">{t("Nunca compartas contraseñas ni datos bancarios por chat.")}</p>
     </div>

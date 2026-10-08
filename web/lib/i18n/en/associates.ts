@@ -261,7 +261,7 @@ export const associates: Record<string, string> = {
   "Nombre en la cuenta": "Name on the account",
   "Correo de contacto": "Contact email",
   WhatsApp: "WhatsApp",
-  "Facebook del dueño": "Owner's Facebook",
+  "Anuncio de Facebook del dueño": "Owner's Facebook listing",
   "Calle y número": "Street and number",
   "Ubicación aproximada": "Approximate location",
   Ubicación: "Location",

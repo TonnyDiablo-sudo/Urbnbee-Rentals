@@ -603,13 +603,13 @@ export function ReviewForm({
             <F name="contact.email" label="Correo de contacto">
               <input type="email" className={cls("contact.email")} value={contact.email ?? ""} onChange={(e) => setC("email", e.target.value)} />
             </F>
-            <F name="contact.profileUrl" label="Facebook del dueño" wide>
+            <F name="contact.profileUrl" label="Anuncio de Facebook del dueño" wide>
               <div className="flex gap-2">
                 <input
                   className={cls("contact.profileUrl")}
                   value={contact.profileUrl ?? ""}
                   onChange={(e) => setC("profileUrl", e.target.value)}
-                  placeholder="https://www.facebook.com/…"
+                  placeholder="https://www.facebook.com/marketplace/item/…"
                 />
                 {cleanProfileUrl(contact.profileUrl) && (
                   <a href={contact.profileUrl} target="_blank" rel="noreferrer" className="mt-1 shrink-0 self-center text-xs underline">

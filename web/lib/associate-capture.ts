@@ -1,5 +1,6 @@
 import "server-only";
-import { draftHasContact } from "@/lib/associate-draft-fields";
+import { cleanProfileUrl, draftHasContact } from "@/lib/associate-draft-fields";
+import { isFacebookUrl } from "@/lib/associate-link-utils";
 import { newDraftId, saveDraft, type AssociateDraft, type DraftContact } from "@/lib/associate-drafts-store";
 import { streetLineProblem } from "@/lib/listing-address";
 import type { ListingImportLlmPayload } from "@/lib/listing-import-types";
@@ -27,6 +28,11 @@ function sourceFromUrl(url: string | undefined): { kind: ListingSourceKind; url?
   } catch {
     return { kind: "web" };
   }
+}
+
+/** Si el anuncio viene de Facebook, el link de contacto es esa publicación del dueño. */
+function withFacebookAd(c: DraftContact, url: string | undefined): DraftContact {
+  return url && isFacebookUrl(url) ? { ...c, profileUrl: cleanProfileUrl(url) ?? c.profileUrl } : c;
 }
 
 function missingContactWarning(c: DraftContact): string[] {
@@ -93,11 +99,12 @@ export async function createDraftFromScreenshots(opts: {
     locatePropertyPhotos(images),
   ]);
   if (!text.ok) return { ok: false, error: text.error, detail: text.detail };
+  const contact = withFacebookAd(text.contact, opts.sourceUrl);
 
   const warnings = [
     ...(text.listing.warnings ?? []),
     ...lowConfidenceWarning(text.listing.fieldConfidence),
-    ...missingContactWarning(text.contact),
+    ...missingContactWarning(contact),
   ];
   const sourceShots = await saveSourceShots(id, opts.screenshots.map((s) => s.data));
   let photos: string[] = [];
@@ -121,7 +128,7 @@ export async function createDraftFromScreenshots(opts: {
       status: "pending",
       source: { ...sourceFromUrl(opts.sourceUrl), kind: "screenshots" },
       listing: text.listing,
-      contact: text.contact,
+      contact,
       photos,
       warnings,
       ...addressFields(text.listing, text.addressApprox),
@@ -177,10 +184,11 @@ export async function createDraftFromPage(opts: {
 
   const photos = text.photoIndexes?.length ? text.photoIndexes.map((i) => saved[i]).filter(Boolean) : saved;
   await removeDraftPhotos(id, photos);
+  const contact = withFacebookAd(text.contact, opts.url);
   const warnings = [
     ...(text.listing.warnings ?? []),
     ...lowConfidenceWarning(text.listing.fieldConfidence),
-    ...missingContactWarning(text.contact),
+    ...missingContactWarning(contact),
   ];
   if (!photos.length) {
     warnings.push(
@@ -199,7 +207,7 @@ export async function createDraftFromPage(opts: {
       status: "pending",
       source: opts.url ? sourceFromUrl(opts.url) : { kind: "web", site: "Texto pegado" },
       listing: text.listing,
-      contact: text.contact,
+      contact,
       photos,
       warnings,
       ...addressFields(text.listing, text.addressApprox),

@@ -24,7 +24,7 @@ const SCHEMA = `Responde ÚNICAMENTE con un objeto JSON válido (sin markdown):
   "fieldConfidence": { "campo": "high"|"low" },
   "warnings": ["string"]PHOTO_FIELD
 }
-Reglas: no inventes datos; si algo no se ve, omítelo y añade un warning. No inventes coordenadas.
+Reglas: no inventes datos; si algo no se ve, omítelo y añade un warning. En title y description no pongas enlaces ni menciones a Trovit, Inmuebles24, Marketplace u otros portales. No inventes coordenadas.
 El contacto es obligatorio: busca teléfono, WhatsApp o correo en el texto. Si no hay y el anuncio es de Facebook, pon en profileUrl el enlace al perfil de Facebook de quien publica (de la lista de enlaces si viene). Si el anuncio es de otro sitio, deja profileUrl vacío. Si no encuentras ninguna forma de contacto, dilo en warnings.
 Si es renta mensual/larga estancia y no por noche, dilo en warnings. Si no parece un alojamiento, dilo en warnings.`;
 

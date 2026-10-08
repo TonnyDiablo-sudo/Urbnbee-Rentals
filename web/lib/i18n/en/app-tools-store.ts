@@ -35,6 +35,13 @@ export const appToolsStore: Record<string, string> = {
   "Con reserva confirmada por el motor de reservas, el huésped siempre recibe la dirección exacta y queda en el contrato.":
     "With a booking confirmed through the booking engine, the guest always gets the exact address and it goes into the contract.",
   "Anuncio con información pública.": "Listing built from public information.",
+  "No deposites antes de ver el lugar.": "Don't send a deposit before seeing the place.",
+  "Escribir por WhatsApp": "Message on WhatsApp",
+  Llamar: "Call",
+  "Mandar correo": "Send email",
+  "Ver su anuncio en Facebook": "See their listing on Facebook",
+  "Escribirle por Messenger": "Message them on Messenger",
+  "Ver su perfil de Facebook": "See their Facebook profile",
   "¿Es tuyo? Reclámalo o pide que lo borremos": "Is it yours? Claim it or ask us to remove it",
 
   // Contrato
