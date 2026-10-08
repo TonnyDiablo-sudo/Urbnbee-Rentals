@@ -13,8 +13,8 @@ export const billingAccount: Record<string, string> = {
   "Tu correo ya está confirmado": "Your email is already confirmed",
   "Mandarme el correo de confirmación": "Send me the confirmation email",
   "Pon tu correo personal": "Add your personal email",
-  "Tu cuenta la creó un asociado con un correo interno. Para comprar, pon tu correo en tu perfil y confírmalo.":
-    "Your account was created by a partner with an internal email. To buy, add your own email in your profile and confirm it.",
+  "Tu cuenta todavía usa un usuario temporal. Para comprar, pon tu correo en tu perfil y confírmalo.":
+    "Your account still uses a temporary username. To buy, add your own email in your profile and confirm it.",
   "Confirma tu correo para poder comprar": "Confirm your email to make purchases",
   "Te mandamos un enlace a {email} desde noreply@cabibee.com. Si no te llegó, revisa spam o pide otro.":
     "We sent a link to {email} from noreply@cabibee.com. If it didn't arrive, check spam or request another.",

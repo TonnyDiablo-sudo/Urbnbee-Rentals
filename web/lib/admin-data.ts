@@ -70,6 +70,8 @@ export type AdminUserRow = {
   /** Reclamos abiertos sobre sus anuncios. */
   openListingClaims: number;
   provisionedById?: string;
+  /** Asociado que creó la cuenta (sólo lo ve el admin). */
+  provisionedByName?: string;
   provisionedAccounts: number;
 };
 
@@ -343,6 +345,7 @@ export function getAdminUsers(): AdminUserRow[] {
   for (const c of listClaimRequests()) if (c.status === "open") bump(claimsOpen, c.hostId);
   const provisioned = new Map<string, number>();
   for (const u of users) if (u.provisionedBy) bump(provisioned, u.provisionedBy);
+  const names = new Map(users.map((u) => [u.id, u.fullName || u.email]));
 
   const entitlementsBy = new Map<string, HostEntitlementRecord[]>();
   for (const e of listAllHostEntitlements()) entitlementsBy.set(e.hostId, [...(entitlementsBy.get(e.hostId) ?? []), e]);
@@ -404,6 +407,7 @@ export function getAdminUsers(): AdminUserRow[] {
       pendingAddressProofs: proofsPending.get(u.id) ?? 0,
       openListingClaims: claimsOpen.get(u.id) ?? 0,
       provisionedById: u.provisionedBy,
+      provisionedByName: u.provisionedBy ? names.get(u.provisionedBy) : undefined,
       provisionedAccounts: provisioned.get(u.id) ?? 0,
     };
   });

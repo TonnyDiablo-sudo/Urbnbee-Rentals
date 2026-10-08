@@ -17,8 +17,8 @@ export const siteAccount: Record<string, string> = {
   "La contraseña debe tener al menos 8 caracteres.": "Password must be at least 8 characters.",
   "Este correo ya está registrado.": "This email is already registered.",
   "¿Olvidaste tu contraseña?": "Forgot your password?",
-  "Escribe el correo de tu cuenta. Si existe y es un correo real, te mandamos un enlace. No funciona con el usuario temporal de las cuentas que crea un asociado: entra con esa contraseña y pon tu correo.":
-    "Enter your account email. If it exists and is a real address, we'll send a link. It doesn't work with the temporary username of accounts created by an associate: log in with that password and add your email.",
+  "Escribe el correo de tu cuenta. Si existe y es un correo real, te mandamos un enlace. No funciona con un usuario temporal: entra con la contraseña que te dimos y pon tu correo.":
+    "Enter your account email. If it exists and is a real address, we'll send a link. It doesn't work with a temporary username: log in with the password we gave you and add your email.",
   "Si esa cuenta existe y tiene un correo real, te mandamos el enlace. Revisa también el spam.":
     "If that account exists and has a real email, we sent the link. Check spam too.",
   "Enviar enlace": "Send link",

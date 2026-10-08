@@ -1,5 +1,9 @@
 import "server-only";
-import { newDraftId, saveDraft, type AssociateDraft } from "@/lib/associate-drafts-store";
+import { draftHasContact } from "@/lib/associate-draft-fields";
+import { newDraftId, saveDraft, type AssociateDraft, type DraftContact } from "@/lib/associate-drafts-store";
+import { streetLineProblem } from "@/lib/listing-address";
+import type { ListingImportLlmPayload } from "@/lib/listing-import-types";
+import { compressPhoto, deletePrivateFile, putPrivateFile } from "@/lib/private-files";
 import { extractFromPage, extractFromScreenshots } from "@/lib/associate-extract";
 import { cropLocatedPhotos, removeDraftPhotos, saveDraftImage, thumbnailBase64 } from "@/lib/associate-photos";
 import { locatePropertyPhotos } from "@/lib/gemini-photo-locator";
@@ -25,22 +29,77 @@ function sourceFromUrl(url: string | undefined): { kind: ListingSourceKind; url?
   }
 }
 
+function missingContactWarning(c: DraftContact): string[] {
+  return draftHasContact(c)
+    ? []
+    : ["No se encontró cómo contactar al dueño. Agrega su teléfono, correo o el enlace a su perfil antes de publicar."];
+}
+
+/** Casi ningún anuncio de Facebook o Trovit trae calle y número: entonces queda como aproximada. */
+function addressFields(
+  listing: ListingImportLlmPayload,
+  approx: string | undefined
+): Pick<AssociateDraft, "addressMode" | "addressApprox"> {
+  if (!streetLineProblem(listing.addressLine)) return { addressMode: "exact", addressApprox: approx };
+  const partial = listing.addressLine?.trim();
+  listing.addressLine = "";
+  return { addressMode: "approximate", addressApprox: [partial, approx].filter(Boolean).join(", ") || undefined };
+}
+
+const SOURCE_SHOT_PREFIX = "associate-sources";
+
+async function saveSourceShots(draftId: string, shots: Buffer[]): Promise<string[]> {
+  const keys: string[] = [];
+  for (const [i, buf] of shots.slice(0, 8).entries()) {
+    try {
+      const key = `${SOURCE_SHOT_PREFIX}/${draftId}/${i}.webp`;
+      await putPrivateFile(key, await compressPhoto(buf), "image/webp");
+      keys.push(key);
+    } catch {
+      /* la revisión usa las que sí se guardaron */
+    }
+  }
+  return keys;
+}
+
+export async function removeSourceShots(keys: string[] | undefined): Promise<void> {
+  for (const k of keys ?? []) {
+    if (k.startsWith(`${SOURCE_SHOT_PREFIX}/`)) await deletePrivateFile(k);
+  }
+}
+
 /** Capturas subidas a mano: GPT lee los datos y Gemini ubica las fotos para recortarlas. */
 export async function createDraftFromScreenshots(opts: {
   associate: UserRecord;
   screenshots: { mime: string; data: Buffer }[];
   notes?: string;
+  /** Link del anuncio compartido o pegado junto con las capturas. */
+  sourceUrl?: string;
+  /** Texto del anuncio que el asociado pegó o compartió. */
+  sourceText?: string;
   targetHostId?: string;
 }): Promise<CaptureResult> {
   const id = newDraftId();
   const images = opts.screenshots.map((s) => ({ mime: s.mime, base64: s.data.toString("base64") }));
+  const notes = [
+    opts.sourceUrl ? `Link del anuncio: ${opts.sourceUrl}` : "",
+    opts.sourceText ? `Texto del anuncio (copiado tal cual):\n"""\n${opts.sourceText.slice(0, 20_000)}\n"""` : "",
+    opts.notes ?? "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   const [text, located] = await Promise.all([
-    extractFromScreenshots({ images, notes: opts.notes }),
+    extractFromScreenshots({ images, notes: notes || undefined }),
     locatePropertyPhotos(images),
   ]);
   if (!text.ok) return { ok: false, error: text.error, detail: text.detail };
 
-  const warnings = [...(text.listing.warnings ?? []), ...lowConfidenceWarning(text.listing.fieldConfidence)];
+  const warnings = [
+    ...(text.listing.warnings ?? []),
+    ...lowConfidenceWarning(text.listing.fieldConfidence),
+    ...missingContactWarning(text.contact),
+  ];
+  const sourceShots = await saveSourceShots(id, opts.screenshots.map((s) => s.data));
   let photos: string[] = [];
   if (located.ok) {
     photos = await cropLocatedPhotos(
@@ -60,11 +119,15 @@ export async function createDraftFromScreenshots(opts: {
       id,
       associateId: opts.associate.id,
       status: "pending",
-      source: { kind: "screenshots" },
+      source: { ...sourceFromUrl(opts.sourceUrl), kind: "screenshots" },
       listing: text.listing,
       contact: text.contact,
       photos,
       warnings,
+      ...addressFields(text.listing, text.addressApprox),
+      sourceShots,
+      sourceText: opts.sourceText?.slice(0, 30_000),
+      sourceLinks: opts.sourceUrl ? [opts.sourceUrl] : undefined,
       targetHostId: opts.targetHostId,
       model: [text.model, located.ok ? located.model : null].filter(Boolean).join(" + "),
       createdAt: now,
@@ -73,12 +136,16 @@ export async function createDraftFromScreenshots(opts: {
   };
 }
 
-/** Página abierta en el navegador del asociado (extensión): texto exacto y fotos originales. */
+/**
+ * Página del anuncio: la manda la extensión, la lee el servidor desde un link público
+ * o es texto que el asociado pegó (sin `url`). Texto exacto y fotos originales.
+ */
 export async function createDraftFromPage(opts: {
   associate: UserRecord;
-  url: string;
+  url?: string;
   pageTitle: string;
   text: string;
+  links?: string[];
   images: Buffer[];
   notes?: string;
   targetHostId?: string;
@@ -99,6 +166,7 @@ export async function createDraftFromPage(opts: {
     url: opts.url,
     pageTitle: opts.pageTitle,
     text: opts.text,
+    links: opts.links,
     thumbnails: thumbs,
     notes: opts.notes,
   });
@@ -109,8 +177,18 @@ export async function createDraftFromPage(opts: {
 
   const photos = text.photoIndexes?.length ? text.photoIndexes.map((i) => saved[i]).filter(Boolean) : saved;
   await removeDraftPhotos(id, photos);
-  const warnings = [...(text.listing.warnings ?? []), ...lowConfidenceWarning(text.listing.fieldConfidence)];
-  if (!photos.length) warnings.push("No llegaron fotos del inmueble. Abre la galería del anuncio y vuelve a importar.");
+  const warnings = [
+    ...(text.listing.warnings ?? []),
+    ...lowConfidenceWarning(text.listing.fieldConfidence),
+    ...missingContactWarning(text.contact),
+  ];
+  if (!photos.length) {
+    warnings.push(
+      opts.url
+        ? "No llegaron fotos del inmueble. Abre la galería del anuncio y vuelve a importar, o sube capturas de las fotos."
+        : "Sin fotos: agrega capturas de las fotos del inmueble antes de publicar."
+    );
+  }
 
   const now = new Date().toISOString();
   return {
@@ -119,11 +197,14 @@ export async function createDraftFromPage(opts: {
       id,
       associateId: opts.associate.id,
       status: "pending",
-      source: sourceFromUrl(opts.url),
+      source: opts.url ? sourceFromUrl(opts.url) : { kind: "web", site: "Texto pegado" },
       listing: text.listing,
       contact: text.contact,
       photos,
       warnings,
+      ...addressFields(text.listing, text.addressApprox),
+      sourceText: opts.text.slice(0, 30_000),
+      sourceLinks: opts.links?.slice(0, 60),
       targetHostId: opts.targetHostId,
       model: text.model,
       createdAt: now,

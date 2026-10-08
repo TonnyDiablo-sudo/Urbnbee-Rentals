@@ -10,6 +10,7 @@ type SessionUser = {
   email: string;
   role: string;
   fullName?: string;
+  associate?: boolean;
 };
 
 export function AuthNav() {
@@ -81,11 +82,20 @@ export function AuthNav() {
   }
 
   const isHost = user.role === "host" || user.role === "admin";
-  const isGuest = user.role === "guest";
+  const isGuest = user.role === "guest" && !user.associate;
   const isAdmin = user.role === "admin";
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      {user.associate && (
+        <Link
+          href="/asociados"
+          className="text-sm font-semibold text-[#dcb81e] transition hover:text-white"
+          title={t("Tu panel de asociado")}
+        >
+          {t("Panel asociado")}
+        </Link>
+      )}
       <Link
         href="/favoritos"
         title={t("Favoritos")}
@@ -197,11 +207,16 @@ export function AuthNavMobile({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   const isHost = user.role === "host" || user.role === "admin";
-  const isGuest = user.role === "guest";
+  const isGuest = user.role === "guest" && !user.associate;
   const isAdmin = user.role === "admin";
 
   return (
     <>
+      {user.associate && (
+        <Link href="/asociados" className="block rounded px-3 py-2 text-left text-sm font-semibold text-[#dcb81e]" onClick={onNavigate}>
+          {t("Panel asociado")}
+        </Link>
+      )}
       <Link href="/favoritos" className="block rounded px-3 py-2 text-left text-sm text-white" onClick={onNavigate}>
         ♡ {t("Favoritos")}
       </Link>

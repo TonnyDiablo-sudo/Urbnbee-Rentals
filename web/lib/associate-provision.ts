@@ -1,12 +1,13 @@
 import "server-only";
 import bcrypt from "bcryptjs";
 import { randomInt } from "crypto";
-import { getDraft, saveDraft, type AssociateDraft, type DraftContact } from "@/lib/associate-drafts-store";
+import { removeSourceShots } from "@/lib/associate-capture";
+import { applyDraftEdits, draftPublishProblems, type DraftEdits } from "@/lib/associate-draft-edits";
+import { getDraft, saveDraft, type AssociateDraft } from "@/lib/associate-drafts-store";
 import { removeDraftPhotos } from "@/lib/associate-photos";
 import { geocodePlace } from "@/lib/geocode";
 import { syncHostBadgeToListings } from "@/lib/host-verification";
 import { draftToListingPartial } from "@/lib/listing-import-llm";
-import type { ListingImportLlmPayload } from "@/lib/listing-import-types";
 import {
   createListing,
   createUser,
@@ -76,31 +77,44 @@ export type PublishResult =
       credentials?: { email: string; password: string };
       warnings: string[];
     }
-  | { ok: false; error: string; status: number };
+  | { ok: false; error: string; problems?: string[]; status: number };
 
 function cleanPhone(v: string | undefined): string | undefined {
   const t = (v ?? "").replace(/[^\d+\s-]/g, "").trim();
   return t.length >= 8 ? t.slice(0, 30) : undefined;
 }
 
+function hostHasContact(hostId: string): boolean {
+  const p = getHostProfile(hostId);
+  return Boolean(p?.phone || p?.whatsapp || p?.email || p?.airbnbUrl);
+}
+
 export async function publishDraft(opts: {
   associate: UserRecord;
   draftId: string;
-  listing: ListingImportLlmPayload;
-  contact: DraftContact;
-  photos: string[];
+  edits: DraftEdits;
   target: PublishTarget;
 }): Promise<PublishResult> {
-  const draft = getDraft(opts.draftId);
-  if (!draft || (draft.associateId !== opts.associate.id && opts.associate.role !== "admin")) {
+  const original = getDraft(opts.draftId);
+  if (!original || (original.associateId !== opts.associate.id && opts.associate.role !== "admin")) {
     return { ok: false, error: "Borrador no encontrado.", status: 404 };
   }
-  if (draft.status !== "pending") return { ok: false, error: "Este borrador ya se procesó.", status: 409 };
-  const title = opts.listing.title?.trim();
-  if (!title) return { ok: false, error: "El anuncio necesita título.", status: 400 };
+  if (original.status !== "pending") return { ok: false, error: "Este borrador ya se procesó.", status: 409 };
 
-  const allowedPrefix = `/uploads/associate-drafts/${draft.id}/`;
-  const photos = opts.photos.filter((p) => draft.photos.includes(p) && p.startsWith(allowedPrefix)).slice(0, 40);
+  const allowedPrefix = `/uploads/associate-drafts/${original.id}/`;
+  const draft = applyDraftEdits(original, {
+    ...opts.edits,
+    photos: opts.edits.photos.filter((p) => p.startsWith(allowedPrefix)).slice(0, 40),
+  });
+  const existing = opts.target.kind === "existing" ? findUserById(opts.target.hostId) : undefined;
+  const problems = draftPublishProblems(draft, { hostHasContact: existing ? hostHasContact(existing.id) : false });
+  if (problems.length) {
+    saveDraft(draft);
+    return { ok: false, error: problems[0], problems, status: 400 };
+  }
+  const title = draft.listing.title!.trim();
+  const photos = draft.photos;
+  const contact = draft.contact;
   const warnings: string[] = [];
 
   let host: UserRecord;
@@ -108,11 +122,17 @@ export async function publishDraft(opts: {
   let credentials: { email: string; password: string } | undefined;
 
   if (opts.target.kind === "existing") {
-    const existing = findUserById(opts.target.hostId);
     if (!associateCanManageHost(opts.associate, existing)) {
       return { ok: false, error: "Esa cuenta no es tuya o el dueño ya la reclamó.", status: 403 };
     }
     host = existing;
+    const profile = getHostProfile(host.id);
+    upsertHostProfile(host.id, {
+      phone: profile?.phone || cleanPhone(contact.phone),
+      whatsapp: profile?.whatsapp || cleanPhone(contact.whatsapp),
+      email: profile?.email || contact.email,
+      airbnbUrl: profile?.airbnbUrl || contact.profileUrl,
+    });
   } else {
     const fullName = opts.target.fullName.trim();
     if (fullName.length < 2) return { ok: false, error: "Escribe el nombre del anfitrión.", status: 400 };
@@ -139,19 +159,32 @@ export async function publishDraft(opts: {
     upsertHostProfile(host.id, {
       phone,
       whatsapp: cleanPhone(opts.target.whatsapp) ?? phone,
-      email: realEmail || undefined,
+      email: contact.email || realEmail || undefined,
+      airbnbUrl: contact.profileUrl,
     });
     created = true;
     credentials = { email, password };
   }
 
-  const l = opts.listing;
-  const where = [l.zone, l.city, l.county, l.state, l.country || "México"].filter(Boolean).join(", ");
-  const coords = (await geocodePlace(where)) ?? (l.city ? await geocodePlace([l.city, l.state, l.country || "México"].filter(Boolean).join(", ")) : null);
+  const l = draft.listing;
+  const approximate = draft.addressMode !== "exact";
+  const country = l.country || "México";
+  const tries = [
+    approximate ? [draft.addressApprox, l.zone, l.city, l.state, country] : [l.addressLine, l.zone, l.city, l.state, country],
+    [l.zone, l.city, l.county, l.state, country],
+    [l.city, l.state, country],
+  ].map((parts) => parts.filter(Boolean).join(", "));
+  let coords: { lat: number; lng: number } | null = null;
+  for (const q of [...new Set(tries)]) {
+    if (!q || q === country) continue;
+    coords = await geocodePlace(q);
+    if (coords) break;
+  }
   if (!coords) warnings.push("No se encontró la ubicación en el mapa; el dueño puede ajustarla en el editor.");
 
   const listing = createListing(host.id, {
-    ...draftToListingPartial({ ...l, title }),
+    ...draftToListingPartial({ ...l, title, addressLine: approximate ? "" : l.addressLine }),
+    ...(approximate && draft.addressApprox ? { addressApprox: draft.addressApprox } : {}),
     photos,
     published: true,
     ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
@@ -167,14 +200,18 @@ export async function publishDraft(opts: {
 
   saveDraft({
     ...draft,
-    listing: l,
-    contact: opts.contact,
-    photos,
     status: "published",
     resultHostId: host.id,
     resultListingId: listing.id,
+    removedPhotos: undefined,
+    createdAccount: created,
+    publishedAt: new Date().toISOString(),
+    sourceText: undefined,
+    sourceLinks: undefined,
+    sourceShots: undefined,
   });
   await removeDraftPhotos(draft.id, photos);
+  await removeSourceShots(original.sourceShots);
 
   return {
     ok: true,
@@ -192,7 +229,16 @@ export async function discardDraft(associate: UserRecord, draftId: string): Prom
   if (!draft || (draft.associateId !== associate.id && associate.role !== "admin")) return null;
   if (draft.status !== "pending") return draft;
   await removeDraftPhotos(draft.id, []);
-  return saveDraft({ ...draft, status: "discarded", photos: [] });
+  await removeSourceShots(draft.sourceShots);
+  return saveDraft({
+    ...draft,
+    status: "discarded",
+    photos: [],
+    removedPhotos: undefined,
+    sourceText: undefined,
+    sourceLinks: undefined,
+    sourceShots: undefined,
+  });
 }
 
 /** Nueva contraseña temporal mientras el dueño no haya reclamado la cuenta. */

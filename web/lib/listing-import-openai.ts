@@ -36,12 +36,25 @@ export function getListingImportModel(): string {
 
 /** Modelo para el panel de asociados: el más listo disponible, el volumen es bajo. */
 export function getAssociateImportModel(): string {
-  return process.env.ASSOCIATE_IMPORT_OPENAI_MODEL?.trim() || "gpt-5";
+  return process.env.ASSOCIATE_IMPORT_OPENAI_MODEL?.trim() || "gpt-6-astra";
 }
+
+/** Respaldo si la cuenta de OpenAI todavía no tiene acceso al modelo del panel de asociados. */
+export const ASSOCIATE_FALLBACK_MODEL = "gpt-5";
 
 /** Los modelos de razonamiento rechazan `temperature` y `max_tokens`. */
 function isReasoningModel(model: string): boolean {
   return /^(gpt-[5-9]|o\d)/i.test(model);
+}
+
+/** `original` (resolución completa, mejor para leer letra chica en capturas) sólo existe desde gpt-5.4. */
+function supportsOriginalDetail(model: string): boolean {
+  return /^gpt-(5\.([4-9]|\d{2,})|[6-9])/i.test(model);
+}
+
+/** GPT-6 ya no acepta `minimal`. */
+function effortFor(model: string, effort: string): string {
+  return effort === "minimal" && /^gpt-([6-9])/i.test(model) ? "low" : effort;
 }
 
 export function getListingImportOpenAiUrl(): string {
@@ -59,18 +72,32 @@ function stripJsonFence(raw: string): string {
   return s.trim();
 }
 
-export async function callListingImportOpenAiJson<T>(opts: {
+type OpenAiJsonOpts = {
   system: string;
   userText: string;
   images?: OpenAiImagePart[];
   maxTokens?: number;
   timeoutMs?: number;
-  imageDetail?: "low" | "high" | "auto";
+  imageDetail?: "low" | "high" | "auto" | "original";
   model?: string;
+  /** Se usa si la cuenta todavía no tiene acceso a `model`. */
+  fallbackModel?: string;
   /** PDFs u otros documentos (sólo modelos con visión). */
   files?: { filename: string; mime: string; base64: string }[];
   reasoningEffort?: "minimal" | "low" | "medium" | "high";
-}): Promise<OpenAiChatResult<T>> {
+};
+
+const MODEL_UNAVAILABLE = /model.*(does not exist|not found|not supported|not available)|do(es)? not have access|model_not_found/i;
+
+export async function callListingImportOpenAiJson<T>(opts: OpenAiJsonOpts): Promise<OpenAiChatResult<T>> {
+  const first = await callOnce<T>(opts);
+  if (first.ok || !opts.fallbackModel || opts.fallbackModel === opts.model || !MODEL_UNAVAILABLE.test(first.error)) {
+    return first;
+  }
+  return callOnce<T>({ ...opts, model: opts.fallbackModel });
+}
+
+async function callOnce<T>(opts: OpenAiJsonOpts): Promise<OpenAiChatResult<T>> {
   const apiKey = getEffectiveBlogBotApiKey();
   if (!apiKey) {
     return {
@@ -86,14 +113,15 @@ export async function callListingImportOpenAiJson<T>(opts: {
 
   const userParts: Array<
     | { type: "text"; text: string }
-    | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } }
+    | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" | "original" } }
     | { type: "file"; file: { filename: string; file_data: string } }
   > = [{ type: "text", text: opts.userText }];
   for (const f of opts.files ?? []) {
     userParts.push({ type: "file", file: { filename: f.filename, file_data: `data:${f.mime};base64,${f.base64}` } });
   }
 
-  const detail = opts.imageDetail ?? "high";
+  const wanted = opts.imageDetail ?? "high";
+  const detail = wanted === "original" && !supportsOriginalDetail(model) ? "high" : wanted;
   for (const img of opts.images ?? []) {
     userParts.push({
       type: "image_url",
@@ -124,8 +152,10 @@ export async function callListingImportOpenAiJson<T>(opts: {
         ...(reasoning
           ? {
               max_completion_tokens: Math.max(16_000, opts.maxTokens ?? 0),
-              reasoning_effort:
-                opts.reasoningEffort ?? (process.env.ASSOCIATE_IMPORT_REASONING_EFFORT?.trim() || "medium"),
+              reasoning_effort: effortFor(
+                model,
+                opts.reasoningEffort ?? (process.env.ASSOCIATE_IMPORT_REASONING_EFFORT?.trim() || "medium")
+              ),
             }
           : { temperature: 0.2, max_tokens: opts.maxTokens ?? 2500 }),
         response_format: { type: "json_object" },

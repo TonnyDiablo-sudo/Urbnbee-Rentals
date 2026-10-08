@@ -54,17 +54,45 @@ function collectPage() {
   const og = document.querySelector('meta[property="og:image"]');
   if (og) push(og.getAttribute("content"), Number.MAX_SAFE_INTEGER);
   images.sort((a, b) => b.area - a.area);
+
+  // Enlaces de contacto: perfil de quien publica, WhatsApp, teléfono y correo.
+  const links = [];
+  const linkSeen = new Set();
+  const CONTACT = /^(tel:|mailto:)|wa\.me\/|api\.whatsapp\.com|facebook\.com\/(profile\.php|people\/|marketplace\/profile\/|[A-Za-z0-9.]{5,}\/?$)|instagram\.com\//i;
+  for (const a of Array.from(document.querySelectorAll("a[href]"))) {
+    const href = a.href || "";
+    if (!CONTACT.test(href)) continue;
+    const label = (a.innerText || a.getAttribute("aria-label") || "").trim().replace(/\s+/g, " ").slice(0, 80);
+    const line = label ? `${label} → ${href}` : href;
+    if (linkSeen.has(href)) continue;
+    linkSeen.add(href);
+    links.push(line.slice(0, 400));
+    if (links.length >= 60) break;
+  }
+
   return {
     url: location.href,
     title: document.title,
     text: (document.body.innerText || "").slice(0, 50000),
+    links,
     images: images.slice(0, 30).map((i) => i.src),
   };
 }
 
+/** El ZIP que se descarga desde el panel trae la dirección de Cabibee en config.json. */
+async function defaultServer() {
+  try {
+    const res = await fetch(chrome.runtime.getURL("config.json"));
+    const { server } = await res.json();
+    return typeof server === "string" ? server : "";
+  } catch {
+    return "";
+  }
+}
+
 async function init() {
   const { server, token, lastImport } = await chrome.storage.local.get(["server", "token", "lastImport"]);
-  $("server").value = server || "";
+  $("server").value = server || (await defaultServer());
   $("token").value = token || "";
   show(server && token ? "import" : "settings");
   renderStatus(lastImport, server);

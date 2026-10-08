@@ -261,6 +261,7 @@ export function createListing(hostId: string, partial?: Partial<HostListingRecor
     state: partial?.state ?? inferListingState(partial ?? {}),
     country: partial?.country ?? "México",
     addressLine: partial?.addressLine ?? "",
+    ...(partial?.addressApprox ? { addressApprox: partial.addressApprox } : {}),
     lat: partial?.lat ?? 19.4326,
     lng: partial?.lng ?? -99.1332,
     locationPrecision: partial?.locationPrecision ?? "approximate",
@@ -411,6 +412,7 @@ type UserAuthPatch = Partial<
     | "passwordHash"
     | "associate"
     | "associateTokenHash"
+    | "associateDailyGoal"
     | "placeholderEmail"
     | "mustChangePassword"
     | "claimedAt"

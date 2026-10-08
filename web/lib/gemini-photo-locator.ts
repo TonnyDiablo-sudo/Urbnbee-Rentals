@@ -11,7 +11,15 @@ export type LocatedPhoto = {
 export type LocateResult = { ok: true; photos: LocatedPhoto[]; model: string } | { ok: false; error: string };
 
 export function geminiPhotoModel(): string {
-  return process.env.GEMINI_PHOTO_MODEL?.trim() || "gemini-2.5-pro";
+  return process.env.GEMINI_PHOTO_MODEL?.trim() || "gemini-3.8-flash";
+}
+
+/** Gemini 3 se degrada con temperatura baja y acepta nivel de razonamiento; 2.x no lo acepta. */
+function generationConfigFor(model: string): Record<string, unknown> {
+  if (/^gemini-[3-9]/i.test(model)) {
+    return { responseMimeType: "application/json", thinkingConfig: { thinkingLevel: "high" } };
+  }
+  return { responseMimeType: "application/json", temperature: 0 };
 }
 
 export function geminiConfigured(): boolean {
@@ -39,6 +47,20 @@ export async function locatePropertyPhotos(images: { mime: string; base64: strin
   const key = process.env.GEMINI_API_KEY?.trim();
   if (!key) return { ok: false, error: "Falta GEMINI_API_KEY: las fotos no se recortaron." };
   const model = geminiPhotoModel();
+  const first = await locateWith(key, model, images);
+  if (first.ok || model === FALLBACK_MODEL || !/not found|not supported|is not available|permission/i.test(first.error)) {
+    return first;
+  }
+  return locateWith(key, FALLBACK_MODEL, images);
+}
+
+const FALLBACK_MODEL = "gemini-2.5-pro";
+
+async function locateWith(
+  key: string,
+  model: string,
+  images: { mime: string; base64: string }[]
+): Promise<LocateResult> {
   const parts: unknown[] = [{ text: PROMPT }];
   images.forEach((img, i) => {
     parts.push({ text: `Captura ${i}:` });
@@ -56,7 +78,7 @@ export async function locatePropertyPhotos(images: { mime: string; base64: strin
         headers: { "Content-Type": "application/json", "x-goog-api-key": key },
         body: JSON.stringify({
           contents: [{ role: "user", parts }],
-          generationConfig: { responseMimeType: "application/json", temperature: 0 },
+          generationConfig: generationConfigFor(model),
         }),
       }
     );

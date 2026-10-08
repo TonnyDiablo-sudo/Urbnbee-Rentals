@@ -37,6 +37,8 @@ type Filters = {
   reported: boolean;
   pending: boolean;
   associate: boolean;
+  /** Cómo llegó la cuenta: sola (orgánica) o creada por un asociado; `by:<id>` = por ese asociado. */
+  origin: string;
   product: string;
   from: string;
   to: string;
@@ -56,6 +58,7 @@ const EMPTY: Filters = {
   reported: false,
   pending: false,
   associate: false,
+  origin: "",
   product: "",
   from: "",
   to: "",
@@ -106,6 +109,9 @@ function matches(u: AdminUserRow, f: Filters, now: number): boolean {
   if (f.reported && u.openReportsAgainst === 0) return false;
   if (f.pending && pendingOf(u) === 0) return false;
   if (f.associate && !u.associate && u.provisionedAccounts === 0) return false;
+  if (f.origin === "organic" && u.provisionedById) return false;
+  if (f.origin === "associate" && !u.provisionedById) return false;
+  if (f.origin.startsWith("by:") && u.provisionedById !== f.origin.slice(3)) return false;
   if (f.product === "any" && u.products.length === 0) return false;
   if (f.product === "none" && u.products.length > 0) return false;
   if (f.product && f.product !== "any" && f.product !== "none" && !u.products.some((p) => p.key === f.product)) return false;
@@ -155,11 +161,28 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
 
 const COLUMNS = ["", "Usuario", "Rol", "Última actividad", "Anuncios", "Reservas", "Mensajes", "Dinero", "Productos", "Registro", ""];
 
-export function UsersExplorer({ users, initialPending = false }: { users: AdminUserRow[]; initialPending?: boolean }) {
+export function UsersExplorer({
+  users,
+  initialPending = false,
+  initialOrigin = "",
+}: {
+  users: AdminUserRow[];
+  initialPending?: boolean;
+  initialOrigin?: string;
+}) {
   const t = useT();
   const locale = numberLocale(useLang());
   const fmx = (n: number) => (n === 0 ? "—" : `$${n.toLocaleString(locale, { maximumFractionDigits: 0 })}`);
-  const [f, setF] = useState<Filters>(() => ({ ...EMPTY, pending: initialPending }));
+  const [f, setF] = useState<Filters>(() => ({ ...EMPTY, pending: initialPending, origin: initialOrigin }));
+  const associateOptions = useMemo(() => {
+    const m = new Map<string, { name: string; n: number }>();
+    for (const u of users) {
+      if (!u.provisionedById) continue;
+      const prev = m.get(u.provisionedById);
+      m.set(u.provisionedById, { name: u.provisionedByName ?? u.provisionedById, n: (prev?.n ?? 0) + 1 });
+    }
+    return [...m.entries()].sort((a, b) => b[1].n - a[1].n);
+  }, [users]);
   const [now] = useState(() => Date.now());
   const [open, setOpen] = useState<Set<string>>(() => new Set());
   const toggle = (id: string) =>
@@ -191,10 +214,10 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
   );
 
   function exportCsv() {
-    const head = ["id", "nombre", "correo", "rol", "registro", "ultima_actividad", "anuncios", "reservas_huesped", "reservas_anfitrion", "pagado_mxn", "mensajes", "lugar", "reportes_abiertos", "cobrado_anfitrion_mxn", "productos"];
+    const head = ["id", "nombre", "correo", "rol", "registro", "ultima_actividad", "anuncios", "reservas_huesped", "reservas_anfitrion", "pagado_mxn", "mensajes", "lugar", "reportes_abiertos", "cobrado_anfitrion_mxn", "productos", "creada_por_asociado"];
     const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const lines = rows.map((u) =>
-      [u.id, u.fullName, u.email, u.role, u.createdAt, u.lastActiveAt ?? "", u.listingsCount, u.bookingsAsGuest, u.bookingsAsHost, u.totalPaidMxn, u.messagesSent, u.place ?? "", u.openReportsAgainst, u.hostRevenueMxn, u.products.map((p) => p.label).join(" | ")]
+      [u.id, u.fullName, u.email, u.role, u.createdAt, u.lastActiveAt ?? "", u.listingsCount, u.bookingsAsGuest, u.bookingsAsHost, u.totalPaidMxn, u.messagesSent, u.place ?? "", u.openReportsAgainst, u.hostRevenueMxn, u.products.map((p) => p.label).join(" | "), u.provisionedByName ?? ""]
         .map(esc)
         .join(",")
     );
@@ -288,6 +311,16 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
             {productOptions.map(([key, o]) => (
               <option key={key} value={key}>
                 {t(o.label)} ({o.n})
+              </option>
+            ))}
+          </select>
+          <select value={f.origin} onChange={(e) => set("origin", e.target.value)} className={sel}>
+            <option value="">{t("Origen: todos")}</option>
+            <option value="organic">{t("Orgánicos (se registraron solos)")}</option>
+            <option value="associate">{t("Creados por asociados")}</option>
+            {associateOptions.map(([id, o]) => (
+              <option key={id} value={`by:${id}`}>
+                {t("Creados por {name}", { name: o.name })} ({o.n})
               </option>
             ))}
           </select>
@@ -402,7 +435,11 @@ export function UsersExplorer({ users, initialPending = false }: { users: AdminU
                         {u.provisionedAccounts > 0 ? ` · ${t("{count} altas", { count: u.provisionedAccounts })}` : ""}
                       </p>
                     )}
-                    {u.provisionedById && <p className="mt-1 text-[10px] text-purple-500">{t("alta con IA")}</p>}
+                    {u.provisionedById && (
+                      <Link href={`/admin/users/${u.provisionedById}`} className="mt-1 block text-[10px] text-purple-500 hover:underline">
+                        {t("creada por {name}", { name: u.provisionedByName ?? "?" })}
+                      </Link>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500" title={u.lastActiveAt} suppressHydrationWarning>
                     {relTime(u.lastActiveAt, t, locale)}

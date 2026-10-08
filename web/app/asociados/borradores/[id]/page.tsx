@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getDraft, listDraftsForAssociate } from "@/lib/associate-drafts-store";
+import { draftForClient, getDraft, listDraftsForAssociate } from "@/lib/associate-drafts-store";
 import { findDuplicates } from "@/lib/associate-duplicates";
 import { getT } from "@/lib/i18n/server";
 import { listUsersProvisionedBy } from "@/lib/marketplace-store";
@@ -37,10 +37,10 @@ export default async function DraftReviewPage({ params }: { params: Promise<{ id
     .filter((u) => !u.claimedAt)
     .map((u) => ({ id: u.id, fullName: u.fullName, email: u.email }));
   const nextDraft = listDraftsForAssociate(draft.associateId, "pending").find((d) => d.id !== draft.id);
-
   return (
     <ReviewForm
-      draft={draft}
+      draft={draftForClient(draft)}
+      canReview={Boolean(draft.sourceText?.trim() || draft.sourceShots?.length)}
       duplicates={duplicates}
       accounts={accounts}
       nextDraftId={nextDraft?.id}

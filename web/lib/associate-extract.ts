@@ -1,7 +1,8 @@
 import "server-only";
 import type { ListingImportLlmPayload } from "@/lib/listing-import-types";
 import { validateListingImportPayload } from "@/lib/listing-import-llm";
-import { callListingImportOpenAiJson, getAssociateImportModel } from "@/lib/listing-import-openai";
+import { ASSOCIATE_FALLBACK_MODEL, callListingImportOpenAiJson, getAssociateImportModel } from "@/lib/listing-import-openai";
+import { cleanProfileUrl } from "@/lib/associate-draft-fields";
 import type { DraftContact } from "@/lib/associate-drafts-store";
 
 const SCHEMA = `Responde ÚNICAMENTE con un objeto JSON válido (sin markdown):
@@ -11,18 +12,20 @@ const SCHEMA = `Responde ÚNICAMENTE con un objeto JSON válido (sin markdown):
   "categoryKey": "habitaciones|casas|departamentos|cabanas|vinos",
   "spaceType": "Espacio completo|Habitación privada|Habitación compartida",
   "city": "string", "zone": "string (colonia o zona)", "county": "string (municipio o alcaldía)", "state": "string (estado)", "country": "string",
-  "addressLine": "string (solo lo que se vea; no inventes)",
+  "addressLine": "string (calle y número SOLO si se ven completos; si no, vacío)",
+  "addressApprox": "string (si no hay calle y número: la mejor referencia que dé el anuncio, ej. 'a dos cuadras del malecón, Col. Centro')",
   "guests": number, "bedrooms": number, "bathrooms": number,
   "size": "string opcional ej. 80 m²",
   "pricePerNight": number (MXN por noche; si el anuncio da precio por semana o mes, conviértelo y avisa en warnings),
   "cleaningFee": number,
   "amenities": ["string", ...],
   "rules": { "smoking": boolean, "pets": boolean|null, "parties": boolean, "children": boolean },
-  "contact": { "hostName": "nombre de quien publica", "phone": "string con lada", "whatsapp": "string", "email": "string" },
+  "contact": { "hostName": "nombre de quien publica", "phone": "string con lada", "whatsapp": "string", "email": "string", "profileUrl": "enlace al perfil de quien publica (Facebook, Marketplace u otro sitio)" },
   "fieldConfidence": { "campo": "high"|"low" },
   "warnings": ["string"]PHOTO_FIELD
 }
 Reglas: no inventes datos; si algo no se ve, omítelo y añade un warning. No inventes coordenadas.
+El contacto es obligatorio: busca teléfono, WhatsApp o correo en el texto. Si no hay, pon en profileUrl el enlace al perfil de quien publica (de la lista de enlaces si viene). Si no encuentras ninguna forma de contacto, dilo en warnings.
 Si es renta mensual/larga estancia y no por noche, dilo en warnings. Si no parece un alojamiento, dilo en warnings.`;
 
 const SYSTEM =
@@ -43,6 +46,7 @@ function parseContact(raw: unknown): DraftContact {
     phone: str(o.phone, 40),
     whatsapp: str(o.whatsapp, 40),
     email: email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined,
+    profileUrl: cleanProfileUrl(str(o.profileUrl, 500)),
   };
 }
 
@@ -51,6 +55,7 @@ export type AssociateExtraction =
       ok: true;
       listing: ListingImportLlmPayload;
       contact: DraftContact;
+      addressApprox?: string;
       photoIndexes?: number[];
       model: string;
     }
@@ -71,7 +76,14 @@ function finish(
         .map(Number)
         .filter((n) => Number.isInteger(n) && n >= 0 && n < photoCount && !seen.has(n) && (seen.add(n), true));
     }
-    return { ok: true, listing, contact: parseContact(o.contact), photoIndexes, model: llm.model };
+    return {
+      ok: true,
+      listing,
+      contact: parseContact(o.contact),
+      addressApprox: str(o.addressApprox, 300),
+      photoIndexes,
+      model: llm.model,
+    };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "JSON inválido", detail: llm.rawText.slice(0, 800) };
   }
@@ -83,21 +95,23 @@ export async function extractFromScreenshots(opts: {
 }): Promise<AssociateExtraction> {
   const llm = await callListingImportOpenAiJson<unknown>({
     model: getAssociateImportModel(),
+    fallbackModel: ASSOCIATE_FALLBACK_MODEL,
     system: SYSTEM,
     userText: `Extrae los datos del alojamiento que aparece en estas capturas (Facebook Marketplace, grupos de Facebook o WhatsApp, u otro sitio de anuncios). Incluye los datos de contacto de quien publica si se ven.
 ${opts.notes ? `\nNotas del asociado:\n${opts.notes}\n` : ""}
 ${SCHEMA.replace("PHOTO_FIELD", "")}`,
     images: opts.images,
-    imageDetail: "high",
+    imageDetail: "original",
     timeoutMs: 240_000,
   });
   return finish(llm);
 }
 
 export async function extractFromPage(opts: {
-  url: string;
+  url?: string;
   pageTitle: string;
   text: string;
+  links?: string[];
   thumbnails: string[];
   notes?: string;
 }): Promise<AssociateExtraction> {
@@ -105,15 +119,16 @@ export async function extractFromPage(opts: {
   "photoIndexes": [números de las imágenes que SÍ son fotos del inmueble, la mejor para portada primero; excluye avatares, mapas, logos, publicidad y fotos de otros anuncios]`;
   const llm = await callListingImportOpenAiJson<unknown>({
     model: getAssociateImportModel(),
+    fallbackModel: ASSOCIATE_FALLBACK_MODEL,
     system: SYSTEM,
-    userText: `Página: ${opts.url}
+    userText: `Página: ${opts.url ?? "(sin link: texto que el asociado copió del anuncio)"}
 Título de la pestaña: ${opts.pageTitle}
 ${opts.notes ? `Notas del asociado: ${opts.notes}\n` : ""}
 Texto visible de la página (puede traer menús y anuncios ajenos; quédate solo con el anuncio principal):
 """
 ${opts.text.slice(0, 30_000)}
 """
-
+${opts.links?.length ? `\nEnlaces de la página (perfiles, WhatsApp, teléfono, correo):\n${opts.links.join("\n")}\n` : ""}
 Después van ${opts.thumbnails.length} imágenes de la página, numeradas desde 0 en el orden en que llegan.
 
 ${SCHEMA.replace("PHOTO_FIELD", photoField)}`,

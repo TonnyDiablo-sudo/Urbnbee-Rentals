@@ -3,7 +3,19 @@ import { UsersExplorer } from "./users-explorer";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ pendientes?: string }> }) {
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pendientes?: string; origen?: string }>;
+}) {
   const sp = await searchParams;
-  return <UsersExplorer key={sp.pendientes ?? ""} users={getAdminUsers()} initialPending={sp.pendientes === "1"} />;
+  const origin = sp.origen === "asociado" ? "associate" : sp.origen === "organico" ? "organic" : "";
+  return (
+    <UsersExplorer
+      key={`${sp.pendientes ?? ""}|${origin}`}
+      users={getAdminUsers()}
+      initialPending={sp.pendientes === "1"}
+      initialOrigin={origin}
+    />
+  );
 }

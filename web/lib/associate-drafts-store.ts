@@ -2,6 +2,7 @@ import "server-only";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
+import type { DraftFillableField } from "@/lib/associate-draft-fields";
 import type { ListingImportLlmPayload } from "@/lib/listing-import-types";
 import type { ListingSourceKind } from "@/lib/marketplace-types";
 import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
@@ -14,6 +15,26 @@ export type DraftContact = {
   phone?: string;
   whatsapp?: string;
   email?: string;
+  /** Perfil de quien publica (Facebook u otro sitio) cuando el anuncio no trae teléfono ni correo. */
+  profileUrl?: string;
+};
+
+export type DraftReviewIssue = {
+  /** Campo del borrador, o `photos` / `address` / `contact` / `general`. */
+  field: string;
+  severity: "error" | "warning";
+  message: string;
+  /** Valor correcto según la fuente, para aplicarlo con un clic. */
+  suggested?: string;
+};
+
+export type DraftReview = {
+  at: string;
+  model?: string;
+  summary?: string;
+  issues: DraftReviewIssue[];
+  /** Lo que la IA rellenó en esta revisión. */
+  filled: DraftFillableField[];
 };
 
 export type AssociateDraft = {
@@ -25,11 +46,28 @@ export type AssociateDraft = {
   contact: DraftContact;
   /** URLs públicas (`/uploads/associate-drafts/...`) en el orden sugerido; la primera es la portada. */
   photos: string[];
+  /** Fotos que el asociado quitó; siguen en disco para poder regresarlas. */
+  removedPhotos?: string[];
   warnings: string[];
+  /** exact: `listing.addressLine` es calle y número. approximate: sólo se sabe la zona (`addressApprox`). */
+  addressMode?: "exact" | "approximate";
+  /** Referencia de ubicación cuando no hay dirección exacta: «a dos cuadras del malecón, Col. Centro». */
+  addressApprox?: string;
+  /** Texto y enlaces de la página original, para que la revisión con IA compare. Se borra al publicar o descartar. */
+  sourceText?: string;
+  sourceLinks?: string[];
+  /** Capturas originales (archivos privados) cuando el borrador vino de capturas. */
+  sourceShots?: string[];
+  review?: DraftReview;
+  /** Campos que llenó la IA y el asociado todavía no aprueba: no se publica hasta aprobarlos. */
+  aiFilled?: DraftFillableField[];
   /** Cuenta a la que el asociado ya dijo que pertenece (agregar otro anuncio). */
   targetHostId?: string;
   resultHostId?: string;
   resultListingId?: string;
+  /** Si el anuncio creó una cuenta nueva o se agregó a una que ya existía. */
+  createdAccount?: boolean;
+  publishedAt?: string;
   model?: string;
   createdAt: string;
   updatedAt: string;
@@ -83,6 +121,11 @@ export function saveDraft(draft: AssociateDraft): AssociateDraft {
   drafts.set(next.id, next);
   persist();
   return next;
+}
+
+/** Sin la página original: pesa mucho y el navegador no la necesita. */
+export function draftForClient(d: AssociateDraft): AssociateDraft {
+  return { ...d, sourceText: undefined, sourceLinks: undefined, sourceShots: undefined };
 }
 
 export function getDraft(id: string): AssociateDraft | undefined {

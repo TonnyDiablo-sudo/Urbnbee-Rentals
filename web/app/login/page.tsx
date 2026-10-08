@@ -43,6 +43,8 @@ export default function LoginPage() {
         router.push("/activar-cuenta");
       } else if (role === "admin") {
         router.push(next !== "/" ? next : "/admin/overview");
+      } else if (data.user?.associate) {
+        router.push(next !== "/" ? next : "/asociados");
       } else if (role === "host") {
         router.push(next !== "/" ? next : "/host/dashboard");
       } else {

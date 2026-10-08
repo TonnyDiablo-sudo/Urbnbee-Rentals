@@ -1,5 +1,5 @@
 import "server-only";
-import { mkdir, readdir, rm, writeFile } from "fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
@@ -46,6 +46,21 @@ export async function thumbnailBase64(data: Buffer): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/** Miniaturas de las fotos que ya tiene el borrador, en el mismo orden. */
+export async function draftPhotoThumbnails(draftId: string, urls: string[]): Promise<string[]> {
+  const prefix = `/uploads/associate-drafts/${draftId}/`;
+  const out: string[] = [];
+  for (const u of urls) {
+    if (!u.startsWith(prefix)) continue;
+    const name = u.slice(prefix.length);
+    if (!/^[\w-]+\.jpg$/.test(name)) continue;
+    const buf = await readFile(path.join(draftDir(draftId), name)).catch(() => null);
+    const thumb = buf ? await thumbnailBase64(buf) : null;
+    if (thumb) out.push(thumb);
+  }
+  return out;
 }
 
 function overlap(a: LocatedPhoto, b: LocatedPhoto): number {

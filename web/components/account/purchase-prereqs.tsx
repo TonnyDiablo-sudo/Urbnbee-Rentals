@@ -174,10 +174,10 @@ export function VerifyEmailBox({
         <p className="font-semibold">{t("Pon tu correo personal")}</p>
         <p className="mt-1">
           {buy
-            ? t("Tu cuenta la creó un asociado con un correo interno. Para comprar, pon tu correo en tu perfil y confírmalo.")
+            ? t("Tu cuenta todavía usa un usuario temporal. Para comprar, pon tu correo en tu perfil y confírmalo.")
             : purpose === "stats"
-              ? t("Tu cuenta la creó un asociado con un correo interno. Para ver tus estadísticas, pon tu correo en tu perfil y confírmalo.")
-              : t("Tu cuenta la creó un asociado con un correo interno. Pon tu correo en tu perfil y confírmalo.")}
+              ? t("Tu cuenta todavía usa un usuario temporal. Para ver tus estadísticas, pon tu correo en tu perfil y confírmalo.")
+              : t("Tu cuenta todavía usa un usuario temporal. Pon tu correo en tu perfil y confírmalo.")}
         </p>
       </div>
     );

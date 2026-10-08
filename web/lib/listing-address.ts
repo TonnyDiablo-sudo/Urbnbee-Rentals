@@ -59,14 +59,21 @@ export function joinStreet(p: StreetParts): string {
   return cp ? `${main}${main ? ", " : ""}CP ${cp}` : main;
 }
 
+/** Calle con nombre y número exterior (o S/N); sin revisar el número interior. */
+export function streetLineProblem(line: string | undefined): string | null {
+  const street = (line ?? "").replace(CP, "").trim();
+  if (!/\p{L}{2,}/u.test(street.replace(/s\s*\/\s*n|sin\s+n[uú]mero/gi, ""))) return "Falta el nombre de la calle.";
+  if (!/\d|s\s*\/\s*n\b|sin n[uú]mero/i.test(street)) return "A la dirección le falta el número exterior (o «S/N» si no tiene).";
+  return null;
+}
+
 /**
  * Qué falta para tener la dirección exacta. El sistema la necesita siempre (contrato,
  * guía de llegada, agente de IA) aunque el anuncio público sólo muestre la zona.
  */
 export function exactAddressProblem(l: AddressParts): string | null {
-  const street = (l.addressLine ?? "").replace(CP, "").trim();
-  if (!/\p{L}{2,}/u.test(street.replace(/s\s*\/\s*n|sin\s+n[uú]mero/gi, ""))) return "Falta el nombre de la calle.";
-  if (!/\d|s\s*\/\s*n\b|sin n[uú]mero/i.test(street)) return "A la dirección le falta el número exterior (o «S/N» si no tiene).";
+  const streetProblem = streetLineProblem(l.addressLine);
+  if (streetProblem) return streetProblem;
   if (listingNeedsUnit(l) && !(l.addressUnit ?? "").trim() && !l.noAddressUnit) {
     return "Falta el número interior del departamento (o marca que no tiene).";
   }

@@ -16,6 +16,7 @@ export async function GET() {
       fullName: user.fullName,
       phone: user.phone,
       emailIsPlaceholder: isPlaceholderEmail(user.email),
+      associate: Boolean(user.associate),
       termsAccepted: hasAcceptedTerms(user),
       termsVersion: TERMS_VERSION,
     },

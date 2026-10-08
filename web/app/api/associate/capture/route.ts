@@ -42,6 +42,11 @@ export async function POST(req: NextRequest) {
     url,
     pageTitle: String(form.get("title") ?? "").slice(0, 300),
     text,
+    links: String(form.get("links") ?? "")
+      .split("\n")
+      .map((l) => l.trim().slice(0, 400))
+      .filter(Boolean)
+      .slice(0, 60),
     images,
     notes: String(form.get("notes") ?? "").trim().slice(0, 2000) || undefined,
     targetHostId: String(form.get("hostId") ?? "").trim() || undefined,

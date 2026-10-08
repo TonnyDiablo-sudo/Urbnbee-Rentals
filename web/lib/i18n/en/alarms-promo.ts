@@ -31,8 +31,8 @@ export const alarmsPromo: Record<string, string> = {
   "Puedes apagar estas alarmas en tu centro de alarmas.": "You can turn these alerts off in your alert center.",
   "Ver insumos": "See supplies",
   "Confirma tu correo": "Confirm your email",
-  "Tu cuenta la creó un asociado con un correo interno. Pon tu correo en tu perfil y confírmalo.":
-    "Your account was created by a partner with an internal email. Add your email in your profile and confirm it.",
+  "Tu cuenta todavía usa un usuario temporal. Pon tu correo en tu perfil y confírmalo.":
+    "Your account still uses a temporary username. Add your email in your profile and confirm it.",
   "Para ver teléfono, WhatsApp y correo del anfitrión confirma tu correo. Así sabemos que la cuenta es tuya.":
     "To see the host's phone, WhatsApp and email, confirm your email. That's how we know the account is yours.",
   "Para escribirle al anfitrión confirma tu correo. Así sabemos que la cuenta es tuya.":
@@ -43,8 +43,8 @@ export const alarmsPromo: Record<string, string> = {
   "Confirma tu correo para escribirle al anfitrión.": "Confirm your email to message the host.",
   "Confirma tu correo para crear listas de favoritos.": "Confirm your email to create favorites lists.",
   "Confirma tu correo para ver los datos de contacto del anfitrión.": "Confirm your email to see the host's contact details.",
-  "Tu cuenta la creó un asociado con un correo interno. Para ver tus estadísticas, pon tu correo en tu perfil y confírmalo.":
-    "Your account was created by a partner with an internal email. To see your stats, add your email in your profile and confirm it.",
+  "Tu cuenta todavía usa un usuario temporal. Para ver tus estadísticas, pon tu correo en tu perfil y confírmalo.":
+    "Your account still uses a temporary username. To see your stats, add your email in your profile and confirm it.",
 
   Promociones: "Promotions",
   "Promociones de la Tienda": "Store promotions",

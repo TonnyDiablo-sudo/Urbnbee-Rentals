@@ -41,6 +41,7 @@ async function runImport({ page, notes }) {
     form.set("url", page.url);
     form.set("title", page.title || "");
     form.set("text", page.text || "");
+    if (page.links?.length) form.set("links", page.links.join("\n"));
     if (notes) form.set("notes", notes);
     images.forEach((blob, i) => form.append("images", blob, `img-${i}.${(blob.type.split("/")[1] || "jpg").split(";")[0]}`));
 

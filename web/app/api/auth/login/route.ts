@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
       role: user.role,
       fullName: user.fullName,
       mustChangePassword: Boolean(user.mustChangePassword),
+      associate: Boolean(user.associate),
     },
   });
 }

@@ -40,7 +40,7 @@ export function ForgotPasswordForm({ app = false }: { app?: boolean }) {
       <div>
         <h1 className="text-[26px] font-bold text-[#222]">{t("¿Olvidaste tu contraseña?")}</h1>
         <p className="mt-1.5 text-sm leading-relaxed text-[#717171]">
-          {t("Escribe el correo de tu cuenta. Si existe y es un correo real, te mandamos un enlace. No funciona con el usuario temporal de las cuentas que crea un asociado: entra con esa contraseña y pon tu correo.")}
+          {t("Escribe el correo de tu cuenta. Si existe y es un correo real, te mandamos un enlace. No funciona con un usuario temporal: entra con la contraseña que te dimos y pon tu correo.")}
         </p>
       </div>
       {done ? (

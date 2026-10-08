@@ -1,34 +1,86 @@
 import Link from "next/link";
+import { DayBars } from "@/components/associates/day-bars";
 import { listDraftsForAssociate } from "@/lib/associate-drafts-store";
+import { getAssociateStats } from "@/lib/associate-stats";
 import { getT } from "@/lib/i18n/server";
-import { getStatsTotalsForListings } from "@/lib/listing-stats-store";
-import { listListingsForHost, listUsersProvisionedBy } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
 
 export default async function AssociatesHome() {
   const user = (await getSessionUser())!;
   const t = await getT();
   const drafts = listDraftsForAssociate(user.id, "pending");
-  const accounts = listUsersProvisionedBy(user.id).map((u) => {
-    const listings = listListingsForHost(u.id);
-    return { user: u, listings, stats: getStatsTotalsForListings(listings.map((l) => l.id)) };
-  });
-  const claimed = accounts.filter((a) => a.user.claimedAt).length;
+  const s = getAssociateStats(user, 14);
+  const left = Math.max(0, s.goal - s.today);
+  const pct = s.goal ? Math.min(100, Math.round((s.today / s.goal) * 100)) : 0;
 
   return (
     <div className="space-y-10">
-      <section className="grid gap-4 sm:grid-cols-3">
-        <Stat label={t("Cuentas creadas")} value={accounts.length} />
-        <Stat label={t("Reclamadas por el dueño")} value={claimed} />
-        <Stat label={t("Borradores por revisar")} value={drafts.length} />
+      <section className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-6">
+          {s.goal > 0 ? (
+            <>
+              <p className="text-sm font-medium text-amber-800">{t("Hoy tocan")}</p>
+              <p className="mt-1 text-5xl font-bold text-gray-900">
+                {s.today}
+                <span className="text-2xl font-semibold text-gray-400"> / {s.goal}</span>
+              </p>
+              <p className="mt-1 text-sm text-gray-600">{t("cuentas nuevas creadas hoy")}</p>
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-amber-100">
+                <div className={`h-full rounded-full ${left === 0 ? "bg-green-500" : "bg-amber-500"}`} style={{ width: `${pct}%` }} />
+              </div>
+              <p className={`mt-2 text-sm font-medium ${left === 0 ? "text-green-700" : "text-gray-700"}`}>
+                {left === 0 ? t("¡Meta del día cumplida! 🎉") : t("Te faltan {count} para la meta de hoy.", { count: left })}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-amber-800">{t("Hoy")}</p>
+              <p className="mt-1 text-5xl font-bold text-gray-900">{s.today}</p>
+              <p className="mt-1 text-sm text-gray-600">{t("cuentas nuevas creadas hoy")}</p>
+              <p className="mt-3 text-xs text-gray-500">{t("Todavía no tienes meta diaria asignada.")}</p>
+            </>
+          )}
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link href="/asociados/capturar" className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600">
+              {t("+ Agregar anuncio")}
+            </Link>
+            <Link href="/asociados/celular" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm">
+              📱 {t("Desde el celular")}
+            </Link>
+            <Link href="/asociados/extension" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm">
+              💻 {t("Extensión")}
+            </Link>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+          <DayBars days={s.days} goal={s.goal} title={t("Últimos 14 días")} />
+          <p className="mt-3 text-xs text-gray-500">
+            {s.goal > 0
+              ? t("Verde: llegaste a la meta. Línea punteada: tu meta diaria.")
+              : t("Cuentas nuevas por día.")}
+          </p>
+        </div>
       </section>
+
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <Stat label={t("Ayer")} value={s.yesterday} />
+        <Stat label={t("Últimos 7 días")} value={s.last7} />
+        <Stat label={t("Este mes")} value={s.month} />
+        <Stat label={t("Cuentas en total")} value={s.total} />
+        <Stat label={t("Anuncios publicados")} value={s.totalListings} />
+        <Stat label={t("Reclamadas por el dueño")} value={s.claimed} />
+      </section>
+      {s.goal > 0 && (
+        <p className="-mt-6 text-xs text-gray-500">
+          {t("Cumpliste la meta {count} de los últimos 30 días.", { count: s.goalDays30 })}
+        </p>
+      )}
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">{t("Por revisar")}</h2>
-          <Link href="/asociados/capturar" className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600">
-            {t("+ Subir capturas")}
-          </Link>
+          <h2 className="text-lg font-semibold text-gray-900">
+            {t("Por revisar")} {drafts.length > 0 && <span className="text-gray-400">({drafts.length})</span>}
+          </h2>
         </div>
         {drafts.length === 0 ? (
           <p className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
@@ -53,56 +105,13 @@ export default async function AssociatesHome() {
                     <p className="mt-1 text-xs text-gray-400">
                       {d.source.site ?? (d.source.kind === "screenshots" ? t("Capturas") : d.source.kind)} ·{" "}
                       {t("{count} fotos", { count: d.photos.length })}
+                      {d.aiFilled?.length ? <span className="text-red-600"> · {t("{count} por aprobar", { count: d.aiFilled.length })}</span> : null}
                     </p>
                   </div>
                 </Link>
               </li>
             ))}
           </ul>
-        )}
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">{t("Mis cuentas de anfitrión")}</h2>
-        {accounts.length === 0 ? (
-          <p className="text-sm text-gray-500">{t("Todavía no creas cuentas.")}</p>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs text-gray-500">
-                  <th className="px-4 py-2 font-medium">{t("Anfitrión")}</th>
-                  <th className="px-4 py-2 font-medium">{t("Usuario")}</th>
-                  <th className="px-4 py-2 font-medium">{t("Anuncios")}</th>
-                  <th className="px-4 py-2 font-medium">{t("Vistas / contactos")}</th>
-                  <th className="px-4 py-2 font-medium">{t("Estado")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {accounts.map(({ user: u, listings, stats }) => (
-                  <tr key={u.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2">
-                      <Link href={`/asociados/cuentas/${u.id}`} className="font-medium text-gray-900 underline">
-                        {u.fullName}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2 font-mono text-xs text-gray-500">{u.email}</td>
-                    <td className="px-4 py-2 text-gray-700">{listings.length}</td>
-                    <td className="px-4 py-2 text-gray-700">
-                      {stats.views} / {stats.contacts}
-                    </td>
-                    <td className="px-4 py-2">
-                      {u.claimedAt ? (
-                        <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">{t("Reclamada")}</span>
-                      ) : (
-                        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{t("Sin reclamar")}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         )}
       </section>
     </div>

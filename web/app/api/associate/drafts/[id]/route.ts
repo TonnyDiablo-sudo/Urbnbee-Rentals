@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAssociateFromRequest } from "@/lib/associate-auth";
-import { getDraft } from "@/lib/associate-drafts-store";
+import { draftForClient, getDraft } from "@/lib/associate-drafts-store";
 import { discardDraft } from "@/lib/associate-provision";
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (!draft || (draft.associateId !== associate.id && associate.role !== "admin")) {
     return NextResponse.json({ error: "No encontrado." }, { status: 404 });
   }
-  return NextResponse.json({ draft });
+  return NextResponse.json({ draft: draftForClient(draft) });
 }
 
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {

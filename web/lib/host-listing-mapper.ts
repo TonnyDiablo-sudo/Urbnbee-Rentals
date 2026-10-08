@@ -58,7 +58,9 @@ export function hostListingToDetail(record: HostListingRecord): ListingDetail {
       "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80",
     whatsapp: profile?.whatsapp,
     phone: profile?.phone,
-    email: profile?.email || user?.email,
+    email: [profile?.email, user?.placeholderEmail ? undefined : user?.email].find(
+      (e) => e && !e.toLowerCase().endsWith("@cuentas.cabibee.com")
+    ),
     instagram: profile?.instagram,
     website: profile?.website,
     airbnbUrl: profile?.airbnbUrl,

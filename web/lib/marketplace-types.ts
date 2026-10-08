@@ -30,6 +30,8 @@ export type UserRecord = {
   associate?: boolean;
   /** Hash del token que usa la extensión de Chrome del asociado. */
   associateTokenHash?: string;
+  /** Cuentas nuevas que el admin le pide al asociado por día. */
+  associateDailyGoal?: number;
   /** Asociado que dio de alta esta cuenta. */
   provisionedBy?: string;
   /** El correo es interno (`@cuentas.cabibee.com`) hasta que el dueño ponga el suyo. */
@@ -101,6 +103,8 @@ export type HostListingRecord = {
   country: string;
   /** Calle, número exterior y código postal. Siempre exacta: el público sólo la ve si `locationPrecision` es exact. */
   addressLine: string;
+  /** Ubicación aproximada que dejó un asociado cuando el anuncio original no traía la exacta. Interna. */
+  addressApprox?: string;
   /** Número interior, depto, piso o torre. */
   addressUnit?: string;
   /** El anfitrión confirmó que no hay número interior. */

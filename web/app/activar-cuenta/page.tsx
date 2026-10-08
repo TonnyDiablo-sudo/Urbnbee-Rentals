@@ -13,12 +13,13 @@ export async function generateMetadata() {
 export default async function ActivateAccountPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/activar-cuenta");
-  if (!user.mustChangePassword) redirect("/host/dashboard");
+  const home = user.associate ? "/asociados" : "/host/listings";
+  if (!user.mustChangePassword) redirect(user.associate ? "/asociados" : "/host/dashboard");
   return (
     <>
       <SiteHeader />
       <div className="mx-auto max-w-md px-4 pb-16" style={{ paddingTop: 104 }}>
-        <AccountSecurityForm {...accountSecurityProps(user, "activate", "/host/listings")} />
+        <AccountSecurityForm {...accountSecurityProps(user, "activate", home)} />
       </div>
     </>
   );
