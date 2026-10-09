@@ -62,6 +62,7 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
           },
           { href: "/como-funciona", label: t("Qué es Cabibee y cómo funciona") },
           { href: "/terminos", label: t("Términos y condiciones") },
+          { href: "/privacidad", label: t("Aviso de privacidad") },
         ]
       : [
           { href: "/membresia", label: t("Membresía de huésped"), hint: t("Identidad verificada para reservar") },
@@ -88,6 +89,7 @@ export async function ProfileView({ user, mode }: { user: UserRecord | null; mod
           { href: "/como-funciona", label: t("Qué es Cabibee y cómo funciona"), hint: t("Gratis, sin comisión y con herramientas opcionales") },
           { href: "/como-reservar", label: t("Cómo reservar"), hint: t("Qué significa cada etiqueta y cómo reservar seguro") },
           { href: "/terminos", label: t("Términos y condiciones") },
+          { href: "/privacidad", label: t("Aviso de privacidad") },
           { href: "/", label: t("Sitio web de Cabibee"), web: true },
         ];
 

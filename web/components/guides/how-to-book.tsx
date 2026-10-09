@@ -126,6 +126,10 @@ export function HowToBook({ exploreHref, membershipHref }: { exploreHref: string
         {t("Cabibee no es parte de los acuerdos entre anfitrión y huésped. Consulta los")}{" "}
         <Link href="/terminos" className="underline">
           {t("Términos y condiciones")}
+        </Link>{" "}
+        {t("y el")}{" "}
+        <Link href="/privacidad" className="underline">
+          {t("Aviso de privacidad")}
         </Link>
         .
       </p>

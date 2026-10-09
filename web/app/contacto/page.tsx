@@ -18,6 +18,7 @@ export default async function ContactoPage() {
     ["/como-funciona", "Qué es Cabibee y cómo funciona"],
     ["/como-reservar", "Cómo reservar"],
     ["/terminos", "Términos y condiciones"],
+    ["/privacidad", "Aviso de privacidad"],
   ];
   return (
     <>

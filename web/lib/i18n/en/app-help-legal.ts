@@ -54,6 +54,8 @@ export const appHelpLegal: Record<string, string> = {
 
   // Términos de uso
   "Términos y condiciones": "Terms and conditions",
+  "Aviso de privacidad": "Privacy notice",
+  "y el": "and the",
   "Términos y condiciones de uso": "Terms of Use",
   "Leí y acepto los Términos y condiciones. Entiendo que Cabibee es una plataforma que conecta a anfitriones y huéspedes, que no es parte de nuestros contratos, chats ni tratos, y que cualquier controversia es entre las partes.":
     "I have read and accept the Terms of Use. I understand that Cabibee is a platform that connects hosts and guests, that it is not a party to our contracts, chats or dealings, and that any dispute is between the parties.",

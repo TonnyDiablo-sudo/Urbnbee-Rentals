@@ -29,6 +29,7 @@ export function SiteFooter() {
               ["/como-funciona", "Qué es Cabibee y cómo funciona"],
               ["/como-reservar", "Cómo reservar"],
               ["/terminos", "Términos y condiciones"],
+              ["/privacidad", "Aviso de privacidad"],
             ].map(([href, label]) => (
               <a
                 key={href}

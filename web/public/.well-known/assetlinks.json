@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cabibee.app",
+      "sha256_cert_fingerprints": [
+        "F9:2F:8A:C5:EF:FD:B4:13:08:97:D0:7F:58:13:00:AE:D2:02:6E:94:BB:87:44:B4:9E:67:64:73:00:91:18:A8"
+      ]
+    }
+  }
+]

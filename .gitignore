@@ -26,5 +26,17 @@ _backups/
 .DS_Store
 Thumbs.db
 
+# Paquete Android: la llave de firma no va al repositorio
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/local.properties
+mobile/android/keystore.properties
+mobile/android/*.keystore
+mobile/android/app/release/
+mobile/ios/build/
+mobile/ios/**/xcuserdata/
+mobile/dist/
+
 # Documentos legales personales (no son parte de la plataforma)
 Legal/

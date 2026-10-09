@@ -157,6 +157,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               {t("Acepto los")}{" "}
               <Link href="/terminos" target="_blank" className="font-semibold underline">
                 {t("Términos y condiciones de uso")}
+              </Link>{" "}
+              {t("y el")}{" "}
+              <Link href="/privacidad" target="_blank" className="font-semibold underline">
+                {t("Aviso de privacidad")}
               </Link>
               {". "}
               {t("Entiendo que Cabibee no es parte de los contratos, chats ni tratos entre usuarios.")}

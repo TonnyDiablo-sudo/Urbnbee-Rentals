@@ -190,9 +190,14 @@ export function HowItWorks({ exploreHref, bookHref, storeHref }: { exploreHref: 
             "Cabibee es una herramienta: te ayudamos a que el trato sea más claro y seguro, pero no somos arrendador, agente ni parte de las rentas. Los contratos, pagos, chats y acuerdos son entre anfitrión y huésped."
           )}
         </p>
-        <Link href="/terminos" className="mt-3 inline-block text-sm font-semibold text-[#dcb81e] underline">
-          {t("Términos y condiciones")}
-        </Link>
+        <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
+          <Link href="/terminos" className="text-[#dcb81e] underline">
+            {t("Términos y condiciones")}
+          </Link>
+          <Link href="/privacidad" className="text-[#dcb81e] underline">
+            {t("Aviso de privacidad")}
+          </Link>
+        </p>
       </section>
 
       <div className="mt-8 flex flex-wrap gap-3">

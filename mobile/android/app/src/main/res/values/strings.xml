@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appName">Cabibee</string>
+    <string name="assetStatements">
+        [{
+            \"relation\": [\"delegate_permission/common.handle_all_urls\"],
+            \"target\": {
+                \"namespace\": \"web\",
+                \"site\": \"https://app.cabibee.com\"
+            }
+        }]
+    </string>
+    <string-array name="additional_trusted_origins">
+        <item>https://cabibee.com</item>
+    </string-array>
+</resources>

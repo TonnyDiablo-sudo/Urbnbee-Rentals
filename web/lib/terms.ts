@@ -88,7 +88,7 @@ const ES: TermsDoc = {
     {
       title: "11. Datos personales",
       paragraphs: [
-        "Cabibee trata tus datos personales para operar la Plataforma, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares en México y a las leyes de privacidad aplicables en Estados Unidos. Puedes ejercer tus derechos de acceso, rectificación, cancelación y oposición escribiendo a support@cabibee.com, y puedes borrar tu cuenta desde la configuración.",
+        "Cabibee trata tus datos personales para operar la Plataforma, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares en México y a las leyes de privacidad aplicables en Estados Unidos. El detalle está en el Aviso de privacidad, en cabibee.com/privacidad. Puedes ejercer tus derechos de acceso, rectificación, cancelación y oposición escribiendo a support@cabibee.com, y puedes borrar tu cuenta desde la configuración.",
         "Cuando reservas o firmas un contrato, los datos necesarios se comparten con la otra parte. Esa persona es responsable del uso que haga de ellos.",
       ],
     },
@@ -199,7 +199,7 @@ const EN: TermsDoc = {
     {
       title: "11. Personal data",
       paragraphs: [
-        "Cabibee processes your personal data to operate the Platform, in accordance with Mexico's Federal Law on the Protection of Personal Data Held by Private Parties and applicable US privacy laws. You can exercise your rights of access, correction, deletion and objection by writing to support@cabibee.com, and you can delete your account from your settings.",
+        "Cabibee processes your personal data to operate the Platform, in accordance with Mexico's Federal Law on the Protection of Personal Data Held by Private Parties and applicable US privacy laws. The details are in the Privacy Notice at cabibee.com/privacidad. You can exercise your rights of access, correction, deletion and objection by writing to support@cabibee.com, and you can delete your account from your settings.",
         "When you book or sign a contract, the necessary data is shared with the other party. That person is responsible for how they use it.",
       ],
     },
