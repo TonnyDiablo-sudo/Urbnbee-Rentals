@@ -122,10 +122,29 @@ export function listAllMessages(): readonly HostInboxMessageRecord[] {
   return rows;
 }
 
+function shown(m: HostInboxMessageRecord): boolean {
+  return !m.removedAt;
+}
+
+/** Quita del chat los mensajes de un hilo. Los conserva marcados, por si hay que revisarlos. */
+export function hideThreadMessages(listingId: string, guestSessionId: string): number {
+  syncIfStale();
+  const now = nowIso();
+  let n = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const m = rows[i];
+    if (m.listingId !== listingId || m.guestSessionId !== guestSessionId || m.removedAt) continue;
+    rows[i] = { ...m, removedAt: now };
+    n++;
+  }
+  if (n) persist();
+  return n;
+}
+
 export function listThread(listingId: string, guestSessionId: string): HostInboxMessageRecord[] {
   syncIfStale();
   return rows
-    .filter((m) => m.listingId === listingId && m.guestSessionId === guestSessionId)
+    .filter((m) => shown(m) && m.listingId === listingId && m.guestSessionId === guestSessionId)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
@@ -150,7 +169,7 @@ export function listThreadMerged(listingId: string, guestSessionIds: string[]): 
   const allow = new Set(guestSessionIds.filter(Boolean));
   if (allow.size === 0) return [];
   return rows
-    .filter((m) => m.listingId === listingId && allow.has(m.guestSessionId))
+    .filter((m) => shown(m) && m.listingId === listingId && allow.has(m.guestSessionId))
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
@@ -163,7 +182,7 @@ export function listAllThreadsForGuest(userId: string): {
   const sid = guestSessionIdForUser(userId);
   const byListing = new Map<string, HostInboxMessageRecord[]>();
   for (const m of rows) {
-    if (m.guestSessionId !== sid) continue;
+    if (!shown(m) || m.guestSessionId !== sid) continue;
     const arr = byListing.get(m.listingId) ?? [];
     arr.push(m);
     byListing.set(m.listingId, arr);
@@ -181,7 +200,7 @@ export function listAllThreadsForGuest(userId: string): {
 export function listForHost(hostId: string): HostInboxMessageRecord[] {
   syncIfStale();
   return rows
-    .filter((m) => m.hostId === hostId)
+    .filter((m) => shown(m) && m.hostId === hostId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
@@ -191,7 +210,7 @@ export function groupThreads(hostId: string): Map<InboxThreadKey, HostInboxMessa
   syncIfStale();
   const map = new Map<InboxThreadKey, HostInboxMessageRecord[]>();
   for (const m of rows) {
-    if (m.hostId !== hostId) continue;
+    if (!shown(m) || m.hostId !== hostId) continue;
     const key = `${m.listingId}:${m.guestSessionId}` as InboxThreadKey;
     const arr = map.get(key) ?? [];
     arr.push(m);

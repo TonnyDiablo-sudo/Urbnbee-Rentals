@@ -21,6 +21,7 @@ import { getLang } from "@/lib/i18n/server";
 import { translateIncoming } from "@/lib/listing-localize";
 import { getSessionUser } from "@/lib/session";
 import { notifyHostNewMessage } from "@/lib/push";
+import { eitherBlocked } from "@/lib/user-blocks-store";
 
 const COOKIE = "urb_chat_sess";
 
@@ -110,6 +111,9 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   if (sessionUser.id !== listing.hostId) {
     const blocked = emailRequiredResponse(sessionUser, "message");
     if (blocked) return blocked;
+  }
+  if (eitherBlocked(sessionUser.id, listing.hostId)) {
+    return NextResponse.json({ error: "No puedes escribir en esta conversación." }, { status: 403 });
   }
 
   const ip = clientIp(req);

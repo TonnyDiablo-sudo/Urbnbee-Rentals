@@ -12,6 +12,7 @@ import { findUserById, getListingById } from "@/lib/marketplace-store";
 import { notifyGuestHostReply, notifyHostNewMessage } from "@/lib/push";
 import { getSessionUser } from "@/lib/session";
 import { memberCan } from "@/lib/team-access";
+import { eitherBlocked } from "@/lib/user-blocks-store";
 
 export const runtime = "nodejs";
 
@@ -54,6 +55,10 @@ export async function POST(req: NextRequest) {
     const blocked = emailRequiredResponse(user, "message");
     if (blocked) return blocked;
     guestSessionId = guestSessionIdForUser(user.id);
+  }
+  const otherId = as === "host" ? (guestSessionId.startsWith("gu_") ? guestSessionId.slice(3) : "") : listing.hostId;
+  if (otherId && eitherBlocked(user.id, otherId)) {
+    return NextResponse.json({ error: "No puedes escribir en esta conversación." }, { status: 403 });
   }
   if (!chatMediaAllowed(user, { as, listingHostId: listing.hostId })) {
     return NextResponse.json({ error: CHAT_MEDIA_LOCKED_ERROR, needsIdentity: true }, { status: 403 });

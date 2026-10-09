@@ -4,6 +4,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { getListingById, updateListing } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
+import { imageSafetyError } from "@/lib/image-safety";
 import { getUploadsDir } from "@/lib/runtime-paths";
 
 const MAX_BYTES = 6 * 1024 * 1024;
@@ -41,6 +42,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   }
 
   const buf = Buffer.from(await file.arrayBuffer());
+  const blocked = await imageSafetyError(buf, mime);
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 400 });
   const name = `${randomUUID()}.${ext}`;
   const dir = path.join(getUploadsDir(), "host-listings", listingId);
   await mkdir(dir, { recursive: true });

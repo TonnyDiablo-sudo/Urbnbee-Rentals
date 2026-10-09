@@ -10,6 +10,7 @@ import { sanitizeBodyText } from "@/lib/host-inbox-sanitize";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { notifyGuestHostReply } from "@/lib/push";
 import { memberCan } from "@/lib/team-access";
+import { eitherBlocked } from "@/lib/user-blocks-store";
 import { emailRequiredResponse } from "@/lib/email-gate";
 
 export async function POST(req: NextRequest) {
@@ -39,6 +40,10 @@ export async function POST(req: NextRequest) {
   }
 
   const listing = getListingById(listingId);
+  const guestUserId = guestSessionId.startsWith("gu_") ? guestSessionId.slice(3) : "";
+  if (guestUserId && eitherBlocked(user.id, guestUserId)) {
+    return NextResponse.json({ error: "No puedes escribir en esta conversación." }, { status: 403 });
+  }
   const owner = listing?.hostId === user.id && (user.role === "host" || user.role === "admin");
   if (!listing || (!owner && !memberCan(user.id, listing.hostId, "messages", listing.id))) {
     return NextResponse.json({ error: "No encontrado." }, { status: 404 });

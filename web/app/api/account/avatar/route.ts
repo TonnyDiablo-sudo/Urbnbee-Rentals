@@ -4,6 +4,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { upsertHostProfile } from "@/lib/marketplace-store";
 import { getSessionUser } from "@/lib/session";
+import { imageSafetyError } from "@/lib/image-safety";
 import { getUploadsDir } from "@/lib/runtime-paths";
 
 const MAX_BYTES = 6 * 1024 * 1024;
@@ -32,10 +33,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Formato no permitido (JPG, PNG, WebP o GIF)." }, { status: 400 });
   }
 
+  const buf = Buffer.from(await file.arrayBuffer());
+  const blocked = await imageSafetyError(buf, file.type);
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 400 });
   const name = `avatar-${randomUUID()}.${ext}`;
   const dir = path.join(getUploadsDir(), "profiles", user.id);
   await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, name), Buffer.from(await file.arrayBuffer()));
+  await writeFile(path.join(dir, name), buf);
 
   const avatarUrl = `/uploads/profiles/${user.id}/${name}`;
   upsertHostProfile(user.id, { avatarUrl });

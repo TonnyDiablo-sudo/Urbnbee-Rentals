@@ -726,4 +726,11 @@ export const admin: Record<string, string> = {
   "Creados por asociados": "Created by associates",
   "Creados por {name}": "Created by {name}",
   "creada por {name}": "created by {name}",
+  "Ocultar mensajes de este chat": "Hide messages in this chat",
+  "Retirar anuncio": "Remove listing",
+  "Este reporte no tiene anuncio.": "This report has no listing.",
+  "No se pudo identificar el chat.": "Couldn't identify the chat.",
+  "No hay mensajes que ocultar.": "There are no messages to hide.",
+  "Anuncio retirado.": "Listing removed.",
+  "Mensajes ocultos.": "Messages hidden.",
 };

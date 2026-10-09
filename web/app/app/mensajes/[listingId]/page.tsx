@@ -60,6 +60,7 @@ export default async function AppGuestThreadPage({ params }: Props) {
         title={hostName}
         subtitle={record?.title ?? t("Anuncio no disponible")}
         initial={await initialMessages(listingId, user.id)}
+        otherUserId={hostId}
         closed
       />
     );
@@ -92,6 +93,7 @@ export default async function AppGuestThreadPage({ params }: Props) {
       slug={record.slug}
       initial={await initialMessages(listingId, user.id)}
       mediaAllowed={chatMediaAllowed(user)}
+      otherUserId={user.id === record.hostId ? undefined : record.hostId}
       emailGate={
         emailConfirmed(user) || user.id === record.hostId
           ? undefined

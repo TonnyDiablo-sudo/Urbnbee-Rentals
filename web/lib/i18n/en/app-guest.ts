@@ -33,6 +33,13 @@ export const appGuest: Record<string, string> = {
   "Ver anuncio": "View listing",
   "Escribe un mensaje": "Write a message",
   "No se pudo enviar.": "Couldn't send.",
+  Bloquear: "Block",
+  Desbloquear: "Unblock",
+  "¿Bloquear a esta persona? Dejarán de poder enviarte mensajes.":
+    "Block this person? They won't be able to message you.",
+  "No puedes escribir en esta conversación.": "You can't write in this conversation.",
+  "Esta foto no se puede usar.": "This photo can't be used.",
+  "No pudimos revisar la foto. Intenta de nuevo.": "We couldn't check the photo. Try again.",
   "Este alojamiento no está disponible.": "This listing isn't available.",
   "Demasiados mensajes seguidos. Espera un momento e intenta de nuevo.":
     "Too many messages in a row. Wait a moment and try again.",

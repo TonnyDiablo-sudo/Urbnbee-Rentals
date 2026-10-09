@@ -1,8 +1,8 @@
 import "server-only";
 import { listBookingsForGuest, listBookingsForHost } from "@/lib/bookings-store";
 import { nameForViewer, shareABooking } from "@/lib/display-name";
-import { guestSessionIdForUser, listAllMessages } from "@/lib/host-inbox-store";
-import { findUserByEmail, findUserById, getListingById, getListingBySlug } from "@/lib/marketplace-store";
+import { guestSessionIdForUser, hideThreadMessages, listAllMessages } from "@/lib/host-inbox-store";
+import { findUserByEmail, findUserById, getListingById, getListingBySlug, updateListing } from "@/lib/marketplace-store";
 import type { UserRecord } from "@/lib/marketplace-types";
 import { notifyUser } from "@/lib/push";
 import {
@@ -197,4 +197,27 @@ export function adminUpdateReport(
     });
   }
   return { ok: true, report: next };
+}
+
+/** Retira el anuncio o esconde el chat señalado en un reporte. */
+export function moderateReportedContent(
+  id: string,
+  action: "hide_messages" | "unpublish"
+): { ok: true; detail: string } | { ok: false; error: string; status: number } {
+  const report = findUserReport(id);
+  if (!report) return { ok: false, error: "No existe ese reporte.", status: 404 };
+  const listing = report.listingId ? getListingById(report.listingId) : undefined;
+  if (!listing) return { ok: false, error: "Este reporte no tiene anuncio.", status: 400 };
+
+  if (action === "unpublish") {
+    updateListing(listing.id, listing.hostId, { published: false });
+    return { ok: true, detail: "Anuncio retirado." };
+  }
+
+  const people = [report.reporterId, report.targetUserId].filter((x): x is string => Boolean(x));
+  const guestId = people.find((userId) => userId !== listing.hostId);
+  if (!guestId) return { ok: false, error: "No se pudo identificar el chat.", status: 400 };
+  const n = hideThreadMessages(listing.id, guestSessionIdForUser(guestId));
+  if (!n) return { ok: false, error: "No hay mensajes que ocultar.", status: 400 };
+  return { ok: true, detail: "Mensajes ocultos." };
 }

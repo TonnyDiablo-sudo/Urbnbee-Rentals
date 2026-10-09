@@ -23,6 +23,8 @@ export type HostInboxMessageRecord = {
   via?: "ai";
   /** Id que mandó urbnbeeai; un reintento con el mismo id no duplica el mensaje. */
   partnerMessageId?: string;
+  /** El equipo lo retiró desde un reporte. No se muestra en el chat. */
+  removedAt?: string;
   createdAt: string;
 };
 

@@ -159,6 +159,27 @@ function ReportCard({ r, onSaved }: { r: AdminReportRow; onSaved: () => void }) 
             </label>
           </div>
 
+          {r.listingId && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void save({ action: "hide_messages" })}
+                className="rounded-lg border border-red-300 px-3 py-2 text-xs font-medium text-red-700 disabled:opacity-40"
+              >
+                {t("Ocultar mensajes de este chat")}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void save({ action: "unpublish" })}
+                className="rounded-lg border border-red-300 px-3 py-2 text-xs font-medium text-red-700 disabled:opacity-40"
+              >
+                {t("Retirar anuncio")}
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"

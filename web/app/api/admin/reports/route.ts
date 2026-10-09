@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { getAdminReports } from "@/lib/admin-user-detail";
-import { adminUpdateReport } from "@/lib/user-reports";
+import { adminUpdateReport, moderateReportedContent } from "@/lib/user-reports";
 
 async function requireAdmin() {
   const user = await getSessionUser();
@@ -18,6 +18,11 @@ export async function PATCH(req: Request) {
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const id = typeof body.id === "string" ? body.id : "";
   if (!id) return NextResponse.json({ error: "Falta el id." }, { status: 400 });
+  if (body.action === "hide_messages" || body.action === "unpublish") {
+    const moderated = moderateReportedContent(id, body.action);
+    if (!moderated.ok) return NextResponse.json({ error: moderated.error }, { status: moderated.status });
+    return NextResponse.json({ ok: true, detail: moderated.detail });
+  }
   const result = adminUpdateReport(id, body);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
   return NextResponse.json({ ok: true });

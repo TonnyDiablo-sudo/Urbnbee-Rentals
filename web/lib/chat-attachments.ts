@@ -5,6 +5,7 @@ import type { ChatAttachment, ChatAttachmentView, HostInboxMessageRecord } from 
 import { getPrivateFile, putPrivateFile } from "@/lib/private-files";
 import { getListingById } from "@/lib/marketplace-store";
 import { guestSessionIdForUser } from "@/lib/host-inbox-store";
+import { imageSafetyError } from "@/lib/image-safety";
 import { memberCan } from "@/lib/team-access";
 
 export const CHAT_IMAGE_MAX_BYTES = 12 * 1024 * 1024;
@@ -116,6 +117,10 @@ export async function storeChatAttachment(opts: {
   const prepared = await prepareAttachment(opts);
   if ("error" in prepared) return { error: prepared.error };
   const a = prepared.attachment;
+  if (a.kind === "image") {
+    const blocked = await imageSafetyError(prepared.data, a.mime);
+    if (blocked) return { error: blocked };
+  }
   await putPrivateFile(keyOf(opts.listingId, opts.guestSessionId, a.file), prepared.data, a.mime);
   return { attachment: a };
 }

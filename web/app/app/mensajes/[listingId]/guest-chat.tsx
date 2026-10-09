@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { useT } from "@/components/i18n-provider";
 import { uploadChatAttachment } from "@/components/chat/upload";
+import { BlockUserButton } from "../../_components/block-user";
 import { ChatThread, type ChatMessage, type SendMeta } from "../../_components/chat-thread";
 
 export function GuestChat({
@@ -13,6 +14,7 @@ export function GuestChat({
   subtitle,
   slug,
   closed = false,
+  otherUserId,
   initial,
   mediaAllowed = false,
   emailGate,
@@ -28,6 +30,8 @@ export function GuestChat({
   /** Sin slug el anuncio ya no está publicado: no hay a dónde enlazar. */
   slug?: string;
   closed?: boolean;
+  /** Anfitrión de este chat, para poder bloquearlo. */
+  otherUserId?: string;
 }) {
   const t = useT();
   const load = useCallback(async (): Promise<ChatMessage[]> => {
@@ -66,6 +70,7 @@ export function GuestChat({
       title={title}
       subtitle={subtitle}
       back="/mensajes"
+      headerRight={otherUserId ? <BlockUserButton userId={otherUserId} /> : undefined}
       me="guest"
       initial={initial}
       seenKey={`g:${listingId}`}

@@ -7,6 +7,7 @@ import { bookingLine, type ThreadBooking } from "@/components/chat/thread-bookin
 import { useLang, useT } from "@/components/i18n-provider";
 import { revalidate } from "../../../../_components/cached-fetch";
 import { uploadChatAttachment } from "@/components/chat/upload";
+import { BlockUserButton } from "../../../../_components/block-user";
 import { ChatThread, type ChatMessage, type SendMeta } from "../../../../_components/chat-thread";
 import { HOST_URLS } from "../../../_shared/host-data";
 import type { HostThread } from "../../host-inbox";
@@ -120,6 +121,9 @@ export function HostChat({
         ) : undefined
       }
       back="/host/mensajes"
+      headerRight={
+        guestSessionId.startsWith("gu_") ? <BlockUserButton userId={guestSessionId.slice(3)} /> : undefined
+      }
       me="host"
       initial={initial?.messages}
       seenKey={`h:${listingId}:${guestSessionId}`}
