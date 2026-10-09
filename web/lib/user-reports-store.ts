@@ -4,7 +4,7 @@ import { join } from "path";
 import { randomBytes } from "crypto";
 import { scheduleMysql, upsertJsonBlob } from "@/lib/mysql-sync";
 import { ensureDir, getDataDir } from "@/lib/runtime-paths";
-import type { UserReportRecord, UserReportStatus } from "@/lib/user-reports-types";
+import type { ReportAiDecision, UserReportRecord, UserReportStatus } from "@/lib/user-reports-types";
 
 const DATA_FILE = join(getDataDir(), "user-reports.json");
 
@@ -88,7 +88,17 @@ export function countRecentReportsBy(userId: string, sinceMs: number): number {
 
 export function updateUserReport(
   id: string,
-  patch: { status?: UserReportStatus; adminNote?: string; adminReply?: string; targetUserId?: string | null }
+  patch: {
+    status?: UserReportStatus;
+    adminNote?: string;
+    adminReply?: string;
+    targetUserId?: string | null;
+    aiDecision?: ReportAiDecision;
+    aiReason?: string;
+    aiModel?: string;
+    aiAt?: string;
+    aiAttempts?: number;
+  }
 ): UserReportRecord | undefined {
   syncIfStale();
   const prev = reports.get(id);
@@ -103,6 +113,11 @@ export function updateUserReport(
   if (patch.adminNote !== undefined) next.adminNote = patch.adminNote.trim() || undefined;
   if (patch.adminReply !== undefined) next.adminReply = patch.adminReply.trim() || undefined;
   if (patch.targetUserId !== undefined) next.targetUserId = patch.targetUserId || undefined;
+  if (patch.aiDecision) next.aiDecision = patch.aiDecision;
+  if (patch.aiReason !== undefined) next.aiReason = patch.aiReason.trim().slice(0, 300) || undefined;
+  if (patch.aiModel) next.aiModel = patch.aiModel;
+  if (patch.aiAt) next.aiAt = patch.aiAt;
+  if (patch.aiAttempts !== undefined) next.aiAttempts = patch.aiAttempts;
   reports.set(id, next);
   persist();
   return next;

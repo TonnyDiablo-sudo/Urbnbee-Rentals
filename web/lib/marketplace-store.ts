@@ -437,6 +437,9 @@ type UserAuthPatch = Partial<
     | "lang"
     | "phone"
     | "pendingEmail"
+    | "suspendedAt"
+    | "suspendReason"
+    | "staffPermissions"
   >
 >;
 

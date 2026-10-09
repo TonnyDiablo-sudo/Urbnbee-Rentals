@@ -65,6 +65,11 @@ export type UserRecord = {
   passwordResetRequestedAt?: string;
   /** País que eligió al pagar: México paga en MXN; Estados Unidos y cualquier otro, en USD. */
   billingCountry?: BillingCountry;
+  /** La cuenta no puede usar Cabibee hasta que un administrador la habilite. */
+  suspendedAt?: string;
+  suspendReason?: string;
+  /** Administrador de segundo nivel: solo entra al centro y solo a lo que esté en esta lista. */
+  staffPermissions?: string[];
 };
 
 export type BillingCountry = "MX" | "US" | "OTHER";

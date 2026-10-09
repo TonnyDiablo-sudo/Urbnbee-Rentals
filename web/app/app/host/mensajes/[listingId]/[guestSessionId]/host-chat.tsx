@@ -121,9 +121,6 @@ export function HostChat({
         ) : undefined
       }
       back="/host/mensajes"
-      headerRight={
-        guestSessionId.startsWith("gu_") ? <BlockUserButton userId={guestSessionId.slice(3)} /> : undefined
-      }
       me="host"
       initial={initial?.messages}
       seenKey={`h:${listingId}:${guestSessionId}`}
@@ -135,7 +132,9 @@ export function HostChat({
       emptyText={t("No encontramos esta conversación.")}
       showVia
       headerRight={
-        ai.available ? (
+        <span className="flex items-center gap-1">
+          {guestSessionId.startsWith("gu_") && <BlockUserButton userId={guestSessionId.slice(3)} />}
+          {ai.available && (
           <button
             type="button"
             disabled={aiBusy}
@@ -148,7 +147,8 @@ export function HostChat({
             <span className={`h-2 w-2 rounded-full ${ai.enabled ? "bg-[#1e7a3a]" : "bg-[#bbb]"}`} aria-hidden />
             {t(ai.enabled ? "IA activa" : "IA apagada")}
           </button>
-        ) : undefined
+          )}
+        </span>
       }
       composerLock={
         emailGate ? (

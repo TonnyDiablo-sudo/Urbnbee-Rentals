@@ -10,6 +10,7 @@ import { sanitizeBodyText } from "@/lib/host-inbox-sanitize";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { notifyGuestHostReply } from "@/lib/push";
 import { memberCan } from "@/lib/team-access";
+import { isAccountSuspended, SUSPENDED_ERROR } from "@/lib/account-standing";
 import { eitherBlocked } from "@/lib/user-blocks-store";
 import { emailRequiredResponse } from "@/lib/email-gate";
 
@@ -18,6 +19,7 @@ export async function POST(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  if (isAccountSuspended(user)) return NextResponse.json({ error: SUSPENDED_ERROR }, { status: 403 });
   // Publicar anuncios y recibir chats no pide nada; contestar sí pide el correo confirmado.
   const blocked = emailRequiredResponse(user, "reply");
   if (blocked) return blocked;

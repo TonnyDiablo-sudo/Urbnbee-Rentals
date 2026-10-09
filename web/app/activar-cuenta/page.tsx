@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AccountSecurityForm } from "@/components/account/account-security-form";
 import { SiteHeader } from "@/components/site-header";
+import { isStaffAccount } from "@/lib/staff";
 import { accountSecurityProps } from "@/lib/account-security-data";
 import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
@@ -13,8 +14,9 @@ export async function generateMetadata() {
 export default async function ActivateAccountPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/activar-cuenta");
-  const home = user.associate ? "/asociados" : "/host/listings";
-  if (!user.mustChangePassword) redirect(user.associate ? "/asociados" : "/host/dashboard");
+  const staff = isStaffAccount(user);
+  const home = staff ? "/centro" : user.associate ? "/asociados" : "/host/listings";
+  if (!user.mustChangePassword) redirect(staff ? "/centro" : user.associate ? "/asociados" : "/host/dashboard");
   return (
     <>
       <SiteHeader />

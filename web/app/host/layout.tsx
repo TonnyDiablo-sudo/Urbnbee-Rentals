@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { SiteHeader } from "@/components/site-header";
+import { isAccountSuspended } from "@/lib/account-standing";
 import { isPlaceholderEmail } from "@/lib/associate-provision";
 import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
@@ -18,6 +19,7 @@ export default async function HostLayout({ children }: { children: React.ReactNo
     redirect("/register?intent=host");
   }
   if (user.mustChangePassword) redirect("/activar-cuenta");
+  if (isAccountSuspended(user)) redirect("/cuenta-suspendida");
   const t = await getT();
 
   return (

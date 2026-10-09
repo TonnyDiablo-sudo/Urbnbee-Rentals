@@ -5,6 +5,7 @@ import {
   updateListing,
   slugifyTitle,
 } from "@/lib/marketplace-store";
+import { isAccountSuspended, SUSPENDED_ERROR } from "@/lib/account-standing";
 import { getSessionUser } from "@/lib/session";
 import { deleteProofsForListing } from "@/lib/address-proof-store";
 import { sanitizeArrivalGuide } from "@/lib/arrival-guide";
@@ -39,6 +40,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   if (!user || (user.role !== "host" && user.role !== "admin")) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  if (isAccountSuspended(user)) return NextResponse.json({ error: SUSPENDED_ERROR }, { status: 403 });
   const { id } = await ctx.params;
   const listing = getListingById(id);
   if (!listing || listing.hostId !== user.id) {

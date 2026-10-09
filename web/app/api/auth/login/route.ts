@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { rememberAssociatePassword } from "@/lib/associate-password-vault";
 import { emailFromLoginName } from "@/lib/associate-provision";
+import { isAccountSuspended } from "@/lib/account-standing";
 import { findUserByEmail } from "@/lib/marketplace-store";
+import { isStaffAccount } from "@/lib/staff";
 import { createSession } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
@@ -31,6 +33,8 @@ export async function POST(req: NextRequest) {
       fullName: user.fullName,
       mustChangePassword: Boolean(user.mustChangePassword),
       associate: Boolean(user.associate),
+      staff: isStaffAccount(user),
+      suspended: isAccountSuspended(user),
     },
   });
 }

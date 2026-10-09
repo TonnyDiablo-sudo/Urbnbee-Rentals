@@ -41,8 +41,12 @@ export default function LoginPage() {
       const role = data.user?.role as string | undefined;
       if (data.user?.mustChangePassword) {
         router.push("/activar-cuenta");
+      } else if (data.user?.suspended) {
+        router.push("/cuenta-suspendida");
       } else if (role === "admin") {
         router.push(next !== "/" ? next : "/admin/overview");
+      } else if (data.user?.staff) {
+        router.push("/centro");
       } else if (data.user?.associate) {
         router.push(next !== "/" ? next : "/asociados");
       } else if (role === "host") {

@@ -12,6 +12,7 @@ import { findUserById, getListingById } from "@/lib/marketplace-store";
 import { notifyGuestHostReply, notifyHostNewMessage } from "@/lib/push";
 import { getSessionUser } from "@/lib/session";
 import { memberCan } from "@/lib/team-access";
+import { isAccountSuspended, SUSPENDED_ERROR } from "@/lib/account-standing";
 import { eitherBlocked } from "@/lib/user-blocks-store";
 
 export const runtime = "nodejs";
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: "Crea una cuenta gratuita para escribir al anfitrión.", needsLogin: true }, { status: 401 });
   }
+  if (isAccountSuspended(user)) return NextResponse.json({ error: SUSPENDED_ERROR }, { status: 403 });
   if (!allowHostInboxPost(`media:${user.id}`, 2_500)) {
     return NextResponse.json({ error: "Espera unos segundos entre envíos." }, { status: 429 });
   }

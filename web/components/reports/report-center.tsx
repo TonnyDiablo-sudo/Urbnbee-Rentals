@@ -1,13 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { BlockUserButton } from "@/app/app/_components/block-user";
 import { useT } from "@/components/i18n-provider";
 import { SUPPORT_EMAIL } from "@/lib/support-contact";
 import {
   REPORT_CATEGORIES,
   REPORT_KINDS,
+  REPORT_ONGOING,
   REPORT_STATUS_LABEL,
+  REPORT_WHERE,
   reportKindLabel,
+  reportReceipt,
   type MyReportView,
   type ReportCounterpart,
   type UserReportKind,
@@ -39,6 +43,9 @@ export function ReportCenter({ mode, prefill }: { mode: "guest" | "host"; prefil
   const t = useT();
   const [kind, setKind] = useState<UserReportKind | null>(prefill?.kind ?? (prefill?.listingId ? "report_account" : null));
   const [category, setCategory] = useState("");
+  const [where, setWhere] = useState("");
+  const [ongoing, setOngoing] = useState("");
+  const [receipt, setReceipt] = useState<{ code: string; accountReport: boolean; blockUserId?: string } | null>(null);
   const [targetUserId, setTargetUserId] = useState(prefill?.targetUserId ?? "");
   const [targetLabel, setTargetLabel] = useState("");
   const [listingId, setListingId] = useState(prefill?.listingId ?? "");
@@ -75,6 +82,8 @@ export function ReportCenter({ mode, prefill }: { mode: "guest" | "host"; prefil
   function pickKind(k: UserReportKind) {
     setKind(k);
     setCategory("");
+    setWhere("");
+    setOngoing("");
     setError("");
     setSent(false);
   }
@@ -96,6 +105,7 @@ export function ReportCenter({ mode, prefill }: { mode: "guest" | "host"; prefil
         listingId: listingId || undefined,
         message,
         contact,
+        ...(kind === "report_account" ? { answers: { where, ongoing } } : {}),
       }),
     }).catch(() => null);
     setBusy(false);
@@ -103,14 +113,17 @@ export function ReportCenter({ mode, prefill }: { mode: "guest" | "host"; prefil
       setError(t("Error de red. Intenta de nuevo."));
       return;
     }
-    const j = (await res.json().catch(() => ({}))) as { error?: string };
+    const j = (await res.json().catch(() => ({}))) as { error?: string; receipt?: string; blockUserId?: string };
     if (!res.ok) {
       setError(j.error ? t(j.error) : t("No se pudo enviar."));
       return;
     }
+    setReceipt({ code: j.receipt ?? "", accountReport: kind === "report_account", blockUserId: j.blockUserId });
     setSent(true);
     setKind(null);
     setCategory("");
+    setWhere("");
+    setOngoing("");
     setTargetUserId("");
     setTargetLabel("");
     setListingId("");
@@ -124,10 +137,25 @@ export function ReportCenter({ mode, prefill }: { mode: "guest" | "host"; prefil
 
   return (
     <div className="space-y-8">
-      {sent && (
-        <p className="rounded-xl bg-[#e7f5ec] px-4 py-3 text-sm text-[#1e5a32]">
-          {t("¡Gracias! Lo recibimos. El equipo de Cabibee lo revisa y te avisamos aquí y en tus notificaciones.")}
-        </p>
+      {sent && receipt && (
+        <div className="space-y-2 rounded-xl bg-[#e7f5ec] px-4 py-3 text-sm text-[#1e5a32]">
+          {receipt.code && (
+            <p className="font-semibold">
+              {t("Folio")}: <span className="font-mono">{receipt.code}</span>
+            </p>
+          )}
+          <p>
+            {receipt.accountReport
+              ? t("Estamos revisando la cuenta que reportaste. Te avisamos en tus notificaciones si tomamos medidas.")
+              : t("¡Gracias! Lo recibimos. El equipo de Cabibee lo revisa y te avisamos aquí y en tus notificaciones.")}
+          </p>
+          {receipt.blockUserId && (
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-[#222]">
+              <span className="text-sm">{t("¿Quieres bloquear esta cuenta mientras tanto?")}</span>
+              <BlockUserButton userId={receipt.blockUserId} />
+            </div>
+          )}
+        </div>
       )}
 
       <p className="text-sm leading-relaxed text-[#717171]">
@@ -181,6 +209,45 @@ export function ReportCenter({ mode, prefill }: { mode: "guest" | "host"; prefil
               ))}
             </div>
           </div>
+
+          {kind === "report_account" && (
+            <div className="space-y-4">
+              <div>
+                <p className="mb-2 text-sm font-semibold text-[#222]">{t("¿Dónde pasó?")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {REPORT_WHERE.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setWhere(option)}
+                      className={`rounded-full border px-3 py-1.5 text-sm ${
+                        where === option ? "border-[#222] bg-[#222] text-white" : "border-[#dcdcdc] text-[#484848] hover:border-[#222]"
+                      }`}
+                    >
+                      {t(option)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-[#222]">{t("¿Sigue pasando?")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {REPORT_ONGOING.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setOngoing(option)}
+                      className={`rounded-full border px-3 py-1.5 text-sm ${
+                        ongoing === option ? "border-[#222] bg-[#222] text-white" : "border-[#dcdcdc] text-[#484848] hover:border-[#222]"
+                      }`}
+                    >
+                      {t(option)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {showTarget && (
             <div className="space-y-2">
@@ -262,7 +329,7 @@ export function ReportCenter({ mode, prefill }: { mode: "guest" | "host"; prefil
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={busy || message.trim().length < 10}
+              disabled={busy || message.trim().length < 10 || (kind === "report_account" && (!where || !ongoing))}
               className="flex-1 rounded-xl bg-[#dcb81e] py-3 text-[15px] font-semibold text-black disabled:opacity-50"
             >
               {busy ? t("Enviando…") : t("Enviar")}
@@ -290,6 +357,7 @@ export function ReportCenter({ mode, prefill }: { mode: "guest" | "host"; prefil
                   </span>
                   <span className="text-sm font-semibold text-[#222]">{t(reportKindLabel(r.kind))}</span>
                   <span className="text-xs text-[#717171]">· {t(r.category)}</span>
+                  <span className="font-mono text-[11px] text-[#999]">{reportReceipt(r.id)}</span>
                   <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE[r.status]}`}>
                     {t(REPORT_STATUS_LABEL[r.status])}
                   </span>

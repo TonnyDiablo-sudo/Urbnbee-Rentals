@@ -19,6 +19,7 @@ import { bookingTaxFields, quoteBookingMxn } from "@/lib/booking-quote";
 import { parseBookingParty } from "@/lib/booking-party";
 import { allowHostInboxPost } from "@/lib/host-inbox-rate-limit";
 import { fullMonthsBetween, stayLengthError } from "@/lib/listing-pricing";
+import { isAccountSuspended, SUSPENDED_ERROR } from "@/lib/account-standing";
 import { getSessionUser } from "@/lib/session";
 import { listingAcceptsBookings } from "@/lib/booking-engine-slots";
 import { hostCanTakeBookingPayments } from "@/lib/host-stripe";
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
       { status: 401 }
     );
   }
+  if (isAccountSuspended(user)) return NextResponse.json({ error: SUSPENDED_ERROR }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
   const listingId = typeof body.listingId === "string" ? body.listingId.trim() : "";

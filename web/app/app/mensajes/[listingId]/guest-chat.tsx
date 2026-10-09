@@ -70,7 +70,6 @@ export function GuestChat({
       title={title}
       subtitle={subtitle}
       back="/mensajes"
-      headerRight={otherUserId ? <BlockUserButton userId={otherUserId} /> : undefined}
       me="guest"
       initial={initial}
       seenKey={`g:${listingId}`}
@@ -90,11 +89,14 @@ export function GuestChat({
       emptyText={t("Saluda al anfitrión y pregúntale lo que necesites. Las respuestas las escribe él, no un robot.")}
       closedNotice={closed ? t("Este anuncio ya no está disponible, así que ya no se pueden enviar mensajes.") : undefined}
       headerRight={
-        slug ? (
-          <Link href={`/alojamiento/${slug}`} className="rounded-full px-3 py-1.5 text-sm font-semibold text-[#222] underline">
-            {t("Ver anuncio")}
-          </Link>
-        ) : undefined
+        <span className="flex items-center gap-1">
+          {otherUserId && <BlockUserButton userId={otherUserId} />}
+          {slug && (
+            <Link href={`/alojamiento/${slug}`} className="rounded-full px-3 py-1.5 text-sm font-semibold text-[#222] underline">
+              {t("Ver anuncio")}
+            </Link>
+          )}
+        </span>
       }
     />
   );

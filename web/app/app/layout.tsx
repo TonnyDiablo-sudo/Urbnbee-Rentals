@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { AccountSuspended } from "@/components/account/account-suspended";
+import { isAccountSuspended } from "@/lib/account-standing";
 import { requestProto, siteHostFromAppHost } from "@/lib/app-host";
 import { getSessionUser } from "@/lib/session";
 import { AppShell, type AppUser } from "./_components/app-shell";
@@ -32,6 +34,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3005";
   const siteHost = siteHostFromAppHost(host);
   const siteOrigin = `${requestProto(h.get("x-forwarded-proto"), siteHost)}://${siteHost}`;
+  if (u && isAccountSuspended(u)) {
+    return (
+      <SiteOriginProvider origin={siteOrigin}>
+        <AccountSuspended reason={u.suspendReason} />
+      </SiteOriginProvider>
+    );
+  }
   return (
     <SiteOriginProvider origin={siteOrigin}>
       <AppShell user={user}>{children}</AppShell>

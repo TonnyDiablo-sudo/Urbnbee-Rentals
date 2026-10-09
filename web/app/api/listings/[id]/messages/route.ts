@@ -21,6 +21,7 @@ import { getLang } from "@/lib/i18n/server";
 import { translateIncoming } from "@/lib/listing-localize";
 import { getSessionUser } from "@/lib/session";
 import { notifyHostNewMessage } from "@/lib/push";
+import { isAccountSuspended, SUSPENDED_ERROR } from "@/lib/account-standing";
 import { eitherBlocked } from "@/lib/user-blocks-store";
 
 const COOKIE = "urb_chat_sess";
@@ -108,6 +109,9 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     );
   }
 
+  if (isAccountSuspended(sessionUser)) {
+    return NextResponse.json({ error: SUSPENDED_ERROR }, { status: 403 });
+  }
   if (sessionUser.id !== listing.hostId) {
     const blocked = emailRequiredResponse(sessionUser, "message");
     if (blocked) return blocked;

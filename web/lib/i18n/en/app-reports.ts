@@ -86,4 +86,44 @@ export const appReports: Record<string, string> = {
   "Tu reporte: {status}": "Your report: {status}",
   "El equipo de Cabibee te respondió. Toca para leerlo.": "The Cabibee team replied. Tap to read it.",
   "Actualizamos el estado de lo que nos enviaste.": "We updated the status of what you sent us.",
+
+  "¿Dónde pasó?": "Where did it happen?",
+  "En el chat de Cabibee": "In a Cabibee chat",
+  "En un anuncio": "On a listing",
+  "En el perfil": "On the profile",
+  "Fuera de Cabibee": "Outside Cabibee",
+  "¿Sigue pasando?": "Is it still happening?",
+  "Sí, sigue pasando": "Yes, it's still happening",
+  "No, ya pasó": "No, it already happened",
+  "Contesta las dos preguntas del cuestionario.": "Answer both questions on the form.",
+  Folio: "Receipt",
+  "Estamos revisando la cuenta que reportaste. Te avisamos en tus notificaciones si tomamos medidas.":
+    "We're reviewing the account you reported. We'll let you know in your notifications if we take action.",
+  "¿Quieres bloquear esta cuenta mientras tanto?": "Do you want to block this account in the meantime?",
+  "Reporte {receipt}": "Report {receipt}",
+  "Estamos revisando la cuenta que reportaste. Te avisamos si tomamos medidas.":
+    "We're reviewing the account you reported. We'll let you know if we take action.",
+  "Revisamos la cuenta que reportaste y tomamos medidas. Gracias por avisarnos.":
+    "We reviewed the account you reported and took action. Thanks for letting us know.",
+  "Tu cuenta fue suspendida": "Your account was suspended",
+
+  "Tu cuenta está suspendida": "Your account is suspended",
+  "No puedes usar Cabibee mientras siga suspendida. Puedes pedir que un administrador revise tu caso. Si no la habilitan, la cuenta sigue suspendida.":
+    "You can't use Cabibee while it stays suspended. You can ask an administrator to review your case. If they don't restore it, the account stays suspended.",
+  "Tu solicitud está en revisión.": "Your request is under review.",
+  "Revisamos tu solicitud y la cuenta sigue suspendida. Puedes enviar otra si tienes algo nuevo.":
+    "We reviewed your request and the account stays suspended. You can send another if you have something new.",
+  "Cuéntanos por qué deberíamos habilitar tu cuenta": "Tell us why we should restore your account",
+  "Pedir revisión": "Ask for a review",
+  "Tu cuenta no está suspendida.": "Your account is not suspended.",
+  "Escribe un poco más (mínimo 20 caracteres).": "Write a bit more (at least 20 characters).",
+  "Ya tienes una solicitud en revisión.": "You already have a request under review.",
+  "Puedes pedir que la revisen desde la app. Si no la habilitan, sigue suspendida.":
+    "You can ask for a review from the app. If it isn't restored, it stays suspended.",
+  "Tu cuenta ya está habilitada": "Your account is restored",
+  "Ya puedes volver a usar Cabibee. Tus anuncios siguen ocultos hasta que los publiques.":
+    "You can use Cabibee again. Your listings stay hidden until you publish them.",
+  "Tu cuenta sigue suspendida": "Your account stays suspended",
+  "Revisamos tu solicitud y la cuenta sigue suspendida.": "We reviewed your request and the account stays suspended.",
+  "Tu cuenta está suspendida.": "Your account is suspended.",
 };

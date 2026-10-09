@@ -3,6 +3,13 @@ export type UserReportKind = "report_account" | "claim_account" | "complaint" | 
 
 export type UserReportStatus = "open" | "in_review" | "resolved" | "dismissed";
 
+export type ReportAiDecision = "pending" | "suspend" | "keep" | "error";
+
+/** Folio que ve quien reportó. */
+export function reportReceipt(id: string): string {
+  return `R-${id.replace(/^rpt_/, "").slice(0, 8).toUpperCase()}`;
+}
+
 export type UserReportRecord = {
   id: string;
   kind: UserReportKind;
@@ -19,6 +26,14 @@ export type UserReportRecord = {
   listingId?: string;
   bookingId?: string;
   message: string;
+  /** Cuestionario de una denuncia de cuenta. */
+  answers?: { where: string; ongoing: string };
+  /** Decisión automática sobre la cuenta señalada. El motivo es interno. */
+  aiDecision?: ReportAiDecision;
+  aiReason?: string;
+  aiModel?: string;
+  aiAt?: string;
+  aiAttempts?: number;
   /** Correo o teléfono para responder, si no es el de la cuenta. */
   contact?: string;
   status: UserReportStatus;
@@ -79,6 +94,10 @@ export const REPORT_CATEGORIES: Record<UserReportKind, string[]> = {
   suggestion: ["Nueva función", "Mejora de algo que ya existe", "Diseño o facilidad de uso", "Otro"],
 };
 
+export const REPORT_WHERE = ["En el chat de Cabibee", "En un anuncio", "En el perfil", "Fuera de Cabibee"] as const;
+
+export const REPORT_ONGOING = ["Sí, sigue pasando", "No, ya pasó"] as const;
+
 export const REPORT_STATUS_LABEL: Record<UserReportStatus, string> = {
   open: "Recibido",
   in_review: "En revisión",
@@ -91,7 +110,7 @@ export function reportKindLabel(kind: UserReportKind): string {
 }
 
 /** Lo que ve quien reportó: sin la nota interna del equipo. */
-export type MyReportView = Omit<UserReportRecord, "adminNote" | "reporterEmail" | "targetUserId"> & {
+export type MyReportView = Omit<UserReportRecord, "adminNote" | "reporterEmail" | "targetUserId" | "aiReason" | "aiDecision" | "aiModel" | "aiAt" | "aiAttempts"> & {
   targetName?: string;
 };
 

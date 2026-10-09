@@ -126,6 +126,24 @@ function ReportCard({ r, onSaved }: { r: AdminReportRow; onSaved: () => void }) 
             </div>
           </div>
 
+          {r.answers && (
+            <p className="text-xs text-gray-500">
+              {t(r.answers.where)} · {t(r.answers.ongoing)}
+            </p>
+          )}
+          {r.aiDecision && (
+            <p className="text-xs text-gray-500">
+              {r.aiDecision === "suspend"
+                ? t("Cuenta suspendida por el reporte.")
+                : r.aiDecision === "error"
+                  ? t("Pasó a una persona")
+                  : r.aiDecision === "pending"
+                    ? t("Revisando")
+                    : t("No se suspendió")}
+              {r.aiReason ? ` — ${r.aiReason}` : ""}
+            </p>
+          )}
+
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t("Mensaje")}</p>
             <p className="mt-1 whitespace-pre-wrap rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-800">{r.message}</p>

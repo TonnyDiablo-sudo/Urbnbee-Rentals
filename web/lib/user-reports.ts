@@ -15,7 +15,9 @@ import {
 import {
   REPORT_CATEGORIES,
   REPORT_KINDS,
+  REPORT_ONGOING,
   REPORT_STATUS_LABEL,
+  REPORT_WHERE,
   type MyReportView,
   type ReportCounterpart,
   type UserReportRecord,
@@ -80,7 +82,16 @@ export type CreateReportInput = {
   bookingId?: unknown;
   message?: unknown;
   contact?: unknown;
+  answers?: unknown;
 };
+
+function reportAnswers(v: unknown): { where: string; ongoing: string } | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const where = REPORT_WHERE.find((x) => x === o.where);
+  const ongoing = REPORT_ONGOING.find((x) => x === o.ongoing);
+  return where && ongoing ? { where, ongoing } : null;
+}
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
@@ -124,6 +135,11 @@ export function submitUserReport(
     return { ok: false, error: "Dinos qué cuenta quieres denunciar: elígela, pega la liga del anuncio o escribe su correo.", status: 400 };
   }
 
+  const answers = kind.kind === "report_account" ? reportAnswers(input.answers) : null;
+  if (kind.kind === "report_account" && !answers) {
+    return { ok: false, error: "Contesta las dos preguntas del cuestionario.", status: 400 };
+  }
+
   const bookingId = str(input.bookingId, 80) || undefined;
   const ownsBooking =
     bookingId &&
@@ -141,6 +157,7 @@ export function submitUserReport(
     ...(listingId ? { listingId } : {}),
     ...(ownsBooking ? { bookingId } : {}),
     message,
+    ...(answers ? { answers } : {}),
     ...(str(input.contact, 160) ? { contact: str(input.contact, 160) } : {}),
   });
   return { ok: true, report };
@@ -148,7 +165,22 @@ export function submitUserReport(
 
 export function myReportViews(userId: string): MyReportView[] {
   return listReportsByReporter(userId).map((r) => {
-    const { adminNote: _note, reporterEmail: _email, targetUserId, ...rest } = r;
+    const {
+      adminNote: _note,
+      reporterEmail: _email,
+      targetUserId,
+      aiReason: _ai,
+      aiDecision: _dec,
+      aiModel: _model,
+      aiAt: _at,
+      aiAttempts: _tries,
+      ...rest
+    } = r;
+    void _tries;
+    void _ai;
+    void _dec;
+    void _model;
+    void _at;
     void _note;
     void _email;
     const target = targetUserId ? findUserById(targetUserId) : undefined;
