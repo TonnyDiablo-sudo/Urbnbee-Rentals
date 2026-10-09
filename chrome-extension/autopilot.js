@@ -79,6 +79,34 @@ async function freshLinks(settings, searchTabId, scrolls, tried) {
   return { urls: fresh, known: ok ? urls.length - fresh.length : 0 };
 }
 
+/**
+ * Si el anuncio esconde el WhatsApp detrás de un formulario que pide teléfono, lo llena con una línea de Cabibee
+ * (el servidor dice cuál y lleva la cuenta). Si no hay líneas libres, sigue sin contacto.
+ */
+async function revealContact(settings, key, tabId, url, site, progress) {
+  const none = { revealed: [], notes: "" };
+  const gate = await inTab(tabId, findContactGate).catch(() => null);
+  if (!gate?.needed) return none;
+  const lease = await api(settings, "/api/associate/autopilot/phone", { method: "POST", body: JSON.stringify({ url }) }).catch(() => null);
+  if (!lease?.ok || !lease.data.ok) {
+    await setRun(key, { message: `Sin contacto: ${lease?.data?.reason || lease?.data?.error || "no hay línea libre"}` });
+    return none;
+  }
+  await inTab(tabId, showAutopilotBar, [`${site} · dejando teléfono para ver el WhatsApp · ${progress}`]).catch(() => {});
+  await chrome.scripting
+    .executeScript({ target: { tabId }, world: "MAIN", func: hookWindowOpen })
+    .catch((e) => console.warn("[cabibee] hookWindowOpen", e));
+  const res = await inTab(tabId, fillContactGate, [lease.data]).catch(() => null);
+  const revealed = res?.revealed || [];
+  runs[key].revealed = (runs[key].revealed || 0) + (revealed.length ? 1 : 0);
+  runs[key].lastGate = res?.reason || "error";
+  if (!revealed.length) {
+    await setRun(key, { message: `No salió el contacto (${res?.reason || "error"}); sigo.` });
+    return none;
+  }
+  return { revealed, notes: `El contacto del anunciante salió al dejar teléfono: ${revealed.join(" ")}` };
+}
+
 async function runAutopilot(searchTabId) {
   const key = String(searchTabId);
   if (runs[key]?.state === "running") return;
@@ -156,7 +184,9 @@ async function runAutopilot(searchTabId) {
         return await finish("stopped", `Me detuve: ${site} pidió iniciar sesión o verificar (${prep.reason}). Resuélvelo a mano y vuelve a iniciar más tarde.`);
       }
       if (control[key].stop) break;
+      const gate = await revealContact(settings, key, workerTabId, url, site, progress);
       const page = await inTab(workerTabId, collectPage).catch(() => null);
+      if (page && gate.revealed.length) page.links = [...gate.revealed.map((u) => `Contacto del anunciante → ${u}`), ...(page.links || [])];
       stats.processed++;
       if (!page || (page.text || "").trim().length < 40) {
         stats.failed++;
@@ -166,7 +196,7 @@ async function runAutopilot(searchTabId) {
         await setRun(key, { message: `Mandando a Cabibee… (${progress})` });
         let result;
         try {
-          result = await sendPage(settings, page, { autopilot: true });
+          result = await sendPage(settings, page, { autopilot: true, notes: gate.notes });
         } catch (e) {
           result = { ok: false, status: 0, data: { error: `Sin conexión con Cabibee: ${e.message || e}` } };
         }

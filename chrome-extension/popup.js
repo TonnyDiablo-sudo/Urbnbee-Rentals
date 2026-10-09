@@ -43,7 +43,9 @@ function renderRuns(runs) {
   } else {
     box.className = `status ${mine.state === "error" ? "err" : mine.state === "done" ? "ok" : ""}`;
     box.textContent = "";
-    const counts = `Creados: ${mine.created || 0} · ya estaban: ${mine.skipped || 0} · fallaron: ${mine.failed || 0}`;
+    const counts = `Creados: ${mine.created || 0} · ya estaban: ${mine.skipped || 0} · fallaron: ${mine.failed || 0}${
+      mine.revealed ? ` · WhatsApp con formulario: ${mine.revealed}` : ""
+    }`;
     box.append(`${mine.site ? `${mine.site}: ` : ""}${mine.message || ""}\n${counts}\n`);
     if (mine.created && currentServer) {
       const a = document.createElement("a");

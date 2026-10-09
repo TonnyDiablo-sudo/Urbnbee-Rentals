@@ -145,6 +145,144 @@ async function prepareListing() {
   return { blocked: false, photos: seen.length };
 }
 
+/** ¿El anuncio esconde el contacto detrás de un botón («Contactar por WhatsApp», «Ver teléfono»)? */
+function findContactGate() {
+  const visible = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
+  };
+  const shown = Array.from(document.querySelectorAll("a[href]")).some((a) => /wa\.me\/\d|api\.whatsapp\.com\/send\?phone=\d|^tel:\+?\d/i.test(a.href));
+  if (shown) return { needed: false, reason: "visible" };
+  const GATE = /whats ?app|ver tel[eé]fono|mostrar (el )?(tel[eé]fono|n[uú]mero|datos)|ver (el )?(n[uú]mero|datos de contacto|contacto)|llamar/i;
+  const btn = Array.from(document.querySelectorAll('button, a, [role="button"]')).find(
+    (el) => GATE.test((el.innerText || el.getAttribute("aria-label") || "").trim().slice(0, 60)) && visible(el)
+  );
+  return btn ? { needed: true, label: (btn.innerText || btn.getAttribute("aria-label") || "").trim().slice(0, 60) } : { needed: false, reason: "sin botón" };
+}
+
+/**
+ * Corre en el mundo de la página (world: "MAIN"): en vez de abrir WhatsApp en otra pestaña o salir del anuncio,
+ * guarda la dirección para leerla después.
+ */
+function hookWindowOpen() {
+  if (window.__cabibeeHooked) return;
+  window.__cabibeeHooked = true;
+  const rec = (u) => {
+    try {
+      const list = JSON.parse(document.documentElement.dataset.cabibeeOpened || "[]");
+      list.push(String(u));
+      document.documentElement.dataset.cabibeeOpened = JSON.stringify(list.slice(-20));
+    } catch {
+      /* nada */
+    }
+  };
+  window.open = function (u) {
+    if (u) rec(u);
+    const loc = { assign: rec, replace: rec, get href() { return ""; }, set href(v) { rec(v); } };
+    return { closed: false, focus() {}, blur() {}, close() {}, document: { write() {}, close() {} }, get location() { return loc; }, set location(v) { rec(v); } };
+  };
+  document.addEventListener(
+    "click",
+    (e) => {
+      const a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+      if (a && /wa\.me\/|api\.whatsapp\.com|web\.whatsapp\.com|^whatsapp:/i.test(a.href)) {
+        e.preventDefault();
+        rec(a.href);
+      }
+    },
+    true
+  );
+}
+
+/**
+ * Pica el botón que esconde el contacto y, si sale un formulario, lo llena con la línea de Cabibee
+ * que dio el servidor. Regresa lo que apareció: enlaces de WhatsApp, teléfonos.
+ */
+async function fillContactGate(lease) {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const visible = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
+  };
+  const GATE = /whats ?app|ver tel[eé]fono|mostrar (el )?(tel[eé]fono|n[uú]mero|datos)|ver (el )?(n[uú]mero|datos de contacto|contacto)|llamar/i;
+  const ours = lease.phone.national;
+  const found = () => {
+    const out = new Set();
+    try {
+      for (const u of JSON.parse(document.documentElement.dataset.cabibeeOpened || "[]")) out.add(u);
+    } catch {
+      /* nada */
+    }
+    for (const a of Array.from(document.querySelectorAll("a[href]"))) {
+      if (/wa\.me\/\d|api\.whatsapp\.com\/send\?phone=\d|^tel:\+?\d/i.test(a.href)) out.add(a.href);
+    }
+    return Array.from(out).filter((u) => !u.replace(/\D/g, "").endsWith(ours));
+  };
+  const setValue = (el, v) => {
+    const proto = el.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(proto, "value").set.call(el, v);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    el.dispatchEvent(new Event("blur", { bubbles: true }));
+  };
+  const attrs = (el) =>
+    [el.name, el.id, el.placeholder, el.getAttribute("aria-label"), el.getAttribute("autocomplete"), el.labels?.[0]?.innerText].join(" ").toLowerCase();
+
+  const btn = Array.from(document.querySelectorAll('button, a, [role="button"]')).find(
+    (el) => GATE.test((el.innerText || el.getAttribute("aria-label") || "").trim().slice(0, 60)) && visible(el)
+  );
+  if (!btn) return { filled: false, revealed: found(), reason: "sin botón" };
+  btn.click();
+
+  let phoneInput = null;
+  for (let i = 0; i < 16 && !phoneInput; i++) {
+    await sleep(300);
+    if (found().length) return { filled: false, revealed: found(), reason: "salió sin formulario" };
+    phoneInput = Array.from(document.querySelectorAll("input")).find(
+      (el) => visible(el) && (el.type === "tel" || /tel|phone|celular|m[oó]vil|whats/.test(attrs(el))) && !el.value
+    );
+  }
+  if (!phoneInput) return { filled: false, revealed: found(), reason: "no apareció formulario" };
+  const box = phoneInput.closest('form, [role="dialog"], [class*="modal" i], [class*="Modal"]') || document.body;
+  if (box.querySelector('iframe[src*="recaptcha"], iframe[src*="hcaptcha"], [class*="captcha" i]')) {
+    return { filled: false, revealed: [], reason: "el formulario pide captcha" };
+  }
+
+  const wantsPlus = (phoneInput.placeholder || "").trim().startsWith("+");
+  for (const el of Array.from(box.querySelectorAll("input, textarea"))) {
+    if (!visible(el) || el.disabled || el.readOnly) continue;
+    const a = attrs(el);
+    await sleep(250 + Math.random() * 350);
+    if (el === phoneInput) setValue(el, wantsPlus ? lease.phone.e164 : ours);
+    else if (el.type === "email" || /mail|correo/.test(a)) setValue(el, lease.email);
+    else if (el.type === "checkbox") {
+      if (!el.checked && (el.required || /acept|t[eé]rminos|privacidad|terms|policy/.test(a + " " + (el.closest("label")?.innerText || "").toLowerCase()))) el.click();
+    } else if (el.tagName === "TEXTAREA") {
+      if (!el.value.trim()) setValue(el, "Hola, me interesa este inmueble. ¿Sigue disponible?");
+    } else if (/apellido|last/.test(a)) {
+      if (!el.value) setValue(el, ".");
+    } else if (/nombre|name/.test(a) && (el.type === "text" || !el.type)) {
+      if (!el.value) setValue(el, lease.name);
+    }
+  }
+  await sleep(500 + Math.random() * 500);
+
+  const SUBMIT = /enviar|contactar|whats ?app|ver (tel|n[uú]m|datos)|continuar|mostrar|send|submit/i;
+  const submit =
+    Array.from(box.querySelectorAll('button, [role="button"], input[type="submit"]')).find(
+      (el) => visible(el) && !el.disabled && (el.type === "submit" || SUBMIT.test(el.innerText || el.value || ""))
+    ) || null;
+  if (!submit) return { filled: true, revealed: found(), reason: "no encontré el botón de enviar" };
+  submit.click();
+
+  for (let i = 0; i < 27; i++) {
+    await sleep(300);
+    const got = found();
+    if (got.length) return { filled: true, revealed: got, reason: "ok" };
+  }
+  return { filled: true, revealed: [], reason: "no apareció el WhatsApp después de enviar" };
+}
+
 /** Barra fija en la pestaña del piloto: deja ver qué está haciendo y pausarlo con un clic. */
 function showAutopilotBar(text) {
   let bar = document.getElementById("__cabibee_autopilot");

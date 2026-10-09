@@ -630,4 +630,42 @@ export const associates: Record<string, string> = {
     "couldn't send",
   "No se pudo mandar el correo. Revisa el buzón en Admin → Correo.":
     "Couldn't send the email. Check the mailbox in Admin → Email.",
+  "No entendí: {list}":
+    "Couldn't read: {list}",
+  "Agregué {added} ({repeated} ya estaban).":
+    "Added {added} ({repeated} were already there).",
+  "Piloto automático: líneas para formularios":
+    "Autopilot: phone lines for forms",
+  "Cuando un anuncio pide teléfono para mostrar el WhatsApp del anunciante, el piloto llena el formulario con una de estas líneas (del país de la página), rotándolas. Los anunciantes y agentes van a escribir y llamar a estas líneas: alguien tiene que contestarlas.":
+    "When a listing asks for a phone number before showing the advertiser's WhatsApp, the autopilot fills the form with one of these lines (from the site's country), rotating them. Advertisers and agents will text and call these lines: someone has to answer them.",
+  "Nombre en formularios":
+    "Name for forms",
+  "Correo en formularios":
+    "Email for forms",
+  "Usos por línea al día":
+    "Uses per line per day",
+  "Confirmo que estas líneas son de Cabibee (chips, eSIM o números virtuales contratados) y que recibimos sus mensajes y llamadas.":
+    "I confirm these lines belong to Cabibee (SIMs, eSIMs or paid virtual numbers) and that we receive their messages and calls.",
+  "Agregar líneas":
+    "Add lines",
+  "{n} hoy":
+    "{n} today",
+  "Activar":
+    "Turn on",
+  "¿Quitar esta línea?":
+    "Remove this line?",
+  "Confirma que las líneas son de Cabibee y que reciben mensajes.":
+    "Confirm the lines belong to Cabibee and receive messages.",
+  "No encontré números válidos.":
+    "No valid numbers found.",
+  "Correo inválido.":
+    "Invalid email.",
+  "Token inválido.":
+    "Invalid token.",
+  "Sólo para Asociado Plus.":
+    "Only for Associate Plus.",
+  "Falta la URL del anuncio.":
+    "The listing URL is missing.",
+  "Si el anuncio sólo muestra el WhatsApp después de dejar un teléfono, el piloto llena el formulario con una línea de Cabibee (las da de alta el admin). Si no hay líneas libres o el formulario pide captcha, el borrador llega sin contacto.":
+    "If the listing only shows the WhatsApp after you leave a phone number, the autopilot fills the form with a Cabibee line (the admin adds them). If no lines are free or the form asks for a captcha, the draft arrives without contact.",
 };

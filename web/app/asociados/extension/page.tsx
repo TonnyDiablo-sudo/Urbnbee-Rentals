@@ -132,7 +132,7 @@ export default async function ExtensionPage() {
           </p>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-gray-700">
             <li>{t("Abre una página de resultados: Facebook Marketplace → Propiedades en alquiler (con tu ciudad), Inmuebles24, Lamudi, Vivanuncios, Casas y Terrenos, Mercado Libre…")}</li>
-            <li>{t("Si el anuncio sólo muestra el WhatsApp después de dejar un teléfono, el piloto no lo llena: el borrador llega sin contacto y tú decides si lo consigues a mano.")}</li>
+            <li>{t("Si el anuncio sólo muestra el WhatsApp después de dejar un teléfono, el piloto llena el formulario con una línea de Cabibee (las da de alta el admin). Si no hay líneas libres o el formulario pide captcha, el borrador llega sin contacto.")}</li>
             <li>
               {t("Clic en el ícono de Cabibee →")} <strong>{t("▶ Iniciar en esta búsqueda")}</strong>.
             </li>

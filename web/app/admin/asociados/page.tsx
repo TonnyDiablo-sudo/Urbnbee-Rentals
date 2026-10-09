@@ -5,7 +5,10 @@ import { getT } from "@/lib/i18n/server";
 import { listAllUsers, listListingsForHost } from "@/lib/marketplace-store";
 import { autopilotSettings, MAX_SITE_LIMIT } from "@/lib/associate-autopilot";
 import { AssociateRow, CreateAssociateForm } from "./associates-client";
+import { formatPhone, MAX_PER_PHONE_DAILY, PHONE_COUNTRIES, phoneUsesToday } from "@/lib/autopilot-phones";
+import { getAutopilotPhonesDoc } from "@/lib/autopilot-phones-store";
 import { AutopilotLimitsForm } from "./autopilot-limits";
+import { AutopilotPhonesForm } from "./autopilot-phones";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +39,8 @@ export default async function AdminAssociatesPage() {
     listings: rows.reduce((n, r) => n + (r.stats.days.find((d) => d.day === day)?.listings ?? 0), 0),
   }));
   const recent = provisioned.slice(0, 25);
+  const phonesDoc = getAutopilotPhonesDoc();
+  const phoneUses = phoneUsesToday();
 
   return (
     <div className="space-y-8 p-6 lg:p-8">
@@ -115,6 +120,19 @@ export default async function AdminAssociatesPage() {
       </section>
 
       <AutopilotLimitsForm limits={autopilotSettings().limits} max={MAX_SITE_LIMIT} />
+      <AutopilotPhonesForm
+        phones={phonesDoc.phones.map((p) => ({
+          id: p.id,
+          label: formatPhone(p),
+          countryName: PHONE_COUNTRIES[p.country]?.name ?? `+${p.country}`,
+          active: p.active,
+          usedToday: phoneUses.get(p.id) ?? 0,
+        }))}
+        formName={phonesDoc.formName}
+        formEmail={phonesDoc.formEmail}
+        perPhoneDaily={phonesDoc.perPhoneDaily}
+        maxPerPhone={MAX_PER_PHONE_DAILY}
+      />
 
       <section className="grid gap-6 lg:grid-cols-2">
         <CreateAssociateForm />
