@@ -22,6 +22,7 @@ export const dynamic = "force-dynamic";
 const NAV = [
   { href: "/asociados", label: "Inicio" },
   { href: "/asociados/cuentas", label: "Mis cuentas" },
+  { href: "/asociados/avisar", label: "Por avisar" },
   { href: "/asociados/capturar", label: "Agregar anuncio" },
   { href: "/asociados/celular", label: "Celular" },
   { href: "/asociados/extension", label: "Extensión" },

@@ -3,7 +3,9 @@ import { DayBars } from "@/components/associates/day-bars";
 import { getAllAssociateStats, lastMxDays, mxDay } from "@/lib/associate-stats";
 import { getT } from "@/lib/i18n/server";
 import { listAllUsers, listListingsForHost } from "@/lib/marketplace-store";
+import { autopilotSettings, MAX_SITE_LIMIT } from "@/lib/associate-autopilot";
 import { AssociateRow, CreateAssociateForm } from "./associates-client";
+import { AutopilotLimitsForm } from "./autopilot-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +44,9 @@ export default async function AdminAssociatesPage() {
         <p className="mt-1 text-sm text-gray-500">
           {t("Cuentas de anfitrión que crean los asociados con IA. Los días se cuentan en hora de la Ciudad de México.")}
         </p>
+        <Link href="/asociados/avisar" className="mt-2 inline-block text-sm font-medium text-amber-700 underline">
+          {t("Ver «Por avisar» de todos los asociados →")}
+        </Link>
       </div>
 
       <section className="grid gap-4 lg:grid-cols-[1fr_1.3fr]">
@@ -108,6 +113,8 @@ export default async function AdminAssociatesPage() {
           </div>
         )}
       </section>
+
+      <AutopilotLimitsForm limits={autopilotSettings().limits} max={MAX_SITE_LIMIT} />
 
       <section className="grid gap-6 lg:grid-cols-2">
         <CreateAssociateForm />

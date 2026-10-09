@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAssociateFromRequest } from "@/lib/associate-auth";
-import { autopilotSettings, autopilotUsedToday, canUseAutopilot, isKnownListingUrl } from "@/lib/associate-autopilot";
+import {
+  autopilotLimitFor,
+  autopilotSiteOf,
+  autopilotUsedToday,
+  canUseAutopilot,
+  isKnownListingUrl,
+} from "@/lib/associate-autopilot";
 import { createDraftFromPage } from "@/lib/associate-capture";
 import { listingImportAiEnabled } from "@/lib/listing-import-limits";
 
@@ -38,10 +44,11 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
-    const { dailyLimit } = autopilotSettings();
-    if (autopilotUsedToday(associate.id) >= dailyLimit) {
+    const site = autopilotSiteOf(url);
+    const limit = autopilotLimitFor(site);
+    if (autopilotUsedToday(associate.id, site) >= limit) {
       return NextResponse.json(
-        { code: "daily_limit", error: `Ya llegaste al tope de hoy del piloto automático (${dailyLimit}). Sigue mañana.` },
+        { code: "daily_limit", error: `Ya llegaste al tope de hoy en ${site} (${limit}). Sigue mañana o usa otra página.` },
         { status: 429 }
       );
     }

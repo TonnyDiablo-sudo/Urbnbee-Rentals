@@ -2,6 +2,7 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import { randomInt } from "crypto";
 import { removeSourceShots } from "@/lib/associate-capture";
+import { rememberOutreachPassword } from "@/lib/associate-outreach-store";
 import { applyDraftEdits, draftPublishProblems, type DraftEdits } from "@/lib/associate-draft-edits";
 import { getDraft, saveDraft, type AssociateDraft, type DraftContact } from "@/lib/associate-drafts-store";
 import { removeDraftPhotos } from "@/lib/associate-photos";
@@ -337,6 +338,7 @@ export async function publishDraft(opts: {
       mustChangePassword: true,
     });
     upsertHostProfile(host.id, newHostContact(opts.target, contact));
+    rememberOutreachPassword(host.id, opts.associate.id, password);
     created = true;
     credentials = { email: loginNameFor(email), password };
   }
@@ -414,6 +416,7 @@ export async function resetTempPassword(
     mustChangePassword: true,
     passwordChangedAt: new Date().toISOString(),
   });
+  rememberOutreachPassword(host.id, host.provisionedBy!, password);
   return { ok: true, email: loginNameFor(host.email), password };
 }
 

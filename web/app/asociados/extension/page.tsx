@@ -132,6 +132,7 @@ export default async function ExtensionPage() {
           </p>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-gray-700">
             <li>{t("Abre una página de resultados: Facebook Marketplace → Propiedades en alquiler (con tu ciudad), Inmuebles24, Lamudi, Vivanuncios, Casas y Terrenos, Mercado Libre…")}</li>
+            <li>{t("Si el anuncio sólo muestra el WhatsApp después de dejar un teléfono, el piloto no lo llena: el borrador llega sin contacto y tú decides si lo consigues a mano.")}</li>
             <li>
               {t("Clic en el ícono de Cabibee →")} <strong>{t("▶ Iniciar en esta búsqueda")}</strong>.
             </li>
@@ -141,10 +142,17 @@ export default async function ExtensionPage() {
           </ol>
           <p className="mt-3 text-xs text-gray-600">
             {t(
-              "Para cuidar tu cuenta de Facebook: máximo {limit} anuncios al día y al menos {sec} segundos entre uno y otro. Se salta los que ya están en Cabibee y se detiene solo si Facebook pide iniciar sesión o verificar que eres tú.",
-              { limit: autopilot.dailyLimit, sec: autopilot.minDelaySec }
+              "Puedes tenerlo trabajando en varias páginas a la vez (una búsqueda por página). Cada página tiene su propio tope diario y espera al menos {sec} segundos entre anuncios. Se salta los que ya están en Cabibee y se detiene solo si el sitio pide iniciar sesión o verificar que eres tú.",
+              { sec: autopilot.minDelaySec }
             )}
           </p>
+          <ul className="mt-2 grid gap-x-4 text-xs text-gray-600 sm:grid-cols-2">
+            {Object.entries(autopilot.limits).map(([site, limit]) => (
+              <li key={site}>
+                {site}: <strong>{t("{n} al día", { n: limit })}</strong>
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 

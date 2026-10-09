@@ -504,4 +504,130 @@ export const associates: Record<string, string> = {
     "Building the preview…",
   "La vista previa expiró. Ciérrala y ábrela otra vez.":
     "The preview expired. Close it and open it again.",
+  "Piloto automático: tope diario por página":
+    "Autopilot: daily limit per site",
+  "Cada asociado Plus puede traer hasta este número de anuncios al día de cada página. Facebook va más bajo porque usa la cuenta personal del asociado.":
+    "Each Plus associate can bring up to this many listings a day from each site. Facebook is lower because it uses the associate's personal account.",
+  "Guardar topes":
+    "Save limits",
+  "Ver «Por avisar» de todos los asociados →":
+    "See every associate's “To notify” list →",
+  "Estado inválido.":
+    "Invalid status.",
+  "Canal inválido.":
+    "Invalid channel.",
+  "El enlace no es válido.":
+    "The link isn't valid.",
+  "¿Mandarlo otra vez de todos modos?":
+    "Send it again anyway?",
+  "Mensaje copiado. En Facebook dale «Enviar mensaje», pégalo y mándalo.":
+    "Message copied. On Facebook click “Send message”, paste it and send it.",
+  "Se abrió WhatsApp con el mensaje listo; sólo dale enviar.":
+    "WhatsApp opened with the message ready; just hit send.",
+  "Enviado a {name}.":
+    "Sent to {name}.",
+  "Sus anuncios dejan de verse en Cabibee. ¿Seguro?":
+    "Their listings will stop showing on Cabibee. Are you sure?",
+  "No hay más pendientes con {channel}.":
+    "No more pending owners with {channel}.",
+  "Mandar a {n} dueños por {channel}, uno cada {sec} s. ¿Seguir?":
+    "Send to {n} owners by {channel}, one every {sec} s. Continue?",
+  "Listo: {ok} enviados, {failed} fallaron.":
+    "Done: {ok} sent, {failed} failed.",
+  "Sin configurar. Cuando tengas la cuenta de WhatsApp Business, pon las claves en Railway.":
+    "Not set up. Once you have the WhatsApp Business account, put the keys in Railway.",
+  "hoy":
+    "today",
+  "Siguiente en {sec} s":
+    "Next in {sec} s",
+  "Avisar al siguiente":
+    "Notify the next one",
+  "Mandar a todos los pendientes":
+    "Send to all pending",
+  "Mandando por {channel}: {done} de {total}":
+    "Sending by {channel}: {done} of {total}",
+  "{n} fallaron":
+    "{n} failed",
+  "Detener":
+    "Stop",
+  "Último mensaje":
+    "Last message",
+  "No hay cuentas aquí.":
+    "No accounts here.",
+  "Sin anuncios publicados":
+    "No published listings",
+  "Sin contacto":
+    "No contact",
+  "Avisado:":
+    "Notified:",
+  "Marcar…":
+    "Mark…",
+  "Respondió":
+    "Replied",
+  "No quiere (quitar anuncio)":
+    "Doesn't want it (remove listing)",
+  "Por avisar":
+    "To notify",
+  "Avisados":
+    "Notified",
+  "Respondieron":
+    "Replied",
+  "Ya entraron":
+    "Logged in",
+  "No quieren":
+    "Don't want it",
+  "Todos":
+    "All",
+  "Avisado":
+    "Notified",
+  "Ya entró":
+    "Logged in",
+  "No quiere":
+    "Doesn't want it",
+  "Correo":
+    "Email",
+  "WhatsApp Business":
+    "WhatsApp Business",
+  "Avísale a cada dueño que le creamos su anuncio, con su enlace, su usuario y su contraseña temporal. Ve uno por uno y con calma: WhatsApp y Facebook bloquean a quien manda muchos mensajes iguales seguidos. Cabibee pone tope diario y espera entre mensajes.":
+    "Let each owner know we created their listing, with its link, their username and temporary password. Go one by one and take it slow: WhatsApp and Facebook block people who send lots of identical messages in a row. Cabibee sets a daily limit and a wait between messages.",
+  "Si el anuncio sólo muestra el WhatsApp después de dejar un teléfono, el piloto no lo llena: el borrador llega sin contacto y tú decides si lo consigues a mano.":
+    "If the listing only shows the WhatsApp after you leave a phone number, the autopilot doesn't fill it in: the draft arrives without contact and you decide whether to get it by hand.",
+  "Puedes tenerlo trabajando en varias páginas a la vez (una búsqueda por página). Cada página tiene su propio tope diario y espera al menos {sec} segundos entre anuncios. Se salta los que ya están en Cabibee y se detiene solo si el sitio pide iniciar sesión o verificar que eres tú.":
+    "You can have it working on several sites at once (one search per site). Each site has its own daily limit and it waits at least {sec} seconds between listings. It skips the ones already on Cabibee and stops by itself if the site asks you to log in or verify it's you.",
+  "{n} al día":
+    "{n} a day",
+  "Listo: tus anuncios ya no se ven en Cabibee y no te volveremos a escribir.":
+    "Done: your listings no longer show on Cabibee and we won't write to you again.",
+  "No se pudo. Intenta otra vez.":
+    "That didn't work. Try again.",
+  "Quitando…":
+    "Removing…",
+  "Sí, quitar mis anuncios":
+    "Yes, remove my listings",
+  "Quitar mi anuncio de Cabibee":
+    "Remove my listing from Cabibee",
+  "Ya entraste a tu cuenta, así que tú decides: desde tu panel puedes ocultar o borrar tus anuncios cuando quieras.":
+    "You've already logged into your account, so it's your call: from your dashboard you can hide or delete your listings whenever you want.",
+  "Publicamos gratis estos anuncios para que más huéspedes te encuentren. Si no quieres aparecer, los quitamos y no te volvemos a escribir.":
+    "We published these listings for free so more guests can find you. If you don't want to appear, we'll remove them and won't write to you again.",
+  "Sin conexión con WhatsApp":
+    "No connection to WhatsApp",
+  "Esa cuenta no es tuya.":
+    "That account isn't yours.",
+  "El dueño ya entró a su cuenta; no hace falta avisarle.":
+    "The owner already logged into their account; no need to notify them.",
+  "El dueño pidió que no le escribamos.":
+    "The owner asked us not to write to them.",
+  "No tiene WhatsApp.":
+    "No WhatsApp.",
+  "No tiene enlace de Facebook.":
+    "No Facebook link.",
+  "No tiene correo.":
+    "No email.",
+  "WhatsApp Business todavía no está configurado en el servidor.":
+    "WhatsApp Business isn't set up on the server yet.",
+  "no se pudo mandar":
+    "couldn't send",
+  "No se pudo mandar el correo. Revisa el buzón en Admin → Correo.":
+    "Couldn't send the email. Check the mailbox in Admin → Email.",
 };

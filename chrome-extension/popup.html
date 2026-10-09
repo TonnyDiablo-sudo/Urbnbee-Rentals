@@ -23,6 +23,10 @@
       .plus-title span { margin-left: 4px; padding: 1px 6px; border-radius: 4px; background: #ede9fe; color: #6d28d9; font-size: 10px; }
       .plus-btn { background: #6d28d9; color: #fff; }
       .plus-btn.stop { background: #444; }
+      .runs-title { margin: 10px 0 2px; font-size: 11px; font-weight: 700; color: #555; }
+      .run { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+      .run span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      button.mini { width: auto; margin: 0; padding: 3px 8px; font-size: 11px; background: #444; color: #fff; }
     </style>
   </head>
   <body>
@@ -50,10 +54,11 @@
         <div id="autopilot" class="plus hidden">
           <p class="plus-title">Piloto automático <span>PLUS</span></p>
           <p class="hint" id="ap-quota"></p>
-          <p class="hint">Abre una página de resultados (Marketplace → Propiedades en alquiler, Inmuebles24, Lamudi…) y dale Iniciar. Abre los anuncios uno por uno en otra pestaña, a ritmo de persona, y los manda a revisión. No uses esa pestaña mientras trabaja.</p>
+          <p class="hint">Abre una página de resultados (Marketplace → Propiedades en alquiler, Inmuebles24, Lamudi…) y dale Iniciar. Abre los anuncios uno por uno en otra pestaña, a ritmo de persona, y los manda a revisión. No uses esa pestaña mientras trabaja. Puedes tener uno por página a la vez (Facebook, Inmuebles24…); cada página tiene su propio tope.</p>
           <button id="ap-start" class="plus-btn">▶ Iniciar en esta búsqueda</button>
           <button id="ap-stop" class="plus-btn stop hidden">❚❚ Pausar</button>
           <div id="ap-status" class="status hidden"></div>
+          <div id="ap-runs" class="hidden"></div>
         </div>
 
         <button id="edit" class="link">Cambiar token</button>

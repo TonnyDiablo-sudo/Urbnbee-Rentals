@@ -27,25 +27,65 @@ function renderStatus(s, server, boxId = "status") {
   }
 }
 
-function renderAutopilot(ap, server) {
-  const running = ap?.state === "running";
+let currentTabId = null;
+let currentServer = "";
+
+/** El piloto de la pestaña abierta y la lista de todos los que hay (uno por página de búsqueda). */
+function renderRuns(runs) {
+  const mine = currentTabId !== null ? runs?.[String(currentTabId)] : null;
+  const running = mine?.state === "running";
   $("ap-start").classList.toggle("hidden", running);
   $("ap-stop").classList.toggle("hidden", !running);
+
   const box = $("ap-status");
-  if (!ap?.state) {
+  if (!mine?.state) {
     box.className = "status hidden";
-    return;
+  } else {
+    box.className = `status ${mine.state === "error" ? "err" : mine.state === "done" ? "ok" : ""}`;
+    box.textContent = "";
+    const counts = `Creados: ${mine.created || 0} · ya estaban: ${mine.skipped || 0} · fallaron: ${mine.failed || 0}`;
+    box.append(`${mine.site ? `${mine.site}: ` : ""}${mine.message || ""}\n${counts}\n`);
+    if (mine.created && currentServer) {
+      const a = document.createElement("a");
+      a.href = `${currentServer}/asociados`;
+      a.target = "_blank";
+      a.textContent = "Ver borradores por revisar →";
+      box.append(a);
+    }
   }
-  box.className = `status ${ap.state === "error" ? "err" : ap.state === "done" ? "ok" : ""}`;
-  box.textContent = "";
-  const counts = `Creados: ${ap.created || 0} · ya estaban: ${ap.skipped || 0} · fallaron: ${ap.failed || 0}`;
-  box.append(`${ap.message || ""}\n${counts}\n`);
-  if (ap.created && server) {
-    const a = document.createElement("a");
-    a.href = `${server}/asociados`;
-    a.target = "_blank";
-    a.textContent = "Ver borradores por revisar →";
-    box.append(a);
+
+  const list = $("ap-runs");
+  list.textContent = "";
+  const others = Object.entries(runs || {}).filter(([key]) => key !== String(currentTabId));
+  list.classList.toggle("hidden", others.length === 0);
+  if (!others.length) return;
+  const title = document.createElement("p");
+  title.className = "runs-title";
+  title.textContent = "Otras páginas";
+  list.append(title);
+  for (const [key, r] of others) {
+    const row = document.createElement("div");
+    row.className = "run";
+    const label = document.createElement("span");
+    const state = r.state === "running" ? "trabajando" : r.state === "done" ? "terminó" : r.state === "stopped" ? "en pausa" : "se detuvo";
+    label.textContent = `${r.site || "Página"} · ${state} · ${r.created || 0} creados`;
+    label.title = r.message || "";
+    row.append(label);
+    if (r.state === "running") {
+      const btn = document.createElement("button");
+      btn.className = "mini";
+      btn.textContent = "Pausar";
+      btn.addEventListener("click", () => chrome.runtime.sendMessage({ type: "autopilot-stop", tabId: Number(key) }));
+      row.append(btn);
+    }
+    list.append(row);
+  }
+  if (others.some(([, r]) => r.state !== "running")) {
+    const clear = document.createElement("button");
+    clear.className = "link";
+    clear.textContent = "Quitar los que ya terminaron";
+    clear.addEventListener("click", () => chrome.runtime.sendMessage({ type: "autopilot-clear" }));
+    list.append(clear);
   }
 }
 
@@ -61,36 +101,46 @@ async function defaultServer() {
 }
 
 /** La sección del piloto sólo aparece si Cabibee dice que la cuenta es Asociado Plus. */
-async function loadAutopilot(server, token) {
+async function loadAutopilot(server, token, tabUrl) {
   try {
-    const res = await fetch(`${server}/api/associate/autopilot`, { headers: { Authorization: `Bearer ${token}` } });
+    const q = tabUrl && /^https?:/.test(tabUrl) ? `?url=${encodeURIComponent(tabUrl)}` : "";
+    const res = await fetch(`${server}/api/associate/autopilot${q}`, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) return;
     const info = await res.json();
     if (!info.allowed) return;
     $("autopilot").classList.remove("hidden");
-    $("ap-quota").textContent = `Hoy llevas ${info.usedToday} de ${info.dailyLimit}. Espera mínimo ${info.minDelaySec} s entre anuncios.`;
+    $("ap-quota").textContent = info.site
+      ? `En ${info.site} llevas ${info.usedToday} de ${info.dailyLimit} hoy. Espera mínimo ${info.minDelaySec} s entre anuncios.`
+      : `Cada página tiene su propio tope diario. Espera mínimo ${info.minDelaySec} s entre anuncios.`;
   } catch {
     /* sin conexión: la sección se queda oculta */
   }
 }
 
 async function init() {
-  const { server, token, lastImport, autopilot } = await chrome.storage.local.get(["server", "token", "lastImport", "autopilot"]);
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  currentTabId = tab?.id ?? null;
+  const { server, token, lastImport, autopilotRuns } = await chrome.storage.local.get([
+    "server",
+    "token",
+    "lastImport",
+    "autopilotRuns",
+  ]);
+  currentServer = server || "";
   $("server").value = server || (await defaultServer());
   $("token").value = token || "";
   show(server && token ? "import" : "settings");
   renderStatus(lastImport, server);
-  renderAutopilot(autopilot, server);
-  if (server && token) loadAutopilot(server, token);
+  renderRuns(autopilotRuns);
+  if (server && token) loadAutopilot(server, token, tab?.url);
 
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.lastImport) {
-      chrome.storage.local.get("server").then(({ server: s }) => renderStatus(changes.lastImport.newValue, s));
+      renderStatus(changes.lastImport.newValue, currentServer);
       $("go").disabled = changes.lastImport.newValue?.state === "working";
     }
-    if (changes.autopilot) {
-      chrome.storage.local.get("server").then(({ server: s }) => renderAutopilot(changes.autopilot.newValue, s));
-    }
+    if (changes.autopilotRuns) renderRuns(changes.autopilotRuns.newValue);
+    if (changes.server) currentServer = changes.server.newValue || "";
   });
   $("go").disabled = lastImport?.state === "working";
 }
@@ -106,7 +156,8 @@ $("save").addEventListener("click", async () => {
   renderStatus(null, server, "settings-status");
   show("import");
   renderStatus(null);
-  loadAutopilot(server, token);
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  loadAutopilot(server, token, tab?.url);
 });
 
 $("edit").addEventListener("click", () => show("settings"));
@@ -136,15 +187,15 @@ $("go").addEventListener("click", async () => {
 $("ap-start").addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id || !/^https?:/.test(tab.url || "")) {
-    renderAutopilot({ state: "error", message: "Abre primero una página de resultados de búsqueda." });
+    $("ap-status").className = "status err";
+    $("ap-status").textContent = "Abre primero una página de resultados de búsqueda.";
     return;
   }
-  renderAutopilot({ state: "running", message: "Arrancando…" });
   chrome.runtime.sendMessage({ type: "autopilot-start", tabId: tab.id });
 });
 
 $("ap-stop").addEventListener("click", () => {
-  chrome.runtime.sendMessage({ type: "autopilot-stop" });
+  if (currentTabId !== null) chrome.runtime.sendMessage({ type: "autopilot-stop", tabId: currentTabId });
 });
 
 init();

@@ -1,5 +1,5 @@
 import "server-only";
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
+import { openSecret, sealSecret } from "@/lib/secret-box";
 import { findUserById, updateUserAuth } from "@/lib/marketplace-store";
 import type { UserRecord } from "@/lib/marketplace-types";
 
@@ -8,31 +8,9 @@ import type { UserRecord } from "@/lib/marketplace-types";
  * Las demás cuentas sólo guardan el hash. Al asociado se le avisa al cambiarla.
  */
 
-const ALGO = "aes-256-gcm";
-
-function keyBytes(): Buffer {
-  const secret = process.env.SESSION_SECRET?.trim() || "urbnbee-dev-secret-change-in-production";
-  return createHash("sha256").update(`cabibee-associate-passwords:${secret}`).digest();
-}
-
-function encrypt(plain: string): string {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv(ALGO, keyBytes(), iv);
-  const enc = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
-  return `v1:${iv.toString("base64")}:${cipher.getAuthTag().toString("base64")}:${enc.toString("base64")}`;
-}
-
-function decrypt(packed: string): string | null {
-  try {
-    const [ver, ivB64, tagB64, dataB64] = packed.split(":");
-    if (ver !== "v1" || !ivB64 || !tagB64 || !dataB64) return null;
-    const decipher = createDecipheriv(ALGO, keyBytes(), Buffer.from(ivB64, "base64"));
-    decipher.setAuthTag(Buffer.from(tagB64, "base64"));
-    return Buffer.concat([decipher.update(Buffer.from(dataB64, "base64")), decipher.final()]).toString("utf8");
-  } catch {
-    return null;
-  }
-}
+const PURPOSE = "cabibee-associate-passwords";
+const encrypt = (plain: string) => sealSecret(PURPOSE, plain);
+const decrypt = (packed: string) => openSecret(PURPOSE, packed);
 
 /** Llamar cada vez que un asociado fija o usa su contraseña (alta, login, cambio, recuperación). */
 export function rememberAssociatePassword(userId: string, plain: string): void {
