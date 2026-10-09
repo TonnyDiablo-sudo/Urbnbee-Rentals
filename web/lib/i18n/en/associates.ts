@@ -668,4 +668,16 @@ export const associates: Record<string, string> = {
     "The listing URL is missing.",
   "Si el anuncio sólo muestra el WhatsApp después de dejar un teléfono, el piloto llena el formulario con una línea de Cabibee (las da de alta el admin). Si no hay líneas libres o el formulario pide captcha, el borrador llega sin contacto.":
     "If the listing only shows the WhatsApp after you leave a phone number, the autopilot fills the form with a Cabibee line (the admin adds them). If no lines are free or the form asks for a captcha, the draft arrives without contact.",
+  "Si hay correos en la lista, se rotan con el nombre de cada uno; el nombre y correo de arriba sólo se usan si no queda ninguno libre.":
+    "If there are emails in the list, they rotate with each one's name; the name and email above are only used when none are free.",
+  "Agregar correos":
+    "Add emails",
+  "Confirmo que estas líneas y correos son de Cabibee (los contratamos o creamos nosotros) y que recibimos sus mensajes y llamadas.":
+    "I confirm these lines and emails belong to Cabibee (we pay for or created them) and that we receive their messages and calls.",
+  "Correos":
+    "Emails",
+  "¿Quitar este correo?":
+    "Remove this email?",
+  "No encontré correos válidos.":
+    "No valid emails found.",
 };

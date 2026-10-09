@@ -128,6 +128,13 @@ export default async function AdminAssociatesPage() {
           active: p.active,
           usedToday: phoneUses.get(p.id) ?? 0,
         }))}
+        emails={phonesDoc.emails.map((e) => ({
+          id: e.id,
+          email: e.email,
+          name: e.name,
+          active: e.active,
+          usedToday: phoneUses.get(e.id) ?? 0,
+        }))}
         formName={phonesDoc.formName}
         formEmail={phonesDoc.formEmail}
         perPhoneDaily={phonesDoc.perPhoneDaily}

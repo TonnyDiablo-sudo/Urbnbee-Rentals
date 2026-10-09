@@ -159,8 +159,8 @@ export const appGuest: Record<string, string> = {
   "Las notificaciones no están activadas en el servidor.": "Notifications aren't enabled on the server.",
   "Suscripción inválida.": "Invalid subscription.",
   "Entérate al momento": "Get notified instantly",
-  "Te avisamos cuando un huésped te escriba o te llegue una solicitud, aunque tengas la app cerrada.":
-    "We'll let you know when a guest messages you or sends a request, even if the app is closed.",
+  "Te avisamos de mensajes y reservas aunque tengas la app cerrada.":
+    "We'll notify you about messages and bookings even when the app is closed.",
   "Activando…": "Turning on…",
   "Activar avisos": "Turn on notifications",
   "Ahora no": "Not now",

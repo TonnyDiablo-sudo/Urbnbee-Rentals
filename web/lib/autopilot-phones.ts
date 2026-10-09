@@ -4,6 +4,7 @@ import { mxDay } from "@/lib/associate-stats";
 import {
   getAutopilotPhonesDoc,
   recordAutopilotPhoneUse,
+  type AutopilotEmail,
   type AutopilotPhone,
 } from "@/lib/autopilot-phones-store";
 
@@ -56,8 +57,36 @@ export function phoneCountryForUrl(url: string): string | null {
 export function phoneUsesToday(): Map<string, number> {
   const today = mxDay(new Date());
   const out = new Map<string, number>();
-  for (const u of getAutopilotPhonesDoc().uses) if (mxDay(u.at) === today) out.set(u.phoneId, (out.get(u.phoneId) ?? 0) + 1);
+  for (const u of getAutopilotPhonesDoc().uses) {
+    if (mxDay(u.at) !== today) continue;
+    for (const id of [u.phoneId, u.emailId]) if (id) out.set(id, (out.get(id) ?? 0) + 1);
+  }
   return out;
+}
+
+/** «mateo.rivas4827@gmail.com» → «Mateo Rivas». */
+export function nameFromEmail(email: string): string {
+  return email
+    .split("@")[0]
+    .replace(/\d+/g, "")
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+/** Un correo por renglón; el nombre sale del correo. */
+export function parseEmailList(text: string): { emails: { email: string; name: string }[]; invalid: string[] } {
+  const emails: { email: string; name: string }[] = [];
+  const invalid: string[] = [];
+  for (const raw of text.split(/\r?\n|,|;/)) {
+    const email = raw.trim().toLowerCase();
+    if (!email) continue;
+    const name = nameFromEmail(email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !name) invalid.push(raw.trim());
+    else emails.push({ email, name });
+  }
+  return { emails, invalid };
 }
 
 export type PhoneLease =
@@ -72,20 +101,43 @@ export function leaseAutopilotPhone(opts: { url: string; associateId: string }):
   const doc = getAutopilotPhonesDoc();
   const country = phoneCountryForUrl(opts.url);
   if (!country) return { ok: false, reason: "Esta página no pide teléfono." };
-  if (!doc.formName.trim() || !doc.formEmail.trim()) return { ok: false, reason: "Falta el nombre y correo para formularios en Admin → Asociados." };
   const used = phoneUsesToday();
   const site = autopilotSiteOf(opts.url);
-  const lastOnSite = [...doc.uses].reverse().find((u) => u.site === site)?.phoneId;
-  const candidates = doc.phones
-    .filter((p) => p.active && p.country === country && (used.get(p.id) ?? 0) < doc.perPhoneDaily)
-    .sort((a, b) => (used.get(a.id) ?? 0) - (used.get(b.id) ?? 0) || Math.random() - 0.5);
-  const pick: AutopilotPhone | undefined = candidates.find((p) => p.id !== lastOnSite) ?? candidates[0];
+  const last = [...doc.uses].reverse().find((u) => u.site === site);
+  const leastUsed = <T extends { id: string; active: boolean }>(rows: T[], skip?: string): T | undefined => {
+    const free = rows
+      .filter((r) => r.active && (used.get(r.id) ?? 0) < doc.perPhoneDaily)
+      .sort((a, b) => (used.get(a.id) ?? 0) - (used.get(b.id) ?? 0) || Math.random() - 0.5);
+    return free.find((r) => r.id !== skip) ?? free[0];
+  };
+
+  // Correo: uno de la lista con su nombre; si no hay libres, el fijo del admin.
+  const email: AutopilotEmail | undefined = leastUsed(doc.emails, last?.emailId);
+  const identity = email
+    ? { name: email.name, email: email.email }
+    : doc.formName.trim() && doc.formEmail.trim()
+      ? { name: doc.formName.trim(), email: doc.formEmail.trim() }
+      : null;
+  if (!identity) {
+    return {
+      ok: false,
+      reason: doc.emails.length ? "No quedan correos libres hoy." : "Faltan correos para formularios en Admin → Asociados.",
+    };
+  }
+
+  const pick: AutopilotPhone | undefined = leastUsed(doc.phones.filter((p) => p.country === country), last?.phoneId);
   if (!pick) return { ok: false, reason: `No quedan líneas de ${PHONE_COUNTRIES[country]?.name ?? country} libres hoy.` };
-  recordAutopilotPhoneUse({ phoneId: pick.id, at: new Date().toISOString(), site, associateId: opts.associateId, url: opts.url.slice(0, 500) });
+  recordAutopilotPhoneUse({
+    phoneId: pick.id,
+    ...(email ? { emailId: email.id } : {}),
+    at: new Date().toISOString(),
+    site,
+    associateId: opts.associateId,
+    url: opts.url.slice(0, 500),
+  });
   return {
     ok: true,
     phone: { country: pick.country, national: pick.national, e164: `+${pick.country}${pick.national}` },
-    name: doc.formName.trim(),
-    email: doc.formEmail.trim(),
+    ...identity,
   };
 }

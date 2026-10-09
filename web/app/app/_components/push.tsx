@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { Sheet } from "./sheet";
 
 export type PushState =
   | "loading"
@@ -12,7 +13,8 @@ export type PushState =
   | "off"
   | "on";
 
-const DISMISS_KEY = "cabibee_push_prompt_dismissed";
+const SNOOZE_KEY = "cabibee_push_prompt_snooze";
+const SNOOZE_MS = 24 * 60 * 60 * 1000;
 
 function base64UrlToBytes(b64: string): Uint8Array<ArrayBuffer> {
   const pad = "=".repeat((4 - (b64.length % 4)) % 4);
@@ -207,41 +209,56 @@ export function PushToggle() {
   );
 }
 
-/** Tarjeta para "Hoy" del anfitrión: sólo aparece si puede activarlos y no la ha descartado. */
+function snoozed(): boolean {
+  try {
+    const until = Number(localStorage.getItem(SNOOZE_KEY));
+    return Number.isFinite(until) && until > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+function snooze() {
+  try {
+    localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_MS));
+  } catch {
+    /* modo privado */
+  }
+}
+
+/** Hoja al entrar, con sesión y avisos apagados. "Ahora no" los vuelve a ofrecer al día siguiente. */
 export function PushPrompt() {
   const t = useT();
   const { state, busy, error, enable } = usePush();
-  const [dismissed, setDismissed] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
-  // "off" sólo se alcanza en el cliente, así que aquí ya existe localStorage.
-  if (state !== "off" || dismissed || localStorage.getItem(DISMISS_KEY) === "1") return null;
+  useEffect(() => {
+    setReady(!snoozed());
+  }, []);
+
+  const hide = () => {
+    snooze();
+    setHidden(true);
+  };
+
   return (
-    <div className="rounded-2xl border border-[#f1e4a6] bg-[#fffbea] p-4">
-      <p className="text-[15px] font-semibold text-[#222]">{t("Entérate al momento")}</p>
-      <p className="mt-1 text-sm text-[#555]">
-        {t("Te avisamos cuando un huésped te escriba o te llegue una solicitud, aunque tengas la app cerrada.")}
+    <Sheet open={ready && !hidden && state === "off"} onClose={hide} title={t("Entérate al momento")}>
+      <p className="text-sm text-[#555]">
+        {t("Te avisamos de mensajes y reservas aunque tengas la app cerrada.")}
       </p>
       {error && <p className="mt-2 text-sm text-red-600">{t(error)}</p>}
-      <div className="mt-3 flex gap-2">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void enable()}
-          className="rounded-xl bg-[#111] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          {busy ? t("Activando…") : t("Activar avisos")}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            localStorage.setItem(DISMISS_KEY, "1");
-            setDismissed(true);
-          }}
-          className="rounded-xl px-4 py-2.5 text-sm font-medium text-[#717171]"
-        >
-          {t("Ahora no")}
-        </button>
-      </div>
-    </div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void enable()}
+        className="mt-4 w-full rounded-xl bg-[#111] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+      >
+        {busy ? t("Activando…") : t("Activar avisos")}
+      </button>
+      <button type="button" onClick={hide} className="mt-2 w-full rounded-xl px-4 py-3 text-sm font-medium text-[#717171]">
+        {t("Ahora no")}
+      </button>
+    </Sheet>
   );
 }

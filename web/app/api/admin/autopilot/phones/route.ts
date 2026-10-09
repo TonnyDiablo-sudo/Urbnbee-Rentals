@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { MAX_PER_PHONE_DAILY, parsePhoneList } from "@/lib/autopilot-phones";
+import { MAX_PER_PHONE_DAILY, parseEmailList, parsePhoneList } from "@/lib/autopilot-phones";
 import {
+  addAutopilotEmails,
   addAutopilotPhones,
   removeAutopilotPhone,
   saveAutopilotPhoneSettings,
@@ -15,15 +16,22 @@ async function admin() {
   return viewer?.role === "admin" ? viewer : null;
 }
 
-/** Agrega líneas de Cabibee (una por renglón). */
+/** Agrega líneas de Cabibee (una por renglón), o correos con `kind: "emails"`. */
 export async function POST(req: Request) {
   const viewer = await admin();
   if (!viewer) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const body = (await req.json().catch(() => ({}))) as { text?: unknown; confirm?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { text?: unknown; confirm?: unknown; kind?: unknown };
   if (body.confirm !== true) {
     return NextResponse.json({ error: "Confirma que las líneas son de Cabibee y que reciben mensajes." }, { status: 400 });
   }
-  const { phones, invalid } = parsePhoneList(typeof body.text === "string" ? body.text.slice(0, 20000) : "");
+  const text = typeof body.text === "string" ? body.text.slice(0, 20000) : "";
+  if (body.kind === "emails") {
+    const { emails, invalid } = parseEmailList(text);
+    if (!emails.length) return NextResponse.json({ error: "No encontré correos válidos.", invalid }, { status: 400 });
+    const added = addAutopilotEmails(emails, viewer.id);
+    return NextResponse.json({ ok: true, added, repeated: emails.length - added, invalid });
+  }
+  const { phones, invalid } = parsePhoneList(text);
   if (!phones.length) return NextResponse.json({ error: "No encontré números válidos.", invalid }, { status: 400 });
   const added = addAutopilotPhones(phones, viewer.id);
   return NextResponse.json({ ok: true, added, repeated: phones.length - added, invalid });

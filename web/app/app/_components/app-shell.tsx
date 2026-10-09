@@ -22,6 +22,7 @@ import { prefetchHostData } from "../host/_shared/host-data";
 import { GUEST_THREADS_URL, prefetchCached, setCacheOwner } from "./cached-fetch";
 import { useNotificationsSync } from "./notifications";
 import { threadIsUnread } from "./seen";
+import { PushPrompt } from "./push";
 import { UpdateBanner } from "./update-banner";
 
 export type AppUser = { id: string; fullName: string; email: string; role: "guest" | "host" | "admin" } | null;
@@ -116,6 +117,7 @@ export function AppShell({ user, children }: { user: AppUser; children: React.Re
       >
         {children}
       </div>
+      {user && !fullscreen && <PushPrompt />}
       {!fullscreen && (
         <nav
           className="fixed inset-x-0 bottom-0 z-40 border-t border-[#ebebeb] bg-white"

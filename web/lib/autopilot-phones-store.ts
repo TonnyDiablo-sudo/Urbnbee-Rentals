@@ -20,10 +20,14 @@ export type AutopilotPhone = {
   addedBy: string;
 };
 
-export type AutopilotPhoneUse = { phoneId: string; at: string; site: string; associateId: string; url?: string };
+/** Correo de Cabibee con el nombre que se pone junto a él en los formularios. */
+export type AutopilotEmail = { id: string; email: string; name: string; active: boolean; addedAt: string; addedBy: string };
+
+export type AutopilotPhoneUse = { phoneId: string; emailId?: string; at: string; site: string; associateId: string; url?: string };
 
 export type AutopilotPhonesDoc = {
   phones: AutopilotPhone[];
+  emails: AutopilotEmail[];
   uses: AutopilotPhoneUse[];
   formName: string;
   formEmail: string;
@@ -32,7 +36,7 @@ export type AutopilotPhonesDoc = {
 
 const DATA_FILE = join(getDataDir(), "autopilot-phones.json");
 const KEEP_USES_MS = 35 * 86400_000;
-let doc: AutopilotPhonesDoc = { phones: [], uses: [], formName: "", formEmail: "", perPhoneDaily: 8 };
+let doc: AutopilotPhonesDoc = { phones: [], emails: [], uses: [], formName: "", formEmail: "", perPhoneDaily: 8 };
 let cachedMtimeMs = 0;
 
 function reload() {
@@ -41,6 +45,7 @@ function reload() {
     const data = JSON.parse(readFileSync(DATA_FILE, "utf8")) as Partial<AutopilotPhonesDoc>;
     doc = {
       phones: Array.isArray(data.phones) ? data.phones : [],
+      emails: Array.isArray(data.emails) ? data.emails : [],
       uses: Array.isArray(data.uses) ? data.uses : [],
       formName: typeof data.formName === "string" ? data.formName : "",
       formEmail: typeof data.formEmail === "string" ? data.formEmail : "",
@@ -96,20 +101,38 @@ export function addAutopilotPhones(list: { country: string; national: string }[]
   return added;
 }
 
+export function addAutopilotEmails(list: { email: string; name: string }[], addedBy: string): number {
+  syncIfStale();
+  const have = new Set(doc.emails.map((e) => e.email));
+  const now = new Date().toISOString();
+  let added = 0;
+  for (const e of list) {
+    if (have.has(e.email)) continue;
+    have.add(e.email);
+    doc.emails.push({ id: "aem_" + randomBytes(6).toString("hex"), email: e.email, name: e.name, active: true, addedAt: now, addedBy });
+    added++;
+  }
+  if (added) persist();
+  return added;
+}
+
+/** Prende o apaga una línea o un correo. */
 export function updateAutopilotPhone(id: string, patch: { active?: boolean }): boolean {
   syncIfStale();
-  const p = doc.phones.find((x) => x.id === id);
+  const p = doc.phones.find((x) => x.id === id) ?? doc.emails.find((x) => x.id === id);
   if (!p) return false;
   if (typeof patch.active === "boolean") p.active = patch.active;
   persist();
   return true;
 }
 
+/** Quita una línea o un correo. */
 export function removeAutopilotPhone(id: string): boolean {
   syncIfStale();
-  const before = doc.phones.length;
+  const before = doc.phones.length + doc.emails.length;
   doc.phones = doc.phones.filter((p) => p.id !== id);
-  if (doc.phones.length === before) return false;
+  doc.emails = doc.emails.filter((e) => e.id !== id);
+  if (doc.phones.length + doc.emails.length === before) return false;
   persist();
   return true;
 }

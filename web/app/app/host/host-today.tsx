@@ -7,7 +7,6 @@ import { useLang, useT } from "@/components/i18n-provider";
 import { AddressBadgeReminder } from "@/components/host/address-badge-reminder";
 import { TONE_CLS, fmtDay, fmtMxn, hostStatusOf } from "../_components/booking-status";
 import { IconChevron } from "../_components/icons";
-import { PushPrompt } from "../_components/push";
 import { threadIsUnread } from "../_components/seen";
 import { Sheet } from "../_components/sheet";
 import { WebLink } from "../_components/site-origin";
@@ -156,8 +155,6 @@ export function HostToday() {
           <p className="mt-0.5 text-sm text-[#7a6414]">{t("Toma unos minutos: fotos, precio y lo básico. Es gratis.")}</p>
         </Link>
       )}
-
-      <PushPrompt />
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-[#222]">{t("Solicitudes por responder")}</h2>
