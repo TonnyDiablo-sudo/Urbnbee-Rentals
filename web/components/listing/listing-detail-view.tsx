@@ -1,0 +1,421 @@
+import type { ReactNode } from "react";
+import { PhotoGallery } from "@/components/listing/photo-gallery";
+import { ListingNav } from "@/components/listing/listing-nav";
+import { AmenitiesGrid } from "@/components/listing/amenities-grid";
+import { ContactModal } from "@/components/listing/contact-modal";
+import { AvailabilityCalendar } from "@/components/listing/availability-calendar";
+import { ReviewsSection } from "@/components/listing/reviews-section";
+import { AiChatWidget } from "@/components/listing/ai-chat-widget";
+import { PlaceMap } from "@/components/maps/place-map";
+import { ListingHostChat } from "@/components/listing/listing-host-chat";
+import { ShareLinkButton } from "@/components/share-link-button";
+import { SaveHeart } from "@/components/wishlist/save-heart";
+import { UnclaimedNotice } from "@/components/listing/unclaimed-notice";
+import { bathroomsKey, selfCheckInKey } from "@/lib/listing-facts";
+import { discountRows } from "@/lib/listing-pricing";
+import type { HostContact, ListingDetail } from "@/lib/listing-detail-data";
+import { getT } from "@/lib/i18n/server";
+
+type EmailGate = { email?: string; placeholder?: boolean };
+
+/**
+ * Cuerpo de la página pública del anuncio. La vista previa del asociado usa este mismo componente:
+ * en `preview` todo se ve igual, pero lo que escribiría en la base (chat, guardar, reportar) queda inactivo.
+ */
+export async function ListingDetailView({
+  listing,
+  slug,
+  host,
+  canViewContacts,
+  emailGate,
+  bookable,
+  unclaimed,
+  showReport,
+  query = {},
+  preview = false,
+}: {
+  listing: ListingDetail;
+  slug: string;
+  host: HostContact;
+  canViewContacts: boolean;
+  emailGate?: EmailGate;
+  bookable: boolean;
+  unclaimed: boolean;
+  showReport: boolean;
+  query?: { checkIn?: string; checkOut?: string; ref?: string };
+  preview?: boolean;
+}) {
+  const t = await getT();
+  const ruleIcons = [
+    { label: "Fumar", allowed: listing.rules.smoking, icon: "🚬" },
+    { label: "Mascotas", allowed: listing.rules.pets, icon: "🐾" },
+    { label: "Fiestas", allowed: listing.rules.parties, icon: "🎉" },
+    { label: "Niños permitidos", allowed: listing.rules.children, icon: "👶" },
+  ];
+  const contactModal = (
+    <ContactModal
+      host={host}
+      listingId={listing.id}
+      listingSlug={slug}
+      canViewContacts={canViewContacts}
+      emailGate={emailGate}
+      preview={preview}
+    />
+  );
+
+  return (
+    <>
+      {/* Photo gallery */}
+      <PhotoGallery photos={listing.photos} title={listing.title} />
+
+      {/* Sticky nav tabs */}
+      <ListingNav />
+
+      {/* Main content */}
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-10 lg:flex-row lg:gap-12">
+
+          {/* ─── LEFT COLUMN ─── */}
+          <div className="flex-1 min-w-0">
+
+            {/* Title + verified badge */}
+            <div className="flex flex-wrap items-start gap-3">
+              <h1 className="text-2xl font-bold text-[#484848] sm:text-3xl leading-tight">
+                {listing.title}
+              </h1>
+              {listing.identityVerified && (
+                <span className="mt-1 shrink-0 rounded bg-[#1e7a3a] px-3 py-1 text-xs font-semibold text-white">
+                  {t("✓ Identidad verificada")}
+                </span>
+              )}
+              {listing.locationVerified && (
+                <span className="mt-1 shrink-0 rounded bg-[#1d4f91] px-3 py-1 text-xs font-semibold text-white">
+                  {t("📍 Ubicación verificada")}
+                </span>
+              )}
+              {listing.verified && (
+                <span
+                  className="mt-1 rounded px-3 py-1 text-xs font-semibold text-white shrink-0"
+                  style={{ backgroundColor: "#dcb81e" }}
+                >
+                  {t("Miembro verificado")}
+                </span>
+              )}
+            </div>
+
+            {/* Location */}
+            <p className="mt-2 flex items-center gap-1 text-sm text-[#aaa]">
+              <svg className="h-4 w-4 shrink-0" style={{ color: "#dcb81e" }} fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
+              {[listing.zone, listing.city, listing.state, listing.country].filter(Boolean).join(", ")}
+            </p>
+
+            {/* Quick stats */}
+            <div className="mt-4 flex flex-wrap gap-4 text-sm text-[#3a3a3a]">
+              <span>👥 {t(listing.guests === 1 ? "{n} huésped" : "{n} invitados", { n: listing.guests })}</span>
+              <span>🛏 {t(listing.bedrooms === 1 ? "{n} recámara" : "{n} recámaras", { n: listing.bedrooms })}</span>
+              <span>🚿 {t(bathroomsKey(listing.bathrooms, listing.bathroomType), { n: listing.bathrooms })}</span>
+              {listing.size && <span>📐 {listing.size}</span>}
+              {selfCheckInKey(listing.selfCheckIn) && (
+                <span>{listing.selfCheckIn ? "🔑" : "🤝"} {t(selfCheckInKey(listing.selfCheckIn)!)}</span>
+              )}
+            </div>
+
+            <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
+
+            {/* === Descripción === */}
+            <section id="section-descripcion">
+              <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Descripción del anuncio")}</h2>
+              <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
+              <p className="whitespace-pre-line text-sm leading-relaxed text-[#3a3a3a]">
+                {listing.description}
+              </p>
+            </section>
+
+            <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
+
+            {/* === Precio === */}
+            <section id="section-precio">
+              <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Información del Precio")}</h2>
+              <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
+              <div className="rounded border p-5 text-sm" style={{ borderColor: "#ebebeb" }}>
+                <div className="grid gap-2">
+                  {listing.pricePerMonth ? (
+                    <>
+                      <PriceRow label={t("Renta mensual")} value={`$ ${listing.pricePerMonth.toLocaleString("es-MX")}`} />
+                      <PriceRow label={t("Estancia mínima")} value={t("{n} noches", { n: listing.pricing?.minNights ?? 30 })} />
+                    </>
+                  ) : (
+                    <PriceRow label={t("Precio por noche")} value={`$ ${listing.pricePerNight.toLocaleString("es-MX")}`} />
+                  )}
+                  {listing.priceWeekly && <PriceRow label={t("Precio por noche (7d+)")} value={`$ ${listing.priceWeekly}`} />}
+                  {listing.priceMonthly && <PriceRow label={t("Precio por noche (30d+)")} value={`$ ${listing.priceMonthly}`} />}
+                  {listing.cleaningFee && <PriceRow label={t("Tarifa de limpieza")} value={`$ ${listing.cleaningFee} — ${t("Tarifa única")}`} />}
+                  {discountRows(listing.pricing).map((r) => (
+                    <PriceRow key={r.key + JSON.stringify(r.vars ?? {})} label={t(r.key, r.vars)} value={`−${r.pct}%`} />
+                  ))}
+                  {listing.depositMxn ? (
+                    <PriceRow
+                      label={t("Depósito (fuera de Cabibee)")}
+                      value={`$ ${listing.depositMxn.toLocaleString("es-MX")} — ${t("se pacta y entrega entre anfitrión y huésped")}`}
+                    />
+                  ) : null}
+                </div>
+              </div>
+            </section>
+
+            <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
+
+            {/* === Detalles === */}
+            <section id="section-detalles">
+              <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Detalles")}</h2>
+              <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
+              <div className="rounded border p-5 text-sm" style={{ borderColor: "#ebebeb" }}>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <DetailRow
+                    label={t("Verificación")}
+                    value={
+                      listing.verified
+                        ? t("Miembro verificado")
+                        : listing.identityVerified
+                          ? t("Identidad verificada")
+                          : t("Pendiente")
+                    }
+                  />
+                  <DetailRow label={t("ID de propiedad")} value={String(listing.propertyId)} />
+                  {listing.size && <DetailRow label={t("Tamaño")} value={listing.size} />}
+                  <DetailRow label={t("Habitaciones")} value={String(listing.bedrooms)} />
+                  <DetailRow label={t("Dormitorios")} value={String(listing.bedrooms)} />
+                  <DetailRow label={t("Baños")} value={t(bathroomsKey(listing.bathrooms, listing.bathroomType), { n: listing.bathrooms })} />
+                  {selfCheckInKey(listing.selfCheckIn) && (
+                    <DetailRow label={t("Llegada")} value={t(selfCheckInKey(listing.selfCheckIn)!)} />
+                  )}
+                  <DetailRow label={t("Ciudad")} value={listing.city} />
+                  <DetailRow label={t("Zona")} value={listing.zone} />
+                  {listing.county && listing.county !== listing.state && (
+                    <DetailRow label={t("Municipio")} value={listing.county} />
+                  )}
+                  {listing.state && <DetailRow label={t("Estado / provincia")} value={listing.state} />}
+                  <DetailRow label={t("País")} value={listing.country} />
+                  {listing.extras?.breakfast && <DetailRow label={t("Desayuno Incluido")} value={listing.extras.breakfast} />}
+                  {listing.extras?.lateCheckIn && <DetailRow label={t("Entrada Tardía")} value={listing.extras.lateCheckIn} />}
+                  {listing.extras?.cancellation && <DetailRow label={t("Cancelación")} value={listing.extras.cancellation} />}
+                  {listing.extras?.optionalServices && <DetailRow label={t("Servicios Opcionales")} value={listing.extras.optionalServices} />}
+                  {listing.extras?.outdoorFacilities && <DetailRow label={t("Instalaciones Exteriores")} value={listing.extras.outdoorFacilities} />}
+                </div>
+              </div>
+            </section>
+
+            <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
+
+            {/* === Comodidades === */}
+            <section id="section-comodidades">
+              <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Características")}</h2>
+              <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
+              <AmenitiesGrid amenities={listing.amenities} />
+
+              {/* Terms */}
+              <div className="mt-6">
+                <h3 className="mb-3 text-sm font-semibold text-[#484848]">{t("Términos y Condiciones")}</h3>
+                <div className="flex flex-wrap gap-4">
+                  {ruleIcons.map((r) => (
+                    <div key={r.label} className="flex items-center gap-2 text-sm text-[#3a3a3a]">
+                      <span>{r.icon}</span>
+                      <span>{t(r.label)}</span>
+                      <span style={{ color: r.allowed ? "#22c55e" : r.allowed === false ? "#ef4444" : "#aaa" }}>
+                        {r.allowed === true ? t("✓ Permitido") : r.allowed === false ? t("✗ No permitido") : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {(listing.checkInTime || listing.checkOutTime) && (
+                  <p className="mt-3 text-sm text-[#3a3a3a]">
+                    {listing.checkInTime ? `🕒 ${t("Llegada desde las {time}", { time: listing.checkInTime })}` : ""}
+                    {listing.checkInTime && listing.checkOutTime ? " · " : ""}
+                    {listing.checkOutTime ? `🧳 ${t("Salida antes de las {time}", { time: listing.checkOutTime })}` : ""}
+                  </p>
+                )}
+                <p className="mt-1 text-sm text-[#3a3a3a]">👥 {t("Máximo {n} huéspedes", { n: listing.guests })}</p>
+                {listing.houseRules && (
+                  <div className="mt-4 rounded border p-4" style={{ borderColor: "#ebebeb" }}>
+                    <p className="text-sm font-semibold text-[#484848]">{t("Otras reglas del anfitrión")}</p>
+                    <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-[#3a3a3a]">{listing.houseRules}</p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
+
+            {/* === Propietario === */}
+            <section id="section-propietario">
+              <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Propietario")}</h2>
+              <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <img
+                  src={listing.host.avatarUrl}
+                  alt={listing.host.name}
+                  className="h-20 w-20 rounded-full object-cover shrink-0"
+                  style={{ border: "3px solid #dcb81e" }}
+                />
+                <div className="flex-1">
+                  <h3 className="text-base font-semibold text-[#484848]">{listing.host.name}</h3>
+                  {listing.identityVerified && (
+                    <p className="mt-1 text-sm font-medium text-[#1e7a3a]">
+                      🛡️ {t("Perfil verificado: Cabibee comprobó la identidad de este anfitrión con su identificación oficial.")}
+                    </p>
+                  )}
+                  <p className="mt-2 text-sm leading-relaxed text-[#3a3a3a]">{listing.host.bio}</p>
+                </div>
+              </div>
+              <div className="mt-4">{contactModal}</div>
+              {unclaimed && (
+                <div className="mt-3">
+                  <Inert on={preview}>
+                    <UnclaimedNotice listingId={listing.id} t={t} />
+                  </Inert>
+                </div>
+              )}
+              {showReport && (
+                <Inert on={preview}>
+                  <a
+                    href={`/guest/reportes?anuncio=${encodeURIComponent(listing.id)}`}
+                    className="mt-3 inline-block text-xs text-[#999] underline"
+                  >
+                    🚩 {t("Reportar este anuncio o anfitrión")}
+                  </a>
+                </Inert>
+              )}
+            </section>
+
+            <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
+
+            <Inert on={preview}>
+              <ListingHostChat listingId={listing.id} hostName={listing.host.name} emailGate={emailGate} />
+            </Inert>
+
+            <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
+
+            {/* === Mapa === */}
+            <section id="section-mapa">
+              <h2 className="mb-1 text-lg font-semibold text-[#484848]">
+                {listing.exactLocation ? t("Ubicación") : t("Ubicación cercana (No exacta)")}
+              </h2>
+              <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
+              <div className="overflow-hidden rounded" style={{ height: "300px", border: "1px solid #ebebeb" }}>
+                <PlaceMap lat={listing.lat} lng={listing.lng} zoom={15} exact={listing.exactLocation} />
+              </div>
+              {listing.exactLocation && listing.addressLine ? (
+                <p className="mt-2 text-sm text-[#484848]">{listing.addressLine}</p>
+              ) : (
+                <p className="mt-2 text-xs text-[#aaa]">
+                  {t("La dirección exacta se proporciona tras confirmar la reserva.")}
+                </p>
+              )}
+              {listing.locationVerified && (
+                <p className="mt-1 text-xs text-[#1d4f91]">
+                  {t("El anfitrión comprobó con un recibo de servicios que la dirección de este anuncio es real.")}
+                </p>
+              )}
+            </section>
+
+            <hr className="my-6" style={{ borderColor: "#ebebeb" }} />
+
+            {/* === Reseñas === */}
+            <section>
+              <h2 className="mb-1 text-lg font-semibold text-[#484848]">{t("Reseñas")}</h2>
+              <div className="h-[3px] w-10 mb-4" style={{ backgroundColor: "#dcb81e" }} />
+              <ReviewsSection reviews={listing.reviews} summary={listing.reviewSummary} />
+            </section>
+          </div>
+
+          {/* ─── RIGHT SIDEBAR ─── */}
+          <aside className="w-full lg:w-80 xl:w-96 shrink-0">
+            <div className="sticky top-[130px] rounded border p-5" style={{ borderColor: "#ebebeb" }}>
+              {/* Price header */}
+              <div className="mb-1 flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-[#484848]">
+                  $ {(listing.pricePerMonth ?? listing.pricePerNight).toLocaleString("es-MX")}
+                </span>
+                <span className="text-sm text-[#aaa]">{listing.pricePerMonth ? t("/ mes") : t("por noche aprox.")}</span>
+              </div>
+
+              <hr className="mb-4 mt-3" style={{ borderColor: "#ebebeb" }} />
+
+              {/* Calendar */}
+              <AvailabilityCalendar
+                listingId={listing.id}
+                listingSlug={slug}
+                bookable={bookable}
+                initialCheckIn={query.checkIn}
+                initialCheckOut={query.checkOut}
+                bookingRef={query.ref}
+                maxGuests={listing.guests}
+                pricePerNight={listing.pricePerNight}
+                cleaningFee={listing.cleaningFee}
+                depositMxn={listing.depositMxn}
+                tax={listing.tax}
+                instantBook={listing.instantBook !== false}
+                blockedDates={listing.blockedDates}
+                nightlyPriceOverrides={listing.nightlyPriceOverrides}
+                pricing={listing.pricing}
+              />
+
+              <hr className="my-4" style={{ borderColor: "#ebebeb" }} />
+
+              {/* Actions */}
+              <div className="space-y-3">
+                {contactModal}
+                <Inert on={preview}>
+                  <div className="space-y-3">
+                    <SaveHeart
+                      slug={slug}
+                      surface="web"
+                      variant="plain"
+                      className="w-full rounded border border-[#ebebeb] py-2.5 text-sm font-medium text-[#484848] transition hover:border-[#dcb81e] hover:text-[#dcb81e]"
+                    />
+                    <ShareLinkButton
+                      path={`/listings/${slug}`}
+                      title={listing.title}
+                      label={t("↗ Compartir")}
+                      className="w-full rounded border border-[#ebebeb] py-2.5 text-sm font-medium text-[#484848] transition hover:border-[#dcb81e] hover:text-[#dcb81e]"
+                    />
+                  </div>
+                </Inert>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      {/* AI Chat Widget */}
+      <Inert on={preview}>
+        <AiChatWidget listingId={listing.id} listingTitle={listing.title} />
+      </Inert>
+    </>
+  );
+}
+
+/** En la vista previa: se ve igual pero no responde a clics ni al teclado. */
+function Inert({ on, children }: { on: boolean; children: ReactNode }) {
+  return on ? <div inert>{children}</div> : <>{children}</>;
+}
+
+function PriceRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-[#aaa]">{label}:</span>
+      <span className="font-medium text-[#484848]">{value}</span>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[#aaa] shrink-0">{label}:</span>
+      <span className="text-[#484848]">{value}</span>
+    </div>
+  );
+}

@@ -3,6 +3,14 @@ import Image from "next/image";
 import { useState } from "react";
 import { useT } from "@/components/i18n-provider";
 
+/** Con menos de 5 fotos las chicas se estiran para que no queden huecos en blanco. */
+function smallCellClass(count: number, i: number): string {
+  if (count === 1) return "col-span-2 row-span-2";
+  if (count === 2) return "col-span-2";
+  if (count === 3 && i === 0) return "col-span-2";
+  return "";
+}
+
 export function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
   const t = useT();
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
@@ -18,7 +26,7 @@ export function PhotoGallery({ photos, title }: { photos: string[]; title: strin
       <div className="relative grid h-[400px] grid-cols-4 grid-rows-2 gap-1 sm:h-[500px]">
         {/* Main large photo */}
         <div
-          className="col-span-2 row-span-2 cursor-pointer overflow-hidden"
+          className={`${photos.length === 1 ? "col-span-4" : "col-span-2"} row-span-2 cursor-pointer overflow-hidden`}
           onClick={() => open(0)}
         >
           <img
@@ -31,7 +39,7 @@ export function PhotoGallery({ photos, title }: { photos: string[]; title: strin
         {photos.slice(1, 5).map((src, i) => (
           <div
             key={i}
-            className="cursor-pointer overflow-hidden"
+            className={`${smallCellClass(Math.min(photos.length - 1, 4), i)} cursor-pointer overflow-hidden`}
             onClick={() => open(i + 1)}
           >
             <img

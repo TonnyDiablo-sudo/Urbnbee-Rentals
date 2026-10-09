@@ -484,4 +484,24 @@ export const associates: Record<string, string> = {
     "To protect your Facebook account: at most {limit} listings a day and at least {sec} seconds between each. It skips the ones already on Cabibee and stops on its own if Facebook asks you to log in or verify it's you.",
   "No uses otros programas para automatizar ni bajes los tiempos del piloto: Facebook bloquea cuentas que se comportan como bots.":
     "Don't use other automation programs or shorten the autopilot's timing: Facebook blocks accounts that behave like bots.",
+  "No se pudo armar la vista previa.":
+    "Couldn't build the preview.",
+  "Tarjeta en búsquedas":
+    "Search results card",
+  "Computadora":
+    "Computer",
+  "Visitante con cuenta":
+    "Visitor with an account",
+  "Visitante sin cuenta":
+    "Visitor without an account",
+  "Pícale a «Ver datos de contacto del anfitrión» para ver cómo le salen sus contactos.":
+    "Click “See host contact details” to see how their contact info shows up.",
+  "Sin cuenta, la gente tiene que registrarse gratis para ver teléfono y WhatsApp.":
+    "Without an account, people have to sign up for free to see phone and WhatsApp.",
+  "No encontramos la ubicación en el mapa: revisa la ciudad y la colonia, si no el mapa sale en un lugar equivocado.":
+    "We couldn't find the location on the map: check the city and neighborhood, otherwise the map shows the wrong place.",
+  "Armando la vista previa…":
+    "Building the preview…",
+  "La vista previa expiró. Ciérrala y ábrela otra vez.":
+    "The preview expired. Close it and open it again.",
 };

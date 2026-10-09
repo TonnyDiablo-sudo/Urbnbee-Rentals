@@ -246,8 +246,17 @@ export function getPublishedByCategory(category: ListingCategory): HostListingRe
 
 export function createListing(hostId: string, partial?: Partial<HostListingRecord>): HostListingRecord {
   syncStoreFromDiskIfStale();
+  const listing = buildListingRecord(hostId, partial);
+  listingsById.set(listing.id, listing);
+  slugToListingId.set(listing.slug, listing.id);
+  persistToDisk();
+  return listing;
+}
+
+/** El anuncio con todos sus valores por defecto, sin guardarlo (lo usa también la vista previa). */
+export function buildListingRecord(hostId: string, partial?: Partial<HostListingRecord>): HostListingRecord {
   const slug = slugifyTitle(partial?.title || "mi-alojamiento");
-  const listing: HostListingRecord = {
+  return {
     id: id("lst"),
     hostId,
     slug,
@@ -292,10 +301,6 @@ export function createListing(hostId: string, partial?: Partial<HostListingRecor
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
-  listingsById.set(listing.id, listing);
-  slugToListingId.set(listing.slug, listing.id);
-  persistToDisk();
-  return listing;
 }
 
 export function updateListing(

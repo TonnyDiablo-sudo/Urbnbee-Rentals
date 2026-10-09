@@ -3,12 +3,18 @@ import bcrypt from "bcryptjs";
 import { randomInt } from "crypto";
 import { removeSourceShots } from "@/lib/associate-capture";
 import { applyDraftEdits, draftPublishProblems, type DraftEdits } from "@/lib/associate-draft-edits";
-import { getDraft, saveDraft, type AssociateDraft } from "@/lib/associate-drafts-store";
+import { getDraft, saveDraft, type AssociateDraft, type DraftContact } from "@/lib/associate-drafts-store";
 import { removeDraftPhotos } from "@/lib/associate-photos";
+import { listingHasEngine } from "@/lib/booking-engine-slots";
 import { geocodePlace } from "@/lib/geocode";
+import { hostListingToDetail } from "@/lib/host-listing-mapper";
+import { hostCanTakeBookingPayments } from "@/lib/host-stripe";
 import { syncHostBadgeToListings } from "@/lib/host-verification";
+import type { ListingDetail } from "@/lib/listing-detail-data";
 import { draftToListingPartial } from "@/lib/listing-import-llm";
+import type { Listing } from "@/lib/mock-data";
 import {
+  buildListingRecord,
   createListing,
   createUser,
   findUserByEmail,
@@ -17,7 +23,7 @@ import {
   updateUserAuth,
   upsertHostProfile,
 } from "@/lib/marketplace-store";
-import type { UserRecord } from "@/lib/marketplace-types";
+import type { HostListingRecord, HostProfileRecord, UserRecord } from "@/lib/marketplace-types";
 
 export const PLACEHOLDER_EMAIL_DOMAIN = "cuentas.cabibee.com";
 
@@ -108,6 +114,163 @@ function cleanPhone(v: string | undefined): string | undefined {
   return t.length >= 8 ? t.slice(0, 30) : undefined;
 }
 
+function newHostContact(target: Extract<PublishTarget, { kind: "new" }>, contact: DraftContact): Partial<HostProfileRecord> {
+  const phone = cleanPhone(target.phone);
+  return {
+    phone,
+    whatsapp: cleanPhone(target.whatsapp) ?? phone,
+    email: contact.email || target.email?.trim().toLowerCase() || undefined,
+    airbnbUrl: contact.profileUrl,
+  };
+}
+
+/** A una cuenta que ya existe sólo se le llenan los datos de contacto que le faltan. */
+function existingHostContact(profile: HostProfileRecord | undefined, contact: DraftContact): Partial<HostProfileRecord> {
+  return {
+    phone: profile?.phone || cleanPhone(contact.phone),
+    whatsapp: profile?.whatsapp || cleanPhone(contact.whatsapp),
+    email: profile?.email || contact.email,
+    airbnbUrl: profile?.airbnbUrl || contact.profileUrl,
+  };
+}
+
+async function geocodeDraft(draft: AssociateDraft): Promise<{ lat: number; lng: number } | null> {
+  const l = draft.listing;
+  const country = l.country || "México";
+  const tries = [
+    draft.addressMode !== "exact"
+      ? [draft.addressApprox, l.zone, l.city, l.state, country]
+      : [l.addressLine, l.zone, l.city, l.state, country],
+    [l.zone, l.city, l.county, l.state, country],
+    [l.city, l.state, country],
+  ].map((parts) => parts.filter(Boolean).join(", "));
+  for (const q of [...new Set(tries)]) {
+    if (!q || q === country) continue;
+    const coords = await geocodePlace(q);
+    if (coords) return coords;
+  }
+  return null;
+}
+
+/** Lo que se guarda como anuncio publicado; la vista previa usa exactamente lo mismo. */
+function draftListingFields(draft: AssociateDraft, coords: { lat: number; lng: number } | null): Partial<HostListingRecord> {
+  const l = draft.listing;
+  const approximate = draft.addressMode !== "exact";
+  const title = stripLinks(l.title ?? "") || l.title?.trim() || "";
+  return {
+    ...draftToListingPartial({
+      ...l,
+      title,
+      description: l.description ? stripLinks(l.description) : l.description,
+      addressLine: approximate ? "" : l.addressLine,
+    }),
+    ...(approximate && draft.addressApprox ? { addressApprox: draft.addressApprox } : {}),
+    photos: draft.photos,
+    published: true,
+    ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
+  };
+}
+
+export type DraftPreview = {
+  detail: ListingDetail;
+  card: Listing;
+  unclaimed: boolean;
+  bookable: boolean;
+  mapFound: boolean;
+};
+
+/** El anuncio tal como quedaría publicado, sin crear la cuenta ni guardar nada. */
+export async function buildDraftPreview(opts: {
+  associate: UserRecord;
+  draftId: string;
+  edits: DraftEdits;
+  target: PublishTarget;
+}): Promise<{ ok: true; preview: DraftPreview } | { ok: false; error: string; status: number }> {
+  const original = getDraft(opts.draftId);
+  if (!original || (original.associateId !== opts.associate.id && opts.associate.role !== "admin")) {
+    return { ok: false, error: "Borrador no encontrado.", status: 404 };
+  }
+  const allowedPrefix = `/uploads/associate-drafts/${original.id}/`;
+  const draft = applyDraftEdits(original, {
+    ...opts.edits,
+    photos: opts.edits.photos.filter((p) => p.startsWith(allowedPrefix)).slice(0, 40),
+  });
+
+  let user: UserRecord;
+  let profile: HostProfileRecord | undefined;
+  if (opts.target.kind === "existing") {
+    const existing = findUserById(opts.target.hostId);
+    if (!associateCanManageHost(opts.associate, existing)) {
+      return { ok: false, error: "Esa cuenta no es tuya o el dueño ya la reclamó.", status: 403 };
+    }
+    user = existing;
+    const current = getHostProfile(existing.id);
+    profile = { ...(current ?? ({ userId: existing.id } as HostProfileRecord)), ...existingHostContact(current, draft.contact) };
+  } else {
+    const realEmail = opts.target.email?.trim().toLowerCase();
+    user = {
+      id: "usr_preview",
+      email: realEmail || `preview@${PLACEHOLDER_EMAIL_DOMAIN}`,
+      passwordHash: "",
+      fullName: opts.target.fullName.trim() || draft.contact.hostName || "Anfitrión",
+      role: "host",
+      provisionedBy: opts.associate.id,
+      placeholderEmail: !realEmail,
+      createdAt: new Date().toISOString(),
+    } as UserRecord;
+    profile = { userId: user.id, ...newHostContact(opts.target, draft.contact) } as HostProfileRecord;
+  }
+
+  const coords = await geocodeDraft(draft);
+  const record = buildListingRecord(user.id, draftListingFields(draft, coords));
+  const detail = hostListingToDetail(record, { user, profile });
+  return {
+    ok: true,
+    preview: {
+      detail,
+      card: {
+        id: record.id,
+        slug: record.slug,
+        title: detail.title,
+        imageSrc: record.photos[0] ?? "",
+        pricePerNight: detail.pricePerNight,
+        pricePerMonth: detail.pricePerMonth,
+        currency: "MXN",
+        rating: detail.reviewSummary?.avg ?? 0,
+        categoryLabel: detail.category,
+        spaceType: detail.spaceType,
+        guests: detail.guests,
+        bedrooms: detail.bedrooms,
+        bathrooms: detail.bathrooms,
+        verified: detail.verified,
+        identityVerified: detail.identityVerified,
+        locationVerified: detail.locationVerified,
+      },
+      unclaimed: !user.claimedAt,
+      bookable: opts.target.kind === "existing" && listingHasEngine(record) && hostCanTakeBookingPayments(user.id),
+      mapFound: Boolean(coords),
+    },
+  };
+}
+
+/** Destino al publicar: cuenta nueva con los datos del formulario o una cuenta que ya creó el asociado. */
+export function parsePublishTarget(raw: unknown, contact: DraftContact): PublishTarget {
+  const t = (raw ?? {}) as Record<string, unknown>;
+  const str = (v: unknown, max: number) => {
+    if (typeof v !== "string") return undefined;
+    const s = v.replace(/[<>]/g, "").trim().slice(0, max);
+    return s || undefined;
+  };
+  if (t.kind === "existing" && typeof t.hostId === "string") return { kind: "existing", hostId: t.hostId };
+  return {
+    kind: "new",
+    fullName: str(t.fullName, 120) ?? contact.hostName ?? "",
+    email: str(t.email, 160),
+    phone: str(t.phone, 40) ?? contact.phone,
+    whatsapp: str(t.whatsapp, 40) ?? contact.whatsapp,
+  };
+}
+
 function hostHasContact(hostId: string): boolean {
   const p = getHostProfile(hostId);
   return Boolean(p?.phone || p?.whatsapp || p?.email || p?.airbnbUrl);
@@ -136,7 +299,6 @@ export async function publishDraft(opts: {
     saveDraft(draft);
     return { ok: false, error: problems[0], problems, status: 400 };
   }
-  const title = stripLinks(draft.listing.title!) || draft.listing.title!.trim();
   const photos = draft.photos;
   const contact = draft.contact;
   const warnings: string[] = [];
@@ -150,13 +312,7 @@ export async function publishDraft(opts: {
       return { ok: false, error: "Esa cuenta no es tuya o el dueño ya la reclamó.", status: 403 };
     }
     host = existing;
-    const profile = getHostProfile(host.id);
-    upsertHostProfile(host.id, {
-      phone: profile?.phone || cleanPhone(contact.phone),
-      whatsapp: profile?.whatsapp || cleanPhone(contact.whatsapp),
-      email: profile?.email || contact.email,
-      airbnbUrl: profile?.airbnbUrl || contact.profileUrl,
-    });
+    upsertHostProfile(host.id, existingHostContact(getHostProfile(host.id), contact));
   } else {
     const fullName = opts.target.fullName.trim();
     if (fullName.length < 2) return { ok: false, error: "Escribe el nombre del anfitrión.", status: 400 };
@@ -180,43 +336,16 @@ export async function publishDraft(opts: {
       placeholderEmail: !realEmail,
       mustChangePassword: true,
     });
-    upsertHostProfile(host.id, {
-      phone,
-      whatsapp: cleanPhone(opts.target.whatsapp) ?? phone,
-      email: contact.email || realEmail || undefined,
-      airbnbUrl: contact.profileUrl,
-    });
+    upsertHostProfile(host.id, newHostContact(opts.target, contact));
     created = true;
     credentials = { email: loginNameFor(email), password };
   }
 
-  const l = draft.listing;
-  const approximate = draft.addressMode !== "exact";
-  const country = l.country || "México";
-  const tries = [
-    approximate ? [draft.addressApprox, l.zone, l.city, l.state, country] : [l.addressLine, l.zone, l.city, l.state, country],
-    [l.zone, l.city, l.county, l.state, country],
-    [l.city, l.state, country],
-  ].map((parts) => parts.filter(Boolean).join(", "));
-  let coords: { lat: number; lng: number } | null = null;
-  for (const q of [...new Set(tries)]) {
-    if (!q || q === country) continue;
-    coords = await geocodePlace(q);
-    if (coords) break;
-  }
+  const coords = await geocodeDraft(draft);
   if (!coords) warnings.push("No se encontró la ubicación en el mapa; el dueño puede ajustarla en el editor.");
 
   const listing = createListing(host.id, {
-    ...draftToListingPartial({
-      ...l,
-      title,
-      description: l.description ? stripLinks(l.description) : l.description,
-      addressLine: approximate ? "" : l.addressLine,
-    }),
-    ...(approximate && draft.addressApprox ? { addressApprox: draft.addressApprox } : {}),
-    photos,
-    published: true,
-    ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
+    ...draftListingFields(draft, coords),
     source: {
       kind: draft.source.kind,
       url: draft.source.url,

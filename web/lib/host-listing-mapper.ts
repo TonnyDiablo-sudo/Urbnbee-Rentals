@@ -1,5 +1,5 @@
 import "server-only";
-import type { HostListingRecord } from "@/lib/marketplace-types";
+import type { HostListingRecord, HostProfileRecord, UserRecord } from "@/lib/marketplace-types";
 import type { ListingDetail } from "@/lib/listing-detail-data";
 import { listingShowsLocationBadge } from "@/lib/address-proof-access";
 import { isFacebookUrl, siteFor } from "@/lib/associate-link-utils";
@@ -44,9 +44,13 @@ function categoryLabel(key: HostListingRecord["categoryKey"]): string {
   return m[key];
 }
 
-export function hostListingToDetail(record: HostListingRecord): ListingDetail {
-  const user = findUserById(record.hostId);
-  const profile = getHostProfile(record.hostId);
+/** `who` sirve para la vista previa: la cuenta del anfitrión todavía no existe en la base. */
+export function hostListingToDetail(
+  record: HostListingRecord,
+  who?: { user?: UserRecord; profile?: HostProfileRecord }
+): ListingDetail {
+  const user = who ? who.user : findUserById(record.hostId);
+  const profile = who ? who.profile : getHostProfile(record.hostId);
   const photos = record.photos.length ? record.photos : [PLACEHOLDER];
   const exact = record.locationPrecision === "exact";
 

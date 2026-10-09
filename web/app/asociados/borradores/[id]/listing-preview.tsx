@@ -1,39 +1,28 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useT } from "@/components/i18n-provider";
-import type { ListingImportLlmPayload } from "@/lib/listing-import-types";
 
-const GOLD = "#dcb81e";
+type View = "page" | "card";
+type Device = "desktop" | "phone";
+type Viewer = "member" | "guest";
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="border-t border-[#ebebeb] pt-6">
-      <h2 className="mb-1 text-lg font-semibold text-[#484848]">{title}</h2>
-      <div className="mb-4 h-[3px] w-10" style={{ backgroundColor: GOLD }} />
-      {children}
-    </section>
-  );
-}
-
-/** Cómo se verá el anuncio publicado (mismo diseño que /listings/[slug]), con lo que hay ahora en el formulario. */
+/**
+ * Vista previa con la misma página pública del anuncio (`/listings/[slug]`), armada en el servidor con lo que hay
+ * en el formulario y la misma lógica que al publicar: nombre público, contactos, mapa, reglas y detalles.
+ */
 export function ListingPreview({
-  listing: l,
-  photos,
-  hostName,
-  location,
-  exactAddress,
+  draftId,
+  body,
   problems,
   publishLabel,
   publishing,
   onPublish,
   onClose,
 }: {
-  listing: ListingImportLlmPayload;
-  photos: string[];
-  hostName: string;
-  location: string;
-  exactAddress?: string;
+  draftId: string;
+  /** Lo mismo que se manda al publicar: cambios del formulario y cuenta destino. */
+  body: Record<string, unknown>;
   problems: string[];
   publishLabel: string;
   publishing: boolean;
@@ -41,6 +30,36 @@ export function ListingPreview({
   onClose: () => void;
 }) {
   const t = useT();
+  const [url, setUrl] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [mapFound, setMapFound] = useState(true);
+  const [view, setView] = useState<View>("page");
+  const [device, setDevice] = useState<Device>("desktop");
+  const [viewer, setViewer] = useState<Viewer>("member");
+  const [bodyJson] = useState(() => JSON.stringify(body));
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/associate/drafts/${draftId}/preview`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: bodyJson,
+    })
+      .then(async (res) => {
+        const j = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok || typeof j.url !== "string") {
+          setErr(typeof j.error === "string" ? t(j.error) : t("No se pudo armar la vista previa."));
+          return;
+        }
+        setUrl(j.url);
+        setMapFound(j.mapFound !== false);
+      })
+      .catch(() => !cancelled && setErr(t("No se pudo armar la vista previa.")));
+    return () => {
+      cancelled = true;
+    };
+  }, [draftId, bodyJson, t]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -53,19 +72,13 @@ export function ListingPreview({
     };
   }, [onClose]);
 
-  const price = l.pricePerNight ? `$ ${Math.round(l.pricePerNight).toLocaleString("es-MX")}` : "$ —";
-  const rules = [
-    { label: "Fumar", allowed: l.rules?.smoking, icon: "🚬" },
-    { label: "Mascotas", allowed: l.rules?.pets, icon: "🐾" },
-    { label: "Fiestas", allowed: l.rules?.parties, icon: "🎉" },
-    { label: "Niños permitidos", allowed: l.rules?.children, icon: "👶" },
-  ];
-  const [cover, ...rest] = photos;
-  const name = hostName.trim() || t("Anfitrión");
+  const src = url
+    ? `${url}?${new URLSearchParams({ ...(view === "card" ? { vista: "tarjeta" } : {}), ...(viewer === "guest" ? { como: "visitante" } : {}) })}`
+    : null;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/60" role="dialog" aria-modal="true">
-      <div className="flex items-center gap-3 bg-gray-900 px-4 py-3 text-white">
+      <div className="flex flex-wrap items-center gap-3 bg-gray-900 px-4 py-3 text-white">
         <span className="text-sm font-semibold">👁 {t("Vista previa · así lo verá la gente")}</span>
         <span className="hidden text-xs text-gray-400 sm:inline">{t("Todavía no está publicado.")}</span>
         <div className="ml-auto flex items-center gap-2">
@@ -83,151 +96,93 @@ export function ListingPreview({
           </button>
         </div>
       </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white px-4 py-2 text-xs">
+        <Toggle
+          value={view}
+          onChange={setView}
+          options={[
+            ["page", t("Página del anuncio")],
+            ["card", t("Tarjeta en búsquedas")],
+          ]}
+        />
+        <Toggle
+          value={device}
+          onChange={setDevice}
+          options={[
+            ["desktop", `🖥 ${t("Computadora")}`],
+            ["phone", `📱 ${t("Celular")}`],
+          ]}
+        />
+        {view === "page" && (
+          <Toggle
+            value={viewer}
+            onChange={setViewer}
+            options={[
+              ["member", t("Visitante con cuenta")],
+              ["guest", t("Visitante sin cuenta")],
+            ]}
+          />
+        )}
+        {view === "page" && (
+          <span className="text-gray-500">
+            {viewer === "member"
+              ? t("Pícale a «Ver datos de contacto del anfitrión» para ver cómo le salen sus contactos.")
+              : t("Sin cuenta, la gente tiene que registrarse gratis para ver teléfono y WhatsApp.")}
+          </span>
+        )}
+      </div>
+
       {problems.length > 0 && (
         <div className="bg-red-50 px-4 py-2 text-xs text-red-800">
           {t("Falta para publicar:")} {problems.map((p) => t(p)).join(" · ")}
         </div>
       )}
-
-      <div className="flex-1 overflow-y-auto bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">{t("Tarjeta en resultados de búsqueda")}</p>
-          <div className="mb-8 w-64 overflow-hidden rounded-lg border border-[#ebebeb]">
-            {cover ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={cover} alt="" className="aspect-[4/3] w-full object-cover" />
-            ) : (
-              <div className="flex aspect-[4/3] items-center justify-center bg-gray-100 text-xs text-gray-400">{t("Sin fotos")}</div>
-            )}
-            <div className="p-3">
-              <p className="line-clamp-2 text-sm font-semibold text-[#484848]">{l.title || t("Sin título")}</p>
-              <p className="mt-0.5 text-xs text-[#aaa]">{location || "—"}</p>
-              <p className="mt-1 text-sm text-[#484848]">
-                <strong>{price}</strong> <span className="text-[#aaa]">{t("por noche aprox.")}</span>
-              </p>
-            </div>
-          </div>
-
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">{t("Página del anuncio")}</p>
-          <div className="overflow-hidden rounded-lg border border-[#ebebeb]">
-            <div className="grid h-72 grid-cols-4 grid-rows-2 gap-1 sm:h-96">
-              {cover ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={cover}
-                  alt=""
-                  className={`col-span-4 row-span-2 h-full w-full object-cover ${rest.length ? "sm:col-span-2" : ""}`}
-                />
-              ) : (
-                <div className="col-span-4 row-span-2 bg-gray-100" />
-              )}
-              {rest.slice(0, 4).map((p) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={p} src={p} alt="" className="hidden h-full w-full object-cover sm:block" />
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-10 p-6 lg:flex-row">
-              <div className="min-w-0 flex-1 space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold leading-tight text-[#484848] sm:text-3xl">{l.title || t("Sin título")}</h1>
-                  <p className="mt-2 text-sm text-[#aaa]">📍 {location || "—"}</p>
-                  <div className="mt-4 flex flex-wrap gap-4 text-sm text-[#3a3a3a]">
-                    <span>👥 {t("{n} invitados", { n: l.guests ?? "—" })}</span>
-                    <span>🛏 {t("{n} recámaras", { n: l.bedrooms ?? "—" })}</span>
-                    <span>🚿 {t("{n} baños", { n: l.bathrooms ?? "—" })}</span>
-                    {l.spaceType && <span>🏠 {t(l.spaceType)}</span>}
-                  </div>
-                </div>
-
-                <Section title={t("Descripción del anuncio")}>
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-[#3a3a3a]">
-                    {l.description?.trim() || t("Sin descripción todavía.")}
-                  </p>
-                </Section>
-
-                <Section title={t("Información del Precio")}>
-                  <div className="grid gap-2 rounded border border-[#ebebeb] p-5 text-sm">
-                    <Row label={t("Precio por noche")} value={price} />
-                    {l.cleaningFee ? (
-                      <Row label={t("Tarifa de limpieza")} value={`$ ${Math.round(l.cleaningFee).toLocaleString("es-MX")} — ${t("Tarifa única")}`} />
-                    ) : null}
-                  </div>
-                </Section>
-
-                <Section title={t("Características")}>
-                  {l.amenities?.length ? (
-                    <ul className="grid grid-cols-2 gap-2 text-sm text-[#3a3a3a] sm:grid-cols-3">
-                      {l.amenities.map((a) => (
-                        <li key={a}>✓ {a}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-[#aaa]">{t("Sin características.")}</p>
-                  )}
-                  <div className="mt-5 flex flex-wrap gap-4">
-                    {rules.map((r) => (
-                      <div key={r.label} className="flex items-center gap-2 text-sm text-[#3a3a3a]">
-                        <span>{r.icon}</span>
-                        <span>{t(r.label)}</span>
-                        <span style={{ color: r.allowed ? "#22c55e" : "#ef4444" }}>
-                          {r.allowed ? t("✓ Permitido") : t("✗ No permitido")}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-
-                <Section title={t("Propietario")}>
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-xl font-semibold text-gray-500"
-                      style={{ border: `3px solid ${GOLD}` }}
-                    >
-                      {name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-[#484848]">{name}</p>
-                      <p className="text-sm text-[#3a3a3a]">{t("{name} es anfitrión en Cabibee.", { name })}</p>
-                    </div>
-                  </div>
-                </Section>
-
-                <Section title={exactAddress ? t("Ubicación") : t("Ubicación cercana (No exacta)")}>
-                  <p className="text-sm text-[#484848]">{exactAddress || location || "—"}</p>
-                  {!exactAddress && <p className="mt-1 text-xs text-[#aaa]">{t("La dirección exacta se proporciona tras confirmar la reserva.")}</p>}
-                </Section>
-              </div>
-
-              <aside className="w-full shrink-0 lg:w-80">
-                <div className="rounded border border-[#ebebeb] p-5">
-                  <p className="text-2xl font-bold text-[#484848]">
-                    {price} <span className="text-sm font-normal text-[#aaa]">{t("por noche aprox.")}</span>
-                  </p>
-                  <div
-                    className="mt-4 w-full rounded py-3 text-center text-sm font-semibold text-black"
-                    style={{ backgroundColor: GOLD }}
-                  >
-                    {t("Ver datos de contacto del anfitrión")}
-                  </div>
-                </div>
-              </aside>
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-gray-400">
-            {t("Las {n} fotos aparecen en la galería del anuncio. El mapa se arma al publicar con la ubicación.", { n: photos.length })}
-          </p>
+      {url && !mapFound && (
+        <div className="bg-amber-50 px-4 py-2 text-xs text-amber-800">
+          {t("No encontramos la ubicación en el mapa: revisa la ciudad y la colonia, si no el mapa sale en un lugar equivocado.")}
         </div>
+      )}
+
+      <div className="flex flex-1 justify-center overflow-hidden bg-gray-200">
+        {err ? (
+          <p className="self-center rounded-lg bg-white px-4 py-3 text-sm text-red-700">{err}</p>
+        ) : !src ? (
+          <p className="self-center text-sm text-gray-600">{t("Armando la vista previa…")}</p>
+        ) : (
+          <iframe
+            key={src}
+            src={src}
+            title={t("Vista previa del anuncio")}
+            className={`h-full bg-white ${device === "phone" ? "my-3 w-[390px] rounded-2xl border-8 border-gray-900" : "w-full"}`}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Toggle<V extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: V;
+  onChange: (v: V) => void;
+  options: [V, string][];
+}) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <span className="text-[#aaa]">{label}:</span>
-      <span className="font-medium text-[#484848]">{value}</span>
+    <div className="inline-flex overflow-hidden rounded-lg border border-gray-300">
+      {options.map(([v, label]) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          className={`px-2.5 py-1 ${value === v ? "bg-gray-900 text-white" : "bg-white text-gray-700 hover:bg-gray-50"}`}
+        >
+          {label}
+        </button>
+      ))}
     </div>
   );
 }

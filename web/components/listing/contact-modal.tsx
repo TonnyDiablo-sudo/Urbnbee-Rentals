@@ -14,9 +14,11 @@ type Props = {
   canViewContacts: boolean;
   /** Tiene sesión pero falta confirmar el correo. */
   emailGate?: { email?: string; placeholder?: boolean };
+  /** Vista previa del asociado: el anuncio aún no existe, no se cuenta la consulta. */
+  preview?: boolean;
 };
 
-export function ContactModal({ host, listingId, listingSlug, canViewContacts, emailGate }: Props) {
+export function ContactModal({ host, listingId, listingSlug, canViewContacts, emailGate, preview }: Props) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [views, setViews] = useState(0);
@@ -25,7 +27,7 @@ export function ContactModal({ host, listingId, listingSlug, canViewContacts, em
 
   const handleOpen = async () => {
     setOpen(true);
-    if (!canViewContacts) return;
+    if (!canViewContacts || preview) return;
     try {
       const res = await fetch(`/api/listings/${listingId}/contact-view`, { method: "POST" });
       const data = await res.json().catch(() => ({}));

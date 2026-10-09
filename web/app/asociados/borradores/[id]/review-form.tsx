@@ -181,6 +181,14 @@ export function ReviewForm({
     approvedAiFields: approved,
   });
 
+  const publishBody = () => ({
+    ...edits(),
+    target:
+      targetKind === "existing"
+        ? { kind: "existing", hostId }
+        : { kind: "new", fullName, email: email || undefined, phone: contact.phone, whatsapp: contact.whatsapp },
+  });
+
   const problems = useMemo(() => {
     const out: string[] = [];
     if (!l.title?.trim()) out.push("El anuncio necesita título.");
@@ -230,13 +238,7 @@ export function ReviewForm({
     const res = await fetch(`/api/associate/drafts/${draft.id}/publish`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...edits(),
-        target:
-          targetKind === "existing"
-            ? { kind: "existing", hostId }
-            : { kind: "new", fullName, email: email || undefined, phone: contact.phone, whatsapp: contact.whatsapp },
-      }),
+      body: JSON.stringify(publishBody()),
     }).catch(() => null);
     const j = res ? await res.json().catch(() => ({})) : {};
     setBusy(null);
@@ -348,13 +350,8 @@ export function ReviewForm({
     <FieldContext.Provider value={fieldCtx}>
     {previewOpen && (
       <ListingPreview
-        listing={l}
-        photos={photos}
-        hostName={
-          targetKind === "existing" ? (accounts.find((a) => a.id === hostId)?.fullName ?? "") : fullName || contact.hostName || ""
-        }
-        location={[l.zone, l.city, l.state, l.country || "México"].filter(Boolean).join(", ")}
-        exactAddress={addressMode === "exact" ? l.addressLine?.trim() || undefined : undefined}
+        draftId={draft.id}
+        body={publishBody()}
         problems={problems}
         publishLabel={targetKind === "new" ? t("Crear cuenta y publicar") : t("Publicar en esa cuenta")}
         publishing={busy === "publish"}
