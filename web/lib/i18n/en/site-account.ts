@@ -123,8 +123,6 @@ export const siteAccount: Record<string, string> = {
   "Formato no permitido (JPG, PNG, WebP, GIF).": "Format not allowed (JPG, PNG, WebP, GIF).",
 
   // Screening
-  "Si un anfitrión te lo pide, autorizas y pagas aquí. Cabibee no consulta el buró: cobra la consulta y muestra un resumen. El proveedor real se conecta después.":
-    "If a host asks for it, you authorize and pay here. Cabibee doesn't run the credit check itself: it charges for the check and shows a summary. The actual provider is connected later.",
   "Reserva {id}": "Booking {id}",
   "Sin reserva ligada": "No linked booking",
   "Nadie te ha pedido un screening todavía.": "No one has requested a screening from you yet.",

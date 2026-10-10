@@ -1,8 +1,8 @@
 /**
- * Historial crediticio (screening): oculto hasta que un proveedor nos apruebe para consultar.
- * El código sigue ahí; sólo se esconde de huéspedes y anfitriones.
+ * Historial crediticio (screening): se prende con NEXT_PUBLIC_CREDIT_CHECK_ENABLED=1 al compilar.
+ * Aunque esté prendido, la app de Android (TWA) no lo muestra: solo web y PWA. Ver lib/app-shell.ts.
  */
-export const CREDIT_CHECK_ENABLED = false;
+export const CREDIT_CHECK_ENABLED = process.env.NEXT_PUBLIC_CREDIT_CHECK_ENABLED === "1";
 
 /**
  * Compartir ubicación del dispositivo en la verificación de domicilio.

@@ -10,7 +10,7 @@ import { ReviewCategoryInput, categoriesComplete } from "@/components/review-cat
 import { ReviewStatusNote } from "@/components/review-status-note";
 import type { ArrivalGuide } from "@/lib/arrival-guide";
 import type { PayConfirmation, PayInstruction, PayProof } from "@/lib/booking-types";
-import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
+import { useCreditCheckAvailable } from "@/components/credit-check-gate";
 import { TONE_CLS, fmtDay, fmtMxn, guestStatusOf } from "../_components/booking-status";
 import { Sheet } from "../_components/sheet";
 import { WebLink } from "../_components/site-origin";
@@ -63,6 +63,7 @@ function tripEnd(trip: Trip): string {
 
 export function TripsList() {
   const t = useT();
+  const creditCheck = useCreditCheckAvailable();
   const lang = useLang();
   const router = useRouter();
   const params = useSearchParams();
@@ -187,7 +188,7 @@ export function TripsList() {
                 <p className="text-sm text-[#555]">
                   {fmtMxn(trip.estimatedTotalMxn)} · {t("código {code}", { code: trip.token })}
                 </p>
-                {CREDIT_CHECK_ENABLED && trip.screening && (trip.screening.needsConsent || trip.screening.needsPayGuest) && !sec.past && (
+                {creditCheck && trip.screening && (trip.screening.needsConsent || trip.screening.needsPayGuest) && !sec.past && (
                   <div className="mt-3 rounded-xl bg-[#fdf6d8] px-3 py-3 text-sm text-[#5c4a0a]">
                     <p className="font-semibold">{t("Tu anfitrión pide revisar tu historial crediticio")}</p>
                     <p className="mt-0.5">

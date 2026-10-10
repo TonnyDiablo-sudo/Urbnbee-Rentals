@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBookingById } from "@/lib/bookings-store";
-import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 import { runScreeningCheckout } from "@/lib/screening-checkout";
+import { screeningBlocked } from "@/lib/screening-guard";
 import { getScreeningByBooking } from "@/lib/screening-store";
 import { getSessionUser } from "@/lib/session";
 
@@ -9,10 +9,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  if (!CREDIT_CHECK_ENABLED) {
-    return NextResponse.json({ error: "La revisión de historial crediticio todavía no está disponible." }, { status: 403 });
-  }
   const user = await getSessionUser();
+  const blocked = screeningBlocked(req, user);
+  if (blocked) return blocked;
   if (!user || (user.role !== "host" && user.role !== "admin")) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }

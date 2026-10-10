@@ -196,6 +196,11 @@ export function getScreeningBySession(sessionId: string): ScreeningRecord | unde
   return cases.find((c) => c.stripeCheckoutSessionId === sessionId);
 }
 
+export function getScreeningByRefHash(refHash: string): ScreeningRecord | undefined {
+  syncCases();
+  return cases.find((c) => c.providerRefHash === refHash);
+}
+
 export function findReusableGuestScreening(guestUserId: string, withinDays = 90): ScreeningRecord | undefined {
   const cutoff = Date.now() - withinDays * 24 * 60 * 60 * 1000;
   return listScreeningsForGuest(guestUserId).find(

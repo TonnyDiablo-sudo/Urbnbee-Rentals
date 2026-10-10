@@ -337,6 +337,25 @@ export function notifyHostScreeningReady(p: { hostId: string; guestName: string 
   });
 }
 
+export function notifyGuestScreeningAuthorize(guestUserId: string): void {
+  notifyUser(guestUserId, {
+    kind: "request",
+    title: "Confirma la consulta de crédito",
+    body: "Abre Cabibee en la web y confirma con tu NIP en la página del proveedor. Sin eso el anfitrión no ve el resultado.",
+    url: "/guest/screening",
+    tag: "screening-authorize",
+  });
+}
+
+export function notifyGuestScreeningDone(guestUserId: string): void {
+  notifyUser(guestUserId, {
+    kind: "request",
+    title: "Tu consulta de crédito terminó",
+    body: "El anfitrión ya puede ver el resumen. Cabibee no guarda tu reporte completo.",
+    url: "/guest/screening",
+  });
+}
+
 const starsOf = (rating: number) => "★".repeat(Math.max(1, Math.min(5, Math.round(rating))));
 
 export function notifyHostNewReview(p: { hostId: string; listingId: string; bookingId: string; guestName: string; rating: number }): void {

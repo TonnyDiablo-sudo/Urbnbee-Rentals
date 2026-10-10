@@ -15,7 +15,7 @@ import { ACCESS_CODE_MAX, type ArrivalGuide } from "@/lib/arrival-guide";
 import { arrivalMessageOf, type ArrivalMessageSettings } from "@/lib/arrival-message-template";
 import { StayMessagesEditor } from "@/components/host/stay-messages-editor";
 import { stayMessagesOf, type StayMessagesSettings } from "@/lib/stay-messages-template";
-import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
+import { useCreditCheckAvailable } from "@/components/credit-check-gate";
 import { LongStayDiscountFields } from "@/components/host/long-stay-discount-fields";
 import {
   MONTHLY_RENTAL_NIGHTS,
@@ -58,6 +58,7 @@ const CATEGORY_OPTIONS: { key: ListingCategory; label: string }[] = [
 export function ListingEditor({ listingId }: { listingId: string }) {
   const searchParams = useSearchParams();
   const t = useT();
+  const creditCheck = useCreditCheckAvailable();
   const [tab, setTab] = useState<Tab>(() => {
     const q = searchParams.get("tab");
     return TABS.find((x) => x.id === q)?.id ?? "fotos";
@@ -1124,7 +1125,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 <span>
                   <span className="font-medium text-[#484848]">{t("Validar cada solicitud")}</span>
                   <span className="mt-1 block text-xs text-[#888]">
-                    {CREDIT_CHECK_ENABLED
+                    {creditCheck
                       ? t("Cuando aceptas, el huésped recibe el contrato, cómo pagarte y, si lo pediste, la liga del historial crediticio.")
                       : t("Cuando aceptas, el huésped recibe el contrato y cómo pagarte.")}
                   </span>
@@ -1145,7 +1146,7 @@ export function ListingEditor({ listingId }: { listingId: string }) {
                 </span>
               </label>
             </div>
-            {CREDIT_CHECK_ENABLED && (
+            {creditCheck && (
             <div className="mt-4 rounded-lg border border-[#ddd] bg-white p-3">
               <label className="flex cursor-pointer items-start gap-3 text-sm">
                 <input

@@ -1,5 +1,6 @@
+import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 import type { Lang } from "@/lib/i18n";
-import type { TermsDoc } from "@/lib/terms";
+import type { TermsDoc, TermsSection } from "@/lib/terms";
 
 const ES: TermsDoc = {
   title: "Aviso de privacidad de Cabibee",
@@ -177,6 +178,29 @@ const EN: TermsDoc = {
   ],
 };
 
+const CREDIT_SECTION: Record<Lang, TermsSection> = {
+  es: {
+    title: "Historial crediticio (sólo en la web)",
+    paragraphs: [
+      "Si un anfitrión lo pide para una reserva y tú lo autorizas, Cabibee solicita tu reporte de crédito a un buró de crédito por medio de un proveedor autorizado. La consulta la confirmas tú con tu NIP en la página del proveedor; Cabibee no ve tu NIP.",
+      "Cabibee no guarda el reporte ni el score. Sólo guarda el resumen (apto, revisar o no recomendado), la fecha, tu consentimiento y la dirección IP desde la que lo diste. El anfitrión de esa reserva sólo ve el resumen.",
+      "Puedes negar la consulta. En ese caso el anfitrión no ve ningún resultado y decide si sigue con la reserva. Esta función se ofrece en cabibee.com y en la aplicación web, no en la aplicación de Android.",
+    ],
+  },
+  en: {
+    title: "Credit history (web only)",
+    paragraphs: [
+      "If a host asks for it on a booking and you authorize it, Cabibee requests your credit report from a credit bureau through an authorized provider. You confirm the check with your PIN on the provider's page; Cabibee never sees your PIN.",
+      "Cabibee does not keep the report or the score. It keeps only the summary (approved, review, or not recommended), the date, your consent, and the IP address you gave it from. The host of that booking only sees the summary.",
+      "You can refuse the check. In that case the host sees no result and decides whether to continue with the booking. This feature is offered on cabibee.com and the web app, not in the Android app.",
+    ],
+  },
+};
+
 export function privacyDoc(lang: Lang): TermsDoc {
-  return lang === "en" ? EN : ES;
+  const doc = lang === "en" ? EN : ES;
+  if (!CREDIT_CHECK_ENABLED) return doc;
+  const sections = [...doc.sections];
+  sections.splice(4, 0, CREDIT_SECTION[lang === "en" ? "en" : "es"]);
+  return { ...doc, sections };
 }

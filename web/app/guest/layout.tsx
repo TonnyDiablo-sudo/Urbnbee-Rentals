@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { VerifyEmailBox } from "@/components/account/purchase-prereqs";
 import { SiteHeader } from "@/components/site-header";
 import { isPlaceholderEmail } from "@/lib/associate-provision";
-import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
+import { CreditCheckGate } from "@/components/credit-check-gate";
 import { getT } from "@/lib/i18n/server";
 import { getSessionUser } from "@/lib/session";
 
@@ -51,14 +51,14 @@ export default async function GuestLayout({ children }: { children: React.ReactN
             >
               {t("Mis gastos")}
             </Link>
-            {CREDIT_CHECK_ENABLED && (
+            <CreditCheckGate>
               <Link
                 href="/guest/screening"
                 className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"
               >
                 {t("Screening")}
               </Link>
-            )}
+            </CreditCheckGate>
             <Link
               href="/guest/messages"
               className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#484848] hover:bg-black hover:text-white lg:rounded-lg lg:px-3"

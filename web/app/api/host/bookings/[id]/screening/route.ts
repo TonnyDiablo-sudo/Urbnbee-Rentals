@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBookingById } from "@/lib/bookings-store";
-import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
+import { resumeBureauScreenings } from "@/lib/screening-bureau";
+import { screeningBlocked } from "@/lib/screening-guard";
 import { getSessionUser } from "@/lib/session";
 import {
   canRequestScreening,
@@ -24,6 +25,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (!booking || booking.hostId !== user.id) {
     return NextResponse.json({ error: "No encontrada." }, { status: 404 });
   }
+  resumeBureauScreenings();
   const row = getScreeningByBooking(booking.id);
   return NextResponse.json({
     screening: row ? screeningHostView(row) : null,
@@ -33,10 +35,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  if (!CREDIT_CHECK_ENABLED) {
-    return NextResponse.json({ error: "La revisión de historial crediticio todavía no está disponible." }, { status: 403 });
-  }
   const user = await getSessionUser();
+  const blocked = screeningBlocked(req, user);
+  if (blocked) return blocked;
   if (!user || (user.role !== "host" && user.role !== "admin")) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }

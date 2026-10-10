@@ -179,10 +179,6 @@ export const admin: Record<string, string> = {
   "Cada producto tiene plazo de 1, 6 y 12 meses. El monto es lo que se cobra por período (6 meses = 6 × el precio mensual de ese plazo). Todo se renueva solo al vencer.":
     "Each product has 1-, 6- and 12-month terms. The amount is what's charged per period (6 months = 6 × that term's monthly price). Everything renews automatically when it expires.",
   "Screening de huésped": "Guest screening",
-  "Lo que se cobra es el costo del proveedor más el margen de Cabibee. El anfitrión elige si lo paga él o se lo cobra al huésped. El buró real se enchufa después.":
-    "The charge is the provider's cost plus Cabibee's margin. The host chooses whether to pay it or pass it to the guest. The real credit bureau gets plugged in later.",
-  "Apagado: huéspedes y anfitriones no lo ven hasta que un proveedor nos apruebe (CREDIT_CHECK_ENABLED en lib/feature-flags.ts).":
-    "Off: guests and hosts won't see it until a provider approves us (CREDIT_CHECK_ENABLED in lib/feature-flags.ts).",
   "Precio guardado, pero el producto en Stripe falló: {error}": "Price saved, but the Stripe product failed: {error}",
   "sin producto en Stripe": "no Stripe product",
   "Se ofrece": "Offered",

@@ -1,4 +1,4 @@
-export const SCREENING_CONSENT_VERSION = "cabibee_screening_v1";
+export const SCREENING_CONSENT_VERSION = "cabibee_screening_v2";
 
 export const SCREENING_KIND = "guest_screening";
 
@@ -6,8 +6,12 @@ export type ScreeningStatus =
   | "requested"
   | "consented"
   | "paid"
+  | "authorizing"
+  | "processing"
   | "completed"
   | "failed";
+
+export type ScreeningProvider = "simulated" | "pending" | "kibai";
 
 export type ScreeningBand = "apto" | "revisar" | "no_recomendado" | "pendiente_proveedor";
 
@@ -31,8 +35,18 @@ export type ScreeningRecord = {
   currency?: "mxn" | "usd";
   stripeCheckoutSessionId?: string;
   band?: ScreeningBand;
-  provider: "simulated" | "pending";
+  provider: ScreeningProvider;
   providerNote?: string;
+  /** Referencia del proveedor, cifrada con sealSecret. */
+  providerRefSealed?: string;
+  /** sha256 de la referencia, para encontrar el caso cuando llega el webhook. */
+  providerRefHash?: string;
+  /** Liga del formulario donde el huésped confirma con su NIP, cifrada. Se borra al terminar. */
+  providerFormSealed?: string;
+  providerAttempts?: number;
+  providerStartedAt?: string;
+  providerCheckedAt?: string;
+  providerCompletedAt?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -70,12 +84,15 @@ export type ScreeningPublicView = {
   needsConsent: boolean;
   needsPayGuest: boolean;
   needsPayHost: boolean;
+  needsBureauForm: boolean;
 };
 
 export const SCREENING_STATUS_LABEL: Record<ScreeningStatus, string> = {
   requested: "El anfitrión lo pidió",
   consented: "Autorizado, falta el pago",
   paid: "Pagado",
+  authorizing: "Falta que el huésped confirme con su NIP",
+  processing: "El buró está procesando la consulta",
   completed: "Listo",
   failed: "No se pudo completar",
 };

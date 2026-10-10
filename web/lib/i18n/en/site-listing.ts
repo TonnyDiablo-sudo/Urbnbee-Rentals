@@ -243,8 +243,6 @@ export const siteListing: Record<string, string> = {
   "sin precio en el catálogo": "no price in the catalog",
   "No se pudo completar.": "Could not complete.",
   "Screening de crédito": "Credit screening",
-  "Cabibee pide el reporte a un proveedor y cobra su costo más un margen. El expediente no se queda aquí: el anfitrión solo ve un resumen. No somos el buró.":
-    "Cabibee requests the report from a provider and charges its cost plus a margin. The file isn't stored here: the host only sees a summary. We are not the credit bureau.",
   "El anfitrión lo pidió": "Requested by the host",
   "Autorizado, falta el pago": "Authorized, payment pending",
   Pagado: "Paid",

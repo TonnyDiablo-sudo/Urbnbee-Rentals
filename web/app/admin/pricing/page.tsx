@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
+import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
 import { numberLocale, type TFn } from "@/lib/i18n";
 
 type Billing = { kind: "one_time" } | { kind: "subscription"; intervalCount: number };
@@ -217,13 +218,15 @@ export default function AdminPricingPage() {
           </h2>
           <p className="mb-4 max-w-3xl text-sm text-gray-500">
             {t(
-              "Lo que se cobra es el costo del proveedor más el margen de Cabibee. El anfitrión elige si lo paga él o se lo cobra al huésped. El buró real se enchufa después."
+              "Lo que se cobra es el costo del proveedor más el margen de Cabibee. El anfitrión elige si lo paga él o se lo cobra al huésped. El huésped confirma con su NIP en la página del proveedor."
             )}
           </p>
           <p className="mb-4 max-w-3xl rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            {t(
-              "Apagado: huéspedes y anfitriones no lo ven hasta que un proveedor nos apruebe (CREDIT_CHECK_ENABLED en lib/feature-flags.ts)."
-            )}
+            {CREDIT_CHECK_ENABLED
+              ? t("Prendido en web y PWA. La app de Android no lo muestra.")
+              : t(
+                  "Apagado: huéspedes y anfitriones no lo ven. Se prende con NEXT_PUBLIC_CREDIT_CHECK_ENABLED=1 y las llaves del proveedor (CREDIT_BUREAU_PROVIDER, KIBAI_API_URL, KIBAI_API_KEY, KIBAI_WEBHOOK_SECRET)."
+                )}
           </p>
           {data.screening && (
             <ScreeningCard screening={data.screening} onSaved={() => void load()} />

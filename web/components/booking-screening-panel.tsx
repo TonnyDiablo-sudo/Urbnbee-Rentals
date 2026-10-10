@@ -7,8 +7,9 @@ import {
   SCREENING_PAYER_LABEL,
   SCREENING_STATUS_LABEL,
 } from "@/lib/screening-types";
+import { useCreditCheckAvailable } from "@/components/credit-check-gate";
 import { useT } from "@/components/i18n-provider";
-import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
+import { appShellHeaders } from "@/lib/app-shell";
 
 export function BookingScreeningPanel({
   bookingId,
@@ -32,8 +33,9 @@ export function BookingScreeningPanel({
   const [err, setErr] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [payer, setPayer] = useState<ScreeningPayer>("host");
+  const available = useCreditCheckAvailable();
 
-  if (!CREDIT_CHECK_ENABLED) return null;
+  if (!available) return null;
   if (role === "host" && !screening && !canRequest) return null;
   if (role === "guest" && !screening) return null;
 
@@ -50,7 +52,7 @@ export function BookingScreeningPanel({
       const res = await fetch(url, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...appShellHeaders() },
         body: body ? JSON.stringify(body) : undefined,
       });
       const data = await res.json().catch(() => ({}));
@@ -76,7 +78,7 @@ export function BookingScreeningPanel({
     <div className="mt-4 rounded-lg border border-[#ebebeb] bg-white p-4 text-sm">
       <p className="font-semibold text-[#484848]">{t("Screening de crédito")}</p>
       <p className="mt-1 text-xs text-[#888]">
-        {t("Cabibee pide el reporte a un proveedor y cobra su costo más un margen. El expediente no se queda aquí: el anfitrión solo ve un resumen. No somos el buró.")}
+        {t("Cabibee pide el reporte a un proveedor autorizado y cobra su costo más un margen. El huésped confirma con su NIP. El reporte no se queda aquí: el anfitrión solo ve un resumen. No somos el buró.")}
       </p>
 
       {screening && (
@@ -145,7 +147,7 @@ export function BookingScreeningPanel({
               onChange={(e) => setAccepted(e.target.checked)}
               className="mt-0.5 accent-[#dcb81e]"
             />
-            <span>{consentText}</span>
+            <span>{consentText ? t(consentText) : ""}</span>
           </label>
           <button
             type="button"
@@ -188,6 +190,30 @@ export function BookingScreeningPanel({
             {busy ? t("Abriendo cobro…") : t("Pagar screening")}
           </button>
         </div>
+      )}
+
+      {role === "guest" && screening?.needsBureauForm && (
+        <div className="mt-3">
+          <p className="text-xs text-[#888]">
+            {t("Último paso: confirma la consulta con tu NIP en la página del proveedor. Cabibee no ve tu NIP.")}
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            className="mt-2 rounded bg-[#dcb81e] px-4 py-2 text-xs font-semibold text-black disabled:opacity-50"
+            onClick={() => void post(`/api/guest/screening/${screening.id}/bureau-form`)}
+          >
+            {busy ? t("Abriendo…") : t("Confirmar con mi NIP")}
+          </button>
+        </div>
+      )}
+
+      {role === "host" && screening?.status === "authorizing" && (
+        <p className="mt-3 text-xs text-[#888]">{t("Pagado. Falta que el huésped confirme con su NIP.")}</p>
+      )}
+
+      {screening?.status === "processing" && (
+        <p className="mt-3 text-xs text-[#888]">{t("El buró está procesando la consulta. Te avisamos cuando esté el resultado.")}</p>
       )}
 
       {role === "host" && screening?.needsPayGuest && (

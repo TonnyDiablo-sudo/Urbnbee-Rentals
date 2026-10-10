@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
+import { AppShellMarker } from "@/components/credit-check-gate";
 import { LangProvider } from "@/components/i18n-provider";
 import { TermsGate } from "@/components/legal/terms-gate";
 import { VisitBeacon } from "@/components/visit-beacon";
@@ -40,6 +41,7 @@ export default async function RootLayout({
           <TermsGate />
         </LangProvider>
         <VisitBeacon />
+        <AppShellMarker />
       </body>
     </html>
   );

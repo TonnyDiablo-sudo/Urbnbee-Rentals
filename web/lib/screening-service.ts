@@ -28,14 +28,15 @@ import {
   type ScreeningQuote,
   type ScreeningRecord,
 } from "@/lib/screening-types";
+import { bureauConfigured, queueBureauStart } from "@/lib/screening-bureau";
 import type { VerificationRegion } from "@/lib/verification-types";
 
 export const SCREENING_CONSENT_TEXT =
-  "Autorizo a Cabibee a pedir un screening de crédito o antecedentes a un proveedor externo, solo para esta reserva o para mostrar un resumen al anfitrión. Cabibee no es el buró: no guarda el expediente completo, solo el resultado resumido (apto / revisar / no recomendado), la fecha y este consentimiento. Puedo negar el permiso; en ese caso el anfitrión no verá screening.";
+  "Autorizo a Cabibee a pedir mi reporte de crédito a un buró de crédito, por medio de un proveedor autorizado, solo para esta reserva. La consulta la confirmo yo con mi NIP en la página del proveedor. Cabibee no es el buró: no guarda el reporte ni el score, solo el resumen (apto / revisar / no recomendado), la fecha y este consentimiento. El anfitrión solo ve el resumen. Puedo negar el permiso; en ese caso el anfitrión no verá resultado.";
 
 export function screeningPublicView(row: ScreeningRecord): ScreeningPublicView {
   const paid = Boolean(row.paidAt) || row.status === "paid" || row.status === "completed";
-  const showBand = row.status === "completed" || row.status === "paid";
+  const showBand = row.status === "completed";
   const payer = screeningPayerOf(row);
   const awaitingPay = Boolean(row.consentedAt) && !paid && row.status !== "failed";
   return {
@@ -51,6 +52,7 @@ export function screeningPublicView(row: ScreeningRecord): ScreeningPublicView {
     needsConsent: !row.consentedAt && (row.status === "requested" || row.status === "consented"),
     needsPayGuest: awaitingPay && payer === "guest",
     needsPayHost: awaitingPay && payer === "host",
+    needsBureauForm: row.status === "authorizing",
   };
 }
 
@@ -150,6 +152,21 @@ export function completeScreeningAfterPayment(
   const row = getScreeningById(id);
   if (!row) return undefined;
   const quote = screeningQuote(opts.currency === "usd" ? "us" : "mx");
+  if (!opts.simulated && bureauConfigured()) {
+    const next = patchScreening(id, {
+      status: "paid",
+      paidAt: row.paidAt ?? new Date().toISOString(),
+      paidByUserId: opts.paidByUserId ?? row.paidByUserId,
+      amountCharged: opts.amount,
+      providerCostCharged: opts.providerCost ?? quote.providerCost,
+      markupCharged: opts.markup ?? quote.markup,
+      currency: opts.currency,
+      stripeCheckoutSessionId: opts.sessionId ?? row.stripeCheckoutSessionId,
+      providerNote: "Pago recibido. Estamos iniciando la consulta con el proveedor.",
+    });
+    queueBureauStart(id);
+    return next;
+  }
   const band: ScreeningBand = opts.simulated ? "revisar" : "pendiente_proveedor";
   if (row.hostId && row.status !== "completed") {
     notifyHostScreeningReady({ hostId: row.hostId, guestName: guestNameFor(row) });
@@ -203,7 +220,7 @@ export function settleScreeningCheckoutSession(session: Stripe.Checkout.Session)
   if (!row) {
     return { ok: false, status: 404, error: "Screening no encontrado." };
   }
-  if (row.status === "completed" && row.paidAt) {
+  if (row.paidAt) {
     return { ok: true, kind: "already_settled", screening: row };
   }
   const amount = (session.amount_total ?? 0) / 100;

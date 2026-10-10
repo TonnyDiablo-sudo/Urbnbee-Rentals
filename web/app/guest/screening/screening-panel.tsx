@@ -63,7 +63,7 @@ export function GuestScreeningPanel() {
     <div className="max-w-3xl">
       <h1 className="text-2xl font-semibold text-[#484848]">{t("Screening")}</h1>
       <p className="mt-2 text-sm text-[#888]">
-        {t("Si un anfitrión te lo pide, autorizas y pagas aquí. Cabibee no consulta el buró: cobra la consulta y muestra un resumen. El proveedor real se conecta después.")}
+        {t("Si un anfitrión te lo pide, autorizas aquí y confirmas con tu NIP en la página del proveedor. Cabibee solo guarda el resumen, nunca tu reporte completo ni tu score.")}
       </p>
       {err && <p className="mt-4 text-sm text-red-600">{t(err)}</p>}
       <div className="mt-8 space-y-4">

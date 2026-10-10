@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resumeBureauScreenings } from "@/lib/screening-bureau";
 import { getSessionUser } from "@/lib/session";
 import { SCREENING_CONSENT_TEXT, screeningPublicView, screeningQuote } from "@/lib/screening-service";
 import { listScreeningsForGuest } from "@/lib/screening-store";
@@ -12,6 +13,7 @@ export async function GET(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  resumeBureauScreenings();
   const region = verificationRegionFromRequest(req);
   return NextResponse.json({
     cases: listScreeningsForGuest(user.id).map(screeningPublicView),

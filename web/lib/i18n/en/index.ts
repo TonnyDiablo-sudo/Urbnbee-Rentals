@@ -33,6 +33,7 @@ import { contractPayment } from "./contract-payment";
 import { addressIncluded } from "./address-included";
 import { alarmsPromo } from "./alarms-promo";
 import { cleaningFlow } from "./cleaning-flow";
+import { creditBureau } from "./credit-bureau";
 
 /** Clave: el texto exacto en español que aparece en el código. */
 export const EN: Record<string, string> = {
@@ -71,4 +72,5 @@ export const EN: Record<string, string> = {
   ...addressIncluded,
   ...alarmsPromo,
   ...cleaningFlow,
+  ...creditBureau,
 };

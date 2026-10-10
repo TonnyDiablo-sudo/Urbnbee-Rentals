@@ -10,7 +10,7 @@ import { ACCESS_CODE_MAX, type ArrivalGuide } from "@/lib/arrival-guide";
 import { arrivalMessageOf, type ArrivalMessageSettings } from "@/lib/arrival-message-template";
 import { StayMessagesEditor } from "@/components/host/stay-messages-editor";
 import { stayMessagesOf, type StayMessageRule, type StayMessagesSettings } from "@/lib/stay-messages-template";
-import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
+import { useCreditCheckAvailable } from "@/components/credit-check-gate";
 import { bathroomsKey, selfCheckInKey } from "@/lib/listing-facts";
 import { isMonthlyRental } from "@/lib/listing-pricing";
 import { getContractTemplate } from "@/lib/booking-contract-templates";
@@ -140,6 +140,7 @@ function TaxPanel({ chargeTax, onChange, approval }: { chargeTax: boolean; onCha
 /** Un anuncio a la manera de Airbnb: «Tu espacio» y «Guía de llegada», cada sección se edita por separado. */
 export function ListingHub({ listingId }: { listingId: string }) {
   const t = useT();
+  const creditCheck = useCreditCheckAvailable();
   const router = useRouter();
   const detail = useCached<{ listing?: HostListing }>(HOST_URLS.listing(listingId));
   const taxData = useCached<{ tax: HostTaxSettings | null }>(TAX_URL).data;
@@ -374,10 +375,10 @@ export function ListingHub({ listingId }: { listingId: string }) {
             label={t("Cómo se reserva")}
             value={
               listing.bookingApprovalMode === "instant"
-                ? CREDIT_CHECK_ENABLED && listing.requireCreditCheck
+                ? creditCheck && listing.requireCreditCheck
                   ? t("Reservación inmediata · pide historial")
                   : t("Reservación inmediata")
-                : CREDIT_CHECK_ENABLED && listing.requireCreditCheck
+                : creditCheck && listing.requireCreditCheck
                   ? t("Tú apruebas · pide historial")
                   : t("Tú apruebas cada solicitud")
             }
@@ -648,6 +649,7 @@ function PanelBody({
   onPhotos: (l: HostListing) => void;
 }) {
   const t = useT();
+  const creditCheck = useCreditCheckAvailable();
   const [draft, setDraft] = useState(() => ({
     title: listing.title,
     categoryKey: listing.categoryKey,
@@ -1222,7 +1224,7 @@ function PanelBody({
                   [
                     "approval",
                     "Tú apruebas cada solicitud",
-                    CREDIT_CHECK_ENABLED
+                    creditCheck
                       ? "Cuando aceptas, el huésped recibe el contrato, cómo pagarte y, si lo pediste, la liga del historial crediticio."
                       : "Cuando aceptas, el huésped recibe el contrato y cómo pagarte.",
                   ],
@@ -1239,7 +1241,7 @@ function PanelBody({
                   <span className="mt-0.5 block text-sm text-[#717171]">{t(hint)}</span>
                 </button>
               ))}
-              {CREDIT_CHECK_ENABLED && (
+              {creditCheck && (
               <div className="mt-4 rounded-2xl border border-[#ebebeb] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[15px] font-semibold text-[#222]">{t("Pedir historial crediticio")}</span>

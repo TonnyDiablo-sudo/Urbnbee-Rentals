@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runScreeningCheckout } from "@/lib/screening-checkout";
+import { bureauFormUrlFor } from "@/lib/screening-bureau";
 import { screeningBlocked } from "@/lib/screening-guard";
 import { getScreeningById } from "@/lib/screening-store";
 import { getSessionUser } from "@/lib/session";
@@ -19,11 +19,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!row || row.guestUserId !== user.id) {
     return NextResponse.json({ error: "No encontrado." }, { status: 404 });
   }
-  return runScreeningCheckout(req, {
-    screening: row,
-    payerUser: user,
-    expectedPayer: "guest",
-    successPath: "/guest/screening?paid=1",
-    cancelPath: "/guest/screening",
-  });
+  const url = bureauFormUrlFor(row);
+  if (!url) {
+    return NextResponse.json({ error: "Esta consulta ya no necesita tu NIP." }, { status: 409 });
+  }
+  return NextResponse.json({ checkoutUrl: url }, { headers: { "Cache-Control": "no-store" } });
 }

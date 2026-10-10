@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLang, useT } from "@/components/i18n-provider";
-import { CREDIT_CHECK_ENABLED } from "@/lib/feature-flags";
+import { useCreditCheckAvailable } from "@/components/credit-check-gate";
 import { SCREENING_BAND_LABEL, SCREENING_PAYER_LABEL, SCREENING_STATUS_LABEL } from "@/lib/screening-types";
 import { TONE_CLS, fmtDay, fmtMxn, hostStatusOf } from "../../_components/booking-status";
 import { Sheet } from "../../_components/sheet";
@@ -29,6 +29,7 @@ export function ReservationSheet({
   onReview?: (b: HostBooking) => void;
 }) {
   const t = useT();
+  const creditCheck = useCreditCheckAvailable();
   const lang = useLang();
   const [accepting, setAccepting] = useState<HostBooking | null>(null);
   const [rejecting, setRejecting] = useState(false);
@@ -129,7 +130,7 @@ export function ReservationSheet({
           <ContractPayBox key={`${booking.id}-${booking.status}`} booking={booking} onDone={onClose} />
         )}
 
-        {CREDIT_CHECK_ENABLED && booking.guestUserId && !CLOSED_STATUSES.has(booking.status) && (
+        {creditCheck && booking.guestUserId && !CLOSED_STATUSES.has(booking.status) && (
           <ScreeningBox bookingId={booking.id} />
         )}
 
